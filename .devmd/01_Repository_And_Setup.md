@@ -118,8 +118,25 @@ pytest tests -q
 ## Completion placeholder
 
 ```text
-Status: TODO
+Status: DONE (2026-05-17)
+
 Implemented files:
+- .env.example                       (added FINSKILLOS_* OS-style env vars alongside legacy APP_ENV/DATA_DIR keys)
+- finskillos/config.py               (extended Settings: base_currency, target_value: Decimal, default_account_name; FINSKILLOS_ENV overrides APP_ENV; added reset_settings_cache())
+- tests/conftest.py                  (new: clean_env fixture strips FinSkillOS env vars, redirects DATA_DIR to tmp_path, resets the Settings cache around each test)
+- tests/unit/test_repository_setup.py (new: 6 smoke tests covering defaults, FINSKILLOS_* overrides, invalid target rejection, postgres URL parse, sqlite engine + session factory build, .env.example key coverage)
+
 Notes:
+- docker-compose.yml, requirements.txt, pyproject.toml, alembic.ini, finskillos/db/{session,base}.py were already scaffolded in the v2.1 P0 commit and are compatible with this slice; no changes needed there.
+- Settings still honors the older APP_ENV / DATA_DIR / CACHE_DIR / EXPORT_DIR keys so existing tooling keeps working; FINSKILLOS_ENV takes precedence when both are set.
+- target_value is parsed as decimal.Decimal so downstream Goal Tracker logic (which already uses Decimal) stays exact.
+- Engine smoke test deliberately uses sqlite+pysqlite to keep the test infra-free; the postgres URL is parsed via SQLAlchemy's make_url but not connected to.
+
+Verification:
+- python3 -m compileall app.py finskillos  ✅ (no errors)
+- python3 -m pytest tests -q               ✅ (12 passed; full suite incl. existing goal/regime tests + 6 new slice-01 tests)
+
 Known issues:
+- requirements.txt lists psycopg[binary]; not needed for the slice-01 smoke tests but required before slice 02 / Alembic migrations are run against a real PostgreSQL.
+- python3-venv is not installed on this WSL image, so the .venv path in pyproject is currently satisfied by user-site installs of python-dotenv / sqlalchemy / pytest.
 ```

@@ -1,184 +1,3483 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FinSkillOS v2.1 OS Mockup</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #101418;
-        --panel: #171d23;
-        --line: #2b343d;
-        --text: #e9eef2;
-        --muted: #91a0ad;
-        --accent: #4fb286;
-        --warn: #e0a458;
-        --danger: #d85c5c;
-      }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinSkillOS v2.1</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060910;
+  --bg1: #0a0f16;
+  --bg2: #0f1820;
+  --bg3: #152030;
+  --bg4: #1a2840;
+  --b0: #111e2e;
+  --b1: #1a2d42;
+  --b2: #243d58;
+  --b3: #2e4e6e;
+  --cyan:    #00e5ff;
+  --cyan2:   #00b4cc;
+  --amber:   #ffb800;
+  --amber2:  #e08000;
+  --green:   #00ff88;
+  --green2:  #00cc66;
+  --red:     #ff3b5c;
+  --red2:    #cc2040;
+  --purple:  #a855f7;
+  --purple2: #7c3aed;
+  --teal:    #00d4b0;
+  --blue:    #3b8bff;
+  --t0: #e8f4ff;
+  --t1: #a8c8e8;
+  --t2: #6090b8;
+  --t3: #385878;
+  --t4: #203848;
+  --font: 'JetBrains Mono', monospace;
+  --head: 'Space Grotesk', sans-serif;
+  --glow-c: 0 0 30px rgba(0,229,255,0.3);
+  --glow-a: 0 0 30px rgba(255,184,0,0.3);
+  --glow-g: 0 0 30px rgba(0,255,136,0.25);
+  --glow-r: 0 0 30px rgba(255,59,92,0.35);
+  --noise-op: 0.025;
+  --scan-op: 1;
+  --scan-color: rgba(0,20,40,0.15);
+}
 
-      * {
-        box-sizing: border-box;
-      }
+/* ── LIGHT THEME ── */
+:root[data-theme="light"] {
+  --bg:  #eef1f6;
+  --bg1: #ffffff;
+  --bg2: #f4f7fb;
+  --bg3: #e9eef5;
+  --bg4: #dde4ee;
+  --b0:  #e2e8f0;
+  --b1:  #cfd8e3;
+  --b2:  #b4c1d1;
+  --b3:  #95a5b9;
+  --cyan:    #0093a8;
+  --cyan2:   #006c7c;
+  --amber:   #c47a00;
+  --amber2:  #9a5e00;
+  --green:   #00964e;
+  --green2:  #006e3a;
+  --red:     #d6294a;
+  --red2:    #a01a36;
+  --purple:  #7826c8;
+  --purple2: #5c1ba0;
+  --teal:    #008f74;
+  --blue:    #1e6cd6;
+  --t0: #0a1828;
+  --t1: #2a3a52;
+  --t2: #4e6080;
+  --t3: #708098;
+  --t4: #a0adc0;
+  --glow-c: 0 0 16px rgba(0,147,168,0.20);
+  --glow-a: 0 0 16px rgba(196,122,0,0.20);
+  --glow-g: 0 0 16px rgba(0,150,78,0.18);
+  --glow-r: 0 0 16px rgba(214,41,74,0.22);
+  --noise-op: 0.018;
+  --scan-op: 0.35;
+  --scan-color: rgba(120,140,170,0.12);
+}
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: var(--bg);
-        color: var(--text);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
+/* ── MATERIAL / REFERENCE THEME ── */
+:root[data-theme="material"] {
+  --bg:  #121212;
+  --bg1: #1E1E1E;
+  --bg2: #242526;
+  --bg3: #2A2B2D;
+  --bg4: #323335;
+  --b0:  #2a2b2d;
+  --b1:  #3b3d3f;
+  --b2:  #444746;
+  --b3:  #5a5d5c;
+  --cyan:    #A8C7FA;
+  --cyan2:   #8AB4F8;
+  --amber:   #FDE293;
+  --amber2:  #E0BC5E;
+  --green:   #81C995;
+  --green2:  #6FAF81;
+  --red:     #F2B8B5;
+  --red2:    #D68F8A;
+  --purple:  #C58AF9;
+  --purple2: #A56CE0;
+  --teal:    #7ADCC8;
+  --blue:    #8AB4F8;
+  --t0: #E3E3E3;
+  --t1: #C4C7C5;
+  --t2: #A2A5A4;
+  --t3: #8E918F;
+  --t4: #6E7170;
+  --font: 'Roboto Mono', monospace;
+  --head: 'Noto Sans KR', sans-serif;
+  --glow-c: 0 0 18px rgba(168,199,250,0.18);
+  --glow-a: 0 0 18px rgba(253,226,147,0.16);
+  --glow-g: 0 0 18px rgba(129,201,149,0.14);
+  --glow-r: 0 0 18px rgba(242,184,181,0.18);
+  --noise-op: 0.0;
+  --scan-op: 0.0;
+  --scan-color: rgba(255,255,255,0);
+}
 
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        height: 56px;
-        padding: 0 20px;
-        border-bottom: 1px solid var(--line);
-        background: #12181e;
-      }
+*{margin:0;padding:0;box-sizing:border-box;}
 
-      main {
-        display: grid;
-        grid-template-columns: 220px 1fr;
-        min-height: calc(100vh - 56px);
-      }
+/* Smooth theme switch (skip canvas + bars to avoid flicker) */
+body, .tray, .panel, .ph, .col, .nav-btn, .sys-pill, .cmd-hint,
+.mcard, .guard-card, .aq-item, .ctab, .ti, .ev, .ev-cal,
+.mk-sym, .mk-sym-icon, .mk-search, .mk-tools, .mk-tools-btn,
+.mk-header, .mk-tf, .mk-chip, .mk-quote, .mk-rsi-head, .mk-tab,
+.protocol-card, .os-chip, .cmd-row, .cmd-box, .boot-log {
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
 
-      nav {
-        border-right: 1px solid var(--line);
-        padding: 16px;
-        color: var(--muted);
-      }
+/* ── BOOT SCREEN ── */
+#boot {
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:9999;transition:opacity 0.6s ease;
+}
+#boot.done{opacity:0;pointer-events:none;}
+.boot-logo{
+  font-family:var(--head);font-size:42px;font-weight:700;
+  color:var(--cyan);letter-spacing:0.15em;text-shadow:var(--glow-c);
+  margin-bottom:8px;
+}
+.boot-ver{font-size:11px;color:var(--t3);letter-spacing:0.3em;margin-bottom:40px;}
+.boot-log{
+  width:500px;height:120px;overflow:hidden;
+  font-size:11px;color:var(--t2);line-height:1.8;
+  border:1px solid var(--b1);border-radius:4px;padding:12px 16px;
+  background:var(--bg1);
+}
+.boot-bar{
+  width:500px;height:3px;background:var(--bg2);
+  border-radius:2px;margin-top:16px;overflow:hidden;
+}
+.boot-bar-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--cyan2),var(--cyan));
+  box-shadow:var(--glow-c);border-radius:2px;
+  transition:width 0.1s;
+}
 
-      nav div {
-        padding: 10px 8px;
-      }
+/* ── NOISE OVERLAY ── */
+#noise{
+  position:fixed;inset:0;pointer-events:none;z-index:9000;
+  opacity:var(--noise-op);
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 
-      .workspace {
-        padding: 20px;
-        display: grid;
-        gap: 16px;
-        grid-template-columns: repeat(12, 1fr);
-      }
+/* ── SCANLINES ── */
+#scan{
+  position:fixed;inset:0;pointer-events:none;z-index:9001;
+  opacity:var(--scan-op);
+  background:repeating-linear-gradient(0deg,transparent,transparent 1px,var(--scan-color) 1px,var(--scan-color) 2px);
+}
 
-      .window {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 16px;
-      }
+body{
+  background:var(--bg);
+  color:var(--t0);
+  font-family:var(--font);
+  font-size:12px;
+  height:100vh;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
 
-      .wide {
-        grid-column: span 8;
-      }
+/* ── TRAY ── */
+.tray{
+  height:38px;
+  background:var(--bg1);
+  border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;
+  padding:0 14px;
+  gap:0;
+  flex-shrink:0;
+  backdrop-filter:blur(20px);
+  position:relative;z-index:100;
+  overflow-x:hidden;
+  min-width:0;
+}
+.tray-logo{
+  display:flex;align-items:center;gap:9px;
+  padding-right:20px;border-right:1px solid var(--b1);margin-right:12px;
+}
+.logo-mark{
+  width:22px;height:22px;
+  background:linear-gradient(135deg,var(--cyan2),var(--cyan));
+  border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--glow-c);
+}
+.logo-mark svg{width:13px;height:13px;}
+.logo-text{
+  font-family:var(--head);font-size:14px;font-weight:700;
+  letter-spacing:0.05em;color:var(--t0);
+}
+.logo-text em{color:var(--cyan);font-style:normal;}
 
-      .side {
-        grid-column: span 4;
-      }
+.nav{
+  display:flex;align-items:stretch;gap:1px;
+  flex:1 1 0;min-width:0;
+  overflow:hidden;
+  mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);
+}
+.nav-btn{
+  display:flex;align-items:center;gap:7px;
+  padding:0 10px;height:38px;
+  font-size:10px;font-weight:500;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all 0.15s;
+  white-space:nowrap;
+}
+.nav-btn:hover{color:var(--t1);background:var(--bg2);}
+.nav-btn.active{
+  color:var(--cyan);
+  border-bottom-color:var(--cyan);
+  background:rgba(0,229,255,0.04);
+}
+.nav-indicator{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0.5;}
+.nav-btn.active .nav-indicator{opacity:1;box-shadow:0 0 6px currentColor;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 
-      .full {
-        grid-column: 1 / -1;
-      }
+.tray-right{
+  margin-left:14px;
+  display:flex;align-items:center;gap:14px;
+  flex-shrink:0;
+}
+.sys-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:3px 10px;
+  border-radius:3px;
+  font-size:9px;letter-spacing:0.1em;
+  border:1px solid;
+}
+.sys-pill.ok{background:rgba(0,255,136,0.06);border-color:rgba(0,255,136,0.2);color:var(--green);}
+.sys-pill.warn{background:rgba(255,184,0,0.06);border-color:rgba(255,184,0,0.2);color:var(--amber);}
+.sys-pill-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s infinite;}
+.tray-time{font-size:11px;color:var(--t1);letter-spacing:0.06em;}
 
-      .kpis {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-      }
+/* ── TICKER ── */
+.ticker{
+  height:26px;
+  background:var(--bg1);
+  border-bottom:1px solid var(--b0);
+  overflow:hidden;position:relative;flex-shrink:0;
+}
+.ticker::before,.ticker::after{
+  content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;
+}
+.ticker::before{left:0;background:linear-gradient(90deg,var(--bg1),transparent);}
+.ticker::after{right:0;background:linear-gradient(-90deg,var(--bg1),transparent);}
+.ticker-scroll{
+  display:flex;align-items:center;gap:28px;
+  animation:scroll 40s linear infinite;
+  white-space:nowrap;padding:0 80px;height:100%;
+}
+@keyframes scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.ti{display:flex;align-items:center;gap:7px;font-size:10px;}
+.ti-sym{color:var(--t0);font-weight:600;}
+.ti-px{color:var(--t2);}
+.ti-ch{font-weight:600;}
+.ti-ch.up{color:var(--green);}
+.ti-ch.dn{color:var(--red);}
+.ti-sep{color:var(--b2);font-size:8px;}
 
-      .metric {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 12px;
-      }
+/* ── WORKSPACE ── */
+.workspace{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
+.page{
+  position:absolute;inset:0;
+  display:none;
+  opacity:0;
+  transition:opacity 0.25s;
+  overflow:hidden;
+}
+.page.active{display:flex;opacity:1;}
 
-      .label {
-        color: var(--muted);
-        font-size: 13px;
-      }
+/* ── PANEL GRID ── */
+.grid-3{
+  display:grid;
+  grid-template-columns:272px 1fr 288px;
+  height:100%;
+  overflow:hidden;
+}
+.grid-2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  height:100%;
+  overflow:hidden;
+}
+.col{
+  display:flex;flex-direction:column;gap:0;
+  border-right:1px solid var(--b0);
+  overflow:hidden;
+}
+.col:last-child{border-right:none;}
+.col-body{
+  flex:1;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;
+  padding:12px;
+}
+.col-body::-webkit-scrollbar{width:3px;}
+.col-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
 
-      .value {
-        margin-top: 8px;
-        font-size: 24px;
-        font-weight: 700;
-      }
+/* ── PANEL ── */
+.panel{
+  background:var(--bg1);
+  border:1px solid var(--b1);
+  border-radius:6px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.ph{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 11px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--b0);
+}
+.wc-group{display:flex;gap:4px;margin-right:4px;}
+.wc{width:8px;height:8px;border-radius:50%;cursor:pointer;transition:filter 0.15s;}
+.wc:hover{filter:brightness(1.5);}
+.wc.r{background:#ff5f57;}
+.wc.y{background:#febc2e;}
+.wc.g{background:#28c840;}
+.ph-title{font-size:9px;letter-spacing:0.14em;color:var(--t3);text-transform:uppercase;flex:1;}
+.ph-badge{
+  font-size:8px;padding:2px 7px;border-radius:3px;
+  letter-spacing:0.06em;font-weight:600;
+}
+.b-c{background:rgba(0,229,255,.12);color:var(--cyan);border:1px solid rgba(0,229,255,.25);}
+.b-a{background:rgba(255,184,0,.12);color:var(--amber);border:1px solid rgba(255,184,0,.25);}
+.b-g{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2);}
+.b-r{background:rgba(255,59,92,.12);color:var(--red);border:1px solid rgba(255,59,92,.25);}
+.b-p{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.25);}
 
-      .ok {
-        color: var(--accent);
-      }
+/* ── METRIC CARDS ── */
+.mcard-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;}
+.mcard{
+  background:var(--bg2);
+  border:1px solid var(--b1);
+  border-radius:5px;
+  padding:10px 12px;
+  position:relative;overflow:hidden;
+  cursor:default;
+  transition:border-color 0.2s,transform 0.15s;
+}
+.mcard:hover{border-color:var(--b2);transform:translateY(-1px);}
+.mcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.mcard.mc{--ac:var(--cyan);}
+.mcard.ma{--ac:var(--amber);}
+.mcard.mg{--ac:var(--green);}
+.mcard.mr{--ac:var(--red);}
+.mcard::before{background:linear-gradient(90deg,var(--ac,transparent),transparent);}
+.ml{font-size:8px;letter-spacing:0.14em;color:var(--t3);text-transform:uppercase;margin-bottom:6px;}
+.mv{font-family:var(--head);font-size:22px;font-weight:700;letter-spacing:-0.02em;line-height:1;color:var(--ac,var(--t0));}
+.ms{font-size:9px;color:var(--t2);margin-top:4px;}
+.ms .u{color:var(--green);}
+.ms .d{color:var(--red);}
 
-      .warn {
-        color: var(--warn);
-      }
+/* ── GOAL ── */
+.goal-wrap{padding:12px;}
+.goal-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;}
+.goal-pct-big{
+  font-family:var(--head);font-size:36px;font-weight:700;
+  color:var(--cyan);letter-spacing:-0.03em;
+  text-shadow:var(--glow-c);
+}
+.goal-info{text-align:right;}
+.goal-sub{font-size:9px;color:var(--t3);letter-spacing:0.1em;text-transform:uppercase;}
+.goal-days{font-size:18px;font-weight:700;color:var(--green);}
+.goal-track{
+  height:8px;background:var(--bg2);border-radius:4px;
+  border:1px solid var(--b1);overflow:hidden;margin-bottom:10px;
+  position:relative;
+}
+.goal-fill-bar{
+  height:100%;width:73.4%;
+  background:linear-gradient(90deg,var(--cyan2) 0%,var(--cyan) 60%,#88eeff 100%);
+  border-radius:4px;
+  box-shadow:0 0 14px rgba(0,229,255,0.5);
+  position:relative;
+  animation:goalGlow 3s ease-in-out infinite;
+}
+@keyframes goalGlow{
+  0%,100%{box-shadow:0 0 14px rgba(0,229,255,0.5);}
+  50%{box-shadow:0 0 28px rgba(0,229,255,0.8);}
+}
+.goal-fill-bar::after{
+  content:'';
+  position:absolute;right:0;top:0;bottom:0;width:20px;
+  background:linear-gradient(-90deg,rgba(255,255,255,0.15),transparent);
+}
+.goal-amounts{display:flex;justify-content:space-between;font-size:10px;}
+.gc{color:var(--t0);font-weight:600;}
+.gt{color:var(--t3);}
 
-      .danger {
-        color: var(--danger);
-      }
+/* ── PHASE PHASES ── */
+.phase-row{display:flex;gap:4px;padding:0 12px 12px;}
+.phase-dot{
+  flex:1;height:4px;border-radius:2px;background:var(--bg2);
+  border:1px solid var(--b1);
+}
+.phase-dot.done{background:var(--cyan2);border-color:var(--cyan);box-shadow:0 0 6px var(--cyan2);}
+.phase-dot.cur{background:linear-gradient(90deg,var(--cyan2),transparent);border-color:var(--cyan);animation:phasePulse 1.5s infinite;}
+@keyframes phasePulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 
-      @media (max-width: 900px) {
-        main {
-          grid-template-columns: 1fr;
-        }
+/* ── REGIME ── */
+.regime-big{
+  margin:10px;border-radius:5px;border:1px solid;
+  padding:12px;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;
+  overflow:hidden;min-width:0;
+}
+.regime-big.rok{background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.25);}
+.regime-big.rcau{background:rgba(255,184,0,.06);border-color:rgba(255,184,0,.25);}
+.regime-big.rpanic{background:rgba(255,59,92,.06);border-color:rgba(255,59,92,.25);}
+.regime-ico{font-size:28px;width:34px;min-width:34px;text-align:center;}
+.regime-body{min-width:0;overflow:hidden;}
+.regime-name{
+  font-family:var(--head);font-size:15px;font-weight:700;
+  letter-spacing:0.04em;line-height:1;margin-bottom:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.regime-big.rok .regime-name{color:var(--green);}
+.regime-big.rcau .regime-name{color:var(--amber);}
+.regime-mode{font-size:9px;color:var(--t2);letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.regime-conf-box{text-align:center;min-width:52px;justify-self:end;}
+.rconf-val{
+  font-family:var(--head);font-size:22px;font-weight:700;
+}
+.regime-big.rok .rconf-val{color:var(--green);}
+.regime-big.rcau .rconf-val{color:var(--amber);}
+.rconf-lbl{font-size:8px;color:var(--t3);letter-spacing:0.1em;text-transform:uppercase;}
 
-        nav {
-          border-right: 0;
-          border-bottom: 1px solid var(--line);
-        }
+/* ── SIGNAL BARS ── */
+.sig-list{padding:0 10px 10px;}
+.sig-row{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 8px;border-radius:4px;
+  transition:background 0.15s;cursor:default;
+}
+.sig-row:hover{background:var(--bg2);}
+.sig-n{font-size:9px;color:var(--t2);width:68px;flex-shrink:0;}
+.sig-track{flex:1;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.sig-fill{height:100%;border-radius:2px;}
+.sig-v{font-size:10px;font-weight:600;width:40px;text-align:right;}
 
-        .wide,
-        .side {
-          grid-column: 1 / -1;
-        }
+/* ── RADAR ── */
+.radar-wrap{padding:10px;display:flex;justify-content:center;align-items:center;}
 
-        .kpis {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <strong>FinSkillOS v2.1</strong>
-      <span class="label">Market Kernel: Setup Mode</span>
-    </header>
-    <main>
-      <nav>
-        <div>Control Room</div>
-        <div>Market Kernel</div>
-        <div>Risk Firewall</div>
-        <div>Mission Control</div>
-        <div>Catalyst Watchtower</div>
-        <div>Trade Memory</div>
-      </nav>
-      <section class="workspace">
-        <section class="window full kpis">
-          <div class="metric">
-            <div class="label">Goal Progress</div>
-            <div class="value ok">25%</div>
+/* ── ALERT ── */
+.alert-list{display:flex;flex-direction:column;gap:6px;padding:10px;}
+.alert{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;border-radius:5px;
+  border-left:3px solid;
+  background:var(--bg2);
+  border-top:1px solid var(--b1);border-right:1px solid var(--b1);border-bottom:1px solid var(--b1);
+  cursor:pointer;transition:all 0.15s;
+  position:relative;
+}
+.alert:hover{background:var(--bg3);}
+.alert.aw{border-left-color:var(--amber);}
+.alert.ac{border-left-color:var(--red);animation:alertFlash 3s infinite;}
+.alert.ai{border-left-color:var(--cyan);}
+@keyframes alertFlash{0%,100%{box-shadow:none;}50%{box-shadow:-2px 0 16px rgba(255,59,92,.2);}}
+.alert-ico{font-size:15px;margin-top:1px;}
+.alert-body{flex:1;}
+.alert-title{font-size:11px;font-weight:600;color:var(--t0);margin-bottom:2px;}
+.alert-desc{font-size:10px;color:var(--t2);line-height:1.5;}
+.alert-meta{text-align:right;flex-shrink:0;}
+.alert-t{font-size:9px;color:var(--t3);}
+.alert-sev{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px;}
+.alert-sev.aw{color:var(--amber);}
+.alert-sev.ac{color:var(--red);}
+.alert-sev.ai{color:var(--cyan);}
+.alert-dismiss{
+  position:absolute;top:6px;right:6px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--b2);
+  display:none;align-items:center;justify-content:center;
+  font-size:8px;color:var(--t3);cursor:pointer;
+}
+.alert:hover .alert-dismiss{display:flex;}
+.alert-dismiss:hover{background:var(--red);color:white;border-color:var(--red);}
+
+/* ── ACTION QUEUE ── */
+.aq{display:flex;flex-direction:column;gap:5px;padding:10px;}
+.aq-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;
+  background:var(--bg2);border:1px solid var(--b1);border-radius:4px;
+  cursor:pointer;transition:all 0.15s;
+}
+.aq-item:hover{background:var(--bg3);border-color:var(--b2);}
+.aq-item.done{opacity:0.4;}
+.aq-cb{
+  width:14px;height:14px;border-radius:3px;
+  border:1.5px solid var(--b2);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.aq-item.done .aq-cb{background:var(--green);border-color:var(--green);}
+.aq-item.done .aq-cb::after{content:'✓';font-size:8px;color:#000;font-weight:700;}
+.aq-text{font-size:10px;color:var(--t0);flex:1;}
+.aq-item.done .aq-text{text-decoration:line-through;color:var(--t3);}
+.aq-tag{font-size:8px;padding:2px 6px;border-radius:3px;letter-spacing:0.04em;}
+
+/* ── PORTFOLIO BUBBLES ── */
+#bubble-canvas{display:block;width:100%;height:260px;}
+
+/* ── CHART ── */
+.chart-tabs{
+  display:flex;border-bottom:1px solid var(--b0);
+  background:var(--bg2);
+}
+.ctab{
+  padding:6px 14px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;
+}
+.ctab:hover{color:var(--t1);}
+.ctab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+#candlestick-canvas{display:block;width:100%;height:220px;}
+
+/* ── INTERP ── */
+.interp{padding:12px;display:flex;flex-direction:column;gap:10px;}
+.interp-block{
+  padding-left:12px;
+  border-left:2px solid;
+}
+.interp-block.iw{border-left-color:var(--cyan);}
+.interp-block.im{border-left-color:var(--amber);}
+.interp-block.ix{border-left-color:var(--purple);}
+.interp-lbl{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;}
+.interp-block.iw .interp-lbl{color:var(--cyan);}
+.interp-block.im .interp-lbl{color:var(--amber);}
+.interp-block.ix .interp-lbl{color:var(--purple);}
+.interp-txt{font-size:10px;color:var(--t1);line-height:1.7;}
+
+/* ── SYS LOG ── */
+.log-body{
+  padding:8px 10px;max-height:130px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:2px;
+}
+.log-body::-webkit-scrollbar{width:2px;}
+.log-line{display:flex;gap:8px;font-size:9px;line-height:1.7;}
+.ll-t{color:var(--t4);flex-shrink:0;}
+.ll-l{flex-shrink:0;font-weight:600;width:32px;}
+.ll-l.ok{color:var(--green);}
+.ll-l.inf{color:var(--cyan);}
+.ll-l.wn{color:var(--amber);}
+.ll-l.er{color:var(--red);}
+.ll-m{color:var(--t2);}
+
+/* ── INDEX TABLE ── */
+.itbl{width:100%;border-collapse:collapse;}
+.itbl th{
+  font-size:8px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);text-align:left;padding:6px 10px;
+  border-bottom:1px solid var(--b1);
+}
+.itbl td{
+  font-size:11px;padding:6px 10px;
+  border-bottom:1px solid var(--b0);color:var(--t2);
+  transition:background 0.1s;
+}
+.itbl tr:hover td{background:var(--bg2);}
+.itbl .sym{color:var(--t0);font-weight:500;}
+.itbl .up{color:var(--green);}
+.itbl .dn{color:var(--red);}
+
+/* ── WATCHLIST SPARKLINES ── */
+.wl-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-bottom:1px solid var(--b0);
+  cursor:pointer;transition:background 0.15s;
+}
+.wl-item:hover{background:var(--bg2);}
+.wl-sym{font-size:10px;font-weight:600;color:var(--t0);width:64px;flex-shrink:0;}
+.wl-spark{flex:1;height:26px;}
+.wl-val{font-size:10px;color:var(--t0);width:64px;text-align:right;}
+.wl-chg{font-size:9px;font-weight:600;width:46px;text-align:right;}
+
+/* ── EVENT ── */
+.ev-list{display:flex;flex-direction:column;gap:5px;padding:10px;}
+.ev{
+  display:flex;gap:10px;
+  background:var(--bg2);border:1px solid var(--b1);border-radius:4px;
+  padding:8px;cursor:pointer;transition:all 0.15s;
+}
+.ev:hover{background:var(--bg3);border-color:var(--b2);}
+.ev-cal{
+  width:34px;flex-shrink:0;
+  background:var(--bg3);border-radius:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;
+}
+.ev-mo{font-size:7px;color:var(--t3);text-transform:uppercase;letter-spacing:0.1em;}
+.ev-dy{font-family:var(--head);font-size:16px;font-weight:700;color:var(--t0);line-height:1;}
+.ev-info{flex:1;}
+.ev-name{font-size:10px;color:var(--t0);font-weight:500;margin-bottom:3px;}
+.ev-imp{
+  font-size:8px;padding:1px 5px;border-radius:2px;
+  display:inline-block;letter-spacing:0.05em;
+}
+.imp-h{background:rgba(255,59,92,.12);color:var(--red);}
+.imp-m{background:rgba(255,184,0,.12);color:var(--amber);}
+.imp-l{background:rgba(0,229,255,.08);color:var(--cyan);}
+
+/* ── THEME TOGGLE ── */
+.theme-toggle{
+  min-width:86px;height:28px;padding:0 10px 0 32px;border-radius:999px;
+  display:flex;align-items:center;justify-content:flex-start;gap:8px;
+  border:1px solid var(--b1);background:var(--bg2);
+  color:var(--t2);cursor:pointer;
+  transition:all 0.18s;
+  position:relative;font-family:var(--font);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
+}
+.theme-toggle:hover{
+  border-color:var(--cyan);color:var(--cyan);
+  box-shadow:var(--glow-c);
+}
+.theme-label{line-height:1;white-space:nowrap;}
+.th-ico{width:13px;height:13px;position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  transition:opacity 0.25s, transform 0.35s;}
+:root[data-theme="light"] .th-moon{opacity:0;transform:rotate(-90deg) scale(0.6);}
+:root[data-theme="light"] .th-sun{opacity:1;transform:rotate(0) scale(1);}
+:root:not([data-theme="light"]):not([data-theme="material"]) .th-moon{opacity:1;transform:rotate(0) scale(1);}
+:root:not([data-theme="light"]):not([data-theme="material"]) .th-sun{opacity:0;transform:rotate(90deg) scale(0.6);}
+:root[data-theme="material"] .th-moon{opacity:0;transform:rotate(-90deg) scale(0.6);}
+:root[data-theme="material"] .th-sun{opacity:0;transform:rotate(90deg) scale(0.6);}
+:root[data-theme="material"] .th-studio{opacity:1;transform:rotate(0) scale(1);}
+:root:not([data-theme="material"]) .th-studio{opacity:0;transform:rotate(90deg) scale(0.6);}
+
+:root[data-theme="material"] .tray,
+:root[data-theme="material"] .ticker,
+:root[data-theme="material"] .panel,
+:root[data-theme="material"] .col,
+:root[data-theme="material"] .cmd-box,
+:root[data-theme="material"] .boot-log{
+  box-shadow:none;
+}
+:root[data-theme="material"] .panel,
+:root[data-theme="material"] .col,
+:root[data-theme="material"] .cmd-box{
+  border-radius:12px;
+}
+:root[data-theme="material"] .nav-btn.active{
+  background:rgba(168,199,250,0.12);
+  border-bottom-color:transparent;
+  box-shadow:inset 0 0 0 1px rgba(168,199,250,0.18);
+}
+:root[data-theme="material"] .sys-pill.ok{background:rgba(129,201,149,0.10);}
+:root[data-theme="material"] .sys-pill.warn{background:rgba(253,226,147,0.10);}
+:root[data-theme="material"] .cmd-hint{background:var(--bg2);}
+:root[data-theme="material"] .goal-fill-bar,
+:root[data-theme="material"] .phase-dot.done{box-shadow:none;}
+
+/* ── MARKET KERNEL PAGE ── */
+.mk-grid{
+  display:grid;
+  grid-template-columns:248px 1fr;
+  height:100%;width:100%;flex:1;
+  overflow:hidden;min-width:0;
+}
+
+/* Left rail */
+.mk-rail{
+  display:flex;flex-direction:column;
+  border-right:1px solid var(--b0);
+  background:var(--bg1);
+  overflow:hidden;
+}
+.mk-rail-head{
+  padding:11px 14px 9px;
+  font-size:9px;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--t3);
+  border-bottom:1px solid var(--b0);
+}
+.mk-search-wrap{
+  padding:10px 12px;
+  border-bottom:1px solid var(--b0);
+  position:relative;
+}
+.mk-search{
+  width:100%;
+  background:var(--bg2);
+  border:1px solid var(--b1);
+  border-radius:4px;
+  padding:7px 28px 7px 30px;
+  font-family:var(--font);font-size:11px;
+  color:var(--t0);
+  outline:none;
+  letter-spacing:0.04em;
+}
+.mk-search:focus{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan);}
+.mk-search::placeholder{color:var(--t3);}
+.mk-search-ico{
+  position:absolute;left:22px;top:50%;transform:translateY(-50%);
+  color:var(--t3);font-size:11px;pointer-events:none;
+}
+.mk-search-x{
+  position:absolute;right:22px;top:50%;transform:translateY(-50%);
+  color:var(--t3);font-size:13px;cursor:pointer;line-height:1;
+}
+.mk-search-x:hover{color:var(--t1);}
+
+.mk-syms{
+  flex:1;overflow-y:auto;
+  padding:4px 0;
+}
+.mk-syms::-webkit-scrollbar{width:3px;}
+.mk-syms::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.mk-sym{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;cursor:pointer;
+  border-left:2px solid transparent;
+  transition:background 0.12s, border-color 0.12s;
+}
+.mk-sym:hover{background:var(--bg2);}
+.mk-sym.active{
+  background:var(--bg2);
+  border-left-color:var(--cyan);
+}
+.mk-sym-icon{
+  width:22px;height:22px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--head);font-size:10px;font-weight:700;
+  letter-spacing:-0.02em;
+  flex-shrink:0;
+  color:#fff;
+}
+.ico-nvda{background:linear-gradient(135deg,#3aaa3a,#177a17);}
+.ico-tsla{background:linear-gradient(135deg,#e82c4d,#b01030);}
+.ico-aapl{background:linear-gradient(135deg,#6a7382,#3e4654);}
+.ico-msft{background:linear-gradient(135deg,#3a8de8,#1858b8);}
+.ico-amzn{background:linear-gradient(135deg,#ff9900,#cc6600);}
+.ico-spy {background:linear-gradient(135deg,#1f4596,#0e2a66);}
+.ico-qqq {background:linear-gradient(135deg,#a855f7,#6d28d4);}
+
+.mk-sym-body{flex:1;min-width:0;}
+.mk-sym-tk{
+  font-family:var(--head);font-size:12px;font-weight:600;
+  color:var(--t0);line-height:1.15;
+}
+.mk-sym-co{
+  font-size:9.5px;color:var(--t3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.mk-rail-all{
+  padding:11px 14px;
+  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--cyan);
+  cursor:pointer;
+  border-top:1px solid var(--b0);
+}
+.mk-rail-all:hover{background:var(--bg2);}
+
+/* Drawing tool strip */
+.mk-tools{
+  display:flex;flex-direction:column;align-items:center;
+  gap:2px;padding:6px 0;
+  border-top:1px solid var(--b0);
+  background:var(--bg1);
+}
+.mk-tools-btn{
+  width:28px;height:28px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--t3);cursor:pointer;
+  transition:all 0.12s;
+}
+.mk-tools-btn:hover{color:var(--cyan);background:var(--bg2);}
+.mk-tools-btn svg{width:14px;height:14px;}
+
+/* Main chart area */
+.mk-main{
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--bg1);
+}
+.mk-header{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--b0);
+  flex-shrink:0;
+}
+.mk-co{
+  font-family:var(--head);font-size:13px;font-weight:600;
+  color:var(--t0);
+}
+.mk-star{
+  color:var(--amber);font-size:14px;cursor:pointer;line-height:1;
+}
+.mk-px{
+  font-family:var(--head);font-size:22px;font-weight:700;
+  color:var(--t0);letter-spacing:-0.01em;
+}
+.mk-ch{
+  font-family:var(--head);font-size:13px;font-weight:600;
+  color:var(--green);
+}
+.mk-spacer{flex:1;}
+.mk-market{
+  display:flex;align-items:center;gap:6px;
+  font-size:10px;color:var(--green);
+  letter-spacing:0.05em;
+}
+.mk-market-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);
+  animation:blink 2s infinite;
+}
+.mk-ex{
+  font-size:10px;color:var(--t2);
+  background:var(--bg2);border:1px solid var(--b1);
+  padding:4px 10px;border-radius:4px;
+  letter-spacing:0.08em;
+  display:flex;align-items:center;gap:6px;
+  cursor:pointer;
+}
+.mk-ex:hover{border-color:var(--b2);color:var(--t1);}
+.mk-ex svg{width:9px;height:9px;}
+
+/* Timeframe + tool bar */
+.mk-toolbar{
+  display:flex;align-items:center;gap:2px;
+  padding:6px 12px;
+  border-bottom:1px solid var(--b0);
+  flex-shrink:0;
+}
+.mk-tf{
+  padding:5px 11px;
+  font-family:var(--head);font-size:11px;font-weight:500;
+  color:var(--t2);cursor:pointer;
+  border-radius:3px;
+  transition:all 0.12s;
+  letter-spacing:0.02em;
+}
+.mk-tf:hover{color:var(--t0);background:var(--bg2);}
+.mk-tf.active{
+  color:var(--cyan);
+  background:rgba(0,229,255,0.08);
+}
+:root[data-theme="light"] .mk-tf.active{background:rgba(0,147,168,0.10);}
+.mk-tb-sep{
+  width:1px;height:14px;background:var(--b1);margin:0 8px;
+}
+.mk-tb-icon{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 9px;
+  font-size:10px;color:var(--t2);cursor:pointer;
+  border-radius:3px;
+  transition:all 0.12s;
+}
+.mk-tb-icon:hover{color:var(--t0);background:var(--bg2);}
+.mk-tb-icon svg{width:11px;height:11px;}
+
+/* Quote line */
+.mk-quote{
+  display:flex;align-items:center;gap:14px;
+  padding:7px 16px;
+  border-bottom:1px solid var(--b0);
+  background:var(--bg2);
+  flex-shrink:0;
+  font-family:var(--font);
+}
+.mk-ohlc{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;
+}
+.mk-ohlc-k{color:var(--t3);font-weight:500;}
+.mk-ohlc-v{color:var(--t0);font-weight:500;}
+.mk-q-spacer{flex:1;}
+.mk-chips{display:flex;align-items:center;gap:6px;}
+.mk-chip{
+  display:flex;align-items:center;gap:6px;
+  padding:3px 9px;
+  font-size:10px;
+  border-radius:3px;
+  background:var(--bg3);
+  border:1px solid var(--b1);
+  color:var(--t1);
+  cursor:pointer;
+  transition:all 0.12s;
+}
+.mk-chip:hover{border-color:var(--b2);color:var(--t0);}
+.mk-chip-dot{width:6px;height:6px;border-radius:50%;}
+.mk-chip-dot.c1{background:var(--cyan);}
+.mk-chip-dot.c2{background:#7fa3d8;}
+.mk-chip-dot.c3{background:var(--purple);}
+.mk-chip-dot.c4{background:var(--amber);}
+
+/* Chart canvases */
+.mk-chart-wrap{
+  position:relative;flex:1;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--bg2);
+}
+.mk-canvas-row{
+  position:relative;
+}
+#mk-main-canvas{display:block;width:100%;}
+#mk-rsi-canvas{display:block;width:100%;}
+
+.mk-rsi-head{
+  display:flex;align-items:center;gap:10px;
+  padding:4px 14px;
+  background:var(--bg2);
+  border-top:1px solid var(--b0);
+  font-family:var(--head);font-size:10px;
+  flex-shrink:0;
+}
+.mk-rsi-lbl{color:var(--purple);font-weight:600;letter-spacing:0.04em;}
+.mk-rsi-val{color:var(--t1);font-family:var(--font);}
+
+.mk-foot{
+  display:flex;align-items:center;
+  padding:4px 14px;
+  border-top:1px solid var(--b0);
+  background:var(--bg1);
+  flex-shrink:0;
+  font-size:9.5px;color:var(--t3);
+  letter-spacing:0.08em;
+}
+.mk-foot-tv{
+  display:flex;align-items:center;gap:5px;
+  color:var(--t2);font-weight:600;
+}
+.mk-foot-tv-mark{
+  width:14px;height:14px;border-radius:3px;
+  background:linear-gradient(135deg,#3a8de8,#1858b8);
+  color:#fff;font-size:8px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--head);
+}
+
+/* ── RISK FIREWALL PAGE ── */
+.rf-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  height:100%;overflow:hidden;
+}
+
+/* ── GUARD CARD ── */
+.guard-card{
+  margin:10px;border-radius:6px;border:1px solid;
+  padding:14px;position:relative;overflow:hidden;
+}
+.guard-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+}
+.guard-card.pass{background:rgba(0,255,136,.04);border-color:rgba(0,255,136,.2);}
+.guard-card.pass::before{background:linear-gradient(90deg,var(--green),transparent);}
+.guard-card.warn{background:rgba(255,184,0,.04);border-color:rgba(255,184,0,.2);animation:guardWarn 4s infinite;}
+.guard-card.warn::before{background:linear-gradient(90deg,var(--amber),transparent);}
+.guard-card.fail{background:rgba(255,59,92,.05);border-color:rgba(255,59,92,.25);animation:guardFail 2s infinite;}
+.guard-card.fail::before{background:linear-gradient(90deg,var(--red),transparent);}
+@keyframes guardWarn{0%,100%{border-color:rgba(255,184,0,.2);}50%{border-color:rgba(255,184,0,.4);}}
+@keyframes guardFail{0%,100%{border-color:rgba(255,59,92,.25);}50%{border-color:rgba(255,59,92,.55);}}
+.gc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.gc-icon{font-size:22px;}
+.gc-title{font-family:var(--head);font-size:13px;font-weight:600;}
+.guard-card.pass .gc-title{color:var(--green);}
+.guard-card.warn .gc-title{color:var(--amber);}
+.guard-card.fail .gc-title{color:var(--red);}
+.gc-status{
+  margin-left:auto;font-size:8px;padding:3px 8px;border-radius:3px;
+  font-weight:600;letter-spacing:0.1em;
+}
+.guard-card.pass .gc-status{background:rgba(0,255,136,.12);color:var(--green);}
+.guard-card.warn .gc-status{background:rgba(255,184,0,.12);color:var(--amber);}
+.guard-card.fail .gc-status{background:rgba(255,59,92,.12);color:var(--red);}
+.gc-val{font-family:var(--head);font-size:28px;font-weight:700;margin-bottom:2px;}
+.guard-card.pass .gc-val{color:var(--green);}
+.guard-card.warn .gc-val{color:var(--amber);}
+.guard-card.fail .gc-val{color:var(--red);}
+.gc-sub{font-size:10px;color:var(--t2);margin-bottom:10px;}
+.gc-bar{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;border:1px solid var(--b1);}
+.gc-bar-fill{height:100%;border-radius:3px;}
+.gc-threshold{font-size:9px;color:var(--t3);margin-top:5px;}
+
+/* ── TABS ── */
+.tab-bar{display:flex;border-bottom:1px solid var(--b0);background:var(--bg2);}
+.tab{
+  padding:6px 14px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;
+}
+.tab:hover{color:var(--t1);}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+
+/* ── SECTION DIVIDER ── */
+.sdiv{
+  font-size:9px;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--t4);display:flex;align-items:center;gap:8px;
+}
+.sdiv::after{content:'';flex:1;height:1px;background:var(--b0);}
+
+/* ── ANIMATE IN ── */
+@keyframes panelIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.panel{animation:panelIn 0.3s ease both;}
+.col-body .panel:nth-child(1){animation-delay:0.03s;}
+.col-body .panel:nth-child(2){animation-delay:0.08s;}
+.col-body .panel:nth-child(3){animation-delay:0.13s;}
+.col-body .panel:nth-child(4){animation-delay:0.18s;}
+
+/* ── MISSION CONTROL PAGE ── */
+.mc-grid{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  height:100%;overflow:hidden;
+}
+
+
+/* ── V3 EXTENSIONS: OS DEPTH ── */
+.cmd-hint{
+  display:flex;align-items:center;gap:6px;
+  font-size:9px;color:var(--t3);letter-spacing:.08em;
+  border:1px solid var(--b1);background:var(--bg1);
+  padding:4px 8px;border-radius:3px;cursor:pointer;
+}
+.cmd-hint kbd{
+  font-family:var(--font);font-size:9px;color:var(--cyan);
+  background:var(--bg2);border:1px solid var(--b2);
+  padding:1px 4px;border-radius:2px;
+}
+#cmd-palette{
+  position:fixed;inset:0;z-index:9500;
+  display:none;align-items:flex-start;justify-content:center;
+  background:rgba(0,0,0,.42);backdrop-filter:blur(8px);
+  padding-top:80px;
+}
+#cmd-palette.show{display:flex;}
+.cmd-box{
+  width:min(760px,calc(100vw - 32px));
+  background:rgba(10,15,22,.98);
+  border:1px solid rgba(0,229,255,.25);
+  border-radius:8px;box-shadow:0 0 80px rgba(0,229,255,.12);
+  overflow:hidden;
+}
+.cmd-input{
+  display:flex;align-items:center;gap:12px;
+  padding:16px;border-bottom:1px solid var(--b1);
+}
+.cmd-input span{color:var(--cyan);font-size:18px;}
+.cmd-input input{
+  flex:1;background:transparent;border:0;outline:0;
+  color:var(--t0);font-family:var(--font);font-size:16px;
+}
+.cmd-results{padding:8px;display:grid;gap:4px;}
+.cmd-row{
+  display:grid;grid-template-columns:24px 1fr auto;gap:10px;
+  align-items:center;padding:10px 12px;border-radius:5px;
+  background:var(--bg1);border:1px solid transparent;
+  cursor:pointer;transition:all .12s;
+}
+.cmd-row:hover{border-color:var(--b2);background:var(--bg2);}
+.cmd-row .ico{color:var(--cyan);}
+.cmd-row strong{display:block;font-size:11px;color:var(--t0);margin-bottom:2px;}
+.cmd-row small{font-size:9px;color:var(--t3);}
+.cmd-row code{font-size:8px;color:var(--t3);}
+
+.os-strip{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+  padding:10px;border-bottom:1px solid var(--b0);
+}
+.os-chip{
+  background:var(--bg2);border:1px solid var(--b1);
+  border-radius:5px;padding:9px 10px;
+}
+.os-chip .k{font-size:8px;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px;}
+.os-chip .v{font-family:var(--head);font-size:15px;font-weight:700;color:var(--t0);}
+.os-chip.ok .v{color:var(--green);}
+.os-chip.warn .v{color:var(--amber);}
+.os-chip.red .v{color:var(--red);}
+.os-chip.cyan .v{color:var(--cyan);}
+
+.protocol-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px;
+}
+.protocol-card{
+  border:1px solid var(--b1);background:var(--bg2);
+  border-radius:5px;padding:11px;min-height:120px;
+}
+.protocol-card h4{
+  font-family:var(--head);font-size:12px;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.protocol-card ul{padding-left:16px;display:flex;flex-direction:column;gap:6px;}
+.protocol-card li{font-size:10px;color:var(--t2);line-height:1.45;}
+.protocol-card.allow{border-color:rgba(0,255,136,.18);}
+.protocol-card.limit{border-color:rgba(255,184,0,.22);}
+.protocol-card.block{border-color:rgba(255,59,92,.22);}
+.protocol-card.allow h4{color:var(--green);}
+.protocol-card.limit h4{color:var(--amber);}
+.protocol-card.block h4{color:var(--red);}
+
+.aw-grid{
+  display:grid;grid-template-columns:1.2fr .8fr;height:100%;overflow:hidden;
+}
+.aw-section{display:none;}
+.aw-section.active{display:block;animation:panelIn .2s ease both;}
+.terminal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px solid var(--b0);background:var(--bg2);
+}
+.terminal-title{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);
+}
+.terminal-actions{display:flex;gap:6px;}
+.tbtn{
+  font-size:8px;color:var(--t2);padding:4px 7px;border:1px solid var(--b1);
+  background:var(--bg1);border-radius:3px;cursor:pointer;
+}
+.tbtn.active,.tbtn:hover{color:var(--cyan);border-color:rgba(0,229,255,.25);}
+.matrix{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;
+}
+.signal-tile{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:5px;padding:10px;
+  min-height:108px;position:relative;overflow:hidden;
+}
+.signal-tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan);}
+.signal-tile.a::before{background:var(--red);}
+.signal-tile.b::before{background:var(--green);}
+.signal-tile.c::before{background:var(--cyan);}
+.signal-tile.d::before{background:var(--amber);}
+.signal-type{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+.signal-name{font-family:var(--head);font-size:17px;font-weight:700;margin-bottom:6px;}
+.signal-tile.a .signal-name{color:var(--red);}
+.signal-tile.b .signal-name{color:var(--green);}
+.signal-tile.c .signal-name{color:var(--cyan);}
+.signal-tile.d .signal-name{color:var(--amber);}
+.signal-desc{font-size:10px;color:var(--t2);line-height:1.55;}
+
+.service-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px;
+}
+.service-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:5px;
+  padding:11px;position:relative;min-height:118px;
+}
+.service-card::after{
+  content:'';position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 8px var(--green);
+}
+.service-card.warn::after{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.service-card.fail::after{background:var(--red);box-shadow:0 0 8px var(--red);}
+.svc-name{font-family:var(--head);font-size:14px;font-weight:700;margin-bottom:5px;}
+.svc-meta{font-size:9px;color:var(--t3);line-height:1.55;}
+.svc-bar{height:3px;background:var(--bg3);border-radius:2px;margin-top:10px;overflow:hidden;}
+.svc-bar span{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,var(--cyan2),var(--cyan));}
+
+.memory-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;
+}
+.memory-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:5px;
+  padding:12px;min-height:118px;
+}
+.memory-card h4{
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--t2);margin-bottom:10px;
+}
+.memory-score{
+  font-family:var(--head);font-size:28px;font-weight:700;letter-spacing:-.02em;
+}
+.heatmap{
+  display:grid;grid-template-columns:80px repeat(5,1fr);gap:3px;font-size:9px;
+}
+.heatmap div{padding:7px;border-radius:3px;text-align:center;background:var(--bg2);color:var(--t2);}
+.heatmap .h{color:var(--t3);background:var(--bg1);}
+.heatmap .pos{background:rgba(0,255,136,.12);color:var(--green);}
+.heatmap .mid{background:rgba(255,184,0,.10);color:var(--amber);}
+.heatmap .neg{background:rgba(255,59,92,.12);color:var(--red);}
+
+.pipeline{
+  padding:10px;display:flex;flex-direction:column;gap:7px;
+}
+.pipe-step{
+  display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;
+  background:var(--bg2);border:1px solid var(--b1);border-radius:5px;padding:9px 10px;
+}
+.pipe-idx{
+  width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,229,255,.08);color:var(--cyan);font-size:10px;font-weight:700;
+}
+.pipe-step strong{display:block;font-size:11px;color:var(--t0);margin-bottom:2px;}
+.pipe-step span{font-size:9px;color:var(--t3);}
+.pipeline .done .pipe-idx{background:rgba(0,255,136,.10);color:var(--green);}
+.pipeline .warn .pipe-idx{background:rgba(255,184,0,.10);color:var(--amber);}
+
+.safety-banner{
+  margin:10px;padding:10px;border-radius:5px;
+  background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.18);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.safety-banner strong{color:var(--cyan);font-size:11px;display:block;margin-bottom:3px;}
+.safety-banner span{color:var(--t2);font-size:10px;line-height:1.5;}
+@media(max-width:1200px){
+  .os-strip,.protocol-grid,.matrix,.service-grid,.memory-grid{grid-template-columns:1fr;}
+  .aw-grid{grid-template-columns:1fr;}
+}
+
+</style>
+</head>
+<body>
+
+<!-- BOOT -->
+<div id="boot">
+  <div class="boot-logo">FinSkillOS</div>
+  <div class="boot-ver">VERSION 2.1 · PERSONAL TRADING OS</div>
+  <div class="boot-log" id="boot-log"></div>
+  <div class="boot-bar"><div class="boot-bar-fill" id="boot-fill"></div></div>
+</div>
+
+<div id="noise"></div>
+<div id="scan"></div>
+
+<!-- TRAY -->
+<header class="tray">
+  <div class="tray-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="4.5" height="4.5" rx="1" fill="white" opacity="0.9"/>
+        <rect x="7.5" y="1" width="4.5" height="4.5" rx="1" fill="white" opacity="0.5"/>
+        <rect x="1" y="7.5" width="4.5" height="4.5" rx="1" fill="white" opacity="0.5"/>
+        <rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1" fill="white" opacity="0.8"/>
+      </svg>
+    </div>
+    <span class="logo-text">Fin<em>Skill</em>OS</span>
+  </div>
+
+  <nav class="nav" id="main-nav">
+    <div class="nav-btn active" data-page="control">
+      <div class="nav-indicator"></div>Control Room
+    </div>
+    <div class="nav-btn" data-page="kernel">
+      <div class="nav-indicator"></div>Market Kernel
+    </div>
+    <div class="nav-btn" data-page="firewall">
+      <div class="nav-indicator"></div>Risk Firewall
+    </div>
+    <div class="nav-btn" data-page="mission">
+      <div class="nav-indicator"></div>Mission Control
+    </div>
+    <div class="nav-btn" data-page="catalyst">
+      <div class="nav-indicator"></div>Catalyst Watch
+    </div>
+    <div class="nav-btn" data-page="analysis">
+      <div class="nav-indicator"></div>Analysis WS
+    </div>
+    <div class="nav-btn" data-page="memory">
+      <div class="nav-indicator"></div>Trade Memory
+    </div>
+    <div class="nav-btn" data-page="system">
+      <div class="nav-indicator"></div>System Ops
+    </div>
+  </nav>
+
+  <div class="tray-right">
+    <div class="sys-pill ok"><div class="sys-pill-dot"></div>DB LIVE</div>
+    <div class="sys-pill warn"><div class="sys-pill-dot"></div>2 GUARDS</div>
+    <div class="sys-pill ok"><div class="sys-pill-dot"></div>REGIME OK</div>
+    <div class="cmd-hint" id="cmd-open"><kbd>⌘K</kbd> COMMAND</div>
+    <div class="theme-toggle" id="theme-toggle" title="Switch theme">
+      <svg class="th-ico th-moon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.5 9.2A5.5 5.5 0 1 1 6.8 2.5a4.5 4.5 0 0 0 6.7 6.7Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+      </svg>
+      <svg class="th-ico th-sun" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.3"/>
+        <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <svg class="th-ico th-studio" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span class="theme-label" id="theme-label">DARK</span>
+    </div>
+    <div class="tray-time" id="clk">—</div>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-scroll" id="ticker-scroll"></div>
+</div>
+
+
+<!-- COMMAND PALETTE -->
+<div id="cmd-palette">
+  <div class="cmd-box">
+    <div class="cmd-input">
+      <span>⌘</span>
+      <input id="cmd-input" placeholder="Run command: open risk firewall, refresh market data, create journal..." />
+    </div>
+    <div class="cmd-results">
+      <div class="cmd-row" data-cmd-page="firewall"><div class="ico">▣</div><div><strong>Open Risk Firewall</strong><small>Check allowed / limited / blocked actions</small></div><code>GO</code></div>
+      <div class="cmd-row" data-cmd-page="analysis"><div class="ico">⌬</div><div><strong>Open Analysis Workspace</strong><small>Index terminal, symbol terminal, signal console</small></div><code>GO</code></div>
+      <div class="cmd-row" data-cmd-page="memory"><div class="ico">◇</div><div><strong>Open Trade Memory</strong><small>Review mistakes, regime performance, journal patterns</small></div><code>GO</code></div>
+      <div class="cmd-row" data-cmd-page="system"><div class="ico">⚙</div><div><strong>Open System Ops</strong><small>Data sources, services, cache, safety policy</small></div><code>GO</code></div>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- ━━━━━━━ PAGE: CONTROL ROOM ━━━━━━━ -->
+  <div class="page active" id="page-control">
+    <div class="grid-3">
+
+      <!-- LEFT -->
+      <div class="col">
+        <div class="col-body">
+
+          <!-- MISSION CONTROL MINI -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Mission Control</div>
+              <span class="ph-badge b-c">PHASE 3 / 5</span>
+            </div>
+            <div class="goal-wrap">
+              <div class="goal-top">
+                <div>
+                  <div class="goal-pct-big">73.4%</div>
+                  <div style="font-size:10px;color:var(--t2);">₩73,420,000</div>
+                </div>
+                <div class="goal-info">
+                  <div class="goal-sub">목표 달성까지</div>
+                  <div class="goal-days">D-48</div>
+                </div>
+              </div>
+              <div class="goal-track">
+                <div class="goal-fill-bar"></div>
+              </div>
+              <div class="goal-amounts">
+                <span class="gc">₩73.42M 달성</span>
+                <span class="gt">목표 ₩100M</span>
+              </div>
+            </div>
+            <div class="phase-row">
+              <div class="phase-dot done"></div>
+              <div class="phase-dot done"></div>
+              <div class="phase-dot cur"></div>
+              <div class="phase-dot"></div>
+              <div class="phase-dot"></div>
+            </div>
           </div>
-          <div class="metric">
-            <div class="label">Regime</div>
-            <div class="value">RISK_ON</div>
+
+          <!-- REGIME MINI -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Market Kernel</div>
+              <span class="ph-badge b-g">ONLINE</span>
+            </div>
+            <div class="regime-big rok">
+              <div class="regime-ico">🟢</div>
+              <div class="regime-body">
+                <div class="regime-name">RISK_ON_NORMAL</div>
+                <div class="regime-mode">Mode: ACTIVE_INVEST</div>
+              </div>
+              <div class="regime-conf-box">
+                <div class="rconf-val">87%</div>
+                <div class="rconf-lbl">Confidence</div>
+              </div>
+            </div>
+            <div class="sig-list">
+              <div class="sig-row">
+                <div class="sig-n">RSI(14)</div>
+                <div class="sig-track"><div class="sig-fill" style="width:58%;background:linear-gradient(90deg,var(--cyan2),var(--cyan));"></div></div>
+                <div class="sig-v" style="color:var(--cyan)">58.3</div>
+              </div>
+              <div class="sig-row">
+                <div class="sig-n">VIX</div>
+                <div class="sig-track"><div class="sig-fill" style="width:27%;background:linear-gradient(90deg,var(--green2),var(--green));"></div></div>
+                <div class="sig-v" style="color:var(--green)">16.4</div>
+              </div>
+              <div class="sig-row">
+                <div class="sig-n">EMA Gap</div>
+                <div class="sig-track"><div class="sig-fill" style="width:65%;background:linear-gradient(90deg,var(--amber2),var(--amber));"></div></div>
+                <div class="sig-v" style="color:var(--amber)">+2.1%</div>
+              </div>
+              <div class="sig-row">
+                <div class="sig-n">F&G Index</div>
+                <div class="sig-track"><div class="sig-fill" style="width:72%;background:linear-gradient(90deg,#e08000,#ffb800);"></div></div>
+                <div class="sig-v" style="color:var(--amber)">72</div>
+              </div>
+            </div>
           </div>
-          <div class="metric">
-            <div class="label">Cash Ratio</div>
-            <div class="value warn">18%</div>
+
+          <!-- ACTION QUEUE -->
+          <div class="panel" style="flex:1;">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Action Queue</div>
+              <span class="ph-badge b-a" id="aq-badge">3 PENDING</span>
+            </div>
+            <div class="aq" id="aq-list">
+              <div class="aq-item done">
+                <div class="aq-cb"></div>
+                <div class="aq-text">장전 Regime 스캔 실행</div>
+                <span class="aq-tag" style="background:rgba(0,255,136,.08);color:var(--green);">완료</span>
+              </div>
+              <div class="aq-item done">
+                <div class="aq-cb"></div>
+                <div class="aq-text">SK하이닉스 리스크 가드 확인</div>
+                <span class="aq-tag" style="background:rgba(0,255,136,.08);color:var(--green);">완료</span>
+              </div>
+              <div class="aq-item">
+                <div class="aq-cb"></div>
+                <div class="aq-text">포트폴리오 Cash 비중 검토</div>
+                <span class="aq-tag" style="background:rgba(255,184,0,.08);color:var(--amber);">경고</span>
+              </div>
+              <div class="aq-item">
+                <div class="aq-cb"></div>
+                <div class="aq-text">FOMC 이벤트 전략 수립</div>
+                <span class="aq-tag" style="background:rgba(0,229,255,.06);color:var(--cyan);">D-3</span>
+              </div>
+              <div class="aq-item">
+                <div class="aq-cb"></div>
+                <div class="aq-text">매매 일지 어제 복기 작성</div>
+                <span class="aq-tag" style="background:rgba(168,85,247,.08);color:var(--purple);">메모리</span>
+              </div>
+            </div>
           </div>
-          <div class="metric">
-            <div class="label">Open Alerts</div>
-            <div class="value danger">2</div>
+
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="col">
+        <div class="col-body">
+
+          <!-- OS STATE STRIP -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Operating State Vector</div>
+              <span class="ph-badge b-c">BOOTED</span>
+            </div>
+            <div class="os-strip">
+              <div class="os-chip ok"><div class="k">Kernel</div><div class="v">Risk-On</div></div>
+              <div class="os-chip warn"><div class="k">Firewall</div><div class="v">2 Guards</div></div>
+              <div class="os-chip cyan"><div class="k">Mission</div><div class="v">73.4%</div></div>
+              <div class="os-chip red"><div class="k">Event</div><div class="v">D-3</div></div>
+              <div class="os-chip ok"><div class="k">Data</div><div class="v">Live</div></div>
+            </div>
           </div>
-        </section>
-        <section class="window wide">
-          <h2>Command Center</h2>
-          <p class="label">Today&apos;s operating snapshot, action queue, and risk state.</p>
-        </section>
-        <section class="window side">
-          <h2>System Log</h2>
-          <p class="label">Data refresh pending. DB foundation ready for migration.</p>
-        </section>
-      </section>
-    </main>
-  </body>
+
+          <!-- KPI -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Portfolio Overview</div>
+              <span class="ph-badge b-g">LIVE</span>
+            </div>
+            <div class="mcard-grid">
+              <div class="mcard mc">
+                <div class="ml">Total Assets</div>
+                <div class="mv">₩73.4M</div>
+                <div class="ms"><span class="u">▲ ₩620K</span> 오늘</div>
+              </div>
+              <div class="mcard mg">
+                <div class="ml">누적 수익률</div>
+                <div class="mv">+18.4%</div>
+                <div class="ms"><span class="u">+₩11.3M</span> 총수익</div>
+              </div>
+              <div class="mcard ma">
+                <div class="ml">Cash Ratio</div>
+                <div class="mv">8.2%</div>
+                <div class="ms"><span class="d">▼ 경계</span> 권장 10%↑</div>
+              </div>
+              <div class="mcard mr">
+                <div class="ml">Max Drawdown</div>
+                <div class="mv">-6.1%</div>
+                <div class="ms">고점比 <span class="d">-₩4.8M</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CANDLESTICK CHART -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Equity Curve · SK하이닉스</div>
+              <span class="ph-badge b-g">+2.43%</span>
+            </div>
+            <div class="chart-tabs" id="chart-tabs">
+              <div class="ctab active">1D</div>
+              <div class="ctab">1W</div>
+              <div class="ctab">1M</div>
+              <div class="ctab">3M</div>
+            </div>
+            <canvas id="candlestick-canvas"></canvas>
+          </div>
+
+          <!-- INTERPRETATION -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Interpretation Layer</div>
+              <span class="ph-badge b-p">TEMPLATE MODE</span>
+            </div>
+            <div class="interp">
+              <div class="interp-block iw">
+                <div class="interp-lbl">▸ What happened</div>
+                <div class="interp-txt">KOSPI +0.82% 상승. SK하이닉스 거래량 z-score +1.8σ 수급 유입. EMA 20/50 골든크로스 유지. VIX 16.4로 공포지수 안정적.</div>
+              </div>
+              <div class="interp-block im">
+                <div class="interp-lbl">▸ What it means</div>
+                <div class="interp-txt">RISK_ON_NORMAL Regime 유지 — 신규 진입 허용 구간. 단 F&G 72(탐욕) 진입으로 포지션 사이즈 70% 이하 제한 권고.</div>
+              </div>
+              <div class="interp-block ix">
+                <div class="interp-lbl">▸ Watch next</div>
+                <div class="interp-txt">FOMC 의사록 D-3. 이벤트 전 Cash 10% 확보 필요. 반도체 섹터 집중 45.5% — 리밸런싱 검토.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DECISION PROTOCOL -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Decision Protocol</div>
+              <span class="ph-badge b-a">SELECTIVE ATTACK</span>
+            </div>
+            <div class="protocol-grid">
+              <div class="protocol-card allow">
+                <h4>Allowed <span class="ph-badge b-g">RUN</span></h4>
+                <ul>
+                  <li>기존 강세 포지션 유지</li>
+                  <li>지지선 위 분할 관찰</li>
+                  <li>일지/근거 업데이트</li>
+                </ul>
+              </div>
+              <div class="protocol-card limit">
+                <h4>Limited <span class="ph-badge b-a">THROTTLE</span></h4>
+                <ul>
+                  <li>고점 추격 신규 진입</li>
+                  <li>반도체 섹터 추가 노출</li>
+                  <li>이벤트 직전 position sizing</li>
+                </ul>
+              </div>
+              <div class="protocol-card block">
+                <h4>Blocked <span class="ph-badge b-r">STOP</span></h4>
+                <ul>
+                  <li>손실 직후 복구 매매</li>
+                  <li>현금 10% 미만 추가 매수</li>
+                  <li>근거 없는 감정 매매</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- SYS LOG -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">System Log</div>
+              <span class="ph-badge b-c">STREAMING</span>
+            </div>
+            <div class="log-body" id="syslog"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="col">
+        <div class="col-body">
+
+          <!-- ALERTS -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Risk Firewall</div>
+              <span class="ph-badge b-a">2 ACTIVE</span>
+            </div>
+            <div class="alert-list">
+              <div class="alert aw">
+                <div class="alert-dismiss" onclick="this.closest('.alert').remove()">✕</div>
+                <div class="alert-ico">⚠️</div>
+                <div class="alert-body">
+                  <div class="alert-title">Cash Ratio Guard</div>
+                  <div class="alert-desc">현금 8.2% — 최소 기준 10% 미달. FOMC 전 현금 확보 권장.</div>
+                </div>
+                <div class="alert-meta">
+                  <div class="alert-t">09:31</div>
+                  <div class="alert-sev aw">WARN</div>
+                </div>
+              </div>
+              <div class="alert aw">
+                <div class="alert-dismiss" onclick="this.closest('.alert').remove()">✕</div>
+                <div class="alert-ico">⚠️</div>
+                <div class="alert-body">
+                  <div class="alert-title">Concentration Guard</div>
+                  <div class="alert-desc">반도체 섹터 45.5% — 35% 상한 초과.</div>
+                </div>
+                <div class="alert-meta">
+                  <div class="alert-t">09:31</div>
+                  <div class="alert-sev aw">WARN</div>
+                </div>
+              </div>
+              <div class="alert ai">
+                <div class="alert-dismiss" onclick="this.closest('.alert').remove()">✕</div>
+                <div class="alert-ico">ℹ️</div>
+                <div class="alert-body">
+                  <div class="alert-title">Event Risk Guard</div>
+                  <div class="alert-desc">FOMC D-3 — 신규 진입 주의.</div>
+                </div>
+                <div class="alert-meta">
+                  <div class="alert-t">09:30</div>
+                  <div class="alert-sev ai">INFO</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INDEX TABLE -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Global Indices</div>
+            </div>
+            <div style="padding:4px 6px 8px;">
+              <table class="itbl">
+                <thead><tr><th>Index</th><th>Price</th><th>Chg%</th></tr></thead>
+                <tbody>
+                  <tr><td class="sym">KOSPI</td><td>2,687</td><td class="up">+0.82%</td></tr>
+                  <tr><td class="sym">KOSDAQ</td><td>868</td><td class="up">+1.14%</td></tr>
+                  <tr><td class="sym">S&P 500</td><td>5,291</td><td class="up">+0.34%</td></tr>
+                  <tr><td class="sym">NASDAQ</td><td>16,742</td><td class="up">+0.51%</td></tr>
+                  <tr><td class="sym">VIX</td><td>16.42</td><td class="dn">-4.21%</td></tr>
+                  <tr><td class="sym">USD/KRW</td><td>1,372</td><td class="dn">-0.18%</td></tr>
+                  <tr><td class="sym">US10Y</td><td>4.42%</td><td class="up">+0.03</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- WATCHLIST -->
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Watchlist</div>
+            </div>
+            <div id="watchlist"></div>
+          </div>
+
+          <!-- EVENTS -->
+          <div class="panel" style="flex:1;">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Catalyst Watchtower</div>
+              <span class="ph-badge b-r">1 HIGH</span>
+            </div>
+            <div class="ev-list">
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">19</div></div><div class="ev-info"><div class="ev-name">FOMC 의사록 발표</div><span class="ev-imp imp-h">HIGH IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">21</div></div><div class="ev-info"><div class="ev-name">NVDA 실적 발표</div><span class="ev-imp imp-h">HIGH IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">22</div></div><div class="ev-info"><div class="ev-name">미국 PCE 물가지수</div><span class="ev-imp imp-m">MID IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">28</div></div><div class="ev-info"><div class="ev-name">삼성전자 주주총회</div><span class="ev-imp imp-l">LOW IMPACT</span></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: MARKET KERNEL ━━━━━━━ -->
+  <div class="page" id="page-kernel">
+    <div class="mk-grid">
+
+      <!-- LEFT RAIL: symbol search + symbol list + drawing tools -->
+      <div class="mk-rail">
+        <div class="mk-rail-head">Market Kernel</div>
+        <div class="mk-search-wrap">
+          <span class="mk-search-ico">⌕</span>
+          <input class="mk-search" id="mk-search" value="NVDA" />
+          <span class="mk-search-x" id="mk-search-x">×</span>
+        </div>
+        <div class="mk-syms" id="mk-syms">
+          <div class="mk-sym active" data-sym="NVDA" data-co="NVIDIA Corporation" data-ex="NASDAQ">
+            <div class="mk-sym-icon ico-nvda">N</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">NVDA <span style="color:var(--t3);font-weight:400;">NVIDIA Corporation</span></div>
+            </div>
+          </div>
+          <div class="mk-sym" data-sym="TSLA" data-co="Tesla, Inc." data-ex="NASDAQ">
+            <div class="mk-sym-icon ico-tsla">T</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">TSLA <span style="color:var(--t3);font-weight:400;">Tesla, Inc.</span></div>
+            </div>
+          </div>
+          <div class="mk-sym" data-sym="AAPL" data-co="Apple Inc." data-ex="NASDAQ">
+            <div class="mk-sym-icon ico-aapl">A</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">AAPL <span style="color:var(--t3);font-weight:400;">Apple Inc.</span></div>
+            </div>
+          </div>
+          <div class="mk-sym" data-sym="MSFT" data-co="Microsoft Corporation" data-ex="NASDAQ">
+            <div class="mk-sym-icon ico-msft">M</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">MSFT <span style="color:var(--t3);font-weight:400;">Microsoft Corporation</span></div>
+            </div>
+          </div>
+          <div class="mk-sym" data-sym="AMZN" data-co="Amazon.com, Inc." data-ex="NASDAQ">
+            <div class="mk-sym-icon ico-amzn">A</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">AMZN <span style="color:var(--t3);font-weight:400;">Amazon.com, Inc.</span></div>
+            </div>
+          </div>
+          <div class="mk-sym" data-sym="SPY" data-co="SPDR S&amp;P 500 ETF Trust" data-ex="NYSE ARCA">
+            <div class="mk-sym-icon ico-spy">S</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">SPY <span style="color:var(--t3);font-weight:400;">SPDR S&amp;P 500 ETF Trust</span></div>
+            </div>
+          </div>
+          <div class="mk-sym" data-sym="QQQ" data-co="Invesco QQQ Trust" data-ex="NASDAQ">
+            <div class="mk-sym-icon ico-qqq">Q</div>
+            <div class="mk-sym-body">
+              <div class="mk-sym-tk">QQQ <span style="color:var(--t3);font-weight:400;">Invesco QQQ Trust</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mk-rail-all">→ Search all symbols</div>
+        <div class="mk-tools">
+          <div class="mk-tools-btn" title="Crosshair">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="8" r="3.5" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="mk-tools-btn" title="Trend line">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 13L13 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <circle cx="2.5" cy="12.5" r="1.2" fill="currentColor"/>
+              <circle cx="13" cy="3" r="1.2" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="mk-tools-btn" title="Horizontal line">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 8h14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <circle cx="8" cy="8" r="1.4" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="mk-tools-btn" title="Fibonacci">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 3h14M1 7h14M1 11h14M1 15h14" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="mk-tools-btn" title="Text">
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 3h10M8 3v10M5 13h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN CHART AREA -->
+      <div class="mk-main">
+
+        <!-- HEADER: symbol + price + exchange -->
+        <div class="mk-header">
+          <div class="mk-co" id="mk-co">NVIDIA Corporation</div>
+          <div class="mk-star">★</div>
+          <div class="mk-px" id="mk-px">949.50</div>
+          <div class="mk-ch" id="mk-ch">+21.69 (+2.34%)</div>
+          <div class="mk-spacer"></div>
+          <div class="mk-market"><div class="mk-market-dot"></div>Market Open</div>
+          <div class="mk-ex" id="mk-ex">NASDAQ
+            <svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- TIMEFRAME TOOLBAR -->
+        <div class="mk-toolbar">
+          <div class="mk-tf active" data-tf="1D">1D</div>
+          <div class="mk-tf" data-tf="1W">1W</div>
+          <div class="mk-tf" data-tf="1M">1M</div>
+          <div class="mk-tf" data-tf="3M">3M</div>
+          <div class="mk-tf" data-tf="1Y">1Y</div>
+          <div class="mk-tf" data-tf="5Y">5Y</div>
+          <div class="mk-tb-sep"></div>
+          <div class="mk-tb-icon" title="Indicators">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 10l3-4 3 2 4-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Indicators
+          </div>
+          <div class="mk-tb-icon" title="Compare">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 4h8M2 4l2-2M2 4l2 2M12 10H4M12 10l-2-2M12 10l-2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mk-tb-icon" title="Fullscreen">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mk-tb-sep"></div>
+          <div class="mk-tb-icon">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M2 5h10M5 2v10" stroke="currentColor" stroke-width="1.3"/>
+            </svg>
+            Templates
+          </div>
+        </div>
+
+        <!-- QUOTE LINE: OHLC + indicator chips -->
+        <div class="mk-quote">
+          <div class="mk-ohlc"><span class="mk-ohlc-k">O</span><span class="mk-ohlc-v" id="mk-o">932.50</span></div>
+          <div class="mk-ohlc"><span class="mk-ohlc-k">H</span><span class="mk-ohlc-v" id="mk-h">952.30</span></div>
+          <div class="mk-ohlc"><span class="mk-ohlc-k">L</span><span class="mk-ohlc-v" id="mk-l">928.10</span></div>
+          <div class="mk-ohlc"><span class="mk-ohlc-k">C</span><span class="mk-ohlc-v" id="mk-c" style="color:var(--green);">949.50 +21.69(+2.34%)</span></div>
+          <div class="mk-q-spacer"></div>
+          <div class="mk-chips">
+            <div class="mk-chip"><div class="mk-chip-dot c1"></div>EMA (20/50/200)</div>
+            <div class="mk-chip"><div class="mk-chip-dot c2"></div>Bollinger Bands</div>
+            <div class="mk-chip"><div class="mk-chip-dot c3"></div>Volume</div>
+            <div class="mk-chip"><div class="mk-chip-dot c4"></div>RSI (14)</div>
+          </div>
+        </div>
+
+        <!-- CHART CANVASES -->
+        <div class="mk-chart-wrap">
+          <div class="mk-canvas-row" style="flex:1;min-height:0;">
+            <canvas id="mk-main-canvas"></canvas>
+          </div>
+          <div class="mk-rsi-head">
+            <span class="mk-rsi-lbl">RSI (14)</span>
+            <span class="mk-rsi-val" id="mk-rsi-val">62.41</span>
+          </div>
+          <div class="mk-canvas-row" style="height:90px;">
+            <canvas id="mk-rsi-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- TV FOOTER -->
+        <div class="mk-foot">
+          <div class="mk-foot-tv"><div class="mk-foot-tv-mark">TV</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: RISK FIREWALL ━━━━━━━ -->
+  <div class="page" id="page-firewall">
+    <div class="rf-grid">
+      <div class="col">
+        <div class="col-body">
+          <div class="guard-card fail">
+            <div class="gc-header">
+              <div class="gc-icon">💵</div>
+              <div class="gc-title">Cash Ratio Guard</div>
+              <div class="gc-status">FAIL</div>
+            </div>
+            <div class="gc-val">8.2%</div>
+            <div class="gc-sub">현금 ₩6,020,000 · 기준 미달</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:82%;background:linear-gradient(90deg,var(--red2),var(--red));"></div></div>
+            <div class="gc-threshold">⚠ 임계값: 최소 10.0% | 권장 15.0%</div>
+          </div>
+          <div class="guard-card warn">
+            <div class="gc-header">
+              <div class="gc-icon">📉</div>
+              <div class="gc-title">Drawdown Guard</div>
+              <div class="gc-status">WARN</div>
+            </div>
+            <div class="gc-val">-6.1%</div>
+            <div class="gc-sub">고점 ₩78,240,000 대비 현재</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:61%;background:linear-gradient(90deg,var(--amber2),var(--amber));"></div></div>
+            <div class="gc-threshold">⚠ 임계값: 경고 5.0% | 중단 15.0%</div>
+          </div>
+          <div class="guard-card pass">
+            <div class="gc-header">
+              <div class="gc-icon">🔒</div>
+              <div class="gc-title">Single Position Guard</div>
+              <div class="gc-status">PASS</div>
+            </div>
+            <div class="gc-val">₩13.3M</div>
+            <div class="gc-sub">최대 단일 포지션 · SK하이닉스</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:75%;background:linear-gradient(90deg,var(--green2),var(--green));"></div></div>
+            <div class="gc-threshold">✓ 임계값: 종목당 최대 ₩10M (v2.1 기준)</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-body">
+          <div class="guard-card warn">
+            <div class="gc-header">
+              <div class="gc-icon">⚖️</div>
+              <div class="gc-title">Concentration Guard</div>
+              <div class="gc-status">WARN</div>
+            </div>
+            <div class="gc-val">45.5%</div>
+            <div class="gc-sub">반도체 섹터 집중도</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:91%;background:linear-gradient(90deg,var(--amber2),var(--red));"></div></div>
+            <div class="gc-threshold">⚠ 임계값: 섹터당 최대 35.0%</div>
+          </div>
+          <div class="guard-card pass">
+            <div class="gc-header">
+              <div class="gc-icon">🌡️</div>
+              <div class="gc-title">Overheat Guard</div>
+              <div class="gc-status">PASS</div>
+            </div>
+            <div class="gc-val">F&G 72</div>
+            <div class="gc-sub">탐욕 구간 진입 · 과열 임계 미달</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:72%;background:linear-gradient(90deg,var(--amber2),var(--amber));"></div></div>
+            <div class="gc-threshold">✓ 임계값: 극단적 탐욕 80 이상 시 신규 차단</div>
+          </div>
+          <div class="guard-card pass">
+            <div class="gc-header">
+              <div class="gc-icon">🔄</div>
+              <div class="gc-title">Overtrading Guard</div>
+              <div class="gc-status">PASS</div>
+            </div>
+            <div class="gc-val">2 trades</div>
+            <div class="gc-sub">최근 5일 매매 횟수</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:20%;background:linear-gradient(90deg,var(--green2),var(--green));"></div></div>
+            <div class="gc-threshold">✓ 임계값: 5일 내 10회 이상 시 경고</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-body">
+          <div class="guard-card pass">
+            <div class="gc-header">
+              <div class="gc-icon">🎯</div>
+              <div class="gc-title">Goal Guard</div>
+              <div class="gc-status">PASS</div>
+            </div>
+            <div class="gc-val">73.4%</div>
+            <div class="gc-sub">목표 진행률 · 보호 모드 미발동</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:73%;background:linear-gradient(90deg,var(--cyan2),var(--cyan));"></div></div>
+            <div class="gc-threshold">✓ 임계값: 90% 이상 달성 시 보호 모드</div>
+          </div>
+          <div class="guard-card warn">
+            <div class="gc-header">
+              <div class="gc-icon">📅</div>
+              <div class="gc-title">Event Risk Guard</div>
+              <div class="gc-status">WARN</div>
+            </div>
+            <div class="gc-val">D-3</div>
+            <div class="gc-sub">FOMC 의사록 발표 전</div>
+            <div class="gc-bar"><div class="gc-bar-fill" style="width:60%;background:linear-gradient(90deg,var(--amber2),var(--amber));"></div></div>
+            <div class="gc-threshold">⚠ 고영향 이벤트 D-5 ~ D0 신규 진입 주의</div>
+          </div>
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Guard Summary</div>
+            </div>
+            <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(255,59,92,.06);border:1px solid rgba(255,59,92,.2);border-radius:4px;">
+                <span style="font-size:10px;color:var(--red);">FAIL</span>
+                <span style="font-size:18px;font-weight:700;color:var(--red);font-family:var(--head);">1</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.2);border-radius:4px;">
+                <span style="font-size:10px;color:var(--amber);">WARN</span>
+                <span style="font-size:18px;font-weight:700;color:var(--amber);font-family:var(--head);">3</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.15);border-radius:4px;">
+                <span style="font-size:10px;color:var(--green);">PASS</span>
+                <span style="font-size:18px;font-weight:700;color:var(--green);font-family:var(--head);">4</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: MISSION CONTROL ━━━━━━━ -->
+  <div class="page" id="page-mission">
+    <div class="mc-grid">
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Goal Tracker</div>
+              <span class="ph-badge b-c">PHASE 3</span>
+            </div>
+            <div style="padding:20px;text-align:center;">
+              <canvas id="goal-ring" width="180" height="180"></canvas>
+              <div style="margin-top:12px;">
+                <div style="font-family:var(--head);font-size:32px;font-weight:700;color:var(--cyan);">₩73.42M</div>
+                <div style="font-size:11px;color:var(--t2);margin-top:4px;">목표 ₩100,000,000 · 73.4% 달성</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Phase Progress</div>
+            </div>
+            <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;opacity:0.5;">
+                <div style="width:20px;height:20px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:700;">1</div>
+                <div style="flex:1;font-size:10px;color:var(--t1);">Phase 1: ₩0 → ₩20M</div>
+                <div style="font-size:9px;color:var(--green);">완료</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;opacity:0.6;">
+                <div style="width:20px;height:20px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:700;">2</div>
+                <div style="flex:1;font-size:10px;color:var(--t1);">Phase 2: ₩20M → ₩50M</div>
+                <div style="font-size:9px;color:var(--green);">완료</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.25);border-radius:4px;">
+                <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--cyan2),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:700;box-shadow:var(--glow-c);">3</div>
+                <div style="flex:1;font-size:10px;color:var(--t0);">Phase 3: ₩50M → ₩75M</div>
+                <div style="font-size:9px;color:var(--amber);">진행중 97.9%</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;opacity:0.4;">
+                <div style="width:20px;height:20px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--t3);font-weight:700;">4</div>
+                <div style="flex:1;font-size:10px;color:var(--t2);">Phase 4: ₩75M → ₩90M</div>
+                <div style="font-size:9px;color:var(--t3);">대기</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;opacity:0.3;">
+                <div style="width:20px;height:20px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--t3);font-weight:700;">5</div>
+                <div style="flex:1;font-size:10px;color:var(--t2);">Phase 5: ₩90M → ₩100M 🏆</div>
+                <div style="font-size:9px;color:var(--t3);">대기</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Scenario Projection</div>
+            </div>
+            <canvas id="projection-canvas" style="display:block;width:100%;height:260px;"></canvas>
+          </div>
+          <div class="mcard-grid">
+            <div class="mcard mc">
+              <div class="ml">남은 금액</div>
+              <div class="mv" style="font-size:18px;">₩26.58M</div>
+              <div class="ms">목표까지</div>
+            </div>
+            <div class="mcard mg">
+              <div class="ml">낙관 시나리오</div>
+              <div class="mv" style="font-size:18px;">D-28</div>
+              <div class="ms">월 수익률 +8%</div>
+            </div>
+            <div class="mcard ma">
+              <div class="ml">기준 시나리오</div>
+              <div class="mv" style="font-size:18px;">D-48</div>
+              <div class="ms">월 수익률 +4%</div>
+            </div>
+            <div class="mcard mr">
+              <div class="ml">보수 시나리오</div>
+              <div class="mv" style="font-size:18px;">D-92</div>
+              <div class="ms">월 수익률 +2%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: CATALYST WATCH ━━━━━━━ -->
+  <div class="page" id="page-catalyst">
+    <div class="grid-2">
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Event Calendar — May 2026</div>
+              <span class="ph-badge b-r">2 HIGH</span>
+            </div>
+            <div class="ev-list">
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">19</div></div><div class="ev-info"><div class="ev-name">FOMC 의사록 발표</div><div style="font-size:9px;color:var(--t2);margin-top:3px;">21:00 KST · 금리 경로 힌트 기대</div><span class="ev-imp imp-h" style="margin-top:4px;display:inline-block;">HIGH IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">21</div></div><div class="ev-info"><div class="ev-name">NVDA Q1 FY26 실적 발표</div><div style="font-size:9px;color:var(--t2);margin-top:3px;">AH · 반도체 섹터 연동 주의</div><span class="ev-imp imp-h" style="margin-top:4px;display:inline-block;">HIGH IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">22</div></div><div class="ev-info"><div class="ev-name">미국 PCE 물가지수</div><div style="font-size:9px;color:var(--t2);margin-top:3px;">22:30 KST · Fed 선호 인플레 지표</div><span class="ev-imp imp-m" style="margin-top:4px;display:inline-block;">MID IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">28</div></div><div class="ev-info"><div class="ev-name">삼성전자 정기 주주총회</div><div style="font-size:9px;color:var(--t2);margin-top:3px;">배당 정책 발표 가능성</div><span class="ev-imp imp-l" style="margin-top:4px;display:inline-block;">LOW IMPACT</span></div></div>
+              <div class="ev"><div class="ev-cal"><div class="ev-mo">MAY</div><div class="ev-dy">30</div></div><div class="ev-info"><div class="ev-name">한국 소비자물가지수 (CPI)</div><div style="font-size:9px;color:var(--t2);margin-top:3px;">한은 기준금리 경로 영향</div><span class="ev-imp imp-m" style="margin-top:4px;display:inline-block;">MID IMPACT</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Intel Feed · 뉴스 영향도</div>
+              <span class="ph-badge b-c">8 NEW</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:10px;">
+              <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
+                  <div style="font-size:11px;color:var(--t0);font-weight:500;line-height:1.4;">TSMC, 2nm 공정 양산 앞당겨 — 반도체 공급망 호재</div>
+                  <span style="background:rgba(0,255,136,.1);color:var(--green);font-size:8px;padding:2px 6px;border-radius:2px;flex-shrink:0;">BULL</span>
+                </div>
+                <div style="font-size:9px;color:var(--t3);">Reuters · 2h ago · 관련: SK하이닉스, 삼성전자, AMAT</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
+                  <div style="font-size:11px;color:var(--t0);font-weight:500;line-height:1.4;">Fed 위원, "연내 금리 인하 1회 전망 유지" 발언</div>
+                  <span style="background:rgba(255,184,0,.1);color:var(--amber);font-size:8px;padding:2px 6px;border-radius:2px;flex-shrink:0;">NEUT</span>
+                </div>
+                <div style="font-size:9px;color:var(--t3);">Bloomberg · 4h ago · 관련: 전체 시장</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
+                  <div style="font-size:11px;color:var(--t0);font-weight:500;line-height:1.4;">카카오, 2Q 광고 매출 전년比 -8% 우려 — 애널리스트 목표가 하향</div>
+                  <span style="background:rgba(255,59,92,.1);color:var(--red);font-size:8px;padding:2px 6px;border-radius:2px;flex-shrink:0;">BEAR</span>
+                </div>
+                <div style="font-size:9px;color:var(--t3);">연합인포맥스 · 5h ago · 관련: 카카오</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px;">
+                  <div style="font-size:11px;color:var(--t0);font-weight:500;line-height:1.4;">HBM4 수요 폭증, SK하이닉스 추가 증설 검토 보도</div>
+                  <span style="background:rgba(0,255,136,.1);color:var(--green);font-size:8px;padding:2px 6px;border-radius:2px;flex-shrink:0;">BULL</span>
+                </div>
+                <div style="font-size:9px;color:var(--t3);">한국경제 · 6h ago · 관련: SK하이닉스</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: ANALYSIS WORKSPACE ━━━━━━━ -->
+  <div class="page" id="page-analysis">
+    <div class="aw-grid">
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph">
+              <div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div>
+              <div class="ph-title">Analysis Workspace</div>
+              <span class="ph-badge b-c">TERMINAL MODE</span>
+            </div>
+            <div class="tab-bar" id="aw-tabs">
+              <div class="tab active" data-aw="index">Index Terminal</div>
+              <div class="tab" data-aw="symbol">Symbol Terminal</div>
+              <div class="tab" data-aw="intel">Intel Feed</div>
+              <div class="tab" data-aw="signal">Signal Console</div>
+            </div>
+
+            <div class="aw-section active" id="aw-index">
+              <div class="terminal-head">
+                <div class="terminal-title">QQQ · SMH · ARKX · PAVE overlay</div>
+                <div class="terminal-actions"><button class="tbtn active">1M</button><button class="tbtn">3M</button><button class="tbtn">YTD</button><button class="tbtn">1Y</button></div>
+              </div>
+              <canvas id="aw-index-canvas" style="display:block;width:100%;height:300px;"></canvas>
+            </div>
+
+            <div class="aw-section" id="aw-symbol">
+              <div class="terminal-head">
+                <div class="terminal-title">Symbol Terminal · SK하이닉스</div>
+                <div class="terminal-actions"><button class="tbtn active">Candle</button><button class="tbtn">EMA</button><button class="tbtn">BB</button><button class="tbtn">RSI</button></div>
+              </div>
+              <div class="mcard-grid">
+                <div class="mcard mc"><div class="ml">Timing Score</div><div class="mv">68</div><div class="ms">과열 직전 · 추격 제한</div></div>
+                <div class="mcard ma"><div class="ml">Volume Z</div><div class="mv">+1.8σ</div><div class="ms">수급 유입</div></div>
+                <div class="mcard mg"><div class="ml">EMA State</div><div class="mv">BULL</div><div class="ms">20/50 상방</div></div>
+                <div class="mcard mr"><div class="ml">Event Link</div><div class="mv">D-5</div><div class="ms">NVDA 실적 영향</div></div>
+              </div>
+              <canvas id="aw-symbol-canvas" style="display:block;width:100%;height:240px;"></canvas>
+            </div>
+
+            <div class="aw-section" id="aw-intel">
+              <div class="terminal-head">
+                <div class="terminal-title">Position-Relevant Intel Feed</div>
+                <div class="terminal-actions"><button class="tbtn active">Holdings</button><button class="tbtn">Sector</button><button class="tbtn">Macro</button></div>
+              </div>
+              <div class="alert-list">
+                <div class="alert aw"><div class="alert-ico">📰</div><div class="alert-body"><div class="alert-title">HBM4 수요 폭증 보도</div><div class="alert-desc">관련: SK하이닉스, 반도체. 긍정 뉴스이나 이벤트 기대감 선반영 주의.</div></div><div class="alert-meta"><div class="alert-sev aw">BULL</div></div></div>
+                <div class="alert ai"><div class="alert-ico">🌐</div><div class="alert-body"><div class="alert-title">FOMC 의사록 D-3</div><div class="alert-desc">금리 민감 성장주와 반도체 섹터의 포지션 크기를 재점검해야 하는 구간.</div></div><div class="alert-meta"><div class="alert-sev ai">MACRO</div></div></div>
+                <div class="alert ac"><div class="alert-ico">⚡</div><div class="alert-body"><div class="alert-title">좋은 뉴스 대비 가격 반응 둔화 감시</div><div class="alert-desc">이벤트 직전에는 호재에도 상승폭이 줄면 분배 신호로 해석.</div></div><div class="alert-meta"><div class="alert-sev ac">WATCH</div></div></div>
+              </div>
+            </div>
+
+            <div class="aw-section" id="aw-signal">
+              <div class="terminal-head">
+                <div class="terminal-title">War Room Signal Console</div>
+                <div class="terminal-actions"><button class="tbtn active">Priority</button><button class="tbtn">Theme</button><button class="tbtn">Risk</button></div>
+              </div>
+              <div class="matrix">
+                <div class="signal-tile a"><div class="signal-type">Type A</div><div class="signal-name">Risk Exit</div><div class="signal-desc">동반 약세·방어선 이탈·손실 복구 매매 차단 후보.</div></div>
+                <div class="signal-tile b"><div class="signal-type">Type B</div><div class="signal-name">Leaders</div><div class="signal-desc">강한 주도 섹터. 기존 winners 유지와 손절선 관리.</div></div>
+                <div class="signal-tile c"><div class="signal-type">Type C</div><div class="signal-name">Conflict</div><div class="signal-desc">뉴스는 강하지만 가격 반응 둔화. 이벤트 후 reversal 감시.</div></div>
+                <div class="signal-tile d"><div class="signal-type">Type D</div><div class="signal-name">Defense</div><div class="signal-desc">하락 중 지지/방어 후보. 리스크 축소 구간 관찰.</div></div>
+              </div>
+              <table class="itbl">
+                <thead><tr><th>Ticker</th><th>Type</th><th>Priority</th><th>Reason</th></tr></thead>
+                <tbody>
+                  <tr><td class="sym">SK하이닉스</td><td class="up">B</td><td>91</td><td>HBM 수급 + EMA trend</td></tr>
+                  <tr><td class="sym">NVDA</td><td class="up">B</td><td>88</td><td>AI CAPEX leadership</td></tr>
+                  <tr><td class="sym">TSLA</td><td style="color:var(--cyan)">C</td><td>78</td><td>event narrative + overheat risk</td></tr>
+                  <tr><td class="sym">ARKX</td><td style="color:var(--amber)">D</td><td>61</td><td>space momentum recovering</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Analysis Interpreter</div><span class="ph-badge b-p">ACCESSIBLE</span></div>
+            <div class="interp">
+              <div class="interp-block iw"><div class="interp-lbl">▸ What happened</div><div class="interp-txt">반도체가 시장을 주도하지만 FOMC/NVDA 이벤트가 가까워지며 이벤트 전 포지션 관리가 중요해졌습니다.</div></div>
+              <div class="interp-block im"><div class="interp-lbl">▸ What it means</div><div class="interp-txt">차트상 추세는 유지됩니다. 하지만 Cash Ratio Guard가 FAIL이므로 신규 리스크 추가보다 현금 회복이 우선입니다.</div></div>
+              <div class="interp-block ix"><div class="interp-lbl">▸ Watch next</div><div class="interp-txt">거래량 동반 여부, 좋은 뉴스 대비 반응 둔화, VIX 20 돌파, 섹터 breadth 약화를 관찰하세요.</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Data Source State</div></div>
+            <div class="pipeline">
+              <div class="pipe-step done"><div class="pipe-idx">1</div><div><strong>market_bars</strong><span>12 symbols · cache hit 82%</span></div><span class="ph-badge b-g">OK</span></div>
+              <div class="pipe-step done"><div class="pipe-idx">2</div><div><strong>indicator_snapshots</strong><span>RSI/EMA/BB/MACD computed</span></div><span class="ph-badge b-g">OK</span></div>
+              <div class="pipe-step warn"><div class="pipe-idx">3</div><div><strong>news_impacts</strong><span>sample adapter / live provider pending</span></div><span class="ph-badge b-a">MOCK</span></div>
+              <div class="pipe-step done"><div class="pipe-idx">4</div><div><strong>regime_output</strong><span>RISK_ON_NORMAL · confidence 87%</span></div><span class="ph-badge b-c">LIVE</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: TRADE MEMORY ━━━━━━━ -->
+  <div class="page" id="page-memory">
+    <div class="grid-2">
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Trade Memory Layer</div><span class="ph-badge b-p">BEHAVIOR MODEL</span></div>
+            <div class="memory-grid">
+              <div class="memory-card"><h4>Best Regime</h4><div class="memory-score" style="color:var(--green);">Risk-On +1.42R</div><div class="ms">주도 섹터 + 명확한 촉매에서 성과 우수</div></div>
+              <div class="memory-card"><h4>Worst Pattern</h4><div class="memory-score" style="color:var(--red);">Revenge -0.91R</div><div class="ms">손실 직후 복구 매매에서 반복 손실</div></div>
+              <div class="memory-card"><h4>After Big Win</h4><div class="memory-score" style="color:var(--amber);">Overtrade Risk</div><div class="ms">큰 주간 수익 후 다음 2일 과매매 빈도 증가</div></div>
+              <div class="memory-card"><h4>Current Advice</h4><div class="memory-score" style="color:var(--cyan);">Review Mode</div><div class="ms">장마감 후 thesis와 emotion state 기록 필요</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Regime × Behavior Heatmap</div></div>
+            <div style="padding:10px;">
+              <div class="heatmap">
+                <div class="h"></div><div class="h">Calm</div><div class="h">Confident</div><div class="h">Excited</div><div class="h">Frustrated</div><div class="h">FOMO</div>
+                <div class="h">Risk-On</div><div class="pos">+1.2R</div><div class="pos">+1.6R</div><div class="mid">+0.2R</div><div class="neg">-0.4R</div><div class="neg">-0.7R</div>
+                <div class="h">Overheat</div><div class="pos">+0.5R</div><div class="mid">+0.1R</div><div class="neg">-0.5R</div><div class="neg">-0.8R</div><div class="neg">-1.1R</div>
+                <div class="h">Risk-Off</div><div class="mid">0.0R</div><div class="neg">-0.3R</div><div class="neg">-0.9R</div><div class="neg">-1.3R</div><div class="neg">-1.6R</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Recent Journal Entries</div></div>
+            <table class="itbl">
+              <thead><tr><th>Date</th><th>Ticker</th><th>Thesis</th><th>Emotion</th><th>R</th><th>Tags</th></tr></thead>
+              <tbody>
+                <tr><td>5/16</td><td class="sym">SK하이닉스</td><td>HBM demand + EMA trend</td><td>Calm</td><td class="up">+1.4R</td><td>trend</td></tr>
+                <tr><td>5/15</td><td class="sym">TSLA</td><td>event rebound</td><td>Excited</td><td class="up">+0.6R</td><td>late-entry</td></tr>
+                <tr><td>5/12</td><td class="sym">ASTS</td><td>space narrative chase</td><td>FOMO</td><td class="dn">-1.2R</td><td>chasing,no-stop</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Memory Interpreter</div><span class="ph-badge b-a">PATTERN FOUND</span></div>
+            <div class="interp">
+              <div class="interp-block iw"><div class="interp-lbl">▸ Repeating Pattern</div><div class="interp-txt">큰 수익 이후 48시간 동안 포지션 크기가 커지고, 손절 기준이 느슨해지는 경향이 있습니다.</div></div>
+              <div class="interp-block im"><div class="interp-lbl">▸ Risk Translation</div><div class="interp-txt">현재 Cash Guard FAIL과 이벤트 D-3가 겹치므로, 감정적 확신보다 방어적 루틴이 우선입니다.</div></div>
+              <div class="interp-block ix"><div class="interp-lbl">▸ Next Action</div><div class="interp-txt">오늘 거래 종료 후 thesis, catalyst, emotion, mistake tag를 기록하고 내일 신규 진입 전 Review Mode를 거치세요.</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Mistake Archive</div></div>
+            <div class="alert-list">
+              <div class="alert ac"><div class="alert-ico">⛔</div><div class="alert-body"><div class="alert-title">Chasing after event headline</div><div class="alert-desc">뉴스 직후 고점 추격. 평균 -0.8R.</div></div></div>
+              <div class="alert aw"><div class="alert-ico">⚠️</div><div class="alert-body"><div class="alert-title">No stop after thesis invalidation</div><div class="alert-desc">손절 기준 미기록 거래 손실 확대.</div></div></div>
+              <div class="alert ai"><div class="alert-ico">ℹ️</div><div class="alert-body"><div class="alert-title">Early exit on healthy pullback</div><div class="alert-desc">Risk-On 중 정상 조정에서 조기 매도.</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━━━━━ PAGE: SYSTEM OPS ━━━━━━━ -->
+  <div class="page" id="page-system">
+    <div class="grid-2">
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Service Graph</div><span class="ph-badge b-g">NOMINAL</span></div>
+            <div class="service-grid">
+              <div class="service-card"><div class="svc-name">PostgreSQL</div><div class="svc-meta">latency 12ms<br>pool 3/10<br>snapshots ready</div><div class="svc-bar" style="--w:88%"><span></span></div></div>
+              <div class="service-card"><div class="svc-name">Market Adapter</div><div class="svc-meta">yfinance/cache<br>12 symbols<br>TTL 5m</div><div class="svc-bar" style="--w:74%"><span></span></div></div>
+              <div class="service-card warn"><div class="svc-name">News Adapter</div><div class="svc-meta">sample mode<br>live provider pending<br>impact scoring ok</div><div class="svc-bar" style="--w:48%"><span></span></div></div>
+              <div class="service-card"><div class="svc-name">Regime Engine</div><div class="svc-meta">confidence 87%<br>conflict low<br>rules loaded</div><div class="svc-bar" style="--w:87%"><span></span></div></div>
+              <div class="service-card warn"><div class="svc-name">Risk Firewall</div><div class="svc-meta">1 fail<br>3 warnings<br>4 pass</div><div class="svc-bar" style="--w:62%"><span></span></div></div>
+              <div class="service-card"><div class="svc-name">Interpreter</div><div class="svc-meta">template mode<br>safety filter on<br>LLM optional</div><div class="svc-bar" style="--w:92%"><span></span></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Data Pipeline</div></div>
+            <div class="pipeline">
+              <div class="pipe-step done"><div class="pipe-idx">01</div><div><strong>Import portfolio snapshot</strong><span>positions + portfolio_snapshots validated</span></div><span class="ph-badge b-g">DONE</span></div>
+              <div class="pipe-step done"><div class="pipe-idx">02</div><div><strong>Refresh market bars</strong><span>upsert OHLCV without duplicates</span></div><span class="ph-badge b-g">DONE</span></div>
+              <div class="pipe-step done"><div class="pipe-idx">03</div><div><strong>Compute indicators</strong><span>RSI, EMA, Bollinger, MACD</span></div><span class="ph-badge b-g">DONE</span></div>
+              <div class="pipe-step warn"><div class="pipe-idx">04</div><div><strong>Score news impact</strong><span>sample adapter until API configured</span></div><span class="ph-badge b-a">MOCK</span></div>
+              <div class="pipe-step done"><div class="pipe-idx">05</div><div><strong>Render OS state</strong><span>Control Room snapshot built</span></div><span class="ph-badge b-c">LIVE</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="col-body">
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Safety Policy</div><span class="ph-badge b-c">NO ADVICE</span></div>
+            <div class="safety-banner">
+              <div style="font-size:18px;">🛡️</div>
+              <div><strong>Direct buy/sell recommendations are blocked.</strong><span>FinSkillOS outputs state, interpretation, risk, and watchpoints. It must not say “지금 사라/팔아라”, “수익 보장”, or “확실한 상승”.</span></div>
+            </div>
+            <div class="protocol-grid" style="grid-template-columns:1fr 1fr;padding-top:0;">
+              <div class="protocol-card allow"><h4>Allowed Language</h4><ul><li>신규 추격은 신중</li><li>현금 비중 점검</li><li>이벤트 전후 변동성 감시</li></ul></div>
+              <div class="protocol-card block"><h4>Blocked Language</h4><ul><li>무조건 매수</li><li>반드시 매도</li><li>수익 보장/확실한 상승</li></ul></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="wc-group"><div class="wc r"></div><div class="wc y"></div><div class="wc g"></div></div><div class="ph-title">Smart Import Classifier</div><span class="ph-badge b-g">CSV READY</span></div>
+            <div class="pipeline">
+              <div class="pipe-step done"><div class="pipe-idx">✓</div><div><strong>portfolio_snapshot.csv</strong><span>detected: Portfolio Snapshot · confidence 0.91</span></div><span class="ph-badge b-g">READY</span></div>
+              <div class="pipe-step warn"><div class="pipe-idx">?</div><div><strong>Column mapping review</strong><span>avg_price, market_value, pnl_pct mapped automatically</span></div><span class="ph-badge b-a">REVIEW</span></div>
+              <div class="pipe-step done"><div class="pipe-idx">→</div><div><strong>Target tables</strong><span>positions, portfolio_snapshots, trades optional</span></div><span class="ph-badge b-c">ROUTE</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /workspace -->
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// THEME HELPER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const cv = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#000';
+const rgba = (hex, a) => {
+  const h = hex.replace('#','');
+  const v = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+  const n = parseInt(v,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// BOOT SEQUENCE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const bootLines = [
+  "[KERNEL]  Initializing FinSkillOS v2.1...",
+  "[DB]      PostgreSQL connection established",
+  "[KERNEL]  Loading portfolio snapshot — ₩73,420,000",
+  "[DATA]    yfinance adapter connected (delayed)",
+  "[SIGNAL]  RSI/EMA/MACD/Bollinger computed",
+  "[REGIME]  Regime scan → RISK_ON_NORMAL (87%)",
+  "[GUARD]   Cash ratio guard: FAIL (8.2% < 10%)",
+  "[GUARD]   Concentration guard: WARN (45.5% > 35%)",
+  "[GUARD]   5 of 7 guards: PASS",
+  "[SCHED]   Pre-market scan complete",
+  "[UI]      Rendering Control Room...",
+  "[WORKSP]  Analysis Workspace mounted",
+  "[MEMORY]  Trade Memory pattern model loaded",
+  "[OPS]     Command Palette and System Ops online"
+];
+
+const blogEl = document.getElementById('boot-log');
+const fillEl = document.getElementById('boot-fill');
+let bi = 0;
+
+function bootStep() {
+  if (bi >= bootLines.length) {
+    setTimeout(() => {
+      document.getElementById('boot').classList.add('done');
+      initAll();
+    }, 400);
+    return;
+  }
+  blogEl.innerHTML += bootLines[bi] + '\n';
+  blogEl.scrollTop = blogEl.scrollHeight;
+  fillEl.style.width = ((bi+1)/bootLines.length*100) + '%';
+  bi++;
+  setTimeout(bootStep, 120 + Math.random()*80);
+}
+setTimeout(bootStep, 300);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// CLOCK
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateClock() {
+  const n = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  document.getElementById('clk').textContent =
+    `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())} KST`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// TICKER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const tickerData = [
+  {sym:'KOSPI',px:'2,687.44',ch:'+0.82%',up:true},
+  {sym:'KOSDAQ',px:'868.32',ch:'+1.14%',up:true},
+  {sym:'SPY',px:'529.18',ch:'+0.34%',up:true},
+  {sym:'QQQ',px:'454.76',ch:'+0.51%',up:true},
+  {sym:'VIX',px:'16.42',ch:'-4.21%',up:false},
+  {sym:'USD/KRW',px:'1,372.50',ch:'-0.18%',up:false},
+  {sym:'삼성전자',px:'76,800',ch:'+1.32%',up:true},
+  {sym:'SK하이닉스',px:'189,500',ch:'+2.43%',up:true},
+  {sym:'NVDA',px:'1,082.40',ch:'-0.67%',up:false},
+  {sym:'BTC',px:'67,240',ch:'+1.88%',up:true},
+  {sym:'TSMC',px:'168.40',ch:'+0.94%',up:true},
+  {sym:'현대차',px:'245,000',ch:'-0.41%',up:false},
+];
+function buildTicker() {
+  const s = document.getElementById('ticker-scroll');
+  const items = [...tickerData,...tickerData].map(d =>
+    `<span class="ti">
+      <span class="ti-sym">${d.sym}</span>
+      <span class="ti-px">${d.px}</span>
+      <span class="ti-ch ${d.up?'up':'dn'}">${d.ch}</span>
+    </span><span class="ti-sep">◆</span>`
+  ).join('');
+  s.innerHTML = items;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// NAV
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function initNav() {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('page-' + btn.dataset.page).classList.add('active');
+      if(btn.dataset.page === 'kernel') drawKernelChart();
+      if(btn.dataset.page === 'mission') { drawGoalRing(); drawProjection(); }
+    });
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACTION QUEUE TOGGLE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function initAQ() {
+  document.querySelectorAll('.aq-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('done');
+      const badge = document.getElementById('aq-badge');
+      const pending = document.querySelectorAll('.aq-item:not(.done)').length;
+      badge.textContent = pending + ' PENDING';
+    });
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// CHART TABS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function initChartTabs() {
+  document.querySelectorAll('#chart-tabs .ctab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#chart-tabs .ctab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      drawCandlestick(tab.textContent);
+    });
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// CANDLESTICK CHART
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function drawCandlestick(range='1D') {
+  const canvas = document.getElementById('candlestick-canvas');
+  if(!canvas) return;
+  const W = canvas.offsetWidth || 400;
+  const H = 220;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = H * window.devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const cBg = cv('--bg2'), cGrid = cv('--b1'), cLbl = cv('--t3');
+  const cBull = cv('--green'), cBear = cv('--red'), cMa = cv('--cyan');
+
+  ctx.fillStyle = cBg;
+  ctx.fillRect(0,0,W,H);
+
+  const n = range==='1D'?30:range==='1W'?20:range==='1M'?25:40;
+  const pad = {l:38,r:16,t:16,b:28};
+  const cW = (W-pad.l-pad.r)/n;
+
+  // Generate data
+  let price = 175000;
+  const candles = [];
+  for(let i=0;i<n;i++){
+    const change = (Math.random()-0.48)*3000;
+    const open = price;
+    const close = price + change;
+    const high = Math.max(open,close) + Math.random()*1500;
+    const low = Math.min(open,close) - Math.random()*1500;
+    candles.push({open,close,high,low});
+    price = close;
+  }
+
+  const allH = candles.map(c=>c.high), allL = candles.map(c=>c.low);
+  const maxP = Math.max(...allH), minP = Math.min(...allL);
+  const range2 = maxP - minP;
+  const toY = p => pad.t + (maxP-p)/range2*(H-pad.t-pad.b);
+
+  // Grid
+  for(let i=0;i<=4;i++){
+    const y = pad.t + i*(H-pad.t-pad.b)/4;
+    ctx.strokeStyle = cGrid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    const val = maxP - i*(range2/4);
+    ctx.fillStyle = cLbl;
+    ctx.font = '8px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((val/1000).toFixed(0)+'K', pad.l-4, y+3);
+  }
+
+  // Volume bars (bottom 20%)
+  const volH = (H-pad.t-pad.b)*0.2;
+  const volBase = H - pad.b;
+  candles.forEach((c,i)=>{
+    const x = pad.l + i*cW + cW*0.1;
+    const w = cW*0.8;
+    const vol = 0.3 + Math.random()*0.7;
+    const bull = c.close >= c.open;
+    ctx.fillStyle = bull ? rgba(cBull,0.18) : rgba(cBear,0.18);
+    ctx.fillRect(x, volBase - vol*volH, w, vol*volH);
+  });
+
+  // Candles
+  candles.forEach((c,i)=>{
+    const bull = c.close >= c.open;
+    const x = pad.l + i*cW + cW*0.5;
+    const bx = pad.l + i*cW + cW*0.15;
+    const bw = cW*0.7;
+    const openY = toY(c.open), closeY = toY(c.close);
+    const highY = toY(c.high), lowY = toY(c.low);
+
+    ctx.strokeStyle = bull ? cBull : cBear;
+    ctx.lineWidth = 1;
+    ctx.beginPath();ctx.moveTo(x,highY);ctx.lineTo(x,lowY);ctx.stroke();
+
+    const bodyTop = Math.min(openY,closeY);
+    const bodyH = Math.abs(closeY-openY)||1;
+    ctx.fillStyle = bull ? rgba(cBull,0.85) : rgba(cBear,0.85);
+    ctx.fillRect(bx,bodyTop,bw,bodyH);
+
+    if(i===n-1){
+      ctx.fillStyle = bull?cBull:cBear;
+      ctx.font = 'bold 9px JetBrains Mono';
+      ctx.textAlign='left';
+      ctx.fillText((c.close/1000).toFixed(1)+'K',x+4,closeY);
+    }
+  });
+
+  // MA line
+  const ma = candles.map((_,i)=>{
+    const sl = Math.max(0,i-9);
+    const s = candles.slice(sl,i+1);
+    return s.reduce((a,c)=>(a+c.close)/2,s[0].close);
+  });
+  ctx.strokeStyle=rgba(cMa,0.75);ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ma.forEach((m,i)=>{
+    const x=pad.l+i*cW+cW*0.5, y=toY(m);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // X labels
+  ctx.fillStyle=cLbl;ctx.font='8px JetBrains Mono';ctx.textAlign='center';
+  const step = Math.max(1,Math.floor(n/6));
+  candles.forEach((_,i)=>{
+    if(i%step===0){
+      ctx.fillText(i+1, pad.l+i*cW+cW*0.5, H-pad.b+12);
+    }
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// RADAR CHART
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function drawRadar() {
+  const canvas = document.getElementById('radar-canvas');
+  if(!canvas) return;
+  const W = canvas.offsetWidth||400, H=320;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+
+  const cBg=cv('--bg1'), cRing=cv('--b1'), cAxis=cv('--b2');
+  const cCy=cv('--cyan'), cAm=cv('--amber'), cLbl=cv('--t1'), cSub=cv('--t3');
+
+  ctx.fillStyle=cBg;ctx.fillRect(0,0,W,H);
+
+  const cx=W/2, cy=H/2-10, R=Math.min(W,H)/2-50;
+  const labels=['RSI','VIX\n역방향','EMA Gap','F&G','MACD','거래량'];
+  const values=[0.58,0.73,0.65,0.72,0.55,0.68]; // 0~1
+  const n=labels.length;
+
+  // Background rings
+  for(let r=1;r<=4;r++){
+    const ri=r/4*R;
+    ctx.beginPath();
+    for(let i=0;i<n;i++){
+      const a=Math.PI*2*i/n - Math.PI/2;
+      const x=cx+Math.cos(a)*ri, y=cy+Math.sin(a)*ri;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle=rgba(cRing,0.8);ctx.lineWidth=1;ctx.stroke();
+  }
+
+  // Axes
+  for(let i=0;i<n;i++){
+    const a=Math.PI*2*i/n - Math.PI/2;
+    ctx.strokeStyle=rgba(cAxis,0.6);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R);
+    ctx.stroke();
+  }
+
+  // Data polygon — current
+  ctx.beginPath();
+  values.forEach((v,i)=>{
+    const a=Math.PI*2*i/n - Math.PI/2;
+    const x=cx+Math.cos(a)*v*R, y=cy+Math.sin(a)*v*R;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle=rgba(cCy,0.10);ctx.fill();
+  ctx.strokeStyle=rgba(cCy,0.7);ctx.lineWidth=2;ctx.stroke();
+
+  // Threshold polygon (0.5 = neutral)
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const a=Math.PI*2*i/n - Math.PI/2;
+    const x=cx+Math.cos(a)*0.5*R, y=cy+Math.sin(a)*0.5*R;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle=rgba(cAm,0.3);ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dots
+  values.forEach((v,i)=>{
+    const a=Math.PI*2*i/n - Math.PI/2;
+    const x=cx+Math.cos(a)*v*R, y=cy+Math.sin(a)*v*R;
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle=cCy;ctx.fill();
+    ctx.strokeStyle=rgba(cCy,0.4);ctx.lineWidth=3;ctx.stroke();
+  });
+
+  // Labels
+  ctx.font='10px JetBrains Mono';ctx.fillStyle=cLbl;
+  labels.forEach((lbl,i)=>{
+    const a=Math.PI*2*i/n - Math.PI/2;
+    const x=cx+Math.cos(a)*(R+22), y=cy+Math.sin(a)*(R+22);
+    ctx.textAlign=Math.cos(a)>0.1?'left':Math.cos(a)<-0.1?'right':'center';
+    ctx.textBaseline=Math.sin(a)>0.1?'top':Math.sin(a)<-0.1?'bottom':'middle';
+    const lines=lbl.split('\n');
+    lines.forEach((ln,li)=>ctx.fillText(ln,x,y+li*12));
+  });
+
+  // Center label
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='bold 11px Space Grotesk';ctx.fillStyle=rgba(cCy,0.7);
+  ctx.fillText('RISK_ON', cx, cy-6);
+  ctx.font='9px JetBrains Mono';ctx.fillStyle=cSub;
+  ctx.fillText('87% conf', cx, cy+8);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// GOAL RING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function drawGoalRing() {
+  const canvas = document.getElementById('goal-ring');
+  if(!canvas) return;
+  const size=180, ctx=canvas.getContext('2d');
+  canvas.width=size*devicePixelRatio;canvas.height=size*devicePixelRatio;
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  const cx=size/2,cy=size/2,r=72;
+
+  const cTrack=cv('--bg3'), cFill1=cv('--cyan2'), cFill2=cv('--cyan'), cSub=cv('--t3');
+
+  ctx.clearRect(0,0,size,size);
+
+  // Track
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle=cTrack;ctx.lineWidth=10;ctx.stroke();
+
+  // Fill - 73.4%
+  const pct=0.734;
+  const grad=ctx.createLinearGradient(cx-r,cy,cx+r,cy);
+  grad.addColorStop(0,cFill1);grad.addColorStop(1,cFill2);
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+pct*Math.PI*2);
+  ctx.strokeStyle=grad;ctx.lineWidth=10;ctx.lineCap='round';ctx.stroke();
+
+  // Phase arcs
+  for(let i=0;i<5;i++){
+    const start=-Math.PI/2+i*0.2*Math.PI*2;
+    const end=start+0.18*Math.PI*2;
+    const done=i<2;
+    const cur=i===2;
+    if(done||cur){
+      ctx.beginPath();ctx.arc(cx,cy,r-18,start,end);
+      ctx.strokeStyle=done?rgba(cFill2,0.20):rgba(cFill2,0.35);
+      ctx.lineWidth=4;ctx.lineCap='round';ctx.stroke();
+    }
+  }
+
+  // Center text
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`bold 28px Space Grotesk`;ctx.fillStyle=cFill2;
+  ctx.shadowColor=rgba(cFill2,0.6);ctx.shadowBlur=15;
+  ctx.fillText('73.4%',cx,cy-6);
+  ctx.shadowBlur=0;
+  ctx.font='9px JetBrains Mono';ctx.fillStyle=cSub;
+  ctx.fillText('of ₩100M',cx,cy+14);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROJECTION CHART
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function drawProjection() {
+  const canvas = document.getElementById('projection-canvas');
+  if(!canvas) return;
+  const W=canvas.offsetWidth||400, H=260;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+
+  const cBg=cv('--bg1'), cGrid=cv('--b1'), cLbl=cv('--t3');
+  const cCy=cv('--cyan'), cGr=cv('--green'), cAm=cv('--amber');
+
+  ctx.fillStyle=cBg;ctx.fillRect(0,0,W,H);
+
+  const pad={l:48,r:16,t:16,b:28};
+  const iW=W-pad.l-pad.r, iH=H-pad.t-pad.b;
+  const start=73.42, goal=100, days=120;
+  const toY=v=>pad.t+iH-(v-65)/(goal+5-65)*iH;
+  const toX=d=>pad.l+d/days*iW;
+
+  // Grid
+  for(let v=70;v<=100;v+=10){
+    const y=toY(v);
+    ctx.strokeStyle=cGrid;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=cLbl;ctx.font='8px JetBrains Mono';
+    ctx.textAlign='right';ctx.fillText(v+'M',pad.l-5,y+3);
+  }
+
+  // Goal line
+  const gy=toY(goal);
+  ctx.strokeStyle=rgba(cCy,0.3);ctx.lineWidth=1;ctx.setLineDash([6,4]);
+  ctx.beginPath();ctx.moveTo(pad.l,gy);ctx.lineTo(W-pad.r,gy);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=rgba(cCy,0.6);ctx.font='8px JetBrains Mono';
+  ctx.textAlign='left';ctx.fillText('₩100M TARGET',pad.l+4,gy-4);
+
+  // Scenarios
+  const scenarios=[
+    {rate:0.08/20,base:cGr,label:'Optimistic',days:28},
+    {rate:0.04/20,base:cCy,label:'Base',days:48},
+    {rate:0.02/20,base:cAm,label:'Conservative',days:92},
+  ];
+
+  scenarios.forEach(sc=>{
+    const pts=[];
+    let v=start;
+    for(let d=0;d<=days;d++){
+      pts.push({x:toX(d),y:toY(v)});
+      if(v<goal) v = Math.min(goal, v*(1+sc.rate));
+    }
+
+    // Area
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, iH+pad.t);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x, iH+pad.t);
+    ctx.closePath();
+    ctx.fillStyle=rgba(sc.base,0.05);ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle=rgba(sc.base,0.7);ctx.lineWidth=1.5;ctx.stroke();
+
+    // Target day marker
+    const dx=toX(sc.days);
+    ctx.strokeStyle=rgba(sc.base,0.5);ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(dx,toY(goal));ctx.lineTo(dx,iH+pad.t);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=rgba(sc.base,0.85);ctx.font='8px JetBrains Mono';
+    ctx.textAlign='center';ctx.fillText('D-'+sc.days,dx,iH+pad.t+12);
+  });
+
+  // Current dot
+  ctx.beginPath();ctx.arc(toX(0),toY(start),5,0,Math.PI*2);
+  ctx.fillStyle=cCy;ctx.fill();
+  ctx.strokeStyle=rgba(cCy,0.4);ctx.lineWidth=3;ctx.stroke();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// WATCHLIST
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const wlData=[
+  {sym:'SK하이닉스',val:'189,500',chg:'+2.43%',up:true,pts:'0,18 15,15 30,12 45,14 60,8 75,6 90,4 100,2'},
+  {sym:'삼성전자',val:'76,800',chg:'+1.32%',up:true,pts:'0,16 15,14 30,15 45,13 60,11 75,12 90,8 100,6'},
+  {sym:'NVDA',val:'1,082',chg:'-0.67%',up:false,pts:'0,6 15,8 30,7 45,10 60,12 75,11 90,14 100,15'},
+  {sym:'TSMC',val:'168.40',chg:'+0.94%',up:true,pts:'0,14 15,12 30,10 45,11 60,8 75,6 90,7 100,5'},
+  {sym:'카카오',val:'43,850',chg:'-0.34%',up:false,pts:'0,10 15,11 30,13 45,12 60,14 75,13 90,12 100,11'},
+];
+function buildWatchlist(){
+  const el=document.getElementById('watchlist');
+  if(!el) return;
+  el.innerHTML=wlData.map(d=>`
+    <div class="wl-item">
+      <div class="wl-sym">${d.sym}</div>
+      <svg class="wl-spark" viewBox="0 0 100 24" preserveAspectRatio="none">
+        <polyline points="${d.pts}" fill="none" stroke="${d.up?'#00ff88':'#ff3b5c'}" stroke-width="1.5"/>
+      </svg>
+      <div class="wl-val">${d.val}</div>
+      <div class="wl-chg ${d.up?'up':'dn'}">${d.chg}</div>
+    </div>
+  `).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// SYSTEM LOG (LIVE)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const logEntries=[
+  {t:'09:31:40',l:'ok',m:'Regime scan → RISK_ON_NORMAL (87%)'},
+  {t:'09:31:38',l:'inf',m:'Market data refreshed — 12 symbols'},
+  {t:'09:31:35',l:'wn',m:'Cash guard: 8.2% < threshold 10.0%'},
+  {t:'09:30:02',l:'ok',m:'Indicators saved — RSI/EMA/BB/MACD'},
+  {t:'09:30:00',l:'inf',m:'Scheduler: pre-market scan triggered'},
+  {t:'09:29:58',l:'ok',m:'DB pool healthy — 3/10 active'},
+  {t:'09:15:00',l:'inf',m:'News refresh — 8 articles processed'},
+  {t:'09:00:12',l:'ok',m:'Portfolio loaded — ₩73,420,000'},
+];
+function buildLog(){
+  const el=document.getElementById('syslog');
+  if(!el) return;
+  el.innerHTML=logEntries.map(e=>`
+    <div class="log-line">
+      <span class="ll-t">${e.t}</span>
+      <span class="ll-l ${e.l}">${e.l.toUpperCase()}</span>
+      <span class="ll-m">${e.m}</span>
+    </div>
+  `).join('');
+}
+
+// Live log append
+let logI=0;
+function appendLog(){
+  const el=document.getElementById('syslog');
+  if(!el) return;
+  const n=new Date();
+  const pad=x=>String(x).padStart(2,'0');
+  const t=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+  const msgs=[
+    {l:'inf',m:'Heartbeat — system nominal'},
+    {l:'ok',m:'Cache hit: indicator_snapshots (TTL 5m)'},
+    {l:'inf',m:'yfinance adapter polled'},
+    {l:'ok',m:'Regime state unchanged'},
+  ];
+  const msg=msgs[logI%msgs.length];
+  const div=document.createElement('div');
+  div.className='log-line';
+  div.innerHTML=`<span class="ll-t">${t}</span><span class="ll-l ${msg.l}">${msg.l.toUpperCase()}</span><span class="ll-m">${msg.m}</span>`;
+  el.insertBefore(div,el.firstChild);
+  logI++;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// INIT ALL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// V3: COMMAND PALETTE + WORKSPACE TABS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+function goPage(page){
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active', x.dataset.page===page));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const target=document.getElementById('page-'+page);
+  if(target) target.classList.add('active');
+  setTimeout(()=>{ if(page==='analysis') drawAwCharts(); },80);
+}
+
+function initPalette(){
+  const modal=document.getElementById('cmd-palette');
+  const open=document.getElementById('cmd-open');
+  const input=document.getElementById('cmd-input');
+  if(!modal||!open) return;
+  const show=()=>{modal.classList.add('show'); setTimeout(()=>input&&input.focus(),30);};
+  const hide=()=>modal.classList.remove('show');
+  open.addEventListener('click',show);
+  modal.addEventListener('click',e=>{if(e.target===modal) hide();});
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){e.preventDefault();show();}
+    if(e.key==='Escape') hide();
+  });
+  modal.querySelectorAll('.cmd-row').forEach(r=>{
+    r.addEventListener('click',()=>{goPage(r.dataset.cmdPage);hide();});
+  });
+}
+
+function initAwTabs(){
+  const tabs=document.querySelectorAll('#aw-tabs .tab');
+  tabs.forEach(t=>t.addEventListener('click',()=>{
+    tabs.forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.aw-section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('aw-'+t.dataset.aw).classList.add('active');
+    setTimeout(drawAwCharts,50);
+  }));
+}
+
+function drawSimpleLine(canvasId, lines){
+  const c=document.getElementById(canvasId);
+  if(!c) return;
+  const dpr=window.devicePixelRatio||1;
+  const rect=c.getBoundingClientRect();
+  c.width=rect.width*dpr; c.height=rect.height*dpr;
+  const ctx=c.getContext('2d'); ctx.scale(dpr,dpr);
+  const W=rect.width,H=rect.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=cv('--bg1'); ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=cv('--b1'); ctx.lineWidth=1;
+  for(let i=0;i<6;i++){ const y=H*(i+1)/7; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  const colors=[cv('--cyan'),cv('--green'),cv('--amber'),cv('--purple')];
+  lines.forEach((arr,li)=>{
+    ctx.strokeStyle=colors[li%colors.length]; ctx.lineWidth=2;
+    ctx.beginPath();
+    arr.forEach((v,i)=>{
+      const x=i/(arr.length-1)*W;
+      const y=H-(v*H*.72+H*.14);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  });
+}
+
+function drawAwCharts(){
+  drawSimpleLine('aw-index-canvas',[
+    [.25,.28,.35,.42,.48,.58,.62,.69,.72,.78,.82,.88],
+    [.22,.30,.40,.48,.52,.60,.68,.74,.79,.84,.90,.95],
+    [.18,.19,.23,.30,.36,.42,.40,.48,.52,.57,.60,.66],
+    [.20,.22,.26,.29,.34,.37,.43,.46,.50,.52,.55,.61]
+  ]);
+  drawSimpleLine('aw-symbol-canvas',[
+    [.28,.32,.38,.34,.43,.51,.49,.56,.61,.66,.70,.74],
+    [.22,.25,.29,.32,.35,.39,.42,.46,.50,.54,.58,.61]
+  ]);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// MARKET KERNEL — full chart (candles + EMA + Bollinger + Volume) + RSI subchart
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const mkState = {
+  sym: 'NVDA',
+  co:  'NVIDIA Corporation',
+  ex:  'NASDAQ',
+  tf:  '1D',
+  // base price per symbol (fake but consistent)
+  bases: { NVDA:920, TSLA:178, AAPL:212, MSFT:418, AMZN:188, SPY:529, QQQ:454 },
+  // seeded data cache so re-renders are stable
+  cache: {}
+};
+
+// Simple seeded RNG so the same symbol+tf produces the same chart
+function srng(seed){
+  let s = seed|0;
+  return () => { s = (s * 1664525 + 1013904223) | 0; return ((s>>>0) % 100000) / 100000; };
+}
+
+function mkBuildSeries(sym, tf){
+  const key = sym + '|' + tf;
+  if(mkState.cache[key]) return mkState.cache[key];
+  const tfMap = { '1D':80, '1W':70, '1M':90, '3M':110, '1Y':120, '5Y':140 };
+  const n = tfMap[tf] || 90;
+  const seed = [...sym].reduce((a,c)=>a+c.charCodeAt(0),0) * 17 + (tf.length*23);
+  const r = srng(seed);
+  const base = mkState.bases[sym] || 200;
+  let px = base * 0.93;
+  const out = [];
+  for(let i=0;i<n;i++){
+    const drift = (r()-0.48) * base * 0.022;
+    const o = px;
+    const c = px + drift;
+    const range = Math.abs(drift) + r() * base * 0.012;
+    const h = Math.max(o,c) + r()*range*0.55;
+    const l = Math.min(o,c) - r()*range*0.55;
+    const v = 0.35 + r()*0.65;
+    out.push({o,h,l,c,v});
+    px = c;
+  }
+  // Nudge the last close toward base*1.03 to look bullish
+  out[out.length-1].c = base * 1.035;
+  out[out.length-1].h = Math.max(out[out.length-1].h, base*1.045);
+  mkState.cache[key] = out;
+  return out;
+}
+
+function ema(arr, period){
+  const k = 2/(period+1);
+  const out = new Array(arr.length).fill(null);
+  let prev = arr[0];
+  out[0] = prev;
+  for(let i=1;i<arr.length;i++){
+    prev = arr[i]*k + prev*(1-k);
+    out[i] = prev;
+  }
+  return out;
+}
+
+function bollinger(arr, period=20, mult=2){
+  const mid = [], up = [], lo = [];
+  for(let i=0;i<arr.length;i++){
+    if(i < period-1){ mid.push(null); up.push(null); lo.push(null); continue; }
+    const slice = arr.slice(i-period+1, i+1);
+    const m = slice.reduce((a,b)=>a+b,0)/period;
+    const v = slice.reduce((a,b)=>a+(b-m)*(b-m),0)/period;
+    const sd = Math.sqrt(v);
+    mid.push(m); up.push(m + mult*sd); lo.push(m - mult*sd);
+  }
+  return {mid, up, lo};
+}
+
+function rsi(arr, period=14){
+  const out = new Array(arr.length).fill(null);
+  let gain = 0, loss = 0;
+  for(let i=1;i<arr.length;i++){
+    const d = arr[i]-arr[i-1];
+    if(i<=period){
+      if(d>=0) gain += d; else loss -= d;
+      if(i===period){
+        const avgG = gain/period, avgL = loss/period;
+        const rs = avgL===0 ? 100 : avgG/avgL;
+        out[i] = 100 - 100/(1+rs);
+      }
+    } else {
+      const prevG = gain/period, prevL = loss/period;
+      const g = d>0?d:0, l = d<0?-d:0;
+      const newG = (prevG*(period-1)+g)/period;
+      const newL = (prevL*(period-1)+l)/period;
+      gain = newG*period; loss = newL*period;
+      const rs = newL===0 ? 100 : newG/newL;
+      out[i] = 100 - 100/(1+rs);
+    }
+  }
+  return out;
+}
+
+function drawKernelChart(){
+  const main = document.getElementById('mk-main-canvas');
+  const rsiC = document.getElementById('mk-rsi-canvas');
+  if(!main || !rsiC) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const mRect = main.parentElement.getBoundingClientRect();
+  const rRect = rsiC.parentElement.getBoundingClientRect();
+  const W = Math.max(400, mRect.width);
+  const Hm = Math.max(280, mRect.height);
+  const Hr = Math.max(70, rRect.height);
+
+  main.width = W*dpr; main.height = Hm*dpr;
+  main.style.width = W+'px'; main.style.height = Hm+'px';
+  rsiC.width = W*dpr; rsiC.height = Hr*dpr;
+  rsiC.style.width = W+'px'; rsiC.style.height = Hr+'px';
+
+  const ctx = main.getContext('2d'); ctx.scale(dpr,dpr);
+  const rtx = rsiC.getContext('2d'); rtx.scale(dpr,dpr);
+
+  // Theme colors
+  const cBg    = cv('--bg2');
+  const cBg1   = cv('--bg1');
+  const cGrid  = cv('--b0');
+  const cGridS = cv('--b1');
+  const cLbl   = cv('--t3');
+  const cTxt   = cv('--t1');
+  const cBull  = cv('--green');
+  const cBear  = cv('--red');
+  const cE20   = cv('--cyan');
+  const cE50   = cv('--amber');
+  const cE200  = cv('--purple');
+  const cBB    = cv('--blue');
+  const cRsi   = cv('--purple');
+
+  ctx.fillStyle = cBg; ctx.fillRect(0,0,W,Hm);
+  rtx.fillStyle = cBg; rtx.fillRect(0,0,W,Hr);
+
+  const data = mkBuildSeries(mkState.sym, mkState.tf);
+  const closes = data.map(d=>d.c);
+  const e20  = ema(closes, 20);
+  const e50  = ema(closes, 50);
+  const e200 = ema(closes, 60); // shorter for visual variety in mock
+  const bb   = bollinger(closes, 20, 2);
+  const r14  = rsi(closes, 14);
+
+  const pad = { l:8, r:64, t:10, b:22 };
+  const cW  = (W-pad.l-pad.r)/data.length;
+  const allH = data.map(d=>d.h).concat(bb.up.filter(x=>x!=null));
+  const allL = data.map(d=>d.l).concat(bb.lo.filter(x=>x!=null));
+  const maxP = Math.max(...allH) * 1.005;
+  const minP = Math.min(...allL) * 0.995;
+  const range = maxP - minP;
+
+  // Volume area is bottom 22% of main
+  const volH = (Hm-pad.t-pad.b) * 0.20;
+  const priceH = (Hm-pad.t-pad.b) - volH - 4;
+  const toY = p => pad.t + (maxP-p)/range * priceH;
+
+  // ── Y axis grid + labels (right side) ──
+  const ticks = 8;
+  ctx.font = '9px JetBrains Mono';
+  ctx.textBaseline = 'middle';
+  for(let i=0;i<=ticks;i++){
+    const y = pad.t + i*priceH/ticks;
+    ctx.strokeStyle = cGrid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    const v = maxP - i*range/ticks;
+    ctx.fillStyle = cLbl; ctx.textAlign = 'left';
+    ctx.fillText(formatTick(v), W-pad.r+5, y);
+  }
+
+  // ── Bollinger band fill ──
+  ctx.beginPath();
+  let started = false;
+  for(let i=0;i<data.length;i++){
+    if(bb.up[i]==null) continue;
+    const x = pad.l + i*cW + cW*0.5;
+    const y = toY(bb.up[i]);
+    if(!started){ ctx.moveTo(x,y); started = true; } else ctx.lineTo(x,y);
+  }
+  for(let i=data.length-1;i>=0;i--){
+    if(bb.lo[i]==null) continue;
+    const x = pad.l + i*cW + cW*0.5;
+    const y = toY(bb.lo[i]);
+    ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = rgba(cBB, 0.06);
+  ctx.fill();
+
+  // BB upper line
+  drawLine(ctx, bb.up, cW, pad.l, toY, rgba(cBB,0.6), 1);
+  // BB lower line
+  drawLine(ctx, bb.lo, cW, pad.l, toY, rgba(cBB,0.6), 1);
+  // BB middle dashed
+  ctx.setLineDash([3,3]);
+  drawLine(ctx, bb.mid, cW, pad.l, toY, rgba(cBB,0.45), 1);
+  ctx.setLineDash([]);
+
+  // ── Volume bars (behind candles, in volume zone) ──
+  const volBase = Hm - pad.b;
+  const maxVol = Math.max(...data.map(d=>d.v));
+  data.forEach((d,i)=>{
+    const x = pad.l + i*cW + cW*0.15;
+    const w = cW*0.7;
+    const h = (d.v/maxVol) * volH;
+    const bull = d.c >= d.o;
+    ctx.fillStyle = bull ? rgba(cBull,0.32) : rgba(cBear,0.32);
+    ctx.fillRect(x, volBase - h, w, h);
+  });
+
+  // ── Candles ──
+  data.forEach((d,i)=>{
+    const bull = d.c >= d.o;
+    const x  = pad.l + i*cW + cW*0.5;
+    const bx = pad.l + i*cW + cW*0.18;
+    const bw = cW*0.64;
+    const yO = toY(d.o), yC = toY(d.c);
+    const yH = toY(d.h), yL = toY(d.l);
+
+    ctx.strokeStyle = bull ? cBull : cBear;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, yH); ctx.lineTo(x, yL); ctx.stroke();
+
+    const bodyTop = Math.min(yO,yC);
+    const bodyH = Math.max(1, Math.abs(yC-yO));
+    ctx.fillStyle = bull ? cBull : cBear;
+    ctx.fillRect(bx, bodyTop, bw, bodyH);
+  });
+
+  // ── EMA lines ──
+  drawLine(ctx, e20,  cW, pad.l, toY, rgba(cE20,0.85), 1.4);
+  drawLine(ctx, e50,  cW, pad.l, toY, rgba(cE50,0.85), 1.4);
+  drawLine(ctx, e200, cW, pad.l, toY, rgba(cE200,0.85), 1.4);
+
+  // ── Current price marker (right axis) ──
+  const last = data[data.length-1];
+  const lastY = toY(last.c);
+  const bullLast = last.c >= last.o;
+  ctx.fillStyle = bullLast ? cBull : cBear;
+  ctx.fillRect(W-pad.r-1, lastY-9, pad.r-6, 18);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px JetBrains Mono';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(last.c.toFixed(2), W-pad.r+4, lastY);
+
+  // ── X axis date labels ──
+  ctx.fillStyle = cLbl; ctx.font='9px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='top';
+  const months = ['Feb','15','Mar','15','Apr','15','May','15','Jun'];
+  for(let i=0;i<months.length;i++){
+    const x = pad.l + (i/(months.length-1))*(W-pad.l-pad.r);
+    ctx.fillText(months[i], x, Hm-pad.b+6);
+    ctx.strokeStyle = cGrid;
+    ctx.beginPath(); ctx.moveTo(x, Hm-pad.b); ctx.lineTo(x, Hm-pad.b+3); ctx.stroke();
+  }
+
+  // ── RSI subchart ──
+  const rPad = { l:8, r:64, t:6, b:14 };
+  const rH = Hr - rPad.t - rPad.b;
+  const rToY = v => rPad.t + (100-v)/100 * rH;
+
+  // bg & grid (30/50/70 lines)
+  rtx.fillStyle = cBg; rtx.fillRect(0,0,W,Hr);
+  [30,50,70].forEach(v=>{
+    const y = rToY(v);
+    rtx.strokeStyle = cGridS; rtx.lineWidth=1;
+    if(v!==50) rtx.setLineDash([3,3]);
+    rtx.beginPath(); rtx.moveTo(rPad.l, y); rtx.lineTo(W-rPad.r, y); rtx.stroke();
+    rtx.setLineDash([]);
+    rtx.fillStyle = cLbl; rtx.font='8px JetBrains Mono';
+    rtx.textAlign='left'; rtx.textBaseline='middle';
+    rtx.fillText(v.toString(), W-rPad.r+5, y);
+  });
+
+  // RSI line
+  rtx.strokeStyle = cRsi; rtx.lineWidth = 1.4;
+  rtx.beginPath();
+  let begun = false;
+  r14.forEach((v,i)=>{
+    if(v==null) return;
+    const x = pad.l + i*cW + cW*0.5;
+    const y = rToY(v);
+    if(!begun){ rtx.moveTo(x,y); begun = true; } else rtx.lineTo(x,y);
+  });
+  rtx.stroke();
+
+  // Update RSI value label
+  const lastRsi = r14.filter(x=>x!=null).pop() || 0;
+  const rsiLbl = document.getElementById('mk-rsi-val');
+  if(rsiLbl) rsiLbl.textContent = lastRsi.toFixed(2);
+
+  // Update header price text
+  const o = data[data.length-1].o;
+  const c = data[data.length-1].c;
+  const h = data[data.length-1].h;
+  const l = data[data.length-1].l;
+  const ch = c - o;
+  const chP = (ch/o*100);
+  const sign = ch>=0?'+':'';
+  const pxEl = document.getElementById('mk-px');
+  const chEl = document.getElementById('mk-ch');
+  const oEl = document.getElementById('mk-o'), hEl = document.getElementById('mk-h'),
+        lEl = document.getElementById('mk-l'), cEl = document.getElementById('mk-c');
+  if(pxEl) pxEl.textContent = c.toFixed(2);
+  if(chEl){ chEl.textContent = `${sign}${ch.toFixed(2)} (${sign}${chP.toFixed(2)}%)`; chEl.style.color = ch>=0?cBull:cBear; }
+  if(oEl) oEl.textContent = o.toFixed(2);
+  if(hEl) hEl.textContent = h.toFixed(2);
+  if(lEl) lEl.textContent = l.toFixed(2);
+  if(cEl){ cEl.textContent = `${c.toFixed(2)} ${sign}${ch.toFixed(2)}(${sign}${chP.toFixed(2)}%)`; cEl.style.color = ch>=0?cBull:cBear; }
+}
+
+function drawLine(ctx, arr, cW, padL, toY, color, width){
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.beginPath();
+  let begun = false;
+  arr.forEach((v,i)=>{
+    if(v==null) return;
+    const x = padL + i*cW + cW*0.5;
+    const y = toY(v);
+    if(!begun){ ctx.moveTo(x,y); begun = true; } else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+function formatTick(v){
+  if(v >= 10000) return (v/1000).toFixed(0)+'K';
+  if(v >= 1000)  return v.toFixed(0);
+  return v.toFixed(2);
+}
+
+function initKernel(){
+  // Symbol list selection
+  document.querySelectorAll('#mk-syms .mk-sym').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      document.querySelectorAll('#mk-syms .mk-sym').forEach(x=>x.classList.remove('active'));
+      el.classList.add('active');
+      mkState.sym = el.dataset.sym;
+      mkState.co  = el.dataset.co;
+      mkState.ex  = el.dataset.ex;
+      const co  = document.getElementById('mk-co');
+      const ex  = document.getElementById('mk-ex');
+      const sb  = document.getElementById('mk-search');
+      if(co) co.textContent = mkState.co;
+      if(ex) ex.firstChild.textContent = mkState.ex + ' ';
+      if(sb) sb.value = mkState.sym;
+      drawKernelChart();
+    });
+  });
+
+  // Timeframe tabs
+  document.querySelectorAll('.mk-tf').forEach(tf=>{
+    tf.addEventListener('click', ()=>{
+      document.querySelectorAll('.mk-tf').forEach(x=>x.classList.remove('active'));
+      tf.classList.add('active');
+      mkState.tf = tf.dataset.tf;
+      mkState.cache = {}; // force regenerate so timeframe visibly changes
+      drawKernelChart();
+    });
+  });
+
+  // Search input — filters the symbol list
+  const sb = document.getElementById('mk-search');
+  const sx = document.getElementById('mk-search-x');
+  if(sb){
+    sb.addEventListener('input', ()=>{
+      const q = sb.value.trim().toUpperCase();
+      document.querySelectorAll('#mk-syms .mk-sym').forEach(el=>{
+        const sym = el.dataset.sym.toUpperCase();
+        const co  = (el.dataset.co||'').toUpperCase();
+        el.style.display = (!q || sym.includes(q) || co.includes(q)) ? 'flex' : 'none';
+      });
+    });
+  }
+  if(sx){
+    sx.addEventListener('click', ()=>{
+      if(sb){ sb.value=''; sb.dispatchEvent(new Event('input')); sb.focus(); }
+    });
+  }
+
+  // Redraw on resize
+  let rt;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(rt);
+    rt = setTimeout(()=>{
+      if(document.getElementById('page-kernel').classList.contains('active')) drawKernelChart();
+    }, 120);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+// THEME TOGGLE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━
+const THEME_ORDER = ['dark','light','material'];
+
+function getCurrentTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  return cur === 'light' || cur === 'material' ? cur : 'dark';
+}
+
+function updateThemeToggleUI(){
+  const cur = getCurrentTheme();
+  const label = document.getElementById('theme-label');
+  const btn = document.getElementById('theme-toggle');
+  const map = {dark:'DARK', light:'LIGHT', material:'STUDIO'};
+  if(label) label.textContent = map[cur] || cur.toUpperCase();
+  if(btn) btn.title = `Theme: ${map[cur] || cur}. Click to switch.`;
+}
+
+function applyTheme(theme){
+  if(theme === 'light' || theme === 'material') document.documentElement.setAttribute('data-theme', theme);
+  else document.documentElement.removeAttribute('data-theme');
+  try { localStorage.setItem('finskillos-theme', theme); } catch(e){}
+  updateThemeToggleUI();
+  // Redraw active page canvases with new colors
+  redrawAllCanvases();
+}
+
+function redrawAllCanvases(){
+  // Always redraw what is currently visible
+  const active = document.querySelector('.page.active');
+  if(!active) return;
+  const id = active.id;
+
+  // Control room
+  if(id === 'page-control'){
+    const tab = document.querySelector('#chart-tabs .ctab.active');
+    drawCandlestick(tab ? tab.textContent : '1D');
+  }
+  if(id === 'page-kernel')  drawKernelChart();
+  if(id === 'page-mission'){ drawGoalRing(); drawProjection(); }
+  if(id === 'page-analysis') drawAwCharts();
+}
+
+function initTheme(){
+  let stored = 'dark';
+  try { stored = localStorage.getItem('finskillos-theme') || 'dark'; } catch(e){}
+  if(!THEME_ORDER.includes(stored)) stored = 'dark';
+  applyTheme(stored);
+
+  const btn = document.getElementById('theme-toggle');
+  if(btn){
+    btn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const cur = getCurrentTheme();
+      const next = THEME_ORDER[(THEME_ORDER.indexOf(cur) + 1) % THEME_ORDER.length];
+      applyTheme(next);
+      // Restore scroll position to avoid focus-induced scroll on tight trays
+      window.scrollTo(0, 0);
+      btn.blur();
+    });
+  }
+}
+
+function initAll(){
+  initTheme();
+  buildTicker();
+  initNav();
+  initAQ();
+  initChartTabs();
+  buildWatchlist();
+  buildLog();
+  drawCandlestick('1D');
+  setInterval(appendLog, 4000);
+  initPalette();
+  initAwTabs();
+  initKernel();
+  setTimeout(drawAwCharts, 100);
+}
+
+</script>
+</body>
 </html>
