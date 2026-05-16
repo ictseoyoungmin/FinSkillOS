@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finskillos"
+version = "0.1.0"
+description = "FinSkillOS v2.1 personal trading operating system"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
+    "python-dotenv>=1.0",
+    "sqlalchemy>=2.0",
+    "streamlit>=1.35",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["finskillos*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

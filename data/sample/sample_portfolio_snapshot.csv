@@ -1,0 +1,5 @@
+symbol,name,sector,quantity,market_value,cost_basis
+AAPL,Apple Inc.,Technology,10,1950000,1800000
+MSFT,Microsoft Corp.,Technology,5,2100000,1900000
+GLD,SPDR Gold Shares,Commodity,8,1600000,1500000
+CASH,KRW Cash,Cash,1,1800000,

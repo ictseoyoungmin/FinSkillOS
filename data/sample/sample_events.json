@@ -1,0 +1,16 @@
+[
+  {
+    "event_date": "2026-05-20",
+    "title": "FOMC minutes",
+    "category": "macro",
+    "symbols": ["SPY", "QQQ"],
+    "risk_score": 4
+  },
+  {
+    "event_date": "2026-05-28",
+    "title": "Sample earnings watch",
+    "category": "earnings",
+    "symbols": ["AAPL"],
+    "risk_score": 3
+  }
+]
