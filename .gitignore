@@ -1,4 +1,3 @@
-.devmd
 .codex
 .venv/
 __pycache__/
@@ -6,3 +5,18 @@ __pycache__/
 
 FinSkillOS_skills/appendix
 FinSkillOS_Portfolio_Input_Sidecar
+
+.env
+*.db
+*.sqlite
+
+data/parquet/*
+data/cache/*
+data/logs/*
+data/exports/*
+!data/parquet/.gitkeep
+!data/cache/.gitkeep
+!data/logs/.gitkeep
+!data/exports/.gitkeep
+
+docker/postgres_data/
