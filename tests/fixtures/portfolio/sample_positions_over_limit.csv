@@ -1,0 +1,3 @@
+ticker,name,sector,theme,strategy_type,quantity,avg_price,market_value,pnl_pct,stop_loss,take_profit,thesis
+TSLA,Tesla,Consumer Discretionary,musk_ecosystem,swing,30,360,11000000,0.0185,330,430,Concentrated TSLA above 1천만원 limit
+NVDA,Nvidia,Semiconductors,ai_infra,swing,5,950,4800000,0.0,820,1050,Within limit

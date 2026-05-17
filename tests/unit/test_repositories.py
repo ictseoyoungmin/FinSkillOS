@@ -33,6 +33,42 @@ def account_id(db_session: Session):
     return account.id
 
 
+def test_account_update_refreshes_updated_at(db_session: Session) -> None:
+    repo = AccountRepository(db_session)
+    account = repo.create(
+        name="Timestamp Account",
+        target_value=Decimal("100000000"),
+    )
+    original_updated_at = account.updated_at
+
+    repo.update_target(account.id, Decimal("110000000"))
+    db_session.flush()
+    db_session.refresh(account)
+
+    assert account.updated_at is not None
+    if original_updated_at is not None:
+        assert account.updated_at >= original_updated_at
+
+
+def test_position_update_refreshes_updated_at(db_session: Session, account_id) -> None:
+    repo = PositionRepository(db_session)
+    position = repo.create(
+        account_id=account_id,
+        ticker="NVDA",
+        quantity=Decimal("1"),
+        market_value=Decimal("1000"),
+    )
+    original_updated_at = position.updated_at
+
+    repo.update_market_value(position.id, Decimal("1200"), Decimal("0.2"))
+    db_session.flush()
+    db_session.refresh(position)
+
+    assert position.updated_at is not None
+    if original_updated_at is not None:
+        assert position.updated_at >= original_updated_at
+
+
 def test_account_repository_crud(db_session: Session) -> None:
     repo = AccountRepository(db_session)
 
@@ -150,6 +186,30 @@ def test_alert_repository_resolve_marks_alert_resolved(
     assert resolved.resolved_at is not None
 
     assert repo.list_active(account_id=account_id) == []
+
+
+def test_alert_repository_orders_active_alerts_by_severity(
+    db_session: Session, account_id
+) -> None:
+    repo = AlertRepository(db_session)
+
+    for severity in ["YELLOW", "INFO", "RED", "ORANGE"]:
+        repo.create(
+            account_id=account_id,
+            alert_date=date(2026, 5, 17),
+            guard_name=f"{severity}_GUARD",
+            severity=severity,
+            title=f"{severity} alert",
+        )
+
+    active = repo.list_active(account_id=account_id)
+
+    assert [alert.severity for alert in active] == [
+        "RED",
+        "ORANGE",
+        "YELLOW",
+        "INFO",
+    ]
 
 
 def test_seed_default_account_is_idempotent(

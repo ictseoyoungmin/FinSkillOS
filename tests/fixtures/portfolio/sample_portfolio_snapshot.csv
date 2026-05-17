@@ -1,0 +1,5 @@
+ticker,name,sector,theme,strategy_type,quantity,avg_price,market_value,pnl_pct,stop_loss,take_profit,thesis
+TSLA,Tesla,Consumer Discretionary,musk_ecosystem,swing,20,350,7800000,0.1143,330,430,SpaceX IPO sentiment + rebound thesis
+NVDA,Nvidia,Semiconductors,ai_infra,swing,8,900,8500000,0.1806,820,1050,AI capex cycle
+RKLB,Rocket Lab,Aerospace,space,swing,300,18,5400000,0.0,15,28,Neutron-driven re-rating
+PLTR,Palantir,Software,software_ai,short,40,28,1200000,-0.0357,26,40,Defense AI tailwind

@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from finskillos.db.models import Alert
@@ -49,10 +49,19 @@ class AlertRepository:
         self,
         account_id: uuid.UUID | None = None,
     ) -> list[Alert]:
+        severity_rank = case(
+            (Alert.severity == "RED", 0),
+            (Alert.severity == "ORANGE", 1),
+            (Alert.severity == "YELLOW", 2),
+            (Alert.severity == "INFO", 3),
+            else_=9,
+        )
         stmt = select(Alert).where(Alert.resolved.is_(False))
         if account_id is not None:
             stmt = stmt.where(Alert.account_id == account_id)
-        stmt = stmt.order_by(Alert.severity, Alert.alert_date.desc())
+        stmt = stmt.order_by(
+            severity_rank, Alert.alert_date.desc(), Alert.created_at.desc()
+        )
         return list(self.session.scalars(stmt))
 
     def resolve(self, alert_id: uuid.UUID) -> Alert:

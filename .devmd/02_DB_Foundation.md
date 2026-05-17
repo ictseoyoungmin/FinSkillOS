@@ -162,4 +162,35 @@ Known issues:
 - psycopg is declared in requirements/pyproject but still not installed in this dev image; install via `pip install -e .[dev]` before running `alembic upgrade head` against the compose Postgres service.
 - Repository-wide ruff baseline noted in cleanup/00_cleanup.md is still pending (~479 pre-existing errors in other scaffolding). Every slice-02 file is ruff-clean.
 - The snapshot-scoped `portfolio_positions` table from the original 0001 stub was dropped — it had zero call sites and is superseded by the live `positions` table per docs/v2_1/03 §3.
+
+PostgreSQL smoke test follow-up:
+- Slice 02 validates migration/repositories against SQLite for fast local feedback.
+- Before or during Slice 04 Market Data / Signals, add a PostgreSQL-backed smoke path:
+  docker compose up -d postgres
+  alembic upgrade head
+  python scripts/seed_sample_data.py
+- Future PostgreSQL-specific features such as JSONB querying, array columns, GIN indexes, and timestamp/timezone behavior must not rely on SQLite-only tests.
+```
+
+```text
+Minor Cleanup Status: DONE (2026-05-17)
+
+Changed files:
+- finskillos/db/models/account.py            (Account.updated_at gained onupdate=func.now())
+- finskillos/db/models/position.py           (Position.updated_at gained onupdate=func.now())
+- finskillos/db/repositories/alert_repo.py   (list_active now sorts RED → ORANGE → YELLOW → INFO via SQLAlchemy case(); secondary sort: alert_date desc, created_at desc)
+- tests/unit/test_db_models.py               (no functional change — file already had snapshot uniqueness + alert JSON tests; left untouched in cleanup)
+- tests/unit/test_repositories.py            (added test_account_update_refreshes_updated_at, test_position_update_refreshes_updated_at, test_alert_repository_orders_active_alerts_by_severity)
+- .devmd/02_DB_Foundation.md                 (this file: PostgreSQL smoke follow-up note + cleanup completion block)
+
+Migration 0001_initial_foundation.py was *not* modified — onupdate is ORM-level and case() ordering is repo-level; no schema change required.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                              ✅ no errors
+- python3 -m pytest tests/unit/test_db_models.py tests/unit/test_repositories.py -q             ✅ 14 passed (was 11; +3 cleanup tests)
+- python3 -m pytest tests/integration/test_db_migrations.py tests/integration/test_seed_command.py -q  ✅ 5 passed
+- python3 -m ruff check finskillos/db tests/unit/test_db_models.py tests/unit/test_repositories.py ✅ All checks passed
+
+Known issues:
+- Live PostgreSQL smoke remains scheduled for Slice 04 or earlier if PostgreSQL-specific behavior appears sooner.
 ```
