@@ -5,11 +5,11 @@ and exposes a frozen Settings dataclass used across the kernel, services,
 and UI layers.
 """
 
+import os
 from dataclasses import dataclass
 from decimal import Decimal
-import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -38,7 +38,8 @@ class Settings:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    load_dotenv()
+    if os.getenv("FINSKILLOS_SKIP_DOTENV") != "1":
+        load_dotenv()
     data_dir = Path(os.getenv("DATA_DIR", "data"))
     target_raw = _env("FINSKILLOS_TARGET_VALUE", "100000000")
     try:

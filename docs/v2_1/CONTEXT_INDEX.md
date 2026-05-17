@@ -10,7 +10,10 @@ DB foundation:
 UI implementation:
 
 - `05_UI_UX_Design.md`
+- `07_UI_Prototype_And_Agent_Implementation_Guide.md`
 - `prototypes/ui/os_style_mockup/index.html`
+  - Latest UI source of truth.
+  - v3.3 OS-style multi-tab mockup with Dark / Light / Studio theme switching.
 
 Regime and Risk Guard:
 

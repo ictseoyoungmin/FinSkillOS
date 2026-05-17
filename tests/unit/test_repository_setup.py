@@ -18,7 +18,6 @@ from finskillos import config as fs_config
 from finskillos.config import Settings, get_settings
 from finskillos.db.session import get_engine, get_session_factory
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -81,6 +80,11 @@ def test_session_factory_creates_engine_without_connecting(clean_env: Path) -> N
         assert factory.kw.get("bind") is not None
     finally:
         engine.dispose()
+
+
+def test_skip_dotenv_flag_is_available(clean_env: Path) -> None:
+    settings = get_settings()
+    assert settings.data_dir == clean_env
 
 
 def test_env_example_documents_all_finskillos_keys() -> None:

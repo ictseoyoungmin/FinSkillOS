@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: finskillos-postgres
     environment:
-      POSTGRES_DB: finskillos
-      POSTGRES_USER: finskillos
-      POSTGRES_PASSWORD: finskillos
+      POSTGRES_DB: ${POSTGRES_DB:-finskillos}
+      POSTGRES_USER: ${POSTGRES_USER:-finskillos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finskillos_dev_password}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U finskillos -d finskillos"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finskillos} -d ${POSTGRES_DB:-finskillos}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -20,7 +20,7 @@ services:
     build: .
     profiles: ["app"]
     environment:
-      DATABASE_URL: postgresql+psycopg://finskillos:finskillos@postgres:5432/finskillos
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finskillos}:${POSTGRES_PASSWORD:-finskillos_dev_password}@postgres:5432/${POSTGRES_DB:-finskillos}
     ports:
       - "8501:8501"
     depends_on:

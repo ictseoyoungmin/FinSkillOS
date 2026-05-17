@@ -33,19 +33,23 @@ Charts, news, indicators, and events are evidence. The product output is an unde
 ## Core navigation
 
 ```text
-1. Command Center
-2. Market Regime
-3. Portfolio Risk
-4. Event Radar
-5. Goal Tracker
-6. Trade Journal
-7. Research Hub
-   7-1. Index Lab
-   7-2. Symbol Lab
-   7-3. News & Intelligence
-   7-4. Sector Rotation
-8. Settings / Data
+1. Control Room
+2. Market Kernel
+3. Risk Firewall
+4. Mission Control
+5. Catalyst Watch
+6. Analysis Workspace
+   6-1. Index Terminal
+   6-2. Symbol Terminal
+   6-3. Intel Feed
+   6-4. Signal Console
+7. Trade Memory
+8. System Ops
 ```
+
+The latest UI source of truth is `prototypes/ui/os_style_mockup/index.html`.
+It is the v3.3 OS-style multi-tab mockup with Dark / Light / Studio theme switching.
+Older navigation names are deprecated and must not be reintroduced in implementation.
 
 ## Architecture stance
 

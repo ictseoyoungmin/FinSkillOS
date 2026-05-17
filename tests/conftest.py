@@ -13,7 +13,6 @@ import pytest
 
 from finskillos import config as fs_config
 
-
 _ENV_KEYS = (
     "APP_ENV",
     "DATABASE_URL",
@@ -25,6 +24,7 @@ _ENV_KEYS = (
     "FINSKILLOS_BASE_CURRENCY",
     "FINSKILLOS_TARGET_VALUE",
     "FINSKILLOS_DEFAULT_ACCOUNT_NAME",
+    "FINSKILLOS_SKIP_DOTENV",
 )
 
 
@@ -33,6 +33,7 @@ def clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Path]
     """Strip FinSkillOS env vars, set DATA_DIR to a tmp path, reset Settings cache."""
     for key in _ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv(
         "DATABASE_URL",
