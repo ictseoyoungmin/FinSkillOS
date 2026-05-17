@@ -135,3 +135,27 @@ Known issues:
 - The legacy v1 helpers `PortfolioPositionInput.symbol` / `PortfolioSummary.largest_position_symbol` were renamed to ticker-based names; no external callers existed (only the service's own tests), so nothing else needed updating.
 - Repository-wide ruff baseline noted in cleanup/00_cleanup.md is still pending; slice-03 files are ruff-clean.
 ```
+
+Post-Slice-03 Minor Cleanup Status: DONE (2026-05-17)
+
+Changed files:
+- finskillos/db/repositories/portfolio_repo.py
+- finskillos/services/portfolio_service.py
+- tests/unit/test_portfolio_service.py
+- tests/integration/test_portfolio_import_flow.py
+- .devmd/03_Portfolio_Goal_Tracker.md
+
+Behavior change:
+- PortfolioRepository.upsert_snapshot added — looks up via get_by_account_and_date, updates total/cash/peak/drawdown in-place if a row exists, otherwise delegates to create_snapshot. create_snapshot stays in place for explicit append callers.
+- PortfolioService.import_snapshot now upserts portfolio_snapshots by (account_id, snapshot_date).
+- Same-day re-import updates the existing snapshot instead of raising a unique-constraint error.
+- Different-day imports still append a new snapshot row.
+- Position upsert behavior remains keyed on (account_id, ticker).
+- No migration file was modified; the (account_id, snapshot_date) uniqueness constraint is preserved and now respected by the service layer.
+
+Verification:
+- python3 -m pytest tests/unit/test_portfolio_service.py tests/integration/test_portfolio_import_flow.py -q  ✅ 14 passed
+
+Known issues:
+- UI pages remain deferred.
+- Live PostgreSQL smoke remains scheduled for Slice 04 or earlier if PostgreSQL-specific behavior appears.

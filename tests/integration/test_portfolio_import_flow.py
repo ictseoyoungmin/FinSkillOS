@@ -112,3 +112,30 @@ def test_second_import_updates_positions_without_creating_duplicates(
 
     snapshots = PortfolioRepository(db_session).list_for_account(account_id)
     assert len(snapshots) == 2  # two snapshot rows, one per date
+
+
+def test_reimport_same_date_csv_updates_snapshot_without_duplicates(
+    db_session: Session, account_id
+) -> None:
+    service = PortfolioService(db_session)
+    rows = load_portfolio_csv(FIXTURES / "sample_portfolio_snapshot.csv")
+
+    first = service.import_snapshot(
+        account_id=account_id,
+        snapshot_date=date(2026, 5, 17),
+        rows=rows,
+        cash_value=Decimal("1000000"),
+    )
+
+    second = service.import_snapshot(
+        account_id=account_id,
+        snapshot_date=date(2026, 5, 17),
+        rows=rows,
+        cash_value=Decimal("2000000"),
+    )
+
+    snapshots = PortfolioRepository(db_session).list_for_account(account_id)
+
+    assert len(snapshots) == 1
+    assert first.id == second.id
+    assert snapshots[0].cash_value == Decimal("2000000")

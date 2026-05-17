@@ -21,3 +21,4 @@ data/exports/*
 
 docker/postgres_data/
 .vscode/
+*.csv

@@ -139,13 +139,18 @@ class PortfolioService:
         peak_value: Decimal | None = None,
         drawdown_pct: Decimal | None = None,
     ) -> PortfolioSnapshot:
-        """Upsert positions and append a portfolio snapshot.
+        """Upsert positions and upsert the day's portfolio snapshot.
 
         `total_value` is derived as `sum(market_value) + cash_value` so the
         snapshot is always consistent with the position rows it represents.
         Existing positions for the same `(account_id, ticker)` are updated
         in place; tickers absent from `rows` are *not* deleted — the live
         positions table is treated as the user's current holdings.
+
+        The portfolio_snapshots row is upserted on `(account_id,
+        snapshot_date)` so same-day re-imports update the existing row
+        instead of raising a unique-constraint error. Different snapshot
+        dates still produce separate rows.
         """
 
         total_value = sum((r.market_value for r in rows), Decimal("0")) + cash_value
@@ -153,7 +158,7 @@ class PortfolioService:
         for row in rows:
             self.upsert_position(account_id=account_id, row=row)
 
-        snapshot = self.portfolio_repo.create_snapshot(
+        snapshot = self.portfolio_repo.upsert_snapshot(
             account_id=account_id,
             snapshot_date=snapshot_date,
             total_value=total_value,

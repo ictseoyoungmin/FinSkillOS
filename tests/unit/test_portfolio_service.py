@@ -180,6 +180,59 @@ def test_load_portfolio_csv_accepts_sample_fixture(tmp_path) -> None:
     assert tsla.sector == "Consumer Discretionary"
 
 
+def test_import_snapshot_same_date_updates_existing_snapshot(
+    db_session: Session, account_id
+) -> None:
+    service = PortfolioService(db_session)
+
+    service.import_snapshot(
+        account_id=account_id,
+        snapshot_date=date(2026, 5, 17),
+        rows=[_row("TSLA", "7000000", sector="EV")],
+        cash_value=Decimal("1000000"),
+    )
+
+    updated_snapshot = service.import_snapshot(
+        account_id=account_id,
+        snapshot_date=date(2026, 5, 17),
+        rows=[
+            _row("TSLA", "8000000", sector="EV"),
+            _row("NVDA", "2000000", sector="Semiconductors"),
+        ],
+        cash_value=Decimal("3000000"),
+    )
+
+    snapshots = service.portfolio_repo.list_for_account(account_id)
+
+    assert len(snapshots) == 1
+    assert snapshots[0].id == updated_snapshot.id
+    assert snapshots[0].total_value == Decimal("13000000")
+    assert snapshots[0].cash_value == Decimal("3000000")
+
+    positions = service.get_current_positions(account_id)
+    assert {p.ticker for p in positions} == {"TSLA", "NVDA"}
+
+
+def test_import_snapshot_different_dates_keeps_separate_rows(
+    db_session: Session, account_id
+) -> None:
+    service = PortfolioService(db_session)
+
+    service.import_snapshot(
+        account_id=account_id,
+        snapshot_date=date(2026, 5, 10),
+        rows=[_row("TSLA", "7000000", sector="EV")],
+    )
+    service.import_snapshot(
+        account_id=account_id,
+        snapshot_date=date(2026, 5, 17),
+        rows=[_row("TSLA", "8000000", sector="EV")],
+    )
+
+    snapshots = service.portfolio_repo.list_for_account(account_id)
+    assert len(snapshots) == 2
+
+
 def test_load_portfolio_csv_falls_back_to_legacy_symbol_column(tmp_path) -> None:
     legacy = tmp_path / "legacy.csv"
     legacy.write_text("symbol,quantity,market_value\nTSLA,5,2000000\n")

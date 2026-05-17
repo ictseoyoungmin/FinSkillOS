@@ -7,6 +7,8 @@ full schema.
 
 from finskillos.db.models.account import Account
 from finskillos.db.models.alert import Alert
+from finskillos.db.models.indicator import IndicatorSnapshot
+from finskillos.db.models.market import MarketBar
 from finskillos.db.models.portfolio import PortfolioSnapshot
 from finskillos.db.models.position import Position
 from finskillos.db.models.trade import Trade
@@ -14,6 +16,8 @@ from finskillos.db.models.trade import Trade
 __all__ = [
     "Account",
     "Alert",
+    "IndicatorSnapshot",
+    "MarketBar",
     "PortfolioSnapshot",
     "Position",
     "Trade",

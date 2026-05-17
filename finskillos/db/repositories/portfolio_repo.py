@@ -38,6 +38,34 @@ class PortfolioRepository:
         self.session.flush()
         return snapshot
 
+    def upsert_snapshot(
+        self,
+        *,
+        account_id: uuid.UUID,
+        snapshot_date: date,
+        total_value: Decimal,
+        cash_value: Decimal = Decimal("0"),
+        peak_value: Decimal | None = None,
+        drawdown_pct: Decimal | None = None,
+    ) -> PortfolioSnapshot:
+        existing = self.get_by_account_and_date(account_id, snapshot_date)
+        if existing is None:
+            return self.create_snapshot(
+                account_id=account_id,
+                snapshot_date=snapshot_date,
+                total_value=total_value,
+                cash_value=cash_value,
+                peak_value=peak_value,
+                drawdown_pct=drawdown_pct,
+            )
+
+        existing.total_value = total_value
+        existing.cash_value = cash_value
+        existing.peak_value = peak_value
+        existing.drawdown_pct = drawdown_pct
+        self.session.flush()
+        return existing
+
     def get(self, snapshot_id: uuid.UUID) -> PortfolioSnapshot | None:
         return self.session.get(PortfolioSnapshot, snapshot_id)
 
