@@ -20,3 +20,4 @@ data/exports/*
 !data/exports/.gitkeep
 
 docker/postgres_data/
+.vscode/

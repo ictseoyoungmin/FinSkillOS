@@ -53,7 +53,7 @@ def get_settings() -> Settings:
         app_env=_env("FINSKILLOS_ENV", "development", "APP_ENV"),
         database_url=os.getenv(
             "DATABASE_URL",
-            "postgresql+psycopg://finskillos:finskillos@localhost:5432/finskillos",
+            "postgresql+psycopg://finskillos:finskillos_dev_password@localhost:5432/finskillos",
         ),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         data_dir=data_dir,

@@ -103,9 +103,63 @@ pytest tests/test_db_models.py tests/test_repositories.py -q
 ## Completion placeholder
 
 ```text
-Status: TODO
+Status: DONE (2026-05-17)
+
 Migration IDs:
+- 0001_initial_foundation (rewritten as a single greenfield foundation — accounts, portfolio_snapshots, positions, trades, alerts + indexes)
+
 Implemented repositories:
+- AccountRepository      (create / get / get_by_name / list_all / update_target / delete)
+- PortfolioRepository    (create_snapshot / get / get_by_account_and_date / latest / list_for_account)
+- PositionRepository     (create / get / get_by_account_and_ticker / list_for_account / update_market_value / delete)
+- TradeRepository        (create / get / list_for_account with optional date range)
+- AlertRepository        (create / get / list_active / resolve)
+- Seed: seed_default_account() — idempotent; creates "Main Trading Account" (KRW, target 100,000,000) and the initial 57,000,000 KRW snapshot if absent
+
+Implemented files (changed/new):
+- finskillos/db/models/account.py       (UUID PK, target_value, relationships to snapshots/positions/trades/alerts)
+- finskillos/db/models/portfolio.py     (UUID PK, account_id FK with ON DELETE CASCADE, peak_value + drawdown_pct columns; snapshot-scoped PortfolioPosition removed in favour of the standalone Position model)
+- finskillos/db/models/position.py      (new — live, account-scoped holdings with thesis/strategy_type/stop_loss/take_profit)
+- finskillos/db/models/trade.py         (new — trade journal entry with regime/emotion/mistake_tag fields)
+- finskillos/db/models/alert.py         (new — Risk Firewall alert with portable JSON payload that becomes JSONB on Postgres)
+- finskillos/db/models/__init__.py      (exports Account / Alert / PortfolioSnapshot / Position / Trade)
+- finskillos/db/repositories/*.py       (new account/portfolio/position/trade/alert repositories + __init__ re-exports)
+- finskillos/db/seed.py                 (new idempotent seed helper, reads settings.default_account_name / target_value / base_currency)
+- finskillos/db/migrations/versions/0001_initial_foundation.py  (full rewrite — UUID PKs, target_value, JSON_PAYLOAD variant, all five core tables + indexes idx_snapshots_account_date / idx_positions_account_ticker / idx_trades_account_date / idx_trades_ticker_date / idx_alerts_date_severity / idx_alerts_active)
+- alembic.ini                           (added path_separator = os to silence Alembic 1.18 deprecation warning)
+- tests/conftest.py                     (added db_session fixture: in-memory SQLite + Base.metadata.create_all + PRAGMA foreign_keys=ON)
+- tests/unit/test_db_models.py          (new — UUID PK, snapshot uniqueness, position uniqueness, alert JSON round-trip, trade defaults)
+- tests/unit/test_repositories.py       (new — full CRUD across the five repositories + seed idempotency)
+- tests/integration/test_db_migrations.py (new — `alembic upgrade head` against a fresh SQLite DB; asserts the five required tables and indexes exist)
+
 Notes:
+- The migration uses `sqlalchemy.Uuid` and `sa.JSON().with_variant(JSONB(), "postgresql")` so the same migration runs against SQLite (used by the smoke test) and PostgreSQL.
+- `seed_default_account` reads `Settings.default_account_name` / `target_value` / `base_currency`, so any future tweak via `.env` flows in automatically.
+- Snapshot-scoped `portfolio_positions` was dropped from the schema; current holdings live in the slice-02 `positions` table per docs/v2_1/03_DB_Data_Model.md. Snapshot rows now carry their own peak_value + drawdown_pct so they can drive the drawdown guard directly.
+- DB layer has no Streamlit / UI imports — schema is independent of the UX shell.
+
+Cleanup pass (2026-05-17, after re-reading docs/v2_1/03,08,09):
+- Filled in scripts/seed_sample_data.py (previously 0 bytes) as an idempotent CLI wrapper around `finskillos.db.seed.seed_default_account`. Accepts --snapshot-date, --initial-total-value, --initial-cash-value; reads target_value / base_currency / default account name from Settings; logs the account/snapshot UUIDs.
+- Added tests/integration/test_seed_command.py — 3 smoke tests: first run creates the account + 57M snapshot with the documented defaults, second run is a no-op, inspector sees all five slice-02 tables.
+- Re-confirmed slice scope against docs/v2_1/09 §5 (DB-AC-001..004): every in-scope item — accounts/portfolio_snapshots/positions/trades/alerts tables, snapshot uniqueness, alert JSON payload, idx_snapshots_account_date / idx_positions_account_ticker / idx_trades_account_date / idx_alerts_date_severity — is covered. Out-of-scope items (market_bars, indicator_snapshots, market_regimes, events, interpretations, news_articles, news_impacts, chart_presets, sector_snapshots) belong to later slices and are intentionally not in 0001_initial_foundation.
+- Cross-checked docs/v2_1/08 §4.2 CSV column shape vs. Position model: ticker/sector/theme/strategy_type/quantity/market_value/pnl_pct/stop_loss/take_profit/thesis all present; CSV-specific extras (name/avg_price/market_price/cost_basis/pnl) are slice-03 import-layer concerns and will be translated by PortfolioService, not new columns here.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts          ✅ no errors
+- python3 -m pytest tests -q                                ✅ 29 passed (13 slice-01 + 5 db model + 6 repo + 2 migration smoke + 3 seed CLI smoke)
+- python3 -m ruff check  (every slice-02 file)              ✅ All checks passed
+
+Slice-02 acceptance criteria final status:
+- Alembic migration creates all initial tables.        ✅
+- Seed command creates a default account.              ✅ (scripts/seed_sample_data.py + finskillos/db/seed.py)
+- Repository tests can CRUD a position.                ✅ (tests/unit/test_repositories.py::test_position_repository_crud)
+- Portfolio snapshot uniqueness works.                 ✅ (tests/unit/test_db_models.py::test_portfolio_snapshot_uniqueness)
+- Alert insertion supports JSONB payload.              ✅ (tests/unit/test_db_models.py::test_alert_round_trips_json_payload)
+- DB schema does not depend on Streamlit.              ✅ (no streamlit imports in finskillos/db/*)
+
 Known issues:
+- Live PostgreSQL is *not* exercised by the test suite — migration smoke runs on SQLite via SQLAlchemy's `Uuid` + `JSON().with_variant(JSONB(), "postgresql")`. The first slice that needs a PG-specific feature (e.g. GIN indexes on news_articles.tickers) should pair with a docker-compose-up or testcontainers fixture.
+- psycopg is declared in requirements/pyproject but still not installed in this dev image; install via `pip install -e .[dev]` before running `alembic upgrade head` against the compose Postgres service.
+- Repository-wide ruff baseline noted in cleanup/00_cleanup.md is still pending (~479 pre-existing errors in other scaffolding). Every slice-02 file is ruff-clean.
+- The snapshot-scoped `portfolio_positions` table from the original 0001 stub was dropped — it had zero call sites and is superseded by the live `positions` table per docs/v2_1/03 §3.
 ```

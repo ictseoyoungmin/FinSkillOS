@@ -1,7 +1,9 @@
 """Shared pytest fixtures for FinSkillOS v2.1.
 
 Isolates each test from the developer's local `.env` and from the global
-`Settings` cache so config-sensitive tests stay deterministic.
+`Settings` cache so config-sensitive tests stay deterministic. Also provides
+an in-memory SQLite session bound to the full SQLAlchemy metadata so slice-02
+repository / model tests can run without a live PostgreSQL.
 """
 
 from __future__ import annotations
@@ -10,8 +12,12 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
 
 from finskillos import config as fs_config
+from finskillos.db import models as _models  # noqa: F401  (register mappers with Base.metadata)
+from finskillos.db.base import Base
 
 _ENV_KEYS = (
     "APP_ENV",
@@ -42,3 +48,26 @@ def clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Path]
     fs_config.reset_settings_cache()
     yield tmp_path
     fs_config.reset_settings_cache()
+
+
+@pytest.fixture
+def db_session() -> Iterator[Session]:
+    """Yield a Session bound to a fresh in-memory SQLite DB with full schema."""
+    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
+
+    # SQLite needs FK enforcement explicitly enabled per-connection.
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_fks(dbapi_connection, _):  # type: ignore[no-untyped-def]
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    session = factory()
+    try:
+        yield session
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

@@ -4,8 +4,8 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from finskillos.config import get_settings
-from finskillos.db.base import Base
 from finskillos.db import models  # noqa: F401
+from finskillos.db.base import Base
 
 config = context.config
 
