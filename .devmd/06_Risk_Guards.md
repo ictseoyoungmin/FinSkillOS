@@ -188,3 +188,43 @@ Known issues:
 - OvertradingGuard implementation is deferred until Slice 12 Trade
   Journal exposes the trade frequency / recent-loss signals it needs.
 ```
+
+```text
+Post-Slice-06 Cleanup Status: DONE (2026-05-18)
+
+Changed files:
+- finskillos/guards/base.py
+- tests/test_risk_guards.py
+- tests/test_risk_guard_service.py
+- .devmd/06_Risk_Guards.md
+
+Behavior change:
+- Guard safety checker now blocks direct buy/sell wording case-insensitively.
+  English instructions use word-boundary regex (\bBUY\b / \bSELL\b) so
+  the check catches lowercase ("sell TSLA"), mixed-case ("Buy NVDA"),
+  and uppercase ("SELL") but does not trip on words that merely contain
+  the substring (e.g. "oversold", "buyer", "sell-the-news").
+- Korean direct-advice wording is explicitly blocked via literal
+  patterns (매수, 매도, 지금 사라, 지금 팔아라, 무조건, 확실, 수익 보장,
+  원금 보장, 반드시).
+- The common market idiom "sell-the-news" remains allowed: the checker
+  strips it (case-insensitive) before applying the direct-advice regex
+  pass, so EVENT_PLACEHOLDER_GUARD descriptions referencing the idiom
+  continue to pass.
+- Alert persistence continues to run assert_no_forbidden_wording()
+  before creating/updating alerts; a new monkeypatched persistence
+  test verifies a misbehaving guard cannot leak direct advice into
+  the alerts table.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                            ✅ no errors
+- python3 -m pytest tests/test_risk_guards.py tests/test_risk_guard_service.py -q            ✅ 66 passed
+- python3 -m pytest tests -q                                                                  ✅ 191 passed
+- python3 -m ruff check finskillos/guards finskillos/services \
+    tests/test_risk_guards.py tests/test_risk_guard_service.py                               ✅ All checks passed
+
+Known issues:
+- Risk Firewall UI remains deferred to Slice 07.
+- OvertradingGuard remains deferred until Trade Journal exposes
+  frequency/recent-loss signals.
+```

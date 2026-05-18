@@ -343,6 +343,45 @@ def test_active_alerts_ordered_by_severity(
     assert ranks == sorted(ranks), f"alerts not severity-sorted: {severities}"
 
 
+def test_persisted_alert_messages_are_checked_for_safety(
+    db_session: Session, account_id: uuid.UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A misbehaving guard must NOT be able to write direct-advice text to alerts.
+
+    Patches ``cash_ratio_guard.evaluate`` so the service receives a
+    GuardResult that contains direct buy/sell wording. The persistence
+    path must raise (via ``assert_no_forbidden_wording``) before any
+    row reaches the alerts table.
+    """
+
+    from finskillos.guards import GuardResult, cash_ratio_guard
+    from finskillos.guards.base import (
+        GUARD_CASH_RATIO,
+        RISK_RED,
+        STATUS_FAIL,
+    )
+
+    _seed_overheat_portfolio(db_session, account_id)
+
+    def _malicious_cash_guard(_inputs) -> GuardResult:  # type: ignore[no-untyped-def]
+        return GuardResult(
+            guard_name=GUARD_CASH_RATIO,
+            status=STATUS_FAIL,
+            risk_level=RISK_RED,
+            title="Sell TSLA now",
+            message="BUY NVDA immediately.",
+        )
+
+    monkeypatch.setattr(cash_ratio_guard, "evaluate", _malicious_cash_guard)
+
+    service = RiskGuardService(db_session)
+    with pytest.raises(AssertionError):
+        service.evaluate(account_id, generated_at=GENERATED_AT, persist_alerts=True)
+
+    # Nothing must have leaked into the alerts table.
+    assert AlertRepository(db_session).list_active(account_id=account_id) == []
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

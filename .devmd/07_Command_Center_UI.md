@@ -90,9 +90,94 @@ streamlit run app.py
 ## Completion placeholder
 
 ```text
-Status: TODO
-Implemented components:
-Screenshots:
+Status: DONE (2026-05-18)
+
+Implemented:
+- Streamlit app shell (finskillos/ui/app_shell.py) with OS-style top
+  navigation (Control Room / Market Kernel / Risk Firewall /
+  Mission Control / Catalyst Watch / Trade Memory /
+  Analysis Workspace / System Ops) and a tabbed sidebar radio.
+  Streamlit and DB-session imports are kept inside run_app so the
+  module imports cleanly in non-Streamlit contexts (tests, type-check).
+- Control Room page (finskillos/ui/pages/control_room.py) — single-pass
+  render of the four core cards using the new ControlRoomViewModel.
+- Mission Control / goal summary card — current value, target value,
+  remaining amount, progress %, goal mode badge, early-stop banner.
+- Market Kernel / regime summary card — regime label, decision mode,
+  risk-level coloured banner, summary, positive / risk factor lists,
+  and a What happened / What it means / Watch next expander.
+- Risk Firewall / guard report card — full 8-guard ladder rendered as
+  a dataframe with status emoji + risk colour, plus per-guard detail
+  panels for WARN/FAIL/BLOCKED rows.
+- Active alerts display backed by AlertRepository.list_active() with
+  severity-priority ordering preserved.
+- Empty DB / missing data safe states — view model returns a setup
+  hint when no account exists; cards render informative placeholders
+  for missing portfolio / regime / alerts.
+- System Ops page with "샘플 계좌 / 초기 스냅샷 생성" button (uses
+  seed_default_account) and "Risk Guard 재실행" button (calls
+  RiskGuardService.evaluate(..., persist_alerts=True)).
+- DB-free view-model layer (finskillos/ui/view_models/control_room_vm.py)
+  that aggregates AccountRepository + PortfolioService + GoalService +
+  MarketRegimeRepository + RiskGuardService + AlertRepository into a
+  single frozen dataclass tree (ControlRoomViewModel).
+- Pure formatting helpers (finskillos/ui/components/formatting.py:
+  format_krw, format_pct, format_ratio, risk_color, status_label,
+  status_emoji) so card rendering stays deterministic and testable.
+- Direct-advice safety check (assert_view_model_is_safe) reuses the
+  hardened guard-safety regex (06 cleanup) over every visible string
+  in the VM and is verified by tests with both forbidden wording and
+  the allowed "sell-the-news" idiom.
+
+Tests added:
+- tests/test_ui_view_models.py — 7 tests covering empty DB setup
+  hint, seeded account goal/portfolio summary, latest MarketRegime
+  surfacing, full guard-report aggregation, severity-sorted active
+  alerts, and SAFE-AC-001 enforcement on injected direct-advice text
+  vs the allowed sell-the-news idiom.
+- tests/test_control_room_ui.py — 20 smoke tests verifying app.py
+  imports without Streamlit, every UI page / component / view-model
+  module imports cleanly, NAV_ITEMS exposes the OS-style label set,
+  and the formatting helpers behave on the values cards render.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                            ✅ no errors
+- python3 -m pytest tests/test_ui_view_models.py tests/test_control_room_ui.py -q            ✅ 27 passed
+- python3 -m pytest tests/test_risk_guards.py tests/test_risk_guard_service.py \
+    tests/test_regime_engine.py tests/test_regime_service.py -q                              ✅ 106 passed
+- python3 -m pytest tests -q                                                                  ✅ 218 passed (slice 02 + 03 + 04 + 05 + 06 + 06 cleanup + 07)
+- python3 -m ruff check finskillos/ui finskillos/services \
+    tests/test_ui_view_models.py tests/test_control_room_ui.py                               ✅ All checks passed
+
+Manual smoke:
+- streamlit run app.py
+- Control Room renders without crash (Streamlit is a runtime-only
+  dependency; tests do not require it on the path).
+- Empty DB → setup-hint banner shows; "샘플 계좌 / 초기 스냅샷 생성"
+  button populates account + initial 57M / 7M snapshot via the
+  existing seed_default_account helper.
+- After seeding, the Control Room cards render Goal / Portfolio /
+  Regime (empty until RegimeService runs) / Risk Firewall / Alerts.
+
 Notes:
+- Streamlit is intentionally imported inside each render function and
+  inside run_app's session_scope wrapper. Importing
+  finskillos.ui.app_shell from a unit test does not pull Streamlit,
+  which keeps CI environments simple.
+- Pages never touch services directly. All data flows through
+  ControlRoomViewModel so the UI logic stays trivially testable.
+- The OS-style mockup at prototypes/ui/os_style_mockup/index.html is
+  the visual reference; Slice 07 reaches feature parity for Control
+  Room cards but does not chase pixel-perfect CSS parity.
+- DB connection failures in the Streamlit shell render a friendly
+  error banner via _NullSession instead of crashing the process.
+
 Known issues:
+- Pixel-perfect parity with the HTML prototype remains deferred.
+- Full Catalyst Watch, Trade Memory, News Intelligence, and Event
+  Radar remain deferred to Slices 10-12; the placeholders explain
+  this in-tab.
+- Live brokerage / trading execution remains out of scope.
+- Streamlit must be installed at runtime to view the UI; the test
+  suite does not require it.
 ```

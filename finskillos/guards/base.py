@@ -18,6 +18,7 @@ Design rules:
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -217,16 +218,54 @@ class RiskGuardReport:
 
 # --- Safety check helper -------------------------------------------------
 
+# Market idioms that contain a forbidden substring but are descriptive,
+# not directive. Stripped before the direct-advice regex pass.
+_ALLOWED_MARKET_IDIOMS: Final[tuple[str, ...]] = (
+    "sell-the-news",
+)
 
-def assert_no_forbidden_wording(result: GuardResult) -> None:
-    """Raise ``AssertionError`` if a guard result leaks buy/sell wording.
+# Direct-advice patterns (case-insensitive for English; literal for Korean).
+# Word boundaries on "BUY"/"SELL" stop false positives on words like
+# "buyer" or "oversold"; Korean direct-instruction phrases match literally.
+_DIRECT_ADVICE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+    re.compile(r"\bBUY\b", re.IGNORECASE),
+    re.compile(r"\bSELL\b", re.IGNORECASE),
+    re.compile(r"매수"),
+    re.compile(r"매도"),
+    re.compile(r"지금\s*사라"),
+    re.compile(r"지금\s*팔아라"),
+    re.compile(r"무조건"),
+    re.compile(r"확실"),
+    re.compile(r"수익\s*보장"),
+    re.compile(r"guaranteed", re.IGNORECASE),
+    re.compile(r"원금\s*보장"),
+    re.compile(r"반드시"),
+)
 
-    Used in tests; the engine and the service also call it before
-    persisting alerts so a misbehaving guard cannot end up in
-    `alerts.message`.
+
+def _strip_allowed_market_idioms(text: str) -> str:
+    """Remove allow-listed idioms before the direct-advice scan.
+
+    Lowercases first so the strip is case-insensitive — guarantees
+    ``Sell-the-news risk`` is treated identically to ``sell-the-news risk``.
     """
 
-    from finskillos.regime.regime_rules import FORBIDDEN_WORDS
+    lowered = text.lower()
+    for idiom in _ALLOWED_MARKET_IDIOMS:
+        lowered = lowered.replace(idiom, "")
+    return lowered
+
+
+def assert_no_forbidden_wording(result: GuardResult) -> None:
+    """Raise ``AssertionError`` if a guard result leaks direct buy/sell advice.
+
+    Called by tests and by ``RiskGuardService._persist_alerts`` so a
+    misbehaving guard cannot end up in ``alerts.message``. The check is
+    case-insensitive for English instructions and literal for Korean
+    direct-advice phrases. The market idiom ``sell-the-news`` is
+    explicitly allowed because it describes a *risk pattern* rather
+    than a transaction order.
+    """
 
     blobs: list[str] = [
         result.title,
@@ -237,9 +276,12 @@ def assert_no_forbidden_wording(result: GuardResult) -> None:
         if isinstance(value, str):
             blobs.append(value)
     haystack = " ".join(blobs)
-    for forbidden in FORBIDDEN_WORDS:
-        if forbidden in haystack:
+    scan_text = _strip_allowed_market_idioms(haystack)
+
+    for pattern in _DIRECT_ADVICE_PATTERNS:
+        match = pattern.search(scan_text)
+        if match is not None:
             raise AssertionError(
                 f"guard {result.guard_name!r} emitted forbidden term "
-                f"{forbidden!r}: {haystack!r}"
+                f"{match.group(0)!r}: {haystack!r}"
             )

@@ -568,3 +568,106 @@ def test_guards_module_exports_canonical_names() -> None:
         GUARD_OVERHEAT_ENTRY,
         GUARD_EVENT_PLACEHOLDER,
     }
+
+
+# ---------------------------------------------------------------------------
+# Safety checker hardening (06 cleanup)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Sell TSLA now.",
+        "sell TSLA now.",
+        "BUY NVDA.",
+        "buy NVDA.",
+        "지금 사라.",
+        "지금 팔아라.",
+        "이 종목은 무조건 수익 보장입니다.",
+        "원금 보장입니다.",
+        "This is guaranteed profit.",
+        "반드시 진입하세요.",
+    ],
+)
+def test_forbidden_wording_check_blocks_direct_advice_case_insensitively(
+    message: str,
+) -> None:
+    result = GuardResult(
+        guard_name="TEST_GUARD",
+        status=STATUS_WARN,
+        risk_level=RISK_YELLOW,
+        title="Safety check",
+        message=message,
+    )
+    with pytest.raises(AssertionError):
+        assert_no_forbidden_wording(result)
+
+
+def test_forbidden_wording_check_allows_sell_the_news_idiom() -> None:
+    result = GuardResult(
+        guard_name="TEST_GUARD",
+        status=STATUS_INFO,
+        risk_level=RISK_GREEN,
+        title="Event reaction risk",
+        message=(
+            "The system will track sell-the-news risk once event data is connected."
+        ),
+    )
+    # Must not raise.
+    assert_no_forbidden_wording(result)
+
+
+def test_forbidden_wording_check_allows_capitalised_sell_the_news_idiom() -> None:
+    result = GuardResult(
+        guard_name="TEST_GUARD",
+        status=STATUS_INFO,
+        risk_level=RISK_GREEN,
+        title="Sell-the-news pattern",
+        message="Sell-the-news reactions can appear after a strong earnings beat.",
+    )
+    assert_no_forbidden_wording(result)
+
+
+def test_forbidden_wording_check_allows_oversold_word_boundary() -> None:
+    """The hardened checker uses \\bSELL\\b — words containing 'sell' must pass."""
+
+    result = GuardResult(
+        guard_name="TEST_GUARD",
+        status=STATUS_INFO,
+        risk_level=RISK_GREEN,
+        title="RSI 30 이하의 oversold 구간 관찰",
+        message="oversold reading is descriptive, not a transaction directive.",
+    )
+    assert_no_forbidden_wording(result)
+
+
+def test_forbidden_wording_check_scans_watch_next_and_evidence_strings() -> None:
+    result = GuardResult(
+        guard_name="TEST_GUARD",
+        status=STATUS_WARN,
+        risk_level=RISK_YELLOW,
+        title="ok",
+        message="ok",
+        watch_next=("sell now",),
+    )
+    with pytest.raises(AssertionError):
+        assert_no_forbidden_wording(result)
+
+    result = GuardResult(
+        guard_name="TEST_GUARD",
+        status=STATUS_WARN,
+        risk_level=RISK_YELLOW,
+        title="ok",
+        message="ok",
+        evidence={"recommendation": "지금 사라"},
+    )
+    with pytest.raises(AssertionError):
+        assert_no_forbidden_wording(result)
+
+
+def test_event_placeholder_guard_sell_the_news_idiom_is_allowed() -> None:
+    """Real Event Risk Guard output must still pass the hardened checker."""
+
+    result = event_risk_guard.evaluate(_base_input())
+    assert_no_forbidden_wording(result)
