@@ -115,6 +115,7 @@ def _render_sidebar() -> str:
 
 def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
     from finskillos.ui.pages import (
+        analysis_workspace,
         control_room,
         deferred,
         market_kernel,
@@ -138,7 +139,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
     elif nav_key == "TRADE_MEMORY":
         deferred.render_trade_memory()
     elif nav_key == "ANALYSIS_WORKSPACE":
-        deferred.render_analysis_workspace()
+        analysis_workspace.render(session)
     else:
         import streamlit as st
 

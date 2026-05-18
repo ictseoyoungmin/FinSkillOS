@@ -22,14 +22,28 @@ from finskillos.ui.view_models.control_room_vm import (
     assert_view_model_is_safe,
     build_control_room_view_model,
 )
+from finskillos.ui.view_models.index_lab_vm import (
+    DEFAULT_INDEX_UNIVERSE,
+    IndexInstrumentVM,
+    IndexLabViewModel,
+    IndexUniverseEntry,
+    assert_index_lab_view_model_is_safe,
+    build_index_lab_view_model,
+)
 
 __all__ = [
     "AlertSummary",
     "ControlRoomViewModel",
+    "DEFAULT_INDEX_UNIVERSE",
     "GoalSummary",
     "GuardSummary",
+    "IndexInstrumentVM",
+    "IndexLabViewModel",
+    "IndexUniverseEntry",
     "PortfolioSummaryVM",
     "RegimeSummary",
+    "assert_index_lab_view_model_is_safe",
     "assert_view_model_is_safe",
     "build_control_room_view_model",
+    "build_index_lab_view_model",
 ]

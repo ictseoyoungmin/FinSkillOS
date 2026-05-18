@@ -28,11 +28,7 @@ def render_trade_memory() -> None:
     )
 
 
-def render_analysis_workspace() -> None:
-    import streamlit as st
-
-    st.markdown("## Analysis Workspace")
-    st.info(
-        "Analysis Workspace는 Slice 08+ Research Hub (Index Lab / Symbol Lab / "
-        "Sector Rotation)에서 활성화됩니다."
-    )
+# NOTE: Analysis Workspace was a placeholder in Slice 07; Slice 08 wires
+# it to the real Index Lab page (``finskillos.ui.pages.analysis_workspace``).
+# The placeholder was removed; Symbol Lab / News Intelligence remain
+# deferred to later slices.

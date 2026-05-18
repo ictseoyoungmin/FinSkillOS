@@ -45,10 +45,12 @@ def test_app_entry_point_imports_without_streamlit() -> None:
         "finskillos.ui.pages.mission_control",
         "finskillos.ui.pages.system_ops",
         "finskillos.ui.pages.deferred",
+        "finskillos.ui.pages.analysis_workspace",
         "finskillos.ui.components.cards",
         "finskillos.ui.components.formatting",
         "finskillos.ui.view_models",
         "finskillos.ui.view_models.control_room_vm",
+        "finskillos.ui.view_models.index_lab_vm",
     ],
 )
 def test_ui_modules_import_without_streamlit(module_name: str) -> None:
