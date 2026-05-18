@@ -152,31 +152,53 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
 
 @contextmanager
 def _session_scope() -> Iterator[object]:  # pragma: no cover - thin DB wrapper
-    """Yield a DB session for the page render.
+    """Yield a DB session for the page render after a preflight check.
 
-    Wraps ``finskillos.db.session.session_scope`` but converts startup
-    failures (missing DB, bad URL, etc.) into a Streamlit-friendly
-    error banner so the app does not crash on first launch.
+    Startup failures (missing module, bad URL, unreachable DB) are
+    surfaced as a Streamlit-friendly error banner and a ``_NullSession``
+    is yielded EXACTLY ONCE so the contextmanager does not raise
+    ``RuntimeError: generator didn't stop after throw()``.
+
+    Once the real session is yielded we never yield again — exceptions
+    raised while a page renders are allowed to propagate so Streamlit's
+    own error handling kicks in, with rollback / close happening in the
+    ``finally`` block.
     """
 
     import streamlit as st
+    from sqlalchemy import text
 
     try:
-        from finskillos.db.session import session_scope
+        from finskillos.db.session import get_session_factory
+
+        session = get_session_factory()()
     except Exception as exc:  # noqa: BLE001 — display configuration errors gracefully
         st.error(f"DB 세션 모듈을 불러올 수 없습니다: {exc}")
         yield _NullSession()
         return
 
+    # Preflight: a cheap round-trip catches bad DATABASE_URLs / missing
+    # migrations BEFORE we hand the session to a page. Doing it here
+    # means the yield below only ever runs against a known-good session.
     try:
-        with session_scope() as session:
-            yield session
+        session.execute(text("SELECT 1"))
     except Exception as exc:  # noqa: BLE001
+        session.close()
         st.error(
             "DB 연결에 실패했습니다. DATABASE_URL 설정과 alembic upgrade head 실행 "
             f"여부를 확인하세요.\n\n오류: {exc}"
         )
         yield _NullSession()
+        return
+
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 class _NullSession:
