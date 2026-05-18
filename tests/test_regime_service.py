@@ -145,6 +145,8 @@ def _assert_no_forbidden_wording(output: RegimeOutput) -> None:
             output.what_happened,
             output.what_it_means,
             *output.watch_next,
+            *output.positive_factors,
+            *output.risk_factors,
         ]
     )
     for forbidden in FORBIDDEN_WORDS:
@@ -243,6 +245,44 @@ def test_service_persists_and_upserts_market_regime_row(db_session: Session) -> 
     assert isinstance(rows[0].watch_next, list)
     assert isinstance(rows[0].evidence, dict)
     assert rows[0].evidence["spy_trend_state"] == "BULLISH"
+    # 05-cleanup: positive/risk factors persisted as JSON lists.
+    assert isinstance(rows[0].positive_factors, list)
+    assert isinstance(rows[0].risk_factors, list)
+    assert rows[0].positive_factors or rows[0].risk_factors
+
+
+def test_service_upsert_updates_factors_when_indicators_change(
+    db_session: Session,
+) -> None:
+    """Same snapshot_time + rule_version with new indicators must overwrite factors."""
+
+    ts = datetime(2026, 5, 18, 21, 0, tzinfo=UTC)
+    _seed_healthy_bull_picture(db_session, ts=ts)
+
+    service = RegimeService(db_session)
+    service.evaluate_today_regime(snapshot_time=ts)
+    first = MarketRegimeRepository(db_session).latest()
+    assert first is not None
+    first_positive = list(first.positive_factors or [])
+    first_risk = list(first.risk_factors or [])
+
+    # Reseed the same tickers with an overheat picture and re-evaluate.
+    _seed_overheat_picture(db_session, ts=ts)
+    service.evaluate_today_regime(snapshot_time=ts)
+
+    rows = MarketRegimeRepository(db_session).list_recent(limit=10)
+    assert len(rows) == 1, "upsert must not duplicate at same (snapshot_time, rule_version)"
+    updated = rows[0]
+    assert updated.regime == REGIME_RISK_ON_OVERHEAT
+    # Factor lists were rewritten — the new payload must reflect the
+    # overheat narrative, not the original healthy-bull narrative.
+    assert (
+        list(updated.positive_factors or []) != first_positive
+        or list(updated.risk_factors or []) != first_risk
+    )
+    assert any(
+        "RSI" in f or "과열" in f for f in (updated.risk_factors or [])
+    )
 
 
 def test_service_persist_false_skips_db_write(db_session: Session) -> None:

@@ -67,6 +67,8 @@ class MarketRegime(Base):
     what_it_means: Mapped[str | None] = mapped_column(Text)
     watch_next: Mapped[list | None] = mapped_column(JSONPayload)
     evidence: Mapped[dict | None] = mapped_column(JSONPayload)
+    positive_factors: Mapped[list | None] = mapped_column(JSONPayload)
+    risk_factors: Mapped[list | None] = mapped_column(JSONPayload)
     rule_version: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

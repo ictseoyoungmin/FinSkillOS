@@ -81,6 +81,8 @@ class RegimeOutput:
     what_it_means: str
     watch_next: tuple[str, ...]
     evidence: dict[str, str | Decimal | None] = field(default_factory=dict)
+    positive_factors: tuple[str, ...] = ()
+    risk_factors: tuple[str, ...] = ()
     rule_version: str = R.RULE_VERSION
 
     def is_actionable(self) -> bool:
@@ -520,6 +522,118 @@ def _evidence(inputs: RegimeInput, scores: Scores) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Factor lists (05-cleanup)
+# ---------------------------------------------------------------------------
+
+
+def _factor_lists(
+    inputs: RegimeInput,
+    scores: Scores,
+    regime: str,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Build descriptive (positive_factors, risk_factors) for the UI.
+
+    Deterministic — same `(inputs, scores, regime)` always yields the
+    same lists. Strings are written as observations, never as trade
+    instructions; the SAFE-AC-001 wording check in the engine tests
+    enforces this across every regime branch.
+    """
+
+    positives: list[str] = []
+    risks: list[str] = []
+
+    bullish = _bullish_trend_votes(inputs)
+    bearish = _bearish_trend_votes(inputs)
+    overheat = _rsi_overheat_votes(inputs)
+    oversold = _rsi_oversold_votes(inputs)
+
+    # --- shared trend / VIX / RSI observations --------------------------
+    if bullish >= 2:
+        positives.append("SPY/QQQ/SMH 추세 스택이 건설적으로 형성되어 있습니다.")
+    if bearish >= 2:
+        risks.append("SPY/QQQ/SMH 추세가 약화되거나 하향 정렬되어 있습니다.")
+    if inputs.vix_close is not None:
+        if inputs.vix_close < R.VIX_CALM:
+            positives.append("VIX가 안정 구간(15 미만)에 머무르고 있습니다.")
+        elif inputs.vix_close >= R.VIX_PANIC:
+            risks.append("VIX가 공포 구간(30 이상)에 진입했습니다.")
+        elif inputs.vix_close >= R.VIX_RISK_OFF:
+            risks.append("VIX가 위험 회피 구간(25 이상)으로 올라섰습니다.")
+        elif inputs.vix_close >= R.VIX_CAUTION:
+            risks.append("VIX가 경계 구간(20 이상)으로 올라섰습니다.")
+    if overheat >= 2:
+        risks.append("QQQ/SMH RSI가 70 이상 과열 구간에 있습니다.")
+    if oversold >= 2:
+        risks.append("주요 지수 RSI가 30 이하의 oversold 구간에 진입해 있습니다.")
+    if inputs.momentum_score is not None:
+        if inputs.momentum_score >= Decimal("10"):
+            positives.append("QQQ/SMH 모멘텀 스코어가 양호한 양수 구간입니다.")
+        elif inputs.momentum_score <= Decimal("-5"):
+            risks.append("모멘텀이 약화되며 추세와 괴리가 누적되고 있습니다.")
+    if inputs.breadth_score is not None:
+        if inputs.breadth_score >= Decimal("60"):
+            positives.append("breadth가 폭넓게 살아 있어 상승 참여도가 양호합니다.")
+        elif inputs.breadth_score < Decimal("45"):
+            risks.append("breadth가 축소되어 상승 참여도가 좁아지고 있습니다.")
+    else:
+        # Breadth feed is not wired up yet; surface that as a watchpoint.
+        if regime != R.REGIME_UNKNOWN:
+            risks.append("breadth 데이터가 아직 연결되지 않아 참여도 확인이 제한적입니다.")
+    if inputs.dxy_trend_state in R.BULLISH_TRENDS:
+        risks.append("DXY 추세가 강세로 전환되며 성장주에 압박을 줄 수 있습니다.")
+    if inputs.us10y_trend_state in R.BULLISH_TRENDS:
+        risks.append("US10Y 금리 추세가 상승해 위험자산에 압력 요인이 됩니다.")
+
+    # --- regime-specific framing ---------------------------------------
+    if regime == R.REGIME_PANIC:
+        risks.append("패닉 수준의 변동성과 하락 추세가 동시에 관찰됩니다.")
+    elif regime == R.REGIME_RISK_OFF:
+        risks.append("위험 회피 신호가 누적되어 신규 공격적 운용은 제한됩니다.")
+    elif regime == R.REGIME_DEFENSIVE_TRANSITION:
+        risks.append("방어 전환 구간으로 약한 포지션 점검이 필요합니다.")
+    elif regime == R.REGIME_DISTRIBUTION_RISK:
+        if bullish >= 1 and not any(
+            "추세 스택" in p for p in positives
+        ):
+            positives.append("가격 추세는 여전히 고점권을 유지하고 있습니다.")
+        risks.append("분배 위험 신호가 누적되어 추격보다 익절/축소 점검이 어울립니다.")
+    elif regime == R.REGIME_RISK_ON_OVERHEAT:
+        if not any("추세 스택" in p for p in positives):
+            positives.append("주도 지수 추세는 여전히 강세를 유지하고 있습니다.")
+        risks.append("RSI 과열로 추격 진입의 기대 수익률이 낮아질 수 있습니다.")
+    elif regime == R.REGIME_AGGRESSIVE_RISK_ON:
+        positives.append("주도 섹터가 strict BULLISH 정렬을 유지하고 있습니다.")
+        if overheat == 0:
+            positives.append("RSI는 아직 과열 임계 아래로 모멘텀 여력이 있습니다.")
+        else:
+            risks.append("RSI가 과열 임계에 근접하므로 사이즈 관리가 필요합니다.")
+    elif regime == R.REGIME_HEALTHY_BULL:
+        positives.append("RSI가 healthy 구간(50~68)에서 모멘텀을 유지하고 있습니다.")
+        risks.append("쏠림이나 VIX 변동성 확대 신호를 주기적으로 점검하세요.")
+    elif regime == R.REGIME_RECOVERY:
+        positives.append("공포 구간 이후 RSI 회복 신호가 누적되고 있습니다.")
+        risks.append("회복 확인 신호가 아직 충분하지 않아 보수적 접근이 필요합니다.")
+    elif regime == R.REGIME_UNKNOWN:
+        risks.append("핵심 지표 데이터가 부족해 시장 상태를 단정할 수 없습니다.")
+        risks.append("지표 수집 / VIX 데이터 갱신 후 재평가가 필요합니다.")
+
+    return tuple(_dedupe_preserve_order(positives)), tuple(
+        _dedupe_preserve_order(risks)
+    )
+
+
+def _dedupe_preserve_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        out.append(item)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -531,6 +645,9 @@ def classify_regime(inputs: RegimeInput) -> RegimeOutput:
     present = _count_present(inputs)
 
     if present < MIN_INPUTS_REQUIRED:
+        positive_factors, risk_factors = _factor_lists(
+            inputs, scores, R.REGIME_UNKNOWN
+        )
         return RegimeOutput(
             regime=R.REGIME_UNKNOWN,
             confidence=Decimal("0"),
@@ -541,10 +658,13 @@ def classify_regime(inputs: RegimeInput) -> RegimeOutput:
             what_it_means=_WHAT_IT_MEANS[R.REGIME_UNKNOWN],
             watch_next=_WATCH_NEXT[R.REGIME_UNKNOWN],
             evidence=_evidence(inputs, scores),
+            positive_factors=positive_factors,
+            risk_factors=risk_factors,
         )
 
     regime = _classify_state(inputs, scores)
     confidence = _confidence(inputs, regime, scores)
+    positive_factors, risk_factors = _factor_lists(inputs, scores, regime)
 
     return RegimeOutput(
         regime=regime,
@@ -556,4 +676,6 @@ def classify_regime(inputs: RegimeInput) -> RegimeOutput:
         what_it_means=_WHAT_IT_MEANS[regime],
         watch_next=_WATCH_NEXT[regime],
         evidence=_evidence(inputs, scores),
+        positive_factors=positive_factors,
+        risk_factors=risk_factors,
     )

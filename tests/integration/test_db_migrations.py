@@ -78,3 +78,33 @@ def test_alembic_creates_documented_indexes(alembic_cfg: Config) -> None:
     assert "idx_positions_account_ticker" in positions_indexes
     assert "idx_trades_account_date" in trades_indexes
     assert "idx_alerts_date_severity" in alerts_indexes
+
+
+def test_alembic_market_regimes_has_factor_columns(alembic_cfg: Config) -> None:
+    """05 cleanup: market_regimes must carry positive/risk factor JSON columns."""
+
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(alembic_cfg.get_main_option("sqlalchemy.url"))
+    try:
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
+        assert "market_regimes" in tables
+        columns = {col["name"] for col in inspector.get_columns("market_regimes")}
+    finally:
+        engine.dispose()
+
+    assert "positive_factors" in columns
+    assert "risk_factors" in columns
+    # Pre-cleanup columns must remain.
+    for col in (
+        "snapshot_time",
+        "regime",
+        "confidence",
+        "decision_mode",
+        "risk_level",
+        "watch_next",
+        "evidence",
+        "rule_version",
+    ):
+        assert col in columns

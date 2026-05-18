@@ -79,6 +79,8 @@ def _assert_no_forbidden_wording(output: RegimeOutput) -> None:
         output.what_happened,
         output.what_it_means,
         *output.watch_next,
+        *output.positive_factors,
+        *output.risk_factors,
     ]
     blob = " ".join(strings)
     for forbidden in FORBIDDEN_WORDS:
@@ -374,3 +376,128 @@ def test_every_regime_has_interpretation_block(regime: str) -> None:
     for watch in _WATCH_NEXT[regime]:
         for forbidden in FORBIDDEN_WORDS:
             assert forbidden not in watch
+
+
+# ---------------------------------------------------------------------------
+# Factor lists (05 cleanup)
+# ---------------------------------------------------------------------------
+
+
+def test_regime_output_exposes_factor_lists() -> None:
+    output = classify_regime(
+        _input(
+            spy_trend_state="BULLISH",
+            qqq_trend_state="BULLISH",
+            smh_trend_state="WEAK_BULLISH",
+            spy_rsi_14=Decimal("58"),
+            qqq_rsi_14=Decimal("60"),
+            smh_rsi_14=Decimal("55"),
+            vix_close=Decimal("14"),
+        )
+    )
+    assert isinstance(output.positive_factors, tuple)
+    assert isinstance(output.risk_factors, tuple)
+    assert output.positive_factors or output.risk_factors
+    for factor in (*output.positive_factors, *output.risk_factors):
+        assert isinstance(factor, str)
+        assert factor.strip()
+
+
+def test_unknown_reports_insufficient_data_as_risk_factor() -> None:
+    output = classify_regime(
+        RegimeInput(
+            spy_trend_state=None,
+            qqq_trend_state=None,
+            smh_trend_state=None,
+            spy_rsi_14=None,
+            qqq_rsi_14=None,
+            smh_rsi_14=None,
+            vix_close=None,
+            dxy_trend_state=None,
+            us10y_trend_state=None,
+        )
+    )
+    assert output.regime == REGIME_UNKNOWN
+    assert output.risk_factors
+    assert any(
+        "data" in factor.lower() or "지표" in factor or "데이터" in factor
+        for factor in output.risk_factors
+    )
+
+
+def test_overheat_factor_blends_positive_trend_with_risk_overheat() -> None:
+    """RISK_ON_OVERHEAT must surface both sides — conflict, not reversal."""
+
+    output = classify_regime(
+        _input(
+            spy_trend_state="BULLISH",
+            qqq_trend_state="BULLISH",
+            smh_trend_state="BULLISH",
+            spy_rsi_14=Decimal("72"),
+            qqq_rsi_14=Decimal("75"),
+            smh_rsi_14=Decimal("76"),
+            vix_close=Decimal("13"),
+            momentum_score=Decimal("18"),
+        )
+    )
+    assert output.regime == REGIME_RISK_ON_OVERHEAT
+    assert output.positive_factors, "trend strength must surface in positive_factors"
+    assert any("RSI" in f or "과열" in f for f in output.risk_factors)
+
+
+def test_panic_factors_describe_panic_without_buy_sell_wording() -> None:
+    output = classify_regime(
+        _input(
+            spy_trend_state="BEARISH",
+            qqq_trend_state="BEARISH",
+            smh_trend_state="BEARISH",
+            spy_rsi_14=Decimal("22"),
+            qqq_rsi_14=Decimal("20"),
+            smh_rsi_14=Decimal("18"),
+            vix_close=Decimal("38"),
+        )
+    )
+    assert output.regime == "PANIC"
+    assert output.risk_factors
+    assert any("VIX" in f or "패닉" in f or "변동성" in f for f in output.risk_factors)
+
+
+_FACTOR_SAFETY_CASES = [
+    _input(),  # neutral default
+    _input(
+        spy_trend_state="BEARISH",
+        qqq_trend_state="BEARISH",
+        smh_trend_state="BEARISH",
+        vix_close=Decimal("38"),
+    ),
+    _input(
+        spy_trend_state="BULLISH",
+        qqq_trend_state="BULLISH",
+        smh_trend_state="BULLISH",
+        qqq_rsi_14=Decimal("75"),
+        smh_rsi_14=Decimal("78"),
+        vix_close=Decimal("13"),
+    ),
+    _input(vix_close=Decimal("28"), spy_trend_state="WEAK_BEARISH"),
+    RegimeInput(
+        spy_trend_state=None,
+        qqq_trend_state=None,
+        smh_trend_state=None,
+        spy_rsi_14=None,
+        qqq_rsi_14=None,
+        smh_rsi_14=None,
+        vix_close=None,
+        dxy_trend_state=None,
+        us10y_trend_state=None,
+    ),
+]
+
+
+@pytest.mark.parametrize("inputs", _FACTOR_SAFETY_CASES)
+def test_factor_strings_have_no_forbidden_wording(inputs: RegimeInput) -> None:
+    output = classify_regime(inputs)
+    blob = " ".join([*output.positive_factors, *output.risk_factors])
+    for forbidden in FORBIDDEN_WORDS:
+        assert forbidden not in blob, (
+            f"forbidden term {forbidden!r} appears in factor strings: {blob!r}"
+        )

@@ -42,6 +42,8 @@ class MarketRegimeRepository:
                 what_it_means=output.what_it_means,
                 watch_next=list(output.watch_next),
                 evidence=_jsonable_evidence(output.evidence),
+                positive_factors=list(output.positive_factors),
+                risk_factors=list(output.risk_factors),
                 rule_version=output.rule_version,
             )
             self.session.add(row)
@@ -57,6 +59,8 @@ class MarketRegimeRepository:
         existing.what_it_means = output.what_it_means
         existing.watch_next = list(output.watch_next)
         existing.evidence = _jsonable_evidence(output.evidence)
+        existing.positive_factors = list(output.positive_factors)
+        existing.risk_factors = list(output.risk_factors)
         self.session.flush()
         return existing
 
