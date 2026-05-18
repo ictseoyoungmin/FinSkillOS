@@ -15,8 +15,9 @@ def render(session: Session) -> None:
 
     st.markdown("## Risk Firewall")
     st.caption(
-        "8개 가드 결과를 한 화면에서 점검하세요. "
-        "WARN 이상 결과는 자동으로 alerts 테이블에 누적됩니다."
+        "8개 가드 결과를 한 화면에서 읽기 전용으로 점검하세요. "
+        "WARN 이상 결과는 System Ops의 'Risk Guard 재실행'을 실행하면 "
+        "alerts 테이블에 저장됩니다. 현재 화면은 자동으로 쓰지 않습니다."
     )
 
     if not vm.has_account:

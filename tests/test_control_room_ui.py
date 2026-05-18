@@ -119,3 +119,79 @@ def test_status_emoji_returns_compact_symbol() -> None:
     assert status_emoji("PASS") == "✓"
     assert status_emoji("FAIL") == "✕"
     assert status_emoji("INFO") == "•"
+
+
+# ---------------------------------------------------------------------------
+# 07 cleanup — null-session fallback + system-ops helpers
+# ---------------------------------------------------------------------------
+
+
+def test_null_session_is_not_dispatchable() -> None:
+    """07-cleanup Task 2 — _NullSession must not be handed to a page renderer."""
+
+    from finskillos.ui.app_shell import _can_dispatch, _NullSession
+
+    assert _can_dispatch(_NullSession()) is False
+
+
+def test_real_objects_are_dispatchable() -> None:
+    from finskillos.ui.app_shell import _can_dispatch
+
+    class _FakeSession:
+        pass
+
+    assert _can_dispatch(_FakeSession()) is True
+    assert _can_dispatch(object()) is True
+
+
+def test_null_session_raises_loudly_if_a_page_ever_uses_it() -> None:
+    """Last-resort guard — page code that reaches a NullSession must fail loudly."""
+
+    from finskillos.ui.app_shell import _NullSession
+
+    session = _NullSession()
+    with pytest.raises(RuntimeError):
+        session.query  # noqa: B018 — triggers __getattr__
+
+
+def test_format_regime_recalc_message_includes_key_fields() -> None:
+    """07-cleanup Task 4 — System Ops Regime 재계산 success line is unit-testable."""
+
+    from decimal import Decimal
+
+    from finskillos.ui.pages.system_ops import format_regime_recalc_message
+
+    msg = format_regime_recalc_message(
+        regime="RISK_ON_OVERHEAT",
+        confidence=Decimal("82"),
+        decision_mode="HOLD_WINNERS",
+        risk_level="YELLOW",
+    )
+    assert "RISK_ON_OVERHEAT" in msg
+    assert "82" in msg
+    assert "HOLD_WINNERS" in msg
+    assert "YELLOW" in msg
+    # Safety: even the success message must not leak direct-advice wording.
+    from finskillos.guards import GuardResult, assert_no_forbidden_wording
+
+    assert_no_forbidden_wording(
+        GuardResult(
+            guard_name="TEST",
+            status="INFO",
+            risk_level="GREEN",
+            title="",
+            message=msg,
+        )
+    )
+
+
+def test_risk_firewall_caption_does_not_claim_auto_persist() -> None:
+    """07-cleanup Task 3 — copy must not say WARN+ alerts auto-accumulate on read-only render."""
+
+    import inspect
+
+    from finskillos.ui.pages import risk_firewall
+
+    source = inspect.getsource(risk_firewall)
+    assert "자동으로 alerts 테이블에 누적" not in source
+    assert "읽기 전용" in source or "Risk Guard 재실행" in source

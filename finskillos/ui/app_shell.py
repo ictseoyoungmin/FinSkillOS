@@ -44,6 +44,11 @@ def run_app() -> None:
     nav_key = _render_sidebar()
 
     with _session_scope() as session:
+        if not _can_dispatch(session):
+            # The friendly DB-error banner already rendered inside
+            # _session_scope; stop here so no page renderer ever runs
+            # against the _NullSession sentinel (07-cleanup Task 2).
+            return
         _dispatch(nav_key, session)
 
 
@@ -175,17 +180,28 @@ def _session_scope() -> Iterator[object]:  # pragma: no cover - thin DB wrapper
 
 
 class _NullSession:
-    """Tiny fallback so page renderers can still call session methods.
+    """Sentinel yielded when the DB session cannot be created.
 
-    Pages should never reach a code path that requires a real session
-    once the error banner above fires; this stub exists only so a
-    misconfigured environment never crashes the Streamlit process.
+    The Streamlit shell checks with ``_can_dispatch`` BEFORE handing the
+    object to a page renderer, so under normal operation no page ever
+    touches a ``_NullSession``. ``__getattr__`` still raises loudly as a
+    last-resort guard against future code paths that forget the check.
     """
 
     def __getattr__(self, name):  # type: ignore[no-untyped-def]
         raise RuntimeError(
             "Streamlit page tried to use the DB session after a connection error."
         )
+
+
+def _can_dispatch(session: object) -> bool:
+    """True if ``session`` is a real DB session safe to hand to a page.
+
+    Pure helper kept module-level so unit tests can verify the fallback
+    decision without spinning up Streamlit (07-cleanup Task 2).
+    """
+
+    return not isinstance(session, _NullSession)
 
 
 # ---------------------------------------------------------------------------

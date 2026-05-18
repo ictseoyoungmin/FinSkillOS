@@ -181,3 +181,59 @@ Known issues:
 - Streamlit must be installed at runtime to view the UI; the test
   suite does not require it.
 ```
+
+```text
+Post-Slice-07 Cleanup Status: DONE (2026-05-18)
+
+Changed files:
+- finskillos/ui/app_shell.py
+- finskillos/ui/pages/risk_firewall.py
+- finskillos/ui/pages/system_ops.py
+- tests/test_control_room_ui.py
+- .devmd/07_Command_Center_UI.md
+
+Behavior change:
+- Task 1 (06 safety checker verified): the hardened regex checker
+  blocks "Sell TSLA now", "sell TSLA now", "BUY NVDA", "buy NVDA",
+  the Korean direct-advice set (매수/매도/지금 사라/지금 팔아라/
+  무조건/확실/수익 보장/원금 보장/반드시), and "guaranteed", while
+  still allowing the "sell-the-news" market idiom. Coverage already
+  shipped in the 06 cleanup pass and remains green.
+- Task 2: Streamlit shell extracted a module-level _can_dispatch(...)
+  helper and now guards _dispatch() with `if not _can_dispatch(session):
+  return`. A DB connection failure renders the friendly error banner
+  and stops — pages are never handed a _NullSession. Three new unit
+  tests pin this contract (_NullSession is not dispatchable, real
+  objects are, _NullSession still raises if a future code path ever
+  forgets the check).
+- Task 3: Risk Firewall page caption no longer claims WARN+ results
+  auto-accumulate. New copy reads "8개 가드 결과를 한 화면에서 읽기
+  전용으로 점검하세요. WARN 이상 결과는 System Ops의 'Risk Guard
+  재실행'을 실행하면 alerts 테이블에 저장됩니다." A source-level
+  test (test_risk_firewall_caption_does_not_claim_auto_persist)
+  pins this so a regression is caught.
+- Task 4: System Ops gained a third action button "Regime 재계산"
+  that calls RegimeService.evaluate_today_regime(persist=True). The
+  success message is built by a new pure helper
+  format_regime_recalc_message() so the format stays unit-testable
+  without launching Streamlit. Missing indicator data produces a
+  friendly warning instead of a crash; UNKNOWN regimes surface an
+  explanatory info message rather than failing silently.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                            ✅ no errors
+- python3 -m pytest tests/test_ui_view_models.py tests/test_control_room_ui.py -q            ✅ 32 passed
+- python3 -m pytest tests/test_risk_guards.py tests/test_risk_guard_service.py -q            ✅ 66 passed
+- python3 -m pytest tests -q                                                                  ✅ 223 passed
+- python3 -m ruff check finskillos/ui finskillos/guards finskillos/services \
+    tests/test_ui_view_models.py tests/test_control_room_ui.py \
+    tests/test_risk_guards.py tests/test_risk_guard_service.py                               ✅ All checks passed
+
+Known issues:
+- Pixel-perfect parity with the HTML prototype remains deferred.
+- Catalyst Watch, Trade Memory, News Intelligence, and Event Radar
+  remain deferred to later slices.
+- Live brokerage / trading execution remains out of scope.
+- Streamlit must be installed at runtime to view the UI; the test
+  suite does not require it.
+```
