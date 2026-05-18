@@ -18,7 +18,7 @@ PLOTLY_CONFIG = {"displayModeBar": False, "responsive": True}
 
 
 def _render_plotly(fig: go.Figure) -> None:
-    st.plotly_chart(style_plotly_figure(fig), use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(style_plotly_figure(fig), width=True, config=PLOTLY_CONFIG)
 
 
 def render_cumulative_return_chart(metrics: dict[str, Any] | None, height: int = 320) -> None:

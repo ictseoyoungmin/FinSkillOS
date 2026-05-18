@@ -251,7 +251,7 @@ def render_guard_report_card(
         }
         for guard in vm.guard_report
     ]
-    st.dataframe(rows, hide_index=True, use_container_width=True)
+    st.dataframe(rows, hide_index=True, width=True)
 
     for guard in vm.guard_report:
         if guard.status in {"PASS", "INFO"}:
@@ -310,5 +310,5 @@ def render_active_alerts_card(alerts: tuple[AlertSummary, ...]) -> None:
             for a in alerts
         ],
         hide_index=True,
-        use_container_width=True,
+        width=True,
     )

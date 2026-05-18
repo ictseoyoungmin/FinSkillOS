@@ -242,7 +242,7 @@ def render_topbar_controls(sample_files: Sequence[str]) -> dict[str, object]:
             "Generate Dashboard",
             type="primary",
             icon=":material/analytics:",
-            use_container_width=True,
+            width=True,
         )
 
     return {

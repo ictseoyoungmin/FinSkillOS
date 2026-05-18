@@ -439,7 +439,7 @@ def render_overview_dashboard(
                     data=html_report.encode("utf-8"),
                     file_name="finskillos_analysis_report.html",
                     mime="text/html",
-                    use_container_width=True,
+                    width=True,
                 )
             else:
                 st.markdown(
@@ -1215,7 +1215,7 @@ def render_reports_tab(
                     data=html_report.encode("utf-8"),
                     file_name="finskillos_analysis_report.html",
                     mime="text/html",
-                    use_container_width=True,
+                    width=True,
                 )
             rules_df = pd.DataFrame(records)
             st.download_button(
@@ -1223,14 +1223,14 @@ def render_reports_tab(
                 data=rules_df.to_csv(index=False).encode("utf-8-sig"),
                 file_name="finskillos_applied_rules.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width=True,
             )
             st.download_button(
                 "Download Rules JSON",
                 data=json.dumps(records, ensure_ascii=False, indent=2).encode("utf-8"),
                 file_name="finskillos_applied_rules.json",
                 mime="application/json",
-                use_container_width=True,
+                width=True,
             )
             st.markdown("#### Planned Extensions")
             planned_exports = [
@@ -1354,7 +1354,7 @@ def render_reports_tab(
                 data=html_bytes,
                 file_name="finskillos_analysis_report.html",
                 mime="text/html",
-                use_container_width=True,
+                width=True,
                 disabled=not bool(html_bytes),
             )
             st.download_button(
@@ -1362,7 +1362,7 @@ def render_reports_tab(
                 data=rules_csv,
                 file_name="finskillos_rule_audit.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width=True,
                 disabled=not bool(rules_csv),
             )
             st.download_button(
@@ -1370,7 +1370,7 @@ def render_reports_tab(
                 data=rules_json,
                 file_name="finskillos_rule_audit.json",
                 mime="application/json",
-                use_container_width=True,
+                width=True,
                 disabled=not bool(records),
             )
 
