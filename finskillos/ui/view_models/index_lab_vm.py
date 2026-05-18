@@ -202,8 +202,9 @@ def build_index_lab_view_model(
     setup_hint: str | None = None
     if not any(r.data_status != DATA_STATUS_MISSING for r in rows):
         setup_hint = (
-            "지수 / ETF 데이터가 비어 있습니다. System Ops에서 'Market Refresh' "
-            "또는 'Indicators 재계산'을 먼저 실행하세요."
+            "지수 / ETF 데이터가 비어 있습니다. market_bars / "
+            "indicator_snapshots 데이터가 저장되면 이 화면에 표시됩니다. "
+            "현재 Slice 08에서는 자동 refresh를 수행하지 않습니다."
         )
 
     return IndexLabViewModel(
@@ -256,6 +257,8 @@ def _build_instrument_row(
         trend_state=trend_state,
         rsi_14=rsi_14,
         volume_z=volume_z,
+        has_bar=latest_bar is not None,
+        has_snapshot=snapshot is not None,
     )
 
     return IndexInstrumentVM(
@@ -280,7 +283,7 @@ def _build_instrument_row(
 def _resolve_data_status(*, latest_bar, snapshot) -> str:
     if latest_bar is None and snapshot is None:
         return DATA_STATUS_MISSING
-    if snapshot is None or snapshot.trend_state is None:
+    if latest_bar is None or snapshot is None or snapshot.trend_state is None:
         return DATA_STATUS_PARTIAL
     return DATA_STATUS_OK
 
@@ -350,15 +353,28 @@ def _build_watchpoints(
     trend_state: str | None,
     rsi_14: Decimal | None,
     volume_z: Decimal | None,
+    has_bar: bool = True,
+    has_snapshot: bool = True,
 ) -> tuple[str, ...]:
     notes: list[str] = []
 
     if data_status == DATA_STATUS_MISSING:
-        notes.append("No indicator snapshot is available yet.")
+        notes.append("No market bar or indicator snapshot is available yet.")
         return tuple(notes)
 
     if data_status == DATA_STATUS_PARTIAL:
-        notes.append("Indicator snapshot is partial; longer-window history may be missing.")
+        if has_bar and not has_snapshot:
+            notes.append(
+                "Market bar exists but no indicator snapshot is available yet."
+            )
+        elif has_snapshot and not has_bar:
+            notes.append(
+                "Indicator snapshot exists but the latest market bar is missing."
+            )
+        else:
+            notes.append(
+                "Indicator snapshot is partial; longer-window history may be missing."
+            )
 
     if rsi_14 is not None:
         if rsi_14 >= _RSI_OVERHEAT:

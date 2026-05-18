@@ -132,7 +132,8 @@ def _render_missing_data(vm: IndexLabViewModel) -> None:
         return
     st.caption(
         "다음 종목은 market_bars 또는 indicator_snapshots 가 비어 있습니다. "
-        "System Ops에서 Market Refresh / Indicators 재계산을 실행하세요."
+        "현재 화면은 저장된 데이터를 읽는 전용 뷰이며, 자동 refresh는 "
+        "수행하지 않습니다."
     )
     st.write(", ".join(vm.missing_data))
 

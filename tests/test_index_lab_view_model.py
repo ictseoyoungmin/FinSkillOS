@@ -324,7 +324,50 @@ def test_missing_data_watchpoint_for_untouched_ticker(db_session: Session) -> No
     dia = _find(vm, "DIA")
     assert dia.data_status == DATA_STATUS_MISSING
     joined = " ".join(dia.watchpoints).lower()
-    assert "no indicator snapshot" in joined
+    # 08 cleanup Task 3 — watchpoint must mention BOTH missing artefacts,
+    # not just the indicator snapshot.
+    assert "market bar" in joined
+    assert "indicator snapshot" in joined
+
+
+def test_partial_data_watchpoint_distinguishes_bar_only_from_snapshot_only(
+    db_session: Session,
+) -> None:
+    """08 cleanup Task 3 (optional) — partial data wording should be specific."""
+
+    # Case A: bar exists, no indicator snapshot.
+    _seed_bar(db_session, "QQQ", close=Decimal("450"))
+    # Case B: indicator snapshot exists, no bar.
+    _seed_indicator(
+        db_session,
+        "XLK",
+        trend_state="BULLISH",
+        rsi_14=Decimal("55"),
+        momentum_score=Decimal("3"),
+    )
+
+    vm = build_index_lab_view_model(db_session, generated_at=NOW)
+
+    qqq = _find(vm, "QQQ")
+    qqq_text = " ".join(qqq.watchpoints).lower()
+    assert "market bar exists" in qqq_text and "no indicator snapshot" in qqq_text
+
+    xlk = _find(vm, "XLK")
+    xlk_text = " ".join(xlk.watchpoints).lower()
+    assert "indicator snapshot exists" in xlk_text and "latest market bar is missing" in xlk_text
+
+
+def test_empty_db_setup_hint_does_not_reference_missing_system_ops_actions(
+    db_session: Session,
+) -> None:
+    """08 cleanup Task 2 — setup hint must NOT cite Market Refresh / Indicators 재계산."""
+
+    vm = build_index_lab_view_model(db_session, generated_at=NOW)
+
+    assert vm.setup_hint is not None
+    assert "Market Refresh" not in vm.setup_hint
+    assert "Indicators 재계산" not in vm.setup_hint
+    assert "자동 refresh" in vm.setup_hint or "저장" in vm.setup_hint
 
 
 def test_volume_zscore_elevated_surfaces_rotation_note(db_session: Session) -> None:

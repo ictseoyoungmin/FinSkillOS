@@ -30,6 +30,16 @@ from finskillos.ui.view_models.index_lab_vm import (
     assert_index_lab_view_model_is_safe,
     build_index_lab_view_model,
 )
+from finskillos.ui.view_models.symbol_lab_vm import (
+    SymbolAlertVM,
+    SymbolLabViewModel,
+    SymbolPositionVM,
+    SymbolRecentBarVM,
+    SymbolTechnicalVM,
+    assert_symbol_lab_view_model_is_safe,
+    build_symbol_lab_view_model,
+    normalize_ticker,
+)
 
 __all__ = [
     "AlertSummary",
@@ -42,8 +52,16 @@ __all__ = [
     "IndexUniverseEntry",
     "PortfolioSummaryVM",
     "RegimeSummary",
+    "SymbolAlertVM",
+    "SymbolLabViewModel",
+    "SymbolPositionVM",
+    "SymbolRecentBarVM",
+    "SymbolTechnicalVM",
     "assert_index_lab_view_model_is_safe",
+    "assert_symbol_lab_view_model_is_safe",
     "assert_view_model_is_safe",
     "build_control_room_view_model",
     "build_index_lab_view_model",
+    "build_symbol_lab_view_model",
+    "normalize_ticker",
 ]

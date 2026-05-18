@@ -2,8 +2,8 @@
 
 Provides the OS-style top navigation (Control Room / Market Kernel /
 Risk Firewall / Mission Control / Catalyst Watch / Trade Memory /
-Analysis Workspace / System Ops) and dispatches to per-page render
-functions.
+Analysis Workspace / Symbol Lab / System Ops) and dispatches to
+per-page render functions.
 
 Streamlit + SQLAlchemy session imports are kept inside ``run_app`` so
 ``import finskillos.ui.app_shell`` stays cheap and remains importable
@@ -23,6 +23,7 @@ NAV_ITEMS: tuple[tuple[str, str], ...] = (
     ("CATALYST_WATCH", "Catalyst Watch"),
     ("TRADE_MEMORY", "Trade Memory"),
     ("ANALYSIS_WORKSPACE", "Analysis Workspace"),
+    ("SYMBOL_LAB", "Symbol Lab"),
     ("SYSTEM_OPS", "System Ops"),
 )
 
@@ -121,6 +122,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
         market_kernel,
         mission_control,
         risk_firewall,
+        symbol_lab,
         system_ops,
     )
 
@@ -140,6 +142,8 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
         deferred.render_trade_memory()
     elif nav_key == "ANALYSIS_WORKSPACE":
         analysis_workspace.render(session)
+    elif nav_key == "SYMBOL_LAB":
+        symbol_lab.render(session)
     else:
         import streamlit as st
 
