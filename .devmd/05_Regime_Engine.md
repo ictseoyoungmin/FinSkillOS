@@ -104,8 +104,79 @@ pytest tests/test_regime_engine.py -q
 ## Completion placeholder
 
 ```text
-Status: TODO
-Implemented regimes:
+Status: DONE (2026-05-18)
+
+Implemented:
+- Regime input/output dataclasses (finskillos/regime/regime_engine.py: RegimeInput, RegimeOutput)
+- Pure rule-based regime engine covering PANIC / RECOVERY / HEALTHY_BULL /
+  AGGRESSIVE_RISK_ON / RISK_ON_OVERHEAT / DISTRIBUTION_RISK /
+  DEFENSIVE_TRANSITION / RISK_OFF / UNKNOWN
+- Rule constants + thresholds split into finskillos/regime/regime_rules.py
+  (RULE_VERSION = regime-v1-2026-05-18, FORBIDDEN_WORDS, regime->mode and
+  regime->risk-level maps)
+- Conflict resolver in finskillos/regime/conflict_resolver.py — overheat
+  + strong trend resolves to RISK_ON_OVERHEAT with HOLD_WINNERS, never a
+  bearish reversal (docs/v2_1/06 §7 / REG-AC-004)
+- Persistence: finskillos/db/models/regime.py (MarketRegime ORM with
+  UNIQUE(snapshot_time, rule_version) + JSON evidence/watch_next),
+  alembic migration 0003_market_regimes.py, MarketRegimeRepository
+- Service layer (finskillos/services/regime_service.py): reads latest
+  indicator snapshots for SPY/QQQ/SMH/DXY/US10Y, latest VIX close from
+  MarketRepository, classifies via the pure engine, and upserts the
+  resulting market_regimes row (rule_version-aware)
+- Confidence / decision mode / risk level / what_happened / what_it_means
+  / watch_next / evidence — all descriptive interpretation strings only
+
+Tests added:
+- tests/test_regime_engine.py — 21 tests covering every regime branch,
+  conflict handling, confidence bounds [0, 100], missing-input UNKNOWN
+  fallback, evidence carry-through, and a parametric SAFE-AC-001 check
+  ensuring no buy/sell wording leaks into any interpretation field
+- tests/test_regime_service.py — 9 tests seeding IndicatorSnapshot +
+  MarketBar fixtures and verifying build_input, classification for
+  overheat / healthy-bull / risk-off pictures, upsert persistence on
+  same snapshot_time, history ordering, persist=False skip path, and
+  FAIL-AC-004 tolerance for missing VIX bars
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                            ✅ no errors
+- python3 -m pytest tests/test_regime_engine.py tests/test_regime_service.py \
+    tests/test_market_data_service.py tests/test_signals.py -q                               ✅ 56 passed
+- python3 -m pytest tests/unit/test_goal_tracker.py tests/unit/test_goal_service.py \
+    tests/unit/test_portfolio_service.py -q                                                  ✅ 28 passed
+- python3 -m pytest tests -q                                                                  ✅ 114 passed (slice 02 + 03 + 03 cleanup + 04 + 05)
+- python3 -m ruff check finskillos/regime finskillos/services \
+    tests/test_regime_engine.py tests/test_regime_service.py                                 ✅ All checks passed
+
 Notes:
+- Output stays interpretation-first. Decision modes are descriptive
+  operating postures (PROTECTION_MODE / DEFENSIVE / LIMIT_NEW_ENTRIES /
+  CAUTIOUS_RECOVERY / SELECTIVE_ATTACK / HOLD_WINNERS / REVIEW_ONLY) —
+  never a buy/sell directive. SAFE-AC-001 enforcement runs in every
+  engine test plus an additional parametric loop over all regimes.
+- Persistence keys on (snapshot_time, rule_version) so future rule
+  iterations can backfill alongside the v1 history without losing past
+  classifications (docs/v2_1/06 §15 rule_version requirement).
+- VIX is read from market_bars.latest_close instead of an indicator
+  snapshot because the canonical reading is the level itself; macro
+  trend signals (DXY, US10Y) still come from indicator_snapshots so they
+  benefit from the existing EMA-based trend_state classifier.
+- JSON columns use the cross-dialect JSONPayload variant already
+  established in finskillos/db/models/alert.py — JSONB on PostgreSQL,
+  plain JSON on SQLite (used by the engine/service tests).
+- Old throwaway stub finskillos/regime/regime_engine.py (VIX-only toy
+  classifier) and the matching tests/unit/test_regime_engine.py have
+  been removed. The new tests live at tests/test_regime_engine.py per
+  the slice prompt.
+
 Known issues:
+- Risk Guard alert creation remains deferred to Slice 06.
+- Streamlit Market Regime UI rendering remains deferred to a later UI
+  slice.
+- Live market-data providers remain out of scope unless already
+  implemented; Slice 04's MockMarketDataAdapter / CsvMarketDataAdapter
+  feed the deterministic fixtures.
+- Fear & Greed and breadth feeds are not yet wired up — the engine
+  accepts them as optional inputs (breadth_score / momentum_score) so
+  the rule can use them once a later slice ingests the data.
 ```

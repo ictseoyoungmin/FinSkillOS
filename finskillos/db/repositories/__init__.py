@@ -6,12 +6,14 @@ from finskillos.db.repositories.indicator_repo import IndicatorRepository
 from finskillos.db.repositories.market_repo import MarketRepository
 from finskillos.db.repositories.portfolio_repo import PortfolioRepository
 from finskillos.db.repositories.position_repo import PositionRepository
+from finskillos.db.repositories.regime_repo import MarketRegimeRepository
 from finskillos.db.repositories.trade_repo import TradeRepository
 
 __all__ = [
     "AccountRepository",
     "AlertRepository",
     "IndicatorRepository",
+    "MarketRegimeRepository",
     "MarketRepository",
     "PortfolioRepository",
     "PositionRepository",
