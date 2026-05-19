@@ -56,6 +56,13 @@ from finskillos.ui.view_models.symbol_lab_vm import (
     build_symbol_lab_view_model,
     normalize_ticker,
 )
+from finskillos.ui.view_models.trade_memory_vm import (
+    TradeEntryVM,
+    TradeMemoryViewModel,
+    assert_trade_memory_view_model_is_safe,
+    build_trade_memory_view_model,
+    render_weekly_review_markdown,
+)
 
 __all__ = [
     "AlertSummary",
@@ -81,15 +88,20 @@ __all__ = [
     "SymbolPositionVM",
     "SymbolRecentBarVM",
     "SymbolTechnicalVM",
+    "TradeEntryVM",
+    "TradeMemoryViewModel",
     "assert_event_radar_view_model_is_safe",
     "assert_index_lab_view_model_is_safe",
     "assert_news_intelligence_view_model_is_safe",
     "assert_symbol_lab_view_model_is_safe",
+    "assert_trade_memory_view_model_is_safe",
     "assert_view_model_is_safe",
     "build_control_room_view_model",
     "build_event_radar_view_model",
     "build_index_lab_view_model",
     "build_news_intelligence_view_model",
     "build_symbol_lab_view_model",
+    "build_trade_memory_view_model",
     "normalize_ticker",
+    "render_weekly_review_markdown",
 ]

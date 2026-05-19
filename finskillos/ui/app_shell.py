@@ -119,7 +119,6 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
     from finskillos.ui.pages import (
         analysis_workspace,
         control_room,
-        deferred,
         event_radar,
         market_kernel,
         mission_control,
@@ -127,6 +126,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
         risk_firewall,
         symbol_lab,
         system_ops,
+        trade_journal,
     )
 
     if nav_key == "CONTROL_ROOM":
@@ -142,7 +142,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
     elif nav_key == "CATALYST_WATCH":
         event_radar.render(session)
     elif nav_key == "TRADE_MEMORY":
-        deferred.render_trade_memory()
+        trade_journal.render(session)
     elif nav_key == "ANALYSIS_WORKSPACE":
         analysis_workspace.render(session)
     elif nav_key == "SYMBOL_LAB":

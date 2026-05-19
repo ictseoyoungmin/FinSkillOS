@@ -42,8 +42,9 @@ def test_deferred_no_longer_exposes_catalyst_watch_placeholder() -> None:
     from finskillos.ui.pages import deferred
 
     assert not hasattr(deferred, "render_catalyst_watch")
-    # Trade Memory remains deferred.
-    assert hasattr(deferred, "render_trade_memory")
+    # Slice 12 wired Trade Memory to the real trade_journal page, so
+    # the deferred placeholder for it has been removed too.
+    assert not hasattr(deferred, "render_trade_memory")
 
 
 def test_event_radar_page_runs_safety_scan() -> None:
@@ -78,3 +79,12 @@ def test_event_radar_page_offers_sample_seed_button() -> None:
 
     source = inspect.getsource(event_radar)
     assert "seed_sample_events" in source
+
+
+def test_event_radar_page_describes_score_as_not_prediction() -> None:
+    """11 cleanup Task 4 — risk score must be described as non-predictive."""
+
+    from finskillos.ui.pages import event_radar
+
+    source = inspect.getsource(event_radar)
+    assert "가격 예측이 아니라" in source or "not a prediction" in source

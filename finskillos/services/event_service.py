@@ -126,6 +126,16 @@ class EventService:
         event_id: uuid.UUID,
         event: EventInput,
     ) -> Event:
+        """Apply a full ``EventInput`` to an existing row.
+
+        Because the caller hands us a complete ``EventInput``, ``None``
+        on the nullable fields means "clear" — not "skip". The
+        repository uses the ``_UNSET`` sentinel for partial updates;
+        passing the values through explicitly here lets us delete an
+        ``end_date`` / ``source`` / ``source_url`` / ``description``
+        on edit (11-cleanup Task 1).
+        """
+
         _validate_event_input(event)
         return self.events.update_event(
             event_id,
@@ -160,14 +170,15 @@ class EventService:
         return self.events.list_upcoming(today=today, limit=limit)
 
     def list_for_event_key(self, event_key: str) -> list[Event]:
-        if not event_key:
-            return []
-        links = [
-            link
-            for link in self.session.query(EventLink).filter(
-                EventLink.event_key == event_key
-            )
-        ]
+        """Return events linked to ``event_key`` via the repository layer.
+
+        11-cleanup Task 2 — route the lookup through
+        ``EventLinkRepository.list_for_event_key`` so future Catalyst
+        Watch / news join logic can reuse the same query without
+        bypassing the repository pattern.
+        """
+
+        links = self.links.list_for_event_key(event_key)
         seen: set[uuid.UUID] = set()
         events: list[Event] = []
         for link in links:

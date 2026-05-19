@@ -638,3 +638,143 @@ def test_safety_scan_handles_extra_long_linked_news_title(
     tampered = replace(vm, upcoming=(tampered_event,))
     with pytest.raises(AssertionError):
         assert_event_radar_view_model_is_safe(tampered)
+
+
+# ---------------------------------------------------------------------------
+# 11 cleanup — nullable update + repo lookup + repo normalization
+# ---------------------------------------------------------------------------
+
+
+def test_update_event_can_clear_nullable_fields(db_session: Session) -> None:
+    """11 cleanup Task 1 — None on update_event clears nullable fields."""
+
+    service = EventService(db_session)
+    event = service.create_event(
+        EventInput(
+            title="Window event",
+            event_type=EVENT_TYPE_PRODUCT_EVENT,
+            date_status=DATE_STATUS_WINDOW,
+            start_date=TODAY,
+            end_date=TODAY,
+            source="manual",
+            source_url="https://example.com/source",
+            description="old description",
+            importance_score=Decimal("2.0"),
+        )
+    )
+
+    updated = service.update_event(
+        event.id,
+        EventInput(
+            title="Window event",
+            event_type=EVENT_TYPE_PRODUCT_EVENT,
+            date_status=DATE_STATUS_TENTATIVE,
+            start_date=TODAY,
+            end_date=None,
+            source=None,
+            source_url=None,
+            description=None,
+            importance_score=Decimal("2.0"),
+        ),
+    )
+
+    assert updated.end_date is None
+    assert updated.source is None
+    assert updated.source_url is None
+    assert updated.description is None
+
+
+def test_update_event_repo_partial_update_keeps_unset_fields(
+    db_session: Session,
+) -> None:
+    """Partial repo update (no nullable kwargs) must keep stored values."""
+
+    service = EventService(db_session)
+    event = service.create_event(
+        EventInput(
+            title="Partial-edit candidate",
+            event_type=EVENT_TYPE_PRODUCT_EVENT,
+            date_status=DATE_STATUS_WINDOW,
+            start_date=TODAY,
+            end_date=TODAY,
+            source="manual",
+            source_url="https://example.com/p",
+            description="keep me",
+            importance_score=Decimal("2.0"),
+        )
+    )
+
+    # Only change importance via the repository's partial path.
+    updated = EventRepository(db_session).update_event(
+        event.id, importance_score=Decimal("3.5")
+    )
+    assert updated.importance_score == Decimal("3.50")
+    assert updated.end_date == TODAY
+    assert updated.source == "manual"
+    assert updated.source_url == "https://example.com/p"
+    assert updated.description == "keep me"
+
+
+def test_event_link_repository_lists_by_event_key(db_session: Session) -> None:
+    """11 cleanup Task 2 — repo owns event_key lookup."""
+
+    service = EventService(db_session)
+    event = _create_event(
+        service,
+        links=(EventLinkInput(theme="Macro", event_key="FED_DECISION"),),
+    )
+
+    links = EventLinkRepository(db_session).list_for_event_key("FED_DECISION")
+    assert len(links) == 1
+    assert links[0].event_id == event.id
+
+
+def test_event_service_list_for_event_key_uses_repo(db_session: Session) -> None:
+    """11 cleanup Task 2 — service must route through repo, not raw session."""
+
+    import inspect
+
+    from finskillos.services import event_service as event_service_mod
+
+    source = inspect.getsource(event_service_mod.EventService.list_for_event_key)
+    assert "self.links.list_for_event_key" in source
+    assert "self.session.query(EventLink)" not in source
+
+
+def test_event_link_repository_normalizes_ticker_case(db_session: Session) -> None:
+    """11 cleanup Task 3 — repo-level ticker uppercase dedupe."""
+
+    service = EventService(db_session)
+    event = _create_event(service)
+
+    links = EventLinkRepository(db_session)
+    links.add_or_update_link(event_id=event.id, ticker="tsla")
+    links.add_or_update_link(event_id=event.id, ticker="TSLA")
+
+    rows = links.list_for_event(event.id)
+    assert len(rows) == 1
+    assert rows[0].ticker == "TSLA"
+
+
+def test_event_link_repository_collapses_empty_dimension_strings(
+    db_session: Session,
+) -> None:
+    """11 cleanup Task 3 — whitespace strings collapse to None at repo seam."""
+
+    service = EventService(db_session)
+    event = _create_event(service)
+
+    links = EventLinkRepository(db_session)
+    links.add_or_update_link(
+        event_id=event.id,
+        ticker=" ",
+        sector=" ",
+        theme=" ",
+        event_key=" ",
+    )
+
+    row = links.list_for_event(event.id)[0]
+    assert row.ticker is None
+    assert row.sector is None
+    assert row.theme is None
+    assert row.event_key is None

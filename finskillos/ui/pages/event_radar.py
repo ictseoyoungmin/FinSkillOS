@@ -64,6 +64,11 @@ def render(session: Session) -> None:
         "확정되지 않은 이벤트는 TENTATIVE / WINDOW / SPECULATIVE 등으로 표시되며, "
         "매수 / 매도 지시가 아닌 노출 / 준비 점검용입니다."
     )
+    st.caption(
+        "이 점수는 가격 예측이 아니라 이벤트 접근성, 포트폴리오 노출, "
+        "시장 상태를 반영한 준비 / 노출 점수입니다. "
+        "(event_risk_score is an exposure / preparation score, not a prediction.)"
+    )
 
     vm = build_event_radar_view_model(session)
     assert_event_radar_view_model_is_safe(vm)

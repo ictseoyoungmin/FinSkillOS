@@ -200,3 +200,64 @@ Known issues:
 - Trade Memory remains deferred to Slice 12.
 - Brokerage / trade execution remains out of scope.
 ```
+
+```text
+Post-Slice-11 Cleanup Status: DONE (2026-05-19)
+
+Changed files:
+- finskillos/db/repositories/event_repo.py
+- finskillos/services/event_service.py
+- finskillos/ui/pages/event_radar.py
+- tests/test_event_radar.py
+- tests/test_event_radar_ui.py
+- .devmd/11_Event_Radar.md
+
+Behavior change:
+- EventRepository.update_event() now distinguishes "field omitted"
+  from "explicitly cleared" via a private _UNSET sentinel on
+  nullable fields (end_date / source / source_url / description).
+  Passing None on those kwargs clears the row; omitting the kwarg
+  leaves it unchanged. Non-null fields keep the legacy "None means
+  skip" idiom.
+- EventService.update_event() passes the full EventInput nullable
+  values through intentionally, so editing a WINDOW event back to a
+  single-date TENTATIVE entry no longer leaves a stale end_date.
+- EventService.list_for_event_key() no longer queries EventLink
+  through the raw session; it routes through new
+  EventLinkRepository.list_for_event_key() so future Catalyst Watch
+  / news join logic can reuse the same repo-level query.
+- EventLinkRepository.add_or_update_link() now normalises ticker
+  (uppercase + trim) and collapses empty/whitespace sector / theme
+  / event_key dimension strings to None at the repository seam. A
+  direct repo call with ticker="tsla" then ticker="TSLA" now produces
+  a single canonical row.
+- Event Radar page caption explicitly notes that event_risk_score is
+  an exposure / preparation score, not a prediction
+  (`이 점수는 가격 예측이 아니라 ...` + English mirror).
+- Tests pin the new contract:
+    - test_update_event_can_clear_nullable_fields
+    - test_update_event_repo_partial_update_keeps_unset_fields
+    - test_event_link_repository_lists_by_event_key
+    - test_event_service_list_for_event_key_uses_repo
+    - test_event_link_repository_normalizes_ticker_case
+    - test_event_link_repository_collapses_empty_dimension_strings
+    - test_event_radar_page_describes_score_as_not_prediction
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                          ✅ no errors
+- python3 -m pytest tests/test_event_radar.py
+                    tests/test_event_radar_ui.py -q                                        ✅ 39 passed
+- python3 -m pytest tests/test_news_intelligence.py
+                    tests/test_news_intelligence_ui.py -q                                  ✅ 40 passed
+- python3 -m pytest tests -q                                                               ✅ 363 passed
+- python3 -m ruff check finskillos/db finskillos/services finskillos/ui
+                        tests/test_event_radar.py
+                        tests/test_event_radar_ui.py                                       ✅ All checks passed
+
+Known issues:
+- Full calendar-grid UI remains deferred.
+- Live external event feeds remain out of scope.
+- Source reliability scoring remains deferred.
+- Trade Memory remains deferred to Slice 12.
+- Brokerage / execution remains out of scope.
+```
