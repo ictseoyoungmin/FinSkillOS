@@ -686,3 +686,37 @@ def test_manual_impact_key_dedupes_lowercase_and_uppercase_ticker(
         ingested.article.id
     )
     assert len([i for i in impacts if i.ticker == "TSLA"]) == 1
+
+
+def test_extra_impacts_override_classifier_output_for_matching_key(
+    db_session: Session,
+) -> None:
+    """Extra impacts should win over the classifier for the same impact key."""
+
+    service = NewsService(db_session)
+    ingested = service.ingest_article(
+        NewsArticleInput(
+            title="TSLA guidance misses",
+            source="manual",
+            url="https://example.com/override-case",
+            published_at=NOW,
+            summary="Tesla issued weak guidance and the stock dipped.",
+        ),
+        extra_impacts=(
+            NewsImpactInput(
+                ticker="TSLA",
+                theme="EV",
+                sector="Consumer Discretionary",
+                sentiment_label="NEGATIVE",
+                risk_level="RED",
+            ),
+        ),
+    )
+
+    impacts = NewsImpactRepository(db_session).list_for_article(
+        ingested.article.id
+    )
+    tsla_impacts = [i for i in impacts if i.ticker == "TSLA"]
+    assert len(tsla_impacts) == 1
+    assert tsla_impacts[0].sentiment_label == "NEGATIVE"
+    assert tsla_impacts[0].risk_level == "RED"

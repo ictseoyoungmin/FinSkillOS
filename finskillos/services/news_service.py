@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -379,23 +380,20 @@ def _impact_key(
 def _dedupe_impact_inputs(
     impacts: Sequence[NewsImpactInput],
 ) -> tuple[NewsImpactInput, ...]:
-    """Keep the first occurrence of each ``_impact_key``.
+    """Keep the last occurrence of each ``_impact_key``.
 
-    Earlier rules win — classifier output comes first, then any
+    Later rules win — classifier output comes first, then any
     caller-supplied ``extra_impacts``. The merge order is set by
     ``ingest_article`` so callers can override sentiment / risk on a
     classified key by passing a matching ``extra_impacts`` row.
     """
 
-    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
-    unique: list[NewsImpactInput] = []
+    unique: OrderedDict[
+        tuple[str | None, str | None, str | None, str | None], NewsImpactInput
+    ] = OrderedDict()
     for impact in impacts:
-        key = _impact_key(impact)
-        if key in seen:
-            continue
-        seen.add(key)
-        unique.append(impact)
-    return tuple(unique)
+        unique[_impact_key(impact)] = impact
+    return tuple(unique.values())
 
 
 # ---------------------------------------------------------------------------

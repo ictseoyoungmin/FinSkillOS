@@ -27,3 +27,4 @@ data/local/*.csv
 data/raw/*.csv
 
 .devmd/workflow_and_memory/
+prototypes/ui/reference_assets/
