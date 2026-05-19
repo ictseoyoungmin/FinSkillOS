@@ -526,3 +526,163 @@ def test_article_lookup_returns_published_at_aware_datetime(
     # SQLite may strip tzinfo on the way out — what we care about is
     # that the date itself matches.
     assert article.published_at.date() == date(2026, 5, 18)
+
+
+# ---------------------------------------------------------------------------
+# 10 cleanup — stale impact synchronization + ticker normalization
+# ---------------------------------------------------------------------------
+
+
+def test_reingest_replaces_stale_classifier_impacts(db_session: Session) -> None:
+    """10 cleanup Task 1 — re-ingest with new classifier output drops stale rows."""
+
+    service = NewsService(db_session)
+
+    service.ingest_article(
+        NewsArticleInput(
+            title="Tesla beats delivery expectations",
+            source="manual",
+            url="https://example.com/reclass",
+            published_at=NOW,
+            summary="Tesla delivery numbers were strong.",
+        )
+    )
+
+    service.ingest_article(
+        NewsArticleInput(
+            title="Fed signals rate pause",
+            source="manual",
+            url="https://example.com/reclass",
+            published_at=NOW,
+            summary="The Fed kept rates unchanged.",
+        )
+    )
+
+    article = NewsArticleRepository(db_session).get_by_url(
+        "https://example.com/reclass"
+    )
+    assert article is not None
+    impacts = NewsImpactRepository(db_session).list_for_article(article.id)
+
+    tickers = {i.ticker for i in impacts if i.ticker}
+    event_keys = {i.event_key for i in impacts if i.event_key}
+
+    assert "TSLA" not in tickers
+    assert "FED_DECISION" in event_keys
+
+
+def test_reingest_with_no_impact_clears_existing_impacts(db_session: Session) -> None:
+    """10 cleanup Task 1 — re-ingest with no classifier hit clears all impacts."""
+
+    service = NewsService(db_session)
+    url = "https://example.com/no-impact-reclass"
+
+    service.ingest_article(
+        NewsArticleInput(
+            title="Tesla beats delivery expectations",
+            source="manual",
+            url=url,
+            published_at=NOW,
+            summary="Tesla delivery numbers were strong.",
+        )
+    )
+    service.ingest_article(
+        NewsArticleInput(
+            title="Company posts neutral blog update",
+            source="manual",
+            url=url,
+            published_at=NOW,
+            summary="No tracked ticker or sector keyword appears.",
+        )
+    )
+
+    article = NewsArticleRepository(db_session).get_by_url(url)
+    assert article is not None
+    impacts = NewsImpactRepository(db_session).list_for_article(article.id)
+    assert impacts == []
+
+
+def test_reingest_can_preserve_old_impacts_when_replace_disabled(
+    db_session: Session,
+) -> None:
+    """10 cleanup Task 1 — replace_impacts=False keeps the old append behaviour."""
+
+    service = NewsService(db_session)
+    url = "https://example.com/append-reclass"
+
+    service.ingest_article(
+        NewsArticleInput(
+            title="Tesla beats delivery expectations",
+            source="manual",
+            url=url,
+            published_at=NOW,
+            summary="Tesla delivery numbers were strong.",
+        )
+    )
+    service.ingest_article(
+        NewsArticleInput(
+            title="Fed signals rate pause",
+            source="manual",
+            url=url,
+            published_at=NOW,
+            summary="The Fed kept rates unchanged.",
+        ),
+        replace_impacts=False,
+    )
+
+    article = NewsArticleRepository(db_session).get_by_url(url)
+    assert article is not None
+    impacts = NewsImpactRepository(db_session).list_for_article(article.id)
+    tickers = {i.ticker for i in impacts if i.ticker}
+    event_keys = {i.event_key for i in impacts if i.event_key}
+
+    assert "TSLA" in tickers
+    assert "FED_DECISION" in event_keys
+
+
+def test_manual_impact_ticker_is_normalized_to_uppercase(
+    db_session: Session,
+) -> None:
+    """10 cleanup Task 2 — manual lowercase ticker persists as uppercase."""
+
+    service = NewsService(db_session)
+    ingested = service.ingest_article(
+        NewsArticleInput(
+            title="manual mapping",
+            source="manual",
+            url="https://example.com/lowercase-ticker",
+            published_at=NOW,
+            summary="manual summary",
+        ),
+        auto_classify=False,
+        extra_impacts=(NewsImpactInput(ticker="tsla"),),
+    )
+
+    assert ingested.impacts[0].ticker == "TSLA"
+
+
+def test_manual_impact_key_dedupes_lowercase_and_uppercase_ticker(
+    db_session: Session,
+) -> None:
+    """10 cleanup Task 2 — lowercase/uppercase duplicate impacts collapse."""
+
+    service = NewsService(db_session)
+    ingested = service.ingest_article(
+        NewsArticleInput(
+            title="manual mapping",
+            source="manual",
+            url="https://example.com/dedupe-case",
+            published_at=NOW,
+            summary="manual summary",
+        ),
+        auto_classify=False,
+        extra_impacts=(
+            NewsImpactInput(ticker="tsla"),
+            NewsImpactInput(ticker="TSLA"),
+        ),
+    )
+
+    impacts = NewsImpactRepository(db_session).list_for_article(
+        ingested.article.id
+    )
+    assert len([i for i in impacts if i.ticker == "TSLA"]) == 1

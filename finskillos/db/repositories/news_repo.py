@@ -176,6 +176,18 @@ class NewsImpactRepository:
         )
         return list(self.session.scalars(stmt))
 
+    def delete(self, impact: NewsImpact) -> None:
+        """Drop one impact row.
+
+        Used by ``NewsService.ingest_article`` (Slice-10 cleanup) when
+        ``replace_impacts=True`` and an existing impact's
+        (ticker, sector, theme, event_key) key is no longer present in
+        the new classifier / manual impact set.
+        """
+
+        self.session.delete(impact)
+        self.session.flush()
+
     def list_relevant_to_tickers(
         self,
         tickers: Iterable[str],

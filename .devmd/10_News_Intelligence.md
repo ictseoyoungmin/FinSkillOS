@@ -218,3 +218,56 @@ Known issues:
 - Trade Memory remains deferred to Slice 12.
 - Brokerage / trade execution remains out of scope.
 ```
+
+```text
+Post-Slice-10 Cleanup Status: DONE (2026-05-19)
+
+Changed files:
+- finskillos/db/repositories/news_repo.py
+- finskillos/services/news_service.py
+- tests/test_news_intelligence.py
+- .devmd/10_News_Intelligence.md
+
+Behavior change:
+- NewsService.ingest_article gained replace_impacts=True (default).
+  On re-ingest of an existing URL the desired impact set (classifier
+  + extra_impacts, deduplicated by the
+  (ticker, sector, theme, event_key) key) is computed first; any
+  existing impact whose key is no longer in that set is deleted
+  before the upsert pass. replace_impacts=False keeps the previous
+  append/update behaviour for the few callers that want it.
+- NewsImpactRepository.delete(impact) was added so the service can
+  drop a stale row without touching the SQLAlchemy session directly.
+- _normalize_impact_input + _impact_key + _dedupe_impact_inputs were
+  added to news_service: ticker is uppercased, empty-string sector /
+  theme / event_key collapse to None, and the dedupe pass keeps the
+  first occurrence of each impact key so callers cannot create two
+  rows that the repository key would treat as identical.
+- ingest_article now feeds classifier output first, then
+  extra_impacts (preserving caller overrides on a classified key),
+  before normalization and dedupe.
+- Tests pin the new contract:
+    - test_reingest_replaces_stale_classifier_impacts
+    - test_reingest_with_no_impact_clears_existing_impacts
+    - test_reingest_can_preserve_old_impacts_when_replace_disabled
+    - test_manual_impact_ticker_is_normalized_to_uppercase
+    - test_manual_impact_key_dedupes_lowercase_and_uppercase_ticker
+  The previously-passing duplicate-URL / multi-impact / Symbol Lab
+  ticker-news tests remain green.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                          ✅ no errors
+- python3 -m pytest tests/test_news_intelligence.py
+                    tests/test_news_intelligence_ui.py -q                                  ✅ 39 passed
+- python3 -m pytest tests/test_symbol_lab_view_model.py
+                    tests/test_symbol_lab_ui.py -q                                         ✅ 31 passed
+- python3 -m pytest tests -q                                                               ✅ 321 passed
+- python3 -m ruff check finskillos/db finskillos/services
+                        tests/test_news_intelligence.py                                    ✅ All checks passed
+
+Known issues:
+- Live / paid news adapters remain out of scope.
+- LLM-based article summarization remains out of scope.
+- Full Event Radar integration remains deferred to Slice 11.
+- Source reliability scoring remains deferred.
+```

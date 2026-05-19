@@ -322,6 +322,83 @@ def _apply_sentiment(impact: NewsImpactInput, sentiment: str) -> NewsImpactInput
 
 
 # ---------------------------------------------------------------------------
+# Impact-key normalization (Slice-10 cleanup)
+# ---------------------------------------------------------------------------
+
+
+def _empty_to_none(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def _normalize_impact_input(impact: NewsImpactInput) -> NewsImpactInput:
+    """Uppercase ticker + strip empty strings on dimension fields.
+
+    Sector / theme casing is intentionally left as-is so the existing
+    classifier rule labels (``Technology`` / ``Semiconductors`` / …)
+    remain stable. Only obvious sentinels (empty / whitespace strings)
+    are collapsed to ``None`` so the impact-key comparison stays
+    consistent across manual and classifier sources.
+    """
+
+    ticker = _empty_to_none(impact.ticker)
+    if ticker is not None:
+        ticker = ticker.upper()
+    return NewsImpactInput(
+        ticker=ticker,
+        sector=_empty_to_none(impact.sector),
+        theme=_empty_to_none(impact.theme),
+        event_key=_empty_to_none(impact.event_key),
+        impact_score=impact.impact_score,
+        sentiment_label=impact.sentiment_label,
+        risk_level=impact.risk_level,
+        risk_note=impact.risk_note,
+        volatility_note=impact.volatility_note,
+        is_event_linked=impact.is_event_linked,
+    )
+
+
+def _impact_key(
+    impact: NewsImpactInput | NewsImpact,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    """Stable identity tuple shared by NewsImpactInput and NewsImpact rows.
+
+    Ticker is uppercased so manual ``ticker="tsla"`` collapses onto the
+    classifier-emitted ``TSLA`` key.
+    """
+
+    ticker = impact.ticker.upper() if impact.ticker else None
+    sector = impact.sector or None
+    theme = impact.theme or None
+    event_key = impact.event_key or None
+    return (ticker, sector, theme, event_key)
+
+
+def _dedupe_impact_inputs(
+    impacts: Sequence[NewsImpactInput],
+) -> tuple[NewsImpactInput, ...]:
+    """Keep the first occurrence of each ``_impact_key``.
+
+    Earlier rules win — classifier output comes first, then any
+    caller-supplied ``extra_impacts``. The merge order is set by
+    ``ingest_article`` so callers can override sentiment / risk on a
+    classified key by passing a matching ``extra_impacts`` row.
+    """
+
+    seen: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    unique: list[NewsImpactInput] = []
+    for impact in impacts:
+        key = _impact_key(impact)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(impact)
+    return tuple(unique)
+
+
+# ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
 
@@ -344,13 +421,21 @@ class NewsService:
         *,
         extra_impacts: Sequence[NewsImpactInput] = (),
         auto_classify: bool = True,
+        replace_impacts: bool = True,
     ) -> IngestedArticle:
-        """Upsert one article + persist impact rows.
+        """Upsert one article + synchronize impact rows.
 
         Title and summary are truncated to the schema limits so callers
-        cannot accidentally store long copyrighted text. Classifier
+        cannot accidentally store long copyrighted text. The classifier
         output is merged with any ``extra_impacts`` the caller passes
-        — deduplication is enforced by the repository's composite key.
+        and deduplicated by the
+        ``(ticker, sector, theme, event_key)`` impact key.
+
+        ``replace_impacts`` (default ``True``, 10-cleanup Task 1) makes
+        re-ingestion deterministic: every existing impact whose key is
+        no longer present in the new desired set is deleted before the
+        upsert pass. ``replace_impacts=False`` keeps the old append /
+        update behaviour for callers that explicitly want it.
         """
 
         title = _truncate(article.title, MAX_TITLE_CHARS)
@@ -367,12 +452,21 @@ class NewsService:
             language=article.language,
         )
 
-        impact_inputs: list[NewsImpactInput] = list(extra_impacts)
+        impact_inputs: list[NewsImpactInput] = []
         if auto_classify:
             impact_inputs.extend(classify_impacts(f"{title} {summary}"))
+        impact_inputs.extend(extra_impacts)
+        normalized = tuple(_normalize_impact_input(i) for i in impact_inputs)
+        normalized = _dedupe_impact_inputs(normalized)
+
+        if replace_impacts:
+            desired_keys = {_impact_key(i) for i in normalized}
+            for existing in self.impacts.list_for_article(row.id):
+                if _impact_key(existing) not in desired_keys:
+                    self.impacts.delete(existing)
 
         persisted: list[NewsImpact] = []
-        for impact in impact_inputs:
+        for impact in normalized:
             persisted.append(
                 self.impacts.add_or_update_impact(
                     article_id=row.id,
