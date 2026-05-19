@@ -88,9 +88,115 @@ pytest tests/test_event_radar.py -q
 ## Completion placeholder
 
 ```text
-Status: TODO
+Status: DONE_AS_EVENT_RADAR_V0 (2026-05-19)
+
+Implemented:
+- events / event_links ORM models (finskillos/db/models/event.py)
+  with explicit event_type / date_status vocabularies (CONFIRMED /
+  WINDOW / TENTATIVE / REPORTED / SPECULATIVE / UNKNOWN).
+- Alembic migration 0006_event_radar creates both tables + documented
+  indexes (idx_events_date / _end_date / _type / _date_status,
+  idx_event_links_ticker / sector / theme / event_key).
+- EventRepository + EventLinkRepository
+  (finskillos/db/repositories/event_repo.py).
+- EventService (finskillos/services/event_service.py): create /
+  update / link, list_upcoming, list_for_event_key,
+  list_holdings_relevant, seed_sample_events (idempotent by title).
+- Service-level guard rejects CONFIRMED events that cite a seed
+  source — uncertain future dates MUST use WINDOW / TENTATIVE /
+  SPECULATIVE.
+- EventRiskService (finskillos/services/event_risk_service.py):
+  deterministic event_risk_score formula (importance ×
+  portfolio_exposure_weight × days_to_event_weight ×
+  market_overheat_weight), clamped to 0–10, mapped to LOW / MODERATE
+  / HIGH / CRITICAL labels. Portfolio exposure derives from latest
+  PortfolioSnapshot when available, otherwise from the live positions
+  total. Theme-only / sector-only events (FOMC / CPI / regulatory)
+  still score because they describe market-level exposure even when
+  no individual position is held.
+- Event-linked news join via news_impacts.event_key / .ticker
+  (Slice-10 integration). Only is_event_linked impacts participate.
+- EventRadarViewModel + assert_event_radar_view_model_is_safe
+  (finskillos/ui/view_models/event_radar_vm.py) — upcoming /
+  high_risk / holdings_linked tuples + deterministic
+  pre_event_note / post_event_note (the post-event note
+  intentionally surfaces the descriptive "sell-the-news" idiom).
+- Catalyst Watch / Event Radar Streamlit page
+  (finskillos/ui/pages/event_radar.py): summary chips, three event
+  tables, per-event expander with linked news, sample-seed button,
+  manual entry form. Manual form only exposes uncertain status
+  choices by default and rejects CONFIRMED-without-source server
+  side.
+- App shell CATALYST_WATCH dispatch now routes to
+  finskillos.ui.pages.event_radar. The deferred placeholder
+  ``render_catalyst_watch`` was removed; only Trade Memory remains
+  in deferred.py.
+
 Implemented views:
-Seed events:
+- Upcoming events table (date status badge, days-to-event, importance,
+  risk score, risk label, tickers / sectors / themes).
+- High-risk events (event_risk_score ≥ 4.0).
+- Holdings-linked events (linked ticker matches default-account
+  positions).
+- Event-linked news (per-event expander, joined via news_impacts).
+- Manual event entry form + sample seed button.
+
+Seed events (all uncertain, never CONFIRMED):
+- SpaceX IPO expected window → SPECULATIVE window (60–90 days out).
+- Tesla shareholder / robotaxi event → TENTATIVE.
+- NVIDIA earnings → TENTATIVE.
+- FOMC rate decision → WINDOW (14–15 days out).
+- CPI release → TENTATIVE.
+- PPI release → TENTATIVE.
+- Rocket launch schedule → TENTATIVE.
+- AI regulation update → TENTATIVE.
+
+Tests added:
+- tests/test_event_radar.py (24 cases)
+- tests/test_event_radar_ui.py (8 cases)
+
+Verification (all green on 2026-05-19):
+- python3 -m compileall app.py finskillos scripts
+- python3 -m pytest tests/test_event_radar.py
+                    tests/test_event_radar_ui.py -q
+- python3 -m pytest tests/test_news_intelligence.py
+                    tests/test_news_intelligence_ui.py
+                    tests/test_symbol_lab_view_model.py
+                    tests/test_symbol_lab_ui.py -q
+- python3 -m pytest tests -q   (full suite, 356 cases)
+- python3 -m ruff check finskillos/db finskillos/services
+                        finskillos/ui
+                        tests/test_event_radar.py
+                        tests/test_event_radar_ui.py
+- python3 -m pytest tests/integration/test_db_migrations.py -q
+  (alembic upgrade head smoke against in-memory SQLite)
+
 Notes:
+- The .devmd/11 spec uses granular event_links rows; docs/v2_1/03
+  §events sketches a TEXT[] tickers + JSONB affected_themes column
+  layout instead. We follow the slice spec because it lets Symbol
+  Lab + portfolio-exposure lookups stay a direct index hit and
+  mirrors the news_impacts pattern from Slice 10.
+- Event dates are editable. EventService rejects CONFIRMED rows
+  that cite a seed source so uncertain future dates cannot be
+  silently relabeled as facts.
+- event_risk_score is an exposure / preparation score, NOT a
+  prediction. Risk label thresholds: LOW <2 / MODERATE <4 /
+  HIGH <7 / CRITICAL.
+- assert_event_radar_view_model_is_safe reuses the hardened guard
+  forbidden-wording regex so direct-advice wording (BUY / SELL /
+  매수 / 매도) cannot leak through event title / pre or post-event
+  note / linked news title or summary / sector or theme label /
+  setup hint. The market idiom "sell-the-news" remains explicitly
+  allowed (the default post-event note depends on it).
+
 Known issues:
+- Full calendar-grid UI remains deferred (Slice 11 v0 ships a
+  table layout only).
+- Live external event feeds (Bloomberg, FactSet, exchange
+  calendars, BLS/Fed scrapers, …) remain out of scope.
+- Exact future event dates must not be inferred without
+  user / source input; the seeder only ships uncertain placeholders.
+- Trade Memory remains deferred to Slice 12.
+- Brokerage / trade execution remains out of scope.
 ```

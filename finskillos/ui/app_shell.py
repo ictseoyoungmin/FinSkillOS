@@ -120,6 +120,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
         analysis_workspace,
         control_room,
         deferred,
+        event_radar,
         market_kernel,
         mission_control,
         news_intelligence,
@@ -139,7 +140,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
     elif nav_key == "SYSTEM_OPS":
         system_ops.render(session)
     elif nav_key == "CATALYST_WATCH":
-        deferred.render_catalyst_watch()
+        event_radar.render(session)
     elif nav_key == "TRADE_MEMORY":
         deferred.render_trade_memory()
     elif nav_key == "ANALYSIS_WORKSPACE":

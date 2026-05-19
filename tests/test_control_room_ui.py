@@ -48,6 +48,7 @@ def test_app_entry_point_imports_without_streamlit() -> None:
         "finskillos.ui.pages.analysis_workspace",
         "finskillos.ui.pages.symbol_lab",
         "finskillos.ui.pages.news_intelligence",
+        "finskillos.ui.pages.event_radar",
         "finskillos.ui.components.cards",
         "finskillos.ui.components.formatting",
         "finskillos.ui.view_models",
@@ -55,6 +56,7 @@ def test_app_entry_point_imports_without_streamlit() -> None:
         "finskillos.ui.view_models.index_lab_vm",
         "finskillos.ui.view_models.symbol_lab_vm",
         "finskillos.ui.view_models.news_intelligence_vm",
+        "finskillos.ui.view_models.event_radar_vm",
     ],
 )
 def test_ui_modules_import_without_streamlit(module_name: str) -> None:

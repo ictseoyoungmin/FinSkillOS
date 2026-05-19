@@ -8,16 +8,6 @@ has not been built yet.
 from __future__ import annotations
 
 
-def render_catalyst_watch() -> None:
-    import streamlit as st
-
-    st.markdown("## Catalyst Watch")
-    st.info(
-        "Catalyst Watch는 Slice 11 Event Radar에서 활성화됩니다. "
-        "이벤트 / 실적 / FOMC 데이터가 수집되면 자동으로 표시됩니다."
-    )
-
-
 def render_trade_memory() -> None:
     import streamlit as st
 
@@ -30,5 +20,7 @@ def render_trade_memory() -> None:
 
 # NOTE: Analysis Workspace was a placeholder in Slice 07; Slice 08 wires
 # it to the real Index Lab page (``finskillos.ui.pages.analysis_workspace``).
-# The placeholder was removed; Symbol Lab / News Intelligence remain
-# deferred to later slices.
+# Symbol Lab was a placeholder until Slice 09; News Intelligence was a
+# placeholder until Slice 10; Catalyst Watch was a placeholder until
+# Slice 11 wired it to ``finskillos.ui.pages.event_radar``.
+# Only Trade Memory remains deferred (Slice 12).

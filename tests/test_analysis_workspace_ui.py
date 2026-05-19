@@ -57,8 +57,9 @@ def test_deferred_no_longer_exposes_analysis_workspace_placeholder() -> None:
     from finskillos.ui.pages import deferred
 
     assert not hasattr(deferred, "render_analysis_workspace")
-    # Other placeholders remain in place.
-    assert hasattr(deferred, "render_catalyst_watch")
+    # Catalyst Watch is no longer a placeholder — Slice 11 wired it to
+    # the real Event Radar page. Only Trade Memory remains deferred.
+    assert not hasattr(deferred, "render_catalyst_watch")
     assert hasattr(deferred, "render_trade_memory")
 
 

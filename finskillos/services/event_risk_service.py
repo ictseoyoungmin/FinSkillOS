@@ -132,10 +132,12 @@ class EventRiskService:
             account_id=account_id,
             linked_tickers=linked_tickers,
         )
+        has_any_link = bool(
+            linked_tickers or linked_sectors or linked_themes
+        )
         portfolio_exposure_weight = self._portfolio_exposure_weight(
-            linked_tickers=linked_tickers,
+            has_any_link=has_any_link,
             portfolio_exposure=portfolio_exposure,
-            account_id=account_id,
         )
         days_weight = _days_to_event_weight(days_to_event)
         market_weight = self._market_overheat_weight()
@@ -213,16 +215,24 @@ class EventRiskService:
     def _portfolio_exposure_weight(
         self,
         *,
-        linked_tickers: Sequence[str],
+        has_any_link: bool,
         portfolio_exposure: Decimal,
-        account_id: uuid.UUID | None,
     ) -> Decimal:
-        if not linked_tickers:
+        """Map link status + portfolio overlap to a multiplier.
+
+        Per .devmd/11 §6:
+          0.0  if the event has no ticker / sector / theme link at all
+          0.5  if linked (ticker / sector / theme) but no holding overlap
+          1.0 + portfolio_weight  if the linked ticker is currently held
+
+        Theme-only / sector-only events (FOMC / CPI / regulatory) still
+        score because they describe market-level exposure even when no
+        individual position is held.
+        """
+
+        if not has_any_link:
             return Decimal("0.0")
         if portfolio_exposure <= 0:
-            # Linked tickers exist but no overlap with the user's
-            # positions — the event is still on the radar at a halved
-            # weight rather than zeroed out.
             return Decimal("0.5")
         return Decimal("1.0") + portfolio_exposure
 
