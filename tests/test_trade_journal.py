@@ -365,3 +365,90 @@ def test_journal_service_unknown_account_returns_no_recent(
 ) -> None:
     service = TradeJournalService(db_session)
     assert service.list_recent_entries(account_id=uuid.uuid4()) == []
+
+
+# ---------------------------------------------------------------------------
+# 12 cleanup — write-seam safety scan
+# ---------------------------------------------------------------------------
+
+
+def test_create_entry_blocks_direct_advice_in_notes(db_session: Session) -> None:
+    """12 cleanup Task 1 — unsafe notes are rejected before persistence."""
+
+    account = _make_account(db_session)
+    service = TradeJournalService(db_session)
+
+    with pytest.raises(AssertionError):
+        service.create_entry(_basic_entry(notes="Sell this position now"))
+
+    assert TradeRepository(db_session).list_recent(account.id) == []
+
+
+def test_update_entry_blocks_direct_advice_in_thesis(db_session: Session) -> None:
+    """12 cleanup Task 1 — unsafe thesis on update does not overwrite the row."""
+
+    _make_account(db_session)
+    service = TradeJournalService(db_session)
+    trade = service.create_entry(_basic_entry())
+
+    with pytest.raises(AssertionError):
+        service.update_entry(
+            trade.id,
+            _basic_entry(thesis="Buy this ticker immediately"),
+        )
+
+    stored = TradeRepository(db_session).get(trade.id)
+    assert stored is not None
+    assert stored.thesis != "Buy this ticker immediately"
+
+
+def test_create_entry_allows_sell_the_news_idiom_in_notes(
+    db_session: Session,
+) -> None:
+    """12 cleanup Task 1 — descriptive market idiom remains allowed."""
+
+    _make_account(db_session)
+    service = TradeJournalService(db_session)
+
+    trade = service.create_entry(
+        _basic_entry(notes="Observed sell-the-news risk after catalyst.")
+    )
+
+    assert trade.notes == "Observed sell-the-news risk after catalyst."
+
+
+def test_create_entry_keeps_legacy_buy_side_compatibility(
+    db_session: Session,
+) -> None:
+    """12 cleanup Task 1 — side is journal classification, not scanned text."""
+
+    _make_account(db_session)
+    service = TradeJournalService(db_session)
+
+    trade = service.create_entry(_basic_entry(side="BUY"))
+
+    assert trade.side == "BUY"
+
+
+def test_create_entry_blocks_direct_advice_in_custom_mistake_tag(
+    db_session: Session,
+) -> None:
+    """12 cleanup Task 1 — unsafe custom mistake tag is rejected."""
+
+    _make_account(db_session)
+    service = TradeJournalService(db_session)
+
+    with pytest.raises(AssertionError):
+        service.create_entry(_basic_entry(mistake_tags=("Sell now",)))
+
+
+def test_create_entry_blocks_direct_advice_in_catalyst(
+    db_session: Session,
+) -> None:
+    """12 cleanup Task 1 — catalyst field is scanned too."""
+
+    _make_account(db_session)
+    service = TradeJournalService(db_session)
+
+    with pytest.raises(AssertionError):
+        service.create_entry(_basic_entry(catalyst="지금 매수하세요"))

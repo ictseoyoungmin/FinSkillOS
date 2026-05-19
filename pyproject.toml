@@ -29,6 +29,9 @@ include = ["finskillos*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+markers = [
+    "performance: lightweight performance budget smoke checks",
+]
 
 [tool.ruff]
 line-length = 100

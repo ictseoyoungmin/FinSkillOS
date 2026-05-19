@@ -189,12 +189,15 @@ Verification (all green on 2026-05-19):
 
 Notes:
 - Trade Memory is reflection / process-focused and does not provide
-  execution commands. The page intentionally exposes only Save
-  entry / Refresh review / Export-ready markdown buttons — no Buy /
-  Sell / Execute / Trade Now wording.
-- Weekly review is deterministic and copyable as markdown. Process
-  notes are generated from observed mistake frequency and regime
-  buckets, never from a forward-looking prediction.
+  execution commands. The v0 page exposes a ``Save entry`` form
+  submit plus a copyable weekly-review markdown text area — no Buy /
+  Sell / Execute / Trade Now wording, no dedicated ``Refresh review``
+  button (Streamlit's normal page reload handles the refresh), and
+  no separate export-file download in v0.
+- Weekly review is deterministic and displayed as copyable markdown
+  inside an ``st.text_area``. Process notes are generated from
+  observed mistake frequency and regime buckets, never from a
+  forward-looking prediction.
 - The legacy Slice-02 ``side="BUY"/"SELL"`` column values continue
   to load through the schema unchanged so historical rows remain
   searchable. The UI form only surfaces the Slice-12 side
@@ -215,4 +218,54 @@ Known issues:
 - LLM-based coaching remains out of scope.
 - OS-style UI polish (Catalyst Watch / Trade Memory cross-linking,
   visual styling) remains deferred to a later polish slice.
+```
+
+```text
+Post-Slice-12 Cleanup Status: DONE (2026-05-19)
+
+Changed files:
+- finskillos/services/trade_journal_service.py
+- tests/test_trade_journal.py
+- tests/test_trade_memory_ui.py
+- .devmd/12_Trade_Journal_Reflection.md
+
+Behavior change:
+- TradeJournalService now runs the hardened direct-advice safety
+  checker before create_entry and update_entry persist free-text
+  journal fields. The new _assert_entry_text_is_safe() helper scans
+  reason / thesis / catalyst / notes / emotion_state / sector /
+  theme / event_key and every custom mistake_tags entry through
+  assert_no_forbidden_wording().
+- side / ticker / market_regime / strategy_type are NOT scanned, so
+  the legacy Slice-02 BUY / SELL side classification continues to
+  load for historical compatibility.
+- The descriptive market idiom "sell-the-news" remains allowed in
+  notes — pinned by test_create_entry_allows_sell_the_news_idiom_in_notes.
+- Trade Memory page UI test now also rejects Korean direct-action
+  button captions (지금 사라 / 지금 팔아라 / 매수 버튼 / 매도 버튼)
+  while keeping the "매수 / 매도 지시가 아닌" disclaimer wording
+  explicitly allowed.
+- .devmd/12 Notes block now accurately states that v0 ships a
+  ``Save entry`` form submit plus a copyable weekly-review markdown
+  text area — no dedicated ``Refresh review`` button (Streamlit
+  rerun handles that), and no separate export-file download.
+
+Verification:
+- python3 -m compileall app.py finskillos scripts                                          ✅ no errors
+- python3 -m pytest tests/test_trade_journal.py
+                    tests/test_reflection_service.py
+                    tests/test_trade_memory_ui.py -q                                       ✅ 48 passed
+- python3 -m pytest tests/test_event_radar.py
+                    tests/test_event_radar_ui.py -q                                        ✅ 39 passed
+- python3 -m pytest tests -q                                                               ✅ 413 passed
+- python3 -m ruff check finskillos/services finskillos/ui
+                        tests/test_trade_journal.py
+                        tests/test_trade_memory_ui.py                                      ✅ All checks passed
+
+Known issues:
+- Dedicated file download/export for weekly review remains deferred.
+- Advanced journal analytics charts remain deferred.
+- Brokerage import remains deferred.
+- LLM-based coaching remains out of scope.
+- OS-style UI polish remains deferred.
 ```

@@ -106,8 +106,21 @@ def test_trade_journal_page_does_not_expose_direct_trade_buttons() -> None:
     from finskillos.ui.pages import trade_journal
 
     source = inspect.getsource(trade_journal)
-    for forbidden in ('"Buy"', '"Sell"', '"Execute"', '"Trade Now"', "지금 사라"):
+    for forbidden in (
+        '"Buy"',
+        '"Sell"',
+        '"Execute"',
+        '"Trade Now"',
+        "지금 사라",
+        "지금 팔아라",
+        "매수 버튼",
+        "매도 버튼",
+    ):
         assert forbidden not in source
+    # The disclaimer in the page caption explicitly says the page does
+    # NOT provide buy/sell instructions — that wording must still be
+    # allowed by the button-caption guard.
+    assert "매수 / 매도 지시가 아닌" in source
 
 
 def test_trade_journal_page_runs_safety_scan() -> None:

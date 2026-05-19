@@ -35,6 +35,7 @@ from finskillos.db.repositories import (
     PositionRepository,
     TradeRepository,
 )
+from finskillos.guards.base import GuardResult, assert_no_forbidden_wording
 
 # ---------------------------------------------------------------------------
 # Vocabulary
@@ -129,6 +130,7 @@ class TradeJournalService:
         account_id: uuid.UUID | None = None,
         account_name: str | None = None,
     ) -> Trade:
+        _assert_entry_text_is_safe(entry)
         account_id = self._resolve_account_id(
             account_id=account_id, account_name=account_name
         )
@@ -180,6 +182,7 @@ class TradeJournalService:
         trade_id: uuid.UUID,
         entry: TradeJournalInput,
     ) -> Trade:
+        _assert_entry_text_is_safe(entry)
         side = _validate_side(entry.side)
         mistake_tags = _normalize_mistake_tags(entry.mistake_tags)
         return self.trades.update(
@@ -326,6 +329,54 @@ def _normalize_ticker(ticker: str | None) -> str | None:
         return None
     cleaned = ticker.strip()
     return cleaned.upper() if cleaned else None
+
+
+def _assert_entry_text_is_safe(entry: TradeJournalInput) -> None:
+    """Reject direct-advice wording before persistence (Slice-12 cleanup Task 1).
+
+    The view-model safety scan in
+    ``assert_trade_memory_view_model_is_safe`` runs at the UI/read
+    seam; this helper enforces the same contract at the journal
+    write seam so unsafe free text never reaches the DB.
+
+    Scope:
+
+    * Scans free-text fields: ``reason`` / ``thesis`` / ``catalyst``
+      / ``notes`` / ``emotion_state`` / ``sector`` / ``theme`` /
+      ``event_key`` plus every entry in ``mistake_tags``.
+    * Does NOT scan ``side`` (legacy BUY / SELL classification),
+      ``ticker`` (symbol), ``market_regime`` / ``strategy_type``
+      (controlled vocabulary).
+    """
+
+    fields: tuple[tuple[str, str | None], ...] = (
+        ("reason", entry.reason),
+        ("thesis", entry.thesis),
+        ("catalyst", entry.catalyst),
+        ("notes", entry.notes),
+        ("emotion_state", entry.emotion_state),
+        ("sector", entry.sector),
+        ("theme", entry.theme),
+        ("event_key", entry.event_key),
+    )
+    for field_name, value in fields:
+        if value:
+            _scan_trade_text(value, source=field_name)
+
+    for tag in entry.mistake_tags or ():
+        if tag:
+            _scan_trade_text(tag, source="mistake_tags")
+
+
+def _scan_trade_text(text: str, *, source: str) -> None:
+    placeholder = GuardResult(
+        guard_name=f"TRADE_JOURNAL_WRITE:{source}",
+        status="INFO",
+        risk_level="GREEN",
+        title="",
+        message=text,
+    )
+    assert_no_forbidden_wording(placeholder)
 
 
 def _normalize_mistake_tags(

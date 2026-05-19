@@ -227,18 +227,22 @@ _ALLOWED_MARKET_IDIOMS: Final[tuple[str, ...]] = (
 # Direct-advice patterns (case-insensitive for English; literal for Korean).
 # Word boundaries on "BUY"/"SELL" stop false positives on words like
 # "buyer" or "oversold"; Korean direct-instruction phrases match literally.
+# Slice-13 acceptance pass added explicit deterministic-prediction
+# patterns ("will rise") and the broader Korean directive vocabulary
+# ("오늘 팔아", standalone "보장") from .devmd/13 §Safety language.
 _DIRECT_ADVICE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"\bBUY\b", re.IGNORECASE),
     re.compile(r"\bSELL\b", re.IGNORECASE),
+    re.compile(r"\bwill\s+rise\b", re.IGNORECASE),
     re.compile(r"매수"),
     re.compile(r"매도"),
     re.compile(r"지금\s*사라"),
     re.compile(r"지금\s*팔아라"),
+    re.compile(r"오늘\s*팔아"),
     re.compile(r"무조건"),
     re.compile(r"확실"),
-    re.compile(r"수익\s*보장"),
+    re.compile(r"보장"),
     re.compile(r"guaranteed", re.IGNORECASE),
-    re.compile(r"원금\s*보장"),
     re.compile(r"반드시"),
 )
 
