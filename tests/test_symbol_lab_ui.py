@@ -47,6 +47,11 @@ def test_symbol_lab_appears_after_analysis_workspace() -> None:
     assert keys.index("SYMBOL_LAB") == keys.index("ANALYSIS_WORKSPACE") + 1
 
 
+def test_news_intelligence_appears_after_symbol_lab() -> None:
+    keys = [key for key, _ in NAV_ITEMS]
+    assert keys.index("NEWS_INTELLIGENCE") == keys.index("SYMBOL_LAB") + 1
+
+
 def test_app_shell_dispatches_symbol_lab_to_new_page() -> None:
     """Dispatch must route ``SYMBOL_LAB`` to ``symbol_lab.render``."""
 

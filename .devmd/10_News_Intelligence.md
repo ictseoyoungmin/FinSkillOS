@@ -95,9 +95,126 @@ pytest tests/test_news_intelligence.py -q
 ## Completion placeholder
 
 ```text
-Status: TODO
+Status: DONE_AS_NEWS_INTELLIGENCE_V0 (2026-05-19)
+
+Implemented:
+- news_articles / news_impacts ORM models
+  (finskillos/db/models/news.py) with short-form storage limits
+  (MAX_TITLE_CHARS=300, MAX_SUMMARY_CHARS=500). No full_text /
+  article_body / body / content columns exist by design.
+- Alembic migration 0005_news_intelligence creates both tables plus
+  the documented indexes (idx_news_articles_published /
+  _source, idx_news_impacts_ticker / sector / theme / event_key /
+  event_linked, idx_news_ticker_date).
+- NewsArticleRepository + NewsImpactRepository
+  (finskillos/db/repositories/news_repo.py). Article upsert is keyed
+  on url; impact upsert is keyed on the
+  (article, ticker, sector, theme, event_key) composite tuple so
+  re-classification does not multiply rows.
+- NewsService (finskillos/services/news_service.py): ingest_article
+  truncates oversized title/summary, applies the deterministic
+  keyword classifier (TSLA / NVDA / AAPL / MSFT / AMZN ticker rules
+  + AI / chip / SpaceX / data-center theme rules + Fed / CPI /
+  earnings / delivery event rules) plus substring-based sentiment
+  detection (POSITIVE / NEUTRAL / NEGATIVE / MIXED / UNKNOWN).
+- BaseNewsAdapter Protocol
+  (finskillos/data_sources/news_adapter.py) + MockNewsAdapter
+  (finskillos/data_sources/adapters/sample_news_adapter.py) for
+  deterministic seed / test paths. No live HTTP / paid APIs.
+- NewsIntelligenceViewModel
+  (finskillos/ui/view_models/news_intelligence_vm.py) — latest,
+  holdings-relevant, event-linked tuples plus aggregated
+  affected_tickers / affected_sectors. UI-seam safety scan re-checks
+  title/summary length and reuses assert_no_forbidden_wording.
+- News Intelligence Streamlit page
+  (finskillos/ui/pages/news_intelligence.py) — summary chips,
+  holdings-relevant / latest / event-linked tables, impact map,
+  manual entry expander (Title / Source / URL / published date /
+  Short summary with max_chars=500 + optional ticker / sector /
+  theme). Direct buy/sell button captions are forbidden.
+- App shell NEWS_INTELLIGENCE nav item + dispatch (placed after
+  SYMBOL_LAB).
+- Symbol Lab integration: SymbolNewsVM + SymbolLabViewModel.news
+  field. _build_news_for_ticker calls
+  NewsService.list_articles_for_ticker (with defensive try/except so
+  Symbol Lab still renders on Slice-09 DBs without the news tables
+  applied). assert_symbol_lab_view_model_is_safe scans
+  news.title / sentiment_label / risk_note as well.
+
 Implemented source adapters:
+- Manual input (Streamlit form + NewsService.ingest_article)
+- MockNewsAdapter (in-memory deterministic adapter behind
+  BaseNewsAdapter Protocol)
+- No live API adapter — intentionally deferred.
+
 Impact mapping:
+- ticker  (TSLA / NVDA / AAPL / MSFT / AMZN)
+- sector  (Consumer Discretionary / Semiconductors / Technology /
+  Infrastructure / Macro)
+- theme   (EV / AI / Space / Data Center / Macro)
+- event_key (SPACE_LAUNCH / FED_DECISION / MACRO_PRINT / EARNINGS /
+  DELIVERY)
+- impact_score (Decimal 0.3–0.5 per rule)
+- sentiment_label (POSITIVE / NEUTRAL / NEGATIVE / MIXED / UNKNOWN)
+- risk_level (GREEN / YELLOW / ORANGE / RED / UNKNOWN, default
+  UNKNOWN; macro / Fed rules emit YELLOW)
+- risk_note  (manual / extra_impacts only — classifier leaves it
+  null in v0)
+- volatility_note (manual / extra_impacts only — null in v0)
+- is_event_linked (True for SpaceX / Fed / CPI / earnings / delivery
+  rule matches)
+
+Scope note:
+- Slice 10 is complete as News Intelligence v0. Live news APIs
+  (paid or RSS), LLM summarisation, fine-grained source-reliability
+  scoring, multi-language sentiment, and full Event Radar
+  integration are intentionally deferred to later slices.
+
+Tests added:
+- tests/test_news_intelligence.py (24 cases)
+- tests/test_news_intelligence_ui.py (9 cases)
+
+Verification (all green on 2026-05-19):
+- python3 -m compileall app.py finskillos scripts
+- python3 -m pytest tests/test_news_intelligence.py
+                    tests/test_news_intelligence_ui.py -q
+- python3 -m pytest tests/test_symbol_lab_view_model.py
+                    tests/test_symbol_lab_ui.py
+                    tests/test_index_lab_view_model.py
+                    tests/test_analysis_workspace_ui.py
+                    tests/test_ui_view_models.py
+                    tests/test_control_room_ui.py -q
+- python3 -m pytest tests -q   (full suite, 316 cases)
+- python3 -m ruff check finskillos/db finskillos/services
+                        finskillos/ui
+                        tests/test_news_intelligence.py
+                        tests/test_news_intelligence_ui.py
+- python3 -m pytest tests/integration/test_db_migrations.py -q
+  (alembic upgrade head smoke against in-memory SQLite)
+
 Notes:
+- The .devmd/10 spec and the older docs/v2_1/03 §news_articles
+  design differ (the doc uses a TEXT[] tickers column + a JSON
+  affected_positions blob; the slice spec uses a granular
+  news_impacts row per ticker/sector/theme/event). We follow the
+  slice spec because it lets Symbol Lab + Event Radar do a direct
+  index lookup without unpacking JSON.
+- NewsService.ingest_article never stores long copyrighted text:
+  title / summary are truncated and an ellipsis marker is appended
+  so the UI can signal truncation.
+- The keyword classifier is intentionally rule-first, not LLM-based.
+  Adding LLM enrichment in a later slice should slot into
+  classify_impacts without touching the persistence layer.
+
 Known issues:
+- Paid / live news APIs (Bloomberg / Reuters / GDELT / etc.) remain
+  out of scope. Only MockNewsAdapter + manual entry are wired.
+- LLM-based article summarisation / sentiment remains out of scope.
+- Long copyrighted article storage / display remains intentionally
+  unsupported (the schema has no field for it).
+- News impact scoring remains deterministic rule-first v0; the
+  numeric impact_score is a coarse 0.3 / 0.4 / 0.5 ladder.
+- Full Event Radar integration remains deferred to Slice 11.
+- Trade Memory remains deferred to Slice 12.
+- Brokerage / trade execution remains out of scope.
 ```

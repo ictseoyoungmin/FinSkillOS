@@ -24,6 +24,7 @@ NAV_ITEMS: tuple[tuple[str, str], ...] = (
     ("TRADE_MEMORY", "Trade Memory"),
     ("ANALYSIS_WORKSPACE", "Analysis Workspace"),
     ("SYMBOL_LAB", "Symbol Lab"),
+    ("NEWS_INTELLIGENCE", "News Intelligence"),
     ("SYSTEM_OPS", "System Ops"),
 )
 
@@ -121,6 +122,7 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
         deferred,
         market_kernel,
         mission_control,
+        news_intelligence,
         risk_firewall,
         symbol_lab,
         system_ops,
@@ -144,6 +146,8 @@ def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
         analysis_workspace.render(session)
     elif nav_key == "SYMBOL_LAB":
         symbol_lab.render(session)
+    elif nav_key == "NEWS_INTELLIGENCE":
+        news_intelligence.render(session)
     else:
         import streamlit as st
 

@@ -36,6 +36,7 @@ def test_nav_items_still_include_all_os_style_labels() -> None:
         "Trade Memory",
         "Analysis Workspace",
         "Symbol Lab",
+        "News Intelligence",
         "System Ops",
     }
     assert required.issubset(labels)

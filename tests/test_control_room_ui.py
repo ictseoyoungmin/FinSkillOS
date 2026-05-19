@@ -47,12 +47,14 @@ def test_app_entry_point_imports_without_streamlit() -> None:
         "finskillos.ui.pages.deferred",
         "finskillos.ui.pages.analysis_workspace",
         "finskillos.ui.pages.symbol_lab",
+        "finskillos.ui.pages.news_intelligence",
         "finskillos.ui.components.cards",
         "finskillos.ui.components.formatting",
         "finskillos.ui.view_models",
         "finskillos.ui.view_models.control_room_vm",
         "finskillos.ui.view_models.index_lab_vm",
         "finskillos.ui.view_models.symbol_lab_vm",
+        "finskillos.ui.view_models.news_intelligence_vm",
     ],
 )
 def test_ui_modules_import_without_streamlit(module_name: str) -> None:
@@ -75,6 +77,7 @@ def test_nav_items_contain_os_style_labels() -> None:
         "Trade Memory",
         "Analysis Workspace",
         "Symbol Lab",
+        "News Intelligence",
         "System Ops",
     }
     assert required.issubset(labels)

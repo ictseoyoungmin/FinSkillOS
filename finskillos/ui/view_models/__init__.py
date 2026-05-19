@@ -1,4 +1,4 @@
-"""Slice-07 UI view models — DB-backed, Streamlit-free read models.
+"""Slice-07+ UI view models — DB-backed, Streamlit-free read models.
 
 These dataclasses wrap the existing service / repository layer so the
 Streamlit pages stay thin and the orchestration logic can be tested
@@ -30,9 +30,17 @@ from finskillos.ui.view_models.index_lab_vm import (
     assert_index_lab_view_model_is_safe,
     build_index_lab_view_model,
 )
+from finskillos.ui.view_models.news_intelligence_vm import (
+    NewsArticleVM,
+    NewsImpactVM,
+    NewsIntelligenceViewModel,
+    assert_news_intelligence_view_model_is_safe,
+    build_news_intelligence_view_model,
+)
 from finskillos.ui.view_models.symbol_lab_vm import (
     SymbolAlertVM,
     SymbolLabViewModel,
+    SymbolNewsVM,
     SymbolPositionVM,
     SymbolRecentBarVM,
     SymbolTechnicalVM,
@@ -50,18 +58,24 @@ __all__ = [
     "IndexInstrumentVM",
     "IndexLabViewModel",
     "IndexUniverseEntry",
+    "NewsArticleVM",
+    "NewsImpactVM",
+    "NewsIntelligenceViewModel",
     "PortfolioSummaryVM",
     "RegimeSummary",
     "SymbolAlertVM",
     "SymbolLabViewModel",
+    "SymbolNewsVM",
     "SymbolPositionVM",
     "SymbolRecentBarVM",
     "SymbolTechnicalVM",
     "assert_index_lab_view_model_is_safe",
+    "assert_news_intelligence_view_model_is_safe",
     "assert_symbol_lab_view_model_is_safe",
     "assert_view_model_is_safe",
     "build_control_room_view_model",
     "build_index_lab_view_model",
+    "build_news_intelligence_view_model",
     "build_symbol_lab_view_model",
     "normalize_ticker",
 ]

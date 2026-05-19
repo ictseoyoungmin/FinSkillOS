@@ -4,6 +4,10 @@ from finskillos.db.repositories.account_repo import AccountRepository
 from finskillos.db.repositories.alert_repo import AlertRepository
 from finskillos.db.repositories.indicator_repo import IndicatorRepository
 from finskillos.db.repositories.market_repo import MarketRepository
+from finskillos.db.repositories.news_repo import (
+    NewsArticleRepository,
+    NewsImpactRepository,
+)
 from finskillos.db.repositories.portfolio_repo import PortfolioRepository
 from finskillos.db.repositories.position_repo import PositionRepository
 from finskillos.db.repositories.regime_repo import MarketRegimeRepository
@@ -15,6 +19,8 @@ __all__ = [
     "IndicatorRepository",
     "MarketRegimeRepository",
     "MarketRepository",
+    "NewsArticleRepository",
+    "NewsImpactRepository",
     "PortfolioRepository",
     "PositionRepository",
     "TradeRepository",

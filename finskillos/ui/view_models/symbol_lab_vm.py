@@ -36,6 +36,7 @@ from finskillos.guards.base import (
     GuardResult,
     assert_no_forbidden_wording,
 )
+from finskillos.services.news_service import NewsService
 from finskillos.ui.view_models.control_room_vm import RegimeSummary, _as_utc
 
 UTC = timezone.utc
@@ -108,6 +109,17 @@ class SymbolAlertVM:
 
 
 @dataclass(frozen=True)
+class SymbolNewsVM:
+    title: str
+    source: str
+    published_at: datetime
+    sentiment_label: str
+    impact_score: Decimal
+    risk_note: str | None
+    url: str
+
+
+@dataclass(frozen=True)
 class SymbolLabViewModel:
     ticker: str
     generated_at: datetime
@@ -119,6 +131,7 @@ class SymbolLabViewModel:
     regime: RegimeSummary | None
     watchpoints: tuple[str, ...]
     interpretation: str
+    news: tuple[SymbolNewsVM, ...] = ()
     setup_hint: str | None = None
 
     def has_position(self) -> bool:
@@ -135,6 +148,9 @@ class SymbolLabViewModel:
 
     def has_alerts(self) -> bool:
         return bool(self.alerts)
+
+    def has_news(self) -> bool:
+        return bool(self.news)
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +217,7 @@ def build_symbol_lab_view_model(
         ticker=resolved_ticker,
     )
     regime = _build_regime_summary(regime_repo)
+    news = _build_news_for_ticker(session=session, ticker=resolved_ticker)
 
     watchpoints = _build_watchpoints(
         ticker=resolved_ticker,
@@ -231,6 +248,7 @@ def build_symbol_lab_view_model(
         regime=regime,
         watchpoints=watchpoints,
         interpretation=interpretation,
+        news=news,
         setup_hint=setup_hint,
     )
 
@@ -465,6 +483,64 @@ def _alert_mentions_ticker(alert: Alert, ticker: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# News
+# ---------------------------------------------------------------------------
+
+
+_SYMBOL_NEWS_LIMIT = 5
+
+
+def _build_news_for_ticker(
+    *, session: Session, ticker: str
+) -> tuple[SymbolNewsVM, ...]:
+    """Return up to ``_SYMBOL_NEWS_LIMIT`` news impacts for the ticker.
+
+    Reads through ``NewsService.list_articles_for_ticker`` so any
+    keyword classification + truncation policy stays centralised. If
+    the news tables are empty (Slice 09 only) the call returns an
+    empty list — Symbol Lab continues to render normally.
+    """
+
+    if not ticker:
+        return ()
+
+    try:
+        pairs = NewsService(session).list_articles_for_ticker(
+            ticker, limit=_SYMBOL_NEWS_LIMIT
+        )
+    except Exception:  # noqa: BLE001 — Slice-09 DBs may not have news tables yet
+        return ()
+
+    rows: list[SymbolNewsVM] = []
+    for article, impacts in pairs:
+        impact = _pick_ticker_impact(impacts, ticker=ticker)
+        rows.append(
+            SymbolNewsVM(
+                title=article.title,
+                source=article.source,
+                published_at=_as_utc(article.published_at),
+                sentiment_label=impact.sentiment_label
+                if impact is not None
+                else "UNKNOWN",
+                impact_score=impact.impact_score
+                if impact is not None
+                else Decimal("0"),
+                risk_note=impact.risk_note if impact is not None else None,
+                url=article.url,
+            )
+        )
+    return tuple(rows)
+
+
+def _pick_ticker_impact(impacts, *, ticker: str):  # type: ignore[no-untyped-def]
+    upper = ticker.upper()
+    for impact in impacts:
+        if impact.ticker and impact.ticker.upper() == upper:
+            return impact
+    return impacts[0] if impacts else None
+
+
+# ---------------------------------------------------------------------------
 # Regime
 # ---------------------------------------------------------------------------
 
@@ -673,6 +749,12 @@ def assert_symbol_lab_view_model_is_safe(vm: SymbolLabViewModel) -> None:
         _scan_text(alert.title, source="alert.title")
         if alert.message:
             _scan_text(alert.message, source="alert.message")
+
+    for news in vm.news:
+        _scan_text(news.title, source="news.title")
+        _scan_text(news.sentiment_label, source="news.sentiment_label")
+        if news.risk_note:
+            _scan_text(news.risk_note, source="news.risk_note")
 
     if vm.regime is not None:
         _scan_text(vm.regime.summary, source="regime.summary")

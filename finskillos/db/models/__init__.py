@@ -9,6 +9,7 @@ from finskillos.db.models.account import Account
 from finskillos.db.models.alert import Alert
 from finskillos.db.models.indicator import IndicatorSnapshot
 from finskillos.db.models.market import MarketBar
+from finskillos.db.models.news import NewsArticle, NewsImpact
 from finskillos.db.models.portfolio import PortfolioSnapshot
 from finskillos.db.models.position import Position
 from finskillos.db.models.regime import MarketRegime
@@ -20,6 +21,8 @@ __all__ = [
     "IndicatorSnapshot",
     "MarketBar",
     "MarketRegime",
+    "NewsArticle",
+    "NewsImpact",
     "PortfolioSnapshot",
     "Position",
     "Trade",
