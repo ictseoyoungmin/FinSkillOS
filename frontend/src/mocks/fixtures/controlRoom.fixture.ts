@@ -145,4 +145,17 @@ export const controlRoomFixture: ControlRoomData = {
       tone: "neutral",
     },
   ],
+  marketTape: [
+    { label: "T-90", portfolio: 100.0, benchmark: 100.0 },
+    { label: "T-75", portfolio: 101.4, benchmark: 100.9 },
+    { label: "T-60", portfolio: 103.2, benchmark: 101.8 },
+    { label: "T-45", portfolio: 104.8, benchmark: 102.4 },
+    { label: "T-30", portfolio: 106.6, benchmark: 103.1 },
+    { label: "T-21", portfolio: 108.9, benchmark: 104.0 },
+    { label: "T-14", portfolio: 110.2, benchmark: 104.7 },
+    { label: "T-10", portfolio: 109.4, benchmark: 104.3 },
+    { label: "T-7", portfolio: 112.1, benchmark: 105.6 },
+    { label: "T-3", portfolio: 113.6, benchmark: 106.2 },
+    { label: "T-0", portfolio: 115.2, benchmark: 106.8 },
+  ],
 };

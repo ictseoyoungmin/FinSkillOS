@@ -1,5 +1,5 @@
 import { Panel } from "@/shared/ui";
-import { formatPct } from "@/shared/lib/format";
+import { formatPct, toNumber } from "@/shared/lib/format";
 import type { PortfolioExposureSlice } from "../types";
 import "./portfolio-exposure-card.css";
 
@@ -26,7 +26,7 @@ export function PortfolioExposureCard({ slices }: PortfolioExposureCardProps) {
             </div>
             <div className="fso-exposure-bar" aria-hidden>
               <span
-                style={{ width: `${Math.min(100, Number(slice.weightPct))}%` }}
+                style={{ width: `${Math.min(100, toNumber(slice.weightPct))}%` }}
               />
             </div>
           </li>

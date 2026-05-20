@@ -68,20 +68,24 @@ services:
         condition: service_started
 
   # ------------------------------------------------------------------
-  # Slice 13.6 — Playwright e2e runner. Activated via the `e2e`
-  # profile so it does not start automatically with `docker compose up`.
+  # Slice 13.6 — Playwright e2e runner (Slice 13.6 cleanup §4).
+  # Self-contained image: frontend/Dockerfile.e2e bakes node_modules
+  # via `npm ci` so a fresh clone can run the suite without a
+  # pre-existing /work/frontend/node_modules volume.
+  # Activated via the `e2e` profile so it never starts implicitly.
   # Usage:
-  #   docker compose run --rm e2e npm run test:e2e
+  #   docker compose --profile e2e run --rm e2e
+  #   docker compose --profile e2e run --rm e2e npm run test:visual
   # ------------------------------------------------------------------
   e2e:
-    image: mcr.microsoft.com/playwright:v1.49.1-noble
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.e2e
     profiles: ["e2e"]
     working_dir: /work/frontend
     environment:
       PLAYWRIGHT_BASE_URL: http://web:5173
       CI: "1"
-    volumes:
-      - .:/work
     depends_on:
       - web
 

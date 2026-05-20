@@ -1,0 +1,28 @@
+# Playwright e2e runner — Slice 13.6 cleanup §4.
+#
+# Self-contained image so a fresh `docker compose run --rm e2e` works
+# without a pre-existing /work/frontend/node_modules volume. Uses the
+# official Playwright base image that already bundles Chromium +
+# dependencies, then installs the locked frontend deps with `npm ci`.
+
+FROM mcr.microsoft.com/playwright:v1.49.1-noble
+
+WORKDIR /work/frontend
+ENV CI=1
+
+# Reproducible install matches the dev/web stage.
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+# App source (Playwright config / e2e specs / fixture + components
+# that the structural tests render against).
+COPY tsconfig.json vite.config.ts index.html ./
+COPY .eslintrc.cjs ./
+COPY src ./src
+COPY public ./public
+COPY playwright.config.ts ./
+COPY e2e ./e2e
+
+# Default to the structural suite — `npm run test:visual` is opt-in
+# (visual baselines require a committed PNG).
+CMD ["npm", "run", "test:e2e"]

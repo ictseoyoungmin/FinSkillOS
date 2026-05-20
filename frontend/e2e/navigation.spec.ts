@@ -24,6 +24,42 @@ test.describe("OS shell navigation", () => {
     await expect(page.getByTestId("watchlist-card")).toBeVisible();
   });
 
+  test("Control Room shows the Portfolio / Market Tape panel", async ({
+    page,
+  }) => {
+    await gotoControlRoom(page);
+    const tape = page.getByTestId("portfolio-market-tape");
+    await expect(tape).toBeVisible();
+    await expect(page.getByTestId("portfolio-market-tape-legend")).toBeVisible();
+    // Safety caption must remain present so users never read the panel
+    // as a price prediction.
+    await expect(
+      page.getByTestId("portfolio-market-tape-caption"),
+    ).toContainText("not prediction");
+  });
+
+  test("placeholder routes clearly state they are shells", async ({ page }) => {
+    const placeholderRoutes = [
+      { path: "/market-kernel", testId: "market-kernel-page" },
+      { path: "/symbol-lab", testId: "symbol-lab-page" },
+      { path: "/risk-firewall", testId: "risk-firewall-page" },
+      { path: "/mission-control", testId: "mission-control-page" },
+      { path: "/news-intel", testId: "news-intelligence-page" },
+      { path: "/catalyst-watch", testId: "catalyst-watch-page" },
+      { path: "/trade-memory", testId: "trade-memory-page" },
+      { path: "/system-ops", testId: "system-ops-page" },
+    ];
+    for (const route of placeholderRoutes) {
+      await page.goto(route.path);
+      const shell = page.getByTestId(route.testId);
+      await expect(shell).toBeVisible();
+      // Every shell uses the same EmptyState helper which surfaces the
+      // "Module shell ready" copy — that's how the user knows it's a
+      // deferred route rather than a broken page.
+      await expect(shell).toContainText("Module shell ready");
+    }
+  });
+
   test("OS top tray exposes every product module", async ({ page }) => {
     await gotoControlRoom(page);
     const nav = page.getByTestId("os-nav");

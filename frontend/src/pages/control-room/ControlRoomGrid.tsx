@@ -7,6 +7,7 @@ import { InterpretationCards } from "@/features/regime/components/Interpretation
 import { GuardStack } from "@/features/risk-guards/components/GuardStack";
 import { CatalystListCard } from "@/features/events/components/CatalystListCard";
 import { WatchlistCard } from "@/features/market/components/WatchlistCard";
+import { PortfolioMarketTapePanel } from "@/features/market/components/PortfolioMarketTapePanel";
 import { SectionHeader } from "@/shared/ui";
 import type { ControlRoomData } from "@/features/control-room/types";
 import "./control-room-grid.css";
@@ -36,10 +37,11 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
         <section
           className="fso-control-column fso-control-column--center"
           data-testid="control-room-center"
-          aria-label="Operating State · Vector · Interpretation"
+          aria-label="Operating State · Vector · Tape · Interpretation"
         >
           <OperatingStateHero state={data.operatingState} />
           <RegimeStateVector state={data.operatingState} />
+          <PortfolioMarketTapePanel points={data.marketTape} badge="90D · Fixture" />
           <InterpretationCards cards={data.interpretationCards} />
         </section>
 

@@ -22,6 +22,23 @@ class TickerStripItem(CamelModel):
     direction: Literal["up", "down", "flat"] = "flat"
 
 
+class MarketTapePoint(CamelModel):
+    """One sample on the normalized Portfolio / Market Tape series.
+
+    Both values are normalised to a common starting point (typically
+    100) so the chart shows relative trajectory — never an absolute
+    price prediction. Slice 13.6 cleanup emits these via fixtures
+    only; a later slice may attach live data.
+    """
+
+    label: str = Field(
+        ...,
+        description="Bucket label (e.g. T-90, T-60, T-30, T-15, T-0).",
+    )
+    portfolio: Decimal
+    benchmark: Decimal
+
+
 class MissionProgress(CamelModel):
     current_value: Decimal = Field(default=Decimal("0"))
     target_value: Decimal = Field(default=Decimal("100000000"))
@@ -94,6 +111,7 @@ class ControlRoomResponse(CamelModel):
     risk_firewall: list[GuardSummaryVM]
     catalyst_watch: list[CatalystSummary]
     watchlist: list[WatchlistItem]
+    market_tape: list[MarketTapePoint] = Field(default_factory=list)
     source: Literal["fixture", "live"] = "fixture"
 
 
@@ -101,6 +119,7 @@ __all__ = [
     "CatalystSummary",
     "ControlRoomResponse",
     "GuardSummaryVM",
+    "MarketTapePoint",
     "MissionProgress",
     "OperatingState",
     "PortfolioExposureSlice",

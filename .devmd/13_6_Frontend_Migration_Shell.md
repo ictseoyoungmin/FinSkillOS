@@ -947,7 +947,7 @@ Do not begin full React tab migration or Deployment / Operations until the user 
 ## Completion Note (filled)
 
 ```text
-Status: DONE_AS_FRONTEND_MIGRATION_SHELL_V0 (2026-05-20)
+Status: DONE_AS_FRONTEND_MIGRATION_SHELL_V0_WITH_CLEANUP (2026-05-20)
 
 Implemented (backend):
 - api/ FastAPI adapter package (no Streamlit dependency).
@@ -1089,4 +1089,115 @@ Known issues:
   deferred to .devmd/14_Deployment_Operations.md.
 - Streamlit app continues to ship as the debug / admin UI under
   the existing `app` profile and is intentionally untouched.
+```
+
+---
+
+## 13.6 Cleanup (filled)
+
+```text
+13.6 Cleanup Status: DONE_AS_FRONTEND_MIGRATION_SHELL_CLEANUP_V0 (2026-05-20)
+
+Cleanup implemented:
+- Added Portfolio / Market Tape chart panel to React Control Room.
+  - api/schemas/control_room.py gained `MarketTapePoint` + the
+    `market_tape: list[MarketTapePoint]` field on
+    `ControlRoomResponse`.
+  - api/fixtures.py now ships an 11-bucket normalised series
+    (T-90 → T-0, both lines start at 100).
+  - frontend/src/features/market/components/PortfolioMarketTapePanel.tsx
+    renders a pure-SVG line chart (no chart library); placed in the
+    Control Room center column between RegimeStateVector and
+    InterpretationCards with safety caption
+    "Normalized view · not prediction · stored data only."
+- Added frontend/package-lock.json so npm installs are reproducible.
+- Frontend Dockerfile switched from `npm install` to `npm ci` and
+  now COPYs `package-lock.json` alongside `package.json`.
+- Added frontend/Dockerfile.e2e — a self-contained Playwright
+  image (mcr.microsoft.com/playwright:v1.49.1-noble) that runs
+  `npm ci` and bakes the suite inside the image so
+  `docker compose --profile e2e run --rm e2e` works on a fresh
+  clone without volume-mounted node_modules.
+- docker-compose.yml `e2e` service now builds from Dockerfile.e2e
+  instead of mounting the host as a volume.
+- Split structural and visual Playwright runs:
+  - `npm run test:e2e`          → playwright test --grep-invert @visual
+  - `npm run test:e2e:all`      → playwright test            (everything)
+  - `npm run test:visual`       → playwright test e2e/visual
+  - `npm run test:visual:update`→ ... --update-snapshots
+  The control-room visual baseline test title now ends in
+  ``@visual`` so the default suite no longer requires a committed
+  baseline PNG on fresh clones.
+- E2E coverage extended:
+  - navigation.spec.ts asserts the Portfolio / Market Tape panel
+    is visible + its safety caption contains "not prediction".
+  - navigation.spec.ts iterates the eight placeholder routes and
+    confirms each surfaces the "Module shell ready" copy so users
+    can tell deferred-route shells from broken pages.
+- Aligned API Decimal fields and frontend numeric types:
+  - Added `Numeric = number | string` + `toNumber()` helper to
+    `frontend/src/shared/lib/format.ts`.
+  - `MissionProgress` / `PortfolioExposureSlice` now use `Numeric`
+    so the Pydantic Decimal serialisation (string) round-trips
+    without breaking React arithmetic.
+  - `GoalProgressCard` / `PortfolioExposureCard` /
+    `PortfolioMarketTapePanel` call `toNumber()` before any
+    arithmetic.
+- Added doc comments:
+  - `frontend/src/features/control-room/api.ts` — fixture fallback
+    is Slice-13.6 shell only; future live routes must surface DB
+    failures explicitly. References Slice 13.7 / 13.8 / 13.9.
+  - `api/dependencies.py::get_session_scope` — TODO(13.7+) so a
+    later reader can find the safe vs unsafe swallow boundary.
+- Detailed follow-up devmd files created (instructions only — no
+  implementation):
+  - .devmd/13_7_React_Market_Analysis_Symbol.md
+  - .devmd/13_8_React_Risk_Mission_Ops.md
+  - .devmd/13_9_React_News_Events_TradeMemory.md
+  - .devmd/13_10_React_Prototype_Parity_Visual_QA.md
+- Updated this completion note: the headline status is now
+  `DONE_AS_FRONTEND_MIGRATION_SHELL_V0_WITH_CLEANUP` to avoid the
+  earlier wording being read as "all tabs implemented".
+
+Verification:
+- python3 -m compileall app.py finskillos api scripts                                    ✅ no errors
+- python3 -m pytest tests/test_api_health.py
+                    tests/test_api_control_room.py
+                    tests/test_acceptance_fin_skill_os.py
+                    tests/test_acceptance_safety_language.py -q                          ✅ pass
+- python3 -m pytest tests -q                                                             ✅ pass (full suite)
+- python3 -m ruff check finskillos api tests                                             ✅ All checks passed
+
+Frontend verification (run from frontend/, host or e2e container):
+- npm ci                                                                                 ✅ reproducible install
+- npm run lint                                                                           ✅ clean
+- npm run build                                                                          ✅ outputs frontend/dist
+- npm run test:e2e            (structural, excludes @visual)                             ✅ pass
+- npm run test:visual         (requires baseline PNG)                                    ⏸ run `test:visual:update`
+                                                                                           once to generate the
+                                                                                           snapshot
+- docker compose --profile e2e run --rm e2e                                              ✅ headless chromium,
+                                                                                           Dockerfile.e2e
+
+Implemented (Slice 13.6 + cleanup):
+- React shell.
+- Control Room v0 with Portfolio / Market Tape chart panel.
+- Placeholder routes for nine remaining tabs.
+
+Not implemented yet (deferred to 13.7 / 13.8 / 13.9 / 13.10):
+- Market Kernel full React UI.
+- Analysis Workspace / Index Lab full React UI.
+- Symbol Lab full React UI.
+- Risk Firewall full React UI.
+- Mission Control full React UI.
+- News Intelligence full React UI.
+- Catalyst Watch full React UI.
+- Trade Memory full React UI.
+- System Ops full React UI.
+
+Remaining:
+- Full React tab implementations are deferred to 13.7 / 13.8 / 13.9.
+- Full visual parity QA is deferred to 13.10.
+- Deployment hardening remains deferred to
+  .devmd/14_Deployment_Operations.md.
 ```

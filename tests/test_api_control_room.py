@@ -47,9 +47,29 @@ def test_control_room_endpoint_returns_full_payload() -> None:
         "riskFirewall",
         "catalystWatch",
         "watchlist",
+        "marketTape",
         "source",
     }
     assert expected_top_level.issubset(body.keys())
+
+
+def test_control_room_market_tape_is_normalised_and_nonempty() -> None:
+    """13.6 cleanup §1 — Portfolio / Market Tape series must be wired."""
+
+    body = _client().get("/api/control-room").json()
+    tape = body["marketTape"]
+    assert isinstance(tape, list) and len(tape) >= 5, (
+        "Control Room must surface a Portfolio / Market Tape series with "
+        "at least 5 buckets so the chart panel always has data to render."
+    )
+    first = tape[0]
+    portfolio_start = float(first["portfolio"])
+    benchmark_start = float(first["benchmark"])
+    # Series are normalised — both lines must start at the same value.
+    assert portfolio_start == benchmark_start
+    assert portfolio_start > 0
+    for row in tape:
+        assert {"label", "portfolio", "benchmark"}.issubset(row.keys())
 
 
 def test_control_room_returns_deterministic_fixture_timestamp() -> None:

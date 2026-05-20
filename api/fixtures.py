@@ -19,6 +19,7 @@ from api.schemas.control_room import (
     CatalystSummary,
     ControlRoomResponse,
     GuardSummaryVM,
+    MarketTapePoint,
     MissionProgress,
     OperatingState,
     PortfolioExposureSlice,
@@ -173,6 +174,19 @@ def control_room_fixture() -> ControlRoomResponse:
                 note="Compressed; mean-reversion risk into events.",
                 tone="neutral",
             ),
+        ],
+        market_tape=[
+            MarketTapePoint(label="T-90", portfolio=Decimal("100.0"), benchmark=Decimal("100.0")),
+            MarketTapePoint(label="T-75", portfolio=Decimal("101.4"), benchmark=Decimal("100.9")),
+            MarketTapePoint(label="T-60", portfolio=Decimal("103.2"), benchmark=Decimal("101.8")),
+            MarketTapePoint(label="T-45", portfolio=Decimal("104.8"), benchmark=Decimal("102.4")),
+            MarketTapePoint(label="T-30", portfolio=Decimal("106.6"), benchmark=Decimal("103.1")),
+            MarketTapePoint(label="T-21", portfolio=Decimal("108.9"), benchmark=Decimal("104.0")),
+            MarketTapePoint(label="T-14", portfolio=Decimal("110.2"), benchmark=Decimal("104.7")),
+            MarketTapePoint(label="T-10", portfolio=Decimal("109.4"), benchmark=Decimal("104.3")),
+            MarketTapePoint(label="T-7", portfolio=Decimal("112.1"), benchmark=Decimal("105.6")),
+            MarketTapePoint(label="T-3", portfolio=Decimal("113.6"), benchmark=Decimal("106.2")),
+            MarketTapePoint(label="T-0", portfolio=Decimal("115.2"), benchmark=Decimal("106.8")),
         ],
     )
 

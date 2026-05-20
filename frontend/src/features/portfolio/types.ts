@@ -1,7 +1,9 @@
+import type { Numeric } from "@/shared/lib/format";
+
 export interface MissionProgress {
-  currentValue: number;
-  targetValue: number;
-  progressPct: number;
+  currentValue: Numeric;
+  targetValue: Numeric;
+  progressPct: Numeric;
   phase: string;
   earlyStopTriggered: boolean;
   goalMode: string;
@@ -9,7 +11,7 @@ export interface MissionProgress {
 
 export interface PortfolioExposureSlice {
   label: string;
-  weightPct: number;
+  weightPct: Numeric;
 }
 
 export interface ReviewQueueItem {

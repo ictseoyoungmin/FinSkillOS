@@ -21,6 +21,17 @@ def get_session_scope() -> Iterator[object]:
     Falls back to ``None`` if the session factory can't be created so
     the API stays usable in fixture-only mode (e.g. inside Playwright
     Docker without a real Postgres container).
+
+    TODO(13.7+): live DB-backed routes MUST NOT silently swallow DB
+    errors here. The `except Exception: yield None` branch is safe
+    only for fixture-first routes such as the Slice-13.6 Control
+    Room. Once Market Kernel / Risk Firewall / News / Events / Trade
+    Memory routes start reading real data they need explicit error
+    surfacing (502 / 503 with structured JSON), or the user will see
+    a "Live" pill while the DB is actually down. Track per slice:
+        .devmd/13_7_React_Market_Analysis_Symbol.md
+        .devmd/13_8_React_Risk_Mission_Ops.md
+        .devmd/13_9_React_News_Events_TradeMemory.md
     """
 
     try:

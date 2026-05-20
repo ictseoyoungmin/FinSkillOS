@@ -6,9 +6,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /work/frontend
 
-# Cache npm install on lockfile changes only.
-COPY package.json ./
-RUN npm install --no-audit --no-fund
+# Reproducible install — `npm ci` requires package-lock.json. The
+# lockfile is committed alongside package.json so the same versions
+# install across local / CI / Docker (13.6 cleanup §2-§3).
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 # App source.
 COPY tsconfig.json vite.config.ts index.html ./

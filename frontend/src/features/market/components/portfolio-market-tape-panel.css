@@ -1,0 +1,105 @@
+.fso-tape-svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fso-bg-3) 35%, transparent),
+    transparent
+  );
+  border-radius: var(--fso-radius-sm);
+}
+
+.fso-tape-axis {
+  stroke: var(--fso-line);
+  stroke-width: 1;
+}
+.fso-tape-axis-soft {
+  stroke: var(--fso-line-soft);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.fso-tape-series {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+.fso-tape-series--portfolio {
+  stroke: var(--fso-cyan);
+  filter: drop-shadow(0 0 6px rgba(107, 220, 255, 0.35));
+}
+.fso-tape-series--benchmark {
+  stroke: var(--fso-text-muted-2);
+  stroke-width: 1.8;
+  stroke-dasharray: 6 4;
+}
+
+.fso-tape-marker--portfolio {
+  fill: var(--fso-cyan);
+  stroke: var(--fso-bg-1);
+  stroke-width: 2;
+}
+.fso-tape-marker--benchmark {
+  fill: var(--fso-text-muted-2);
+  stroke: var(--fso-bg-1);
+  stroke-width: 1.5;
+}
+
+.fso-tape-legend {
+  display: flex;
+  gap: 18px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  color: var(--fso-text-muted);
+  letter-spacing: 0.06em;
+}
+.fso-tape-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fso-tape-legend-item strong {
+  font-family: var(--fso-font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.fso-tape-up { color: var(--fso-green); }
+.fso-tape-down { color: var(--fso-red); }
+
+.fso-tape-swatch {
+  width: 14px;
+  height: 4px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.fso-tape-swatch--portfolio { background: var(--fso-cyan); }
+.fso-tape-swatch--benchmark {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--fso-text-muted-2) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.fso-tape-buckets {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  font-family: var(--fso-font-mono);
+  font-size: 9px;
+  color: var(--fso-text-muted-2);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0 4px;
+}
+.fso-tape-buckets > span {
+  text-align: center;
+}
+
+.fso-tape-caption {
+  margin: 6px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fso-text-muted-2);
+}

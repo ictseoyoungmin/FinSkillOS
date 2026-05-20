@@ -1,5 +1,5 @@
 import { Panel } from "@/shared/ui";
-import { formatKrw, formatPct } from "@/shared/lib/format";
+import { formatKrw, formatPct, toNumber } from "@/shared/lib/format";
 import type { MissionProgress } from "../types";
 import "./goal-progress-card.css";
 
@@ -8,6 +8,7 @@ export interface GoalProgressCardProps {
 }
 
 export function GoalProgressCard({ mission }: GoalProgressCardProps) {
+  const progressNumeric = toNumber(mission.progressPct);
   return (
     <Panel
       title="Mission Progress"
@@ -24,7 +25,7 @@ export function GoalProgressCard({ mission }: GoalProgressCardProps) {
       <div className="fso-mission-bar" aria-hidden>
         <span
           className="fso-mission-bar-fill"
-          style={{ width: `${Math.min(100, mission.progressPct)}%` }}
+          style={{ width: `${Math.min(100, progressNumeric)}%` }}
         />
       </div>
       <dl className="fso-mission-grid">

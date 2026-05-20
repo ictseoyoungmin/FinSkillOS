@@ -7,6 +7,7 @@ import type { OperatingState } from "@/features/regime/types";
 import type { GuardSummary } from "@/features/risk-guards/types";
 import type { CatalystSummary } from "@/features/events/types";
 import type { TickerStripItem, WatchlistItem } from "@/features/market/types";
+import type { MarketTapePoint } from "@/features/market/components/PortfolioMarketTapePanel";
 
 export interface ControlRoomSystemStatus {
   db: string;
@@ -26,5 +27,6 @@ export interface ControlRoomData {
   riskFirewall: GuardSummary[];
   catalystWatch: CatalystSummary[];
   watchlist: WatchlistItem[];
+  marketTape: MarketTapePoint[];
   source: "fixture" | "live";
 }
