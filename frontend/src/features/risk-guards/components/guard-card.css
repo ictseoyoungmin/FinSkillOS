@@ -1,0 +1,43 @@
+.fso-guard-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fso-guard-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--fso-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fso-font-mono);
+  font-size: 16px;
+}
+.fso-guard-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fso-guard-title {
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--fso-text);
+}
+.fso-guard-msg {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--fso-text-muted);
+  line-height: 1.45;
+}
+.fso-guard-tag {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--fso-line);
+}

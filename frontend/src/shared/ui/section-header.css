@@ -1,0 +1,22 @@
+.fso-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 8px;
+}
+
+.fso-section-eyebrow {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-section-title {
+  margin: 0;
+  font-family: var(--fso-font-head);
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: var(--fso-text);
+}

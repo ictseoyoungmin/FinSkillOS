@@ -1,0 +1,9 @@
+.fso-card {
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--fso-panel-2) 85%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

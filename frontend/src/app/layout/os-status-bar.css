@@ -1,0 +1,24 @@
+.fso-status-bar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 0 14px;
+  height: 26px;
+  border-top: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-1) 92%, transparent);
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.fso-status-key {
+  color: var(--fso-text-muted-2);
+}
+.fso-status-value {
+  color: var(--fso-text-muted);
+}
+.fso-status-when {
+  margin-left: auto;
+  color: var(--fso-text-muted-2);
+}

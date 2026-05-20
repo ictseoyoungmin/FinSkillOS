@@ -1,0 +1,148 @@
+import type { ControlRoomData } from "@/features/control-room/types";
+
+/**
+ * Mirrors api/fixtures.py::control_room_fixture so the Playwright
+ * visual baseline stays deterministic even when the API is not
+ * reachable.
+ */
+export const CONTROL_ROOM_FIXTURE_TIMESTAMP = "2026-05-20T12:00:00+09:00";
+
+export const controlRoomFixture: ControlRoomData = {
+  generatedAt: CONTROL_ROOM_FIXTURE_TIMESTAMP,
+  source: "fixture",
+  systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 2 },
+  tickerStrip: [
+    { symbol: "SPY", price: "672.48", change: "+0.42%", direction: "up" },
+    { symbol: "QQQ", price: "556.71", change: "+0.61%", direction: "up" },
+    { symbol: "NVDA", price: "172.34", change: "+1.84%", direction: "up" },
+    { symbol: "TSLA", price: "248.10", change: "-0.74%", direction: "down" },
+    { symbol: "AAPL", price: "232.22", change: "+0.18%", direction: "up" },
+    { symbol: "MSFT", price: "438.91", change: "-0.05%", direction: "flat" },
+    { symbol: "SMH", price: "304.55", change: "+1.12%", direction: "up" },
+    { symbol: "VIX", price: "14.62", change: "-3.18%", direction: "down" },
+    { symbol: "DXY", price: "103.41", change: "+0.07%", direction: "flat" },
+    { symbol: "US10Y", price: "4.21", change: "+0.04%", direction: "up" },
+  ],
+  mission: {
+    currentValue: 73_420_000,
+    targetValue: 100_000_000,
+    progressPct: 73.4,
+    phase: "Phase 3 / 5",
+    earlyStopTriggered: false,
+    goalMode: "COMPLETION_GUARD",
+  },
+  operatingState: {
+    title: "Risk-On but Extended",
+    regime: "RISK_ON_OVERHEAT",
+    decisionMode: "HOLD_WINNERS",
+    preparationScore: 64,
+    tags: [
+      "Trend Support",
+      "Overheat Watch",
+      "Stored Data Only",
+      "Event Cluster",
+    ],
+    summary:
+      "Broad trend remains constructive while RSI and breadth flag an elevated state. Prepare for event-driven volatility; this view describes exposure, not a price prediction.",
+  },
+  portfolioExposure: [
+    { label: "AI / Semis", weightPct: 42.6 },
+    { label: "EV / Robotaxi", weightPct: 18.4 },
+    { label: "Mega-Cap Tech", weightPct: 16.8 },
+    { label: "Cash", weightPct: 22.2 },
+  ],
+  reviewQueue: [
+    {
+      title: "Weekly review · Week 20",
+      note: "3 entries pending; Chasing tag repeats from Week 19.",
+      tag: "weekly",
+    },
+    {
+      title: "Thesis check · NVDA",
+      note: "Reconfirm AI-cycle thesis before next earnings window.",
+      tag: "thesis",
+    },
+    {
+      title: "Event prep · FOMC",
+      note: "Macro window inside 7 sessions; review cash buffer.",
+      tag: "event",
+    },
+  ],
+  interpretationCards: [
+    "Trend stack remains constructive across SPY / QQQ / SMH.",
+    "RSI elevation and overheat flags suggest measured sizing only.",
+    "Earnings + macro cluster inside the next 7 sessions; this is a preparation cue, not a directional call.",
+  ],
+  riskFirewall: [
+    {
+      name: "SINGLE_POSITION_LIMIT_GUARD",
+      status: "WARN",
+      riskLevel: "YELLOW",
+      title: "Single Position Limit",
+      message: "TSLA exceeds configured ₩10M review threshold.",
+    },
+    {
+      name: "DRAWDOWN_GUARD",
+      status: "PASS",
+      riskLevel: "GREEN",
+      title: "Drawdown Guard",
+      message: "Current drawdown is below defensive threshold.",
+    },
+    {
+      name: "SECTOR_CONCENTRATION_GUARD",
+      status: "FAIL",
+      riskLevel: "RED",
+      title: "Sector Concentration",
+      message: "AI / Semis exposure requires monitoring before adding risk.",
+    },
+  ],
+  catalystWatch: [
+    {
+      daysToEvent: 2,
+      title: "NVDA Earnings",
+      subtitle: "Semis / AI exposure · event-linked news active",
+      tag: "High",
+      tone: "danger",
+    },
+    {
+      daysToEvent: 5,
+      title: "FOMC Window",
+      subtitle: "Macro event · rate-path sensitivity",
+      tag: "Window",
+      tone: "warning",
+    },
+    {
+      daysToEvent: 9,
+      title: "SpaceX IPO chatter",
+      subtitle: "Speculative placeholder · not confirmed",
+      tag: "Speculative",
+      tone: "purple",
+    },
+  ],
+  watchlist: [
+    {
+      symbol: "NVDA",
+      label: "NVIDIA",
+      note: "Above EMA20 / EMA60; watch RSI elevation.",
+      tone: "info",
+    },
+    {
+      symbol: "TSLA",
+      label: "Tesla",
+      note: "Position above single-position-limit review threshold.",
+      tone: "warning",
+    },
+    {
+      symbol: "SMH",
+      label: "Semis ETF",
+      note: "Tape strength leadership; theme exposure high.",
+      tone: "info",
+    },
+    {
+      symbol: "VIX",
+      label: "Volatility Proxy",
+      note: "Compressed; mean-reversion risk into events.",
+      tone: "neutral",
+    },
+  ],
+};

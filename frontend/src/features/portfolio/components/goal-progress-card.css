@@ -1,0 +1,57 @@
+.fso-mission-figure {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.fso-mission-percent {
+  font-family: var(--fso-font-head);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--fso-cyan);
+  letter-spacing: 0.02em;
+}
+.fso-mission-mode {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--fso-amber);
+  text-transform: uppercase;
+}
+
+.fso-mission-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fso-bg-3) 80%, transparent);
+  overflow: hidden;
+}
+.fso-mission-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--fso-cyan-2), var(--fso-cyan));
+  box-shadow: var(--fso-glow);
+}
+
+.fso-mission-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+.fso-mission-grid > div {
+  display: flex;
+  flex-direction: column;
+}
+.fso-mission-grid dt {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+.fso-mission-grid dd {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 13px;
+  color: var(--fso-text);
+}

@@ -1,0 +1,32 @@
+.fso-catalyst-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.fso-catalyst-day {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fso-font-head);
+  font-size: 16px;
+  color: var(--fso-cyan);
+  background: color-mix(in srgb, var(--fso-bg-2) 78%, transparent);
+}
+.fso-catalyst-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.fso-catalyst-title {
+  font-family: var(--fso-font-mono);
+  font-size: 12.5px;
+  color: var(--fso-text);
+}
+.fso-catalyst-sub {
+  font-size: 11.5px;
+  color: var(--fso-text-muted);
+}

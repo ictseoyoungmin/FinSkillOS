@@ -1,0 +1,52 @@
+/*
+ * OS-style background ambience — scanlines + noise. Each theme can
+ * tune --fso-scan-alpha / --fso-noise-alpha; the Material default is
+ * almost imperceptible (~1.8%), the Cyber theme bumps both up,
+ * the Light theme drops them to 0.
+ */
+
+.fso-os-scanlines::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 229, 255, var(--fso-scan-alpha)) 3px,
+    transparent 4px
+  );
+}
+
+.fso-os-scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: var(--fso-noise-alpha);
+  background-image: radial-gradient(
+      circle at 25% 25%,
+      rgba(255, 255, 255, 0.08) 1px,
+      transparent 1px
+    ),
+    radial-gradient(
+      circle at 75% 75%,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px
+    );
+  background-size: 3px 3px, 5px 5px;
+}
+
+.fso-os-glow {
+  box-shadow: var(--fso-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fso-os-scanlines::before,
+  .fso-os-scanlines::after {
+    background: transparent;
+  }
+}

@@ -1,0 +1,47 @@
+.fso-dial {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  justify-self: end;
+}
+.fso-dial-svg {
+  width: 100%;
+  height: 100%;
+}
+.fso-dial-track {
+  stroke: color-mix(in srgb, var(--fso-bg-3) 92%, transparent);
+}
+.fso-dial-progress {
+  stroke: var(--fso-cyan);
+  filter: drop-shadow(0 0 6px rgba(107, 220, 255, 0.4));
+}
+.fso-dial-meta {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+}
+.fso-dial-label {
+  font-family: var(--fso-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+.fso-dial-value {
+  font-family: var(--fso-font-head);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--fso-cyan);
+}
+.fso-dial-band {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--fso-amber);
+  text-transform: uppercase;
+}

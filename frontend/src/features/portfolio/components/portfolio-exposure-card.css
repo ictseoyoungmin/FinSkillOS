@@ -1,0 +1,33 @@
+.fso-exposure-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fso-exposure-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fso-exposure-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+}
+.fso-exposure-label { color: var(--fso-text); }
+.fso-exposure-weight { color: var(--fso-cyan); }
+.fso-exposure-bar {
+  height: 4px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--fso-bg-3) 80%, transparent);
+  overflow: hidden;
+}
+.fso-exposure-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--fso-cyan-2), var(--fso-cyan));
+}

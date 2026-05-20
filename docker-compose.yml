@@ -16,6 +16,10 @@ services:
       timeout: 5s
       retries: 10
 
+  # ------------------------------------------------------------------
+  # Streamlit (Slice 02–13.5). Kept intact as the debug / admin UI;
+  # the React cockpit ships alongside via the `api` + `web` services.
+  # ------------------------------------------------------------------
   app:
     build: .
     profiles: ["app"]
@@ -27,5 +31,63 @@ services:
       postgres:
         condition: service_healthy
 
+  # ------------------------------------------------------------------
+  # Slice 13.6 — FastAPI read-only adapter for the React cockpit.
+  # ------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: finskillos-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finskillos}:${POSTGRES_PASSWORD:-finskillos_dev_password}@postgres:5432/${POSTGRES_DB:-finskillos}
+      FINSKILLOS_CORS_ORIGINS: ${FINSKILLOS_CORS_ORIGINS:-http://localhost:5173,http://web,http://localhost:3000}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------
+  # Slice 13.6 — Vite React frontend (dev mode by default).
+  # ------------------------------------------------------------------
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: finskillos-web
+    environment:
+      VITE_API_PROXY_TARGET: http://api:8000
+      VITE_API_BASE_URL: /api
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      api:
+        condition: service_started
+
+  # ------------------------------------------------------------------
+  # Slice 13.6 — Playwright e2e runner. Activated via the `e2e`
+  # profile so it does not start automatically with `docker compose up`.
+  # Usage:
+  #   docker compose run --rm e2e npm run test:e2e
+  # ------------------------------------------------------------------
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.49.1-noble
+    profiles: ["e2e"]
+    working_dir: /work/frontend
+    environment:
+      PLAYWRIGHT_BASE_URL: http://web:5173
+      CI: "1"
+    volumes:
+      - .:/work
+    depends_on:
+      - web
+
 volumes:
+  # Compose key is unchanged from the original docker-compose.yml so
+  # the existing on-disk Postgres data is preserved across docker
+  # stop / start cycles. The user explicitly asked not to require
+  # `docker compose down -v` for normal lifecycle operations.
   postgres_data:

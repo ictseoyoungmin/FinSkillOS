@@ -1,0 +1,29 @@
+.fso-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-panel-2) 88%, transparent);
+}
+
+.fso-metric-label {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-metric-value {
+  font-family: var(--fso-font-head);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--fso-text);
+}
+
+.fso-metric-hint {
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}

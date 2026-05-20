@@ -1,0 +1,124 @@
+.fso-command-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 12, 0.62);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+}
+
+.fso-command-panel {
+  width: min(620px, 92vw);
+  background: var(--fso-panel);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-lg);
+  box-shadow: var(--fso-shadow);
+  overflow: hidden;
+}
+
+.fso-command-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--fso-line-soft);
+}
+.fso-command-glyph {
+  color: var(--fso-cyan);
+  font-size: 16px;
+}
+.fso-command-input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--fso-text);
+  font-family: var(--fso-font-mono);
+  font-size: 14px;
+}
+.fso-command-close {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  border: 1px solid var(--fso-line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-command-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.fso-command-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--fso-radius-sm);
+  width: 100%;
+  text-align: left;
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 65%, transparent);
+  border: 1px solid transparent;
+}
+.fso-command-item:hover {
+  border-color: color-mix(in srgb, var(--fso-cyan) 35%, var(--fso-line));
+  background: color-mix(in srgb, var(--fso-bg-3) 78%, transparent);
+}
+.fso-command-icon {
+  font-size: 16px;
+  color: var(--fso-cyan);
+}
+.fso-command-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.fso-command-title {
+  font-family: var(--fso-font-head);
+  font-size: 13px;
+  color: var(--fso-text);
+}
+.fso-command-sub {
+  color: var(--fso-text-muted-2);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+.fso-command-go {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--fso-text-muted-2);
+  border: 1px solid var(--fso-line);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.fso-command-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+}
+
+.fso-command-footer {
+  padding: 8px 14px;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-text-faint);
+  border-top: 1px solid var(--fso-line-soft);
+  background: color-mix(in srgb, var(--fso-bg-2) 80%, transparent);
+}

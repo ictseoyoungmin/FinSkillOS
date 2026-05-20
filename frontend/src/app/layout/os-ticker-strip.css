@@ -1,0 +1,57 @@
+.fso-ticker-strip {
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--fso-line-soft);
+  background: color-mix(in srgb, var(--fso-bg-1) 88%, transparent);
+  overflow: hidden;
+}
+.fso-ticker-strip::before,
+.fso-ticker-strip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.fso-ticker-strip::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--fso-bg-1), transparent);
+}
+.fso-ticker-strip::after {
+  right: 0;
+  background: linear-gradient(-90deg, var(--fso-bg-1), transparent);
+}
+
+.fso-ticker-scroll {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 26px;
+  padding: 0 80px;
+  width: max-content;
+  animation: fso-ticker-move 48s linear infinite;
+}
+@keyframes fso-ticker-move {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.fso-ticker-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.fso-ticker-symbol { color: var(--fso-text); font-weight: 700; }
+.fso-ticker-price  { color: var(--fso-text-muted); }
+.fso-ticker-change.fso-ticker-up   { color: var(--fso-green); }
+.fso-ticker-change.fso-ticker-down { color: var(--fso-red); }
+.fso-ticker-change.fso-ticker-flat { color: var(--fso-text-muted-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fso-ticker-scroll { animation: none; }
+}

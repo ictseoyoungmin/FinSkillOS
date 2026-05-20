@@ -1,0 +1,58 @@
+/*
+ * Theme overrides — material (default), cyber, light.
+ * Inherits all tokens from tokens.css; only the variables that change
+ * per theme are redeclared here.
+ */
+
+html[data-theme="material"] {
+  /* identity with tokens.css default */
+}
+
+html[data-theme="cyber"] {
+  --fso-bg: #060910;
+  --fso-bg-1: #0a0f16;
+  --fso-bg-2: #0f1820;
+  --fso-bg-3: #152030;
+  --fso-panel: rgba(10, 15, 22, 0.96);
+  --fso-panel-2: rgba(15, 24, 32, 0.94);
+  --fso-line: #1a2d42;
+  --fso-line-soft: rgba(0, 229, 255, 0.11);
+  --fso-line-strong: #2e4e6e;
+  --fso-text: #e8f4ff;
+  --fso-text-muted: #a8c8e8;
+  --fso-text-muted-2: #6090b8;
+  --fso-text-faint: #385878;
+  --fso-cyan: #00e5ff;
+  --fso-cyan-2: #00b4cc;
+  --fso-amber: #ffb800;
+  --fso-green: #00ff88;
+  --fso-red: #ff3b5c;
+  --fso-purple: #a855f7;
+  --fso-scan-alpha: 0.035;
+  --fso-noise-alpha: 0.024;
+}
+
+html[data-theme="light"] {
+  --fso-bg: #eef2f7;
+  --fso-bg-1: #ffffff;
+  --fso-bg-2: #f7f9fc;
+  --fso-bg-3: #eef3f8;
+  --fso-panel: rgba(255, 255, 255, 0.97);
+  --fso-panel-2: rgba(247, 249, 252, 0.97);
+  --fso-line: #cfdae7;
+  --fso-line-soft: rgba(35, 67, 99, 0.12);
+  --fso-line-strong: #9eb0c3;
+  --fso-text: #0c1b2a;
+  --fso-text-muted: #31455c;
+  --fso-text-muted-2: #667f98;
+  --fso-text-faint: #9aaabd;
+  --fso-cyan: #008faa;
+  --fso-cyan-2: #0b6c86;
+  --fso-amber: #b97300;
+  --fso-green: #0b8f54;
+  --fso-red: #cf3752;
+  --fso-purple: #7146c7;
+  --fso-scan-alpha: 0;
+  --fso-noise-alpha: 0;
+  --fso-shadow: 0 14px 34px rgba(18, 34, 52, 0.12);
+}

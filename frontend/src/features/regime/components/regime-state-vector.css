@@ -1,0 +1,29 @@
+.fso-vector-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.fso-vector-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+}
+.fso-vector-label {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+.fso-vector-value {
+  font-family: var(--fso-font-head);
+  font-size: 14px;
+  font-weight: 600;
+}

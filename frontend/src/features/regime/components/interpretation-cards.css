@@ -1,0 +1,18 @@
+.fso-interp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.fso-interp-eyebrow {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+.fso-interp-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fso-text);
+}

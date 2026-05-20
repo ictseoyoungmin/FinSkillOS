@@ -1,0 +1,56 @@
+.fso-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 74%, transparent);
+  color: var(--fso-text-muted);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fso-badge.fso-tone-info {
+  color: var(--fso-cyan);
+  border-color: color-mix(in srgb, var(--fso-cyan) 35%, var(--fso-line));
+}
+.fso-badge.fso-tone-success {
+  color: var(--fso-green);
+  border-color: color-mix(in srgb, var(--fso-green) 38%, var(--fso-line));
+}
+.fso-badge.fso-tone-warning {
+  color: var(--fso-amber);
+  border-color: color-mix(in srgb, var(--fso-amber) 40%, var(--fso-line));
+}
+.fso-badge.fso-tone-danger {
+  color: var(--fso-red);
+  border-color: color-mix(in srgb, var(--fso-red) 35%, var(--fso-line));
+}
+.fso-badge.fso-tone-purple {
+  color: var(--fso-purple);
+  border-color: color-mix(in srgb, var(--fso-purple) 38%, var(--fso-line));
+}
+
+/* Shared tone classes used by Panel header badges too. */
+.fso-tone-info {
+  color: var(--fso-cyan);
+}
+.fso-tone-success {
+  color: var(--fso-green);
+}
+.fso-tone-warning {
+  color: var(--fso-amber);
+}
+.fso-tone-danger {
+  color: var(--fso-red);
+}
+.fso-tone-purple {
+  color: var(--fso-purple);
+}
+.fso-tone-neutral {
+  color: var(--fso-text-muted);
+}
