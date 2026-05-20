@@ -34,16 +34,22 @@ def run_app() -> None:
 
     import streamlit as st
 
+    from finskillos.ui.theme import apply_os_theme, render_os_header
+
     st.set_page_config(
         page_title="FinSkillOS · Control Room",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
+    # Slice 13.5 — central OS theme. apply_os_theme reads the active
+    # theme id from session state so the selectbox in the sidebar can
+    # switch palettes without a page reload.
+    apply_os_theme()
     _inject_global_styles()
-    _render_header()
 
-    nav_key = _render_sidebar()
+    nav_key, active_label = _render_sidebar()
+    render_os_header(active_label=active_label)
 
     with _session_scope() as session:
         if not _can_dispatch(session):
@@ -59,43 +65,30 @@ def run_app() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _render_header() -> None:
+def _render_sidebar() -> tuple[str, str]:
+    """Render the sidebar (theme + nav + disclaimer).
+
+    Returns ``(nav_key, active_label)`` so the OS-style top tray can
+    display the currently active module name.
+    """
+
     import streamlit as st
 
-    st.markdown(
-        """
-        <div style="display:flex; align-items:baseline; justify-content:space-between;
-             padding:6px 4px 14px; border-bottom:1px solid rgba(255,255,255,0.06);
-             margin-bottom:18px;">
-            <div>
-                <div style="font-family:'Space Grotesk',sans-serif; font-size:22px;
-                     font-weight:700; color:#00e5ff; letter-spacing:0.12em;">
-                    FINSKILLOS
-                </div>
-                <div style="font-size:11px; color:#6090b8; letter-spacing:0.3em;">
-                    v2.1 · CONTROL ROOM
-                </div>
-            </div>
-            <div style="font-size:11px; color:#6090b8; letter-spacing:0.2em;">
-                US MARKET FOCUS · INTERPRETATION FIRST
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def _render_sidebar() -> str:
-    import streamlit as st
+    from finskillos.ui.theme import render_theme_selector
 
     labels = [label for _, label in NAV_ITEMS]
     keys = [key for key, _ in NAV_ITEMS]
 
     with st.sidebar:
+        # Slice 13.5 theme switcher. Sits above the nav radio so it
+        # behaves like an OS-level control rather than per-page.
+        render_theme_selector()
+        st.divider()
+
         st.markdown(
             """
-            <div style="font-size:11px; color:#6090b8; letter-spacing:0.25em;
-                 margin-bottom:8px;">
+            <div style="font-size:11px; letter-spacing:0.25em;
+                 margin-bottom:8px; color: var(--fso-muted-2, #6090b8);">
                 NAV
             </div>
             """,
@@ -112,7 +105,7 @@ def _render_sidebar() -> str:
             "FinSkillOS는 투자 자문 도구가 아니며, 매수 / 매도 지시를 제공하지 않습니다."
         )
 
-    return keys[labels.index(selected_label)]
+    return keys[labels.index(selected_label)], selected_label
 
 
 def _dispatch(nav_key: str, session) -> None:  # type: ignore[no-untyped-def]
