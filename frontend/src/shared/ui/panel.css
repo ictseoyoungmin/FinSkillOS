@@ -7,6 +7,12 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  /* Inside flex columns (Control Room, Symbol Lab side rail) the
+     default flex-shrink would compress panels and combine with
+     overflow:hidden to clip content. Pin shrink to 0 so each panel
+     keeps its natural height — the parent column's own overflow-y
+     handles total overflow. */
+  flex-shrink: 0;
 }
 
 .fso-panel-head {

@@ -1,0 +1,37 @@
+.fso-symbol-bars-scroller {
+  max-height: 280px;
+  overflow: auto;
+  border-radius: var(--fso-radius-sm);
+}
+
+.fso-symbol-bars-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  color: var(--fso-text);
+}
+
+.fso-symbol-bars-table thead th {
+  text-align: right;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  position: sticky;
+  top: 0;
+}
+
+.fso-symbol-bars-table thead th:first-child,
+.fso-symbol-bars-table tbody td:first-child {
+  text-align: left;
+}
+
+.fso-symbol-bars-table tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--fso-line-soft);
+  text-align: right;
+}

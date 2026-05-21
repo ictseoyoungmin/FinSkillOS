@@ -1,0 +1,30 @@
+.fso-symbol-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fso-symbol-lab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .fso-symbol-lab-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fso-symbol-lab-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fso-symbol-lab-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

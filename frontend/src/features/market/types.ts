@@ -1,3 +1,5 @@
+import type { Numeric } from "@/shared/lib/format";
+
 export type TickerDirection = "up" | "down" | "flat";
 
 export interface TickerStripItem {
@@ -12,4 +14,10 @@ export interface WatchlistItem {
   label: string;
   note: string;
   tone: "info" | "warning" | "danger" | "neutral" | "success";
+}
+
+export interface MarketTapePoint {
+  label: string;
+  portfolio: Numeric;
+  benchmark: Numeric;
 }

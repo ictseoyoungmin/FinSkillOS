@@ -11,7 +11,13 @@
 .fso-os-workspace {
   position: relative;
   z-index: 2;
-  overflow: hidden;
+  /* `overflow-y: auto` lets long pages (Symbol Lab, Market Kernel)
+     scroll vertically inside the workspace instead of being clipped.
+     The Control Room uses its own column-level scroll containers so
+     this scrollbar only appears when a page genuinely outgrows the
+     viewport. */
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   display: flex;
   flex-direction: column;

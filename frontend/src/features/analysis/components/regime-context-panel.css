@@ -1,0 +1,65 @@
+.fso-regime-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.fso-regime-summary {
+  margin: 0 0 12px;
+  color: var(--fso-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fso-regime-block {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-regime-block p {
+  margin: 0;
+  color: var(--fso-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fso-regime-block-head,
+.fso-regime-col-head {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-regime-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.fso-regime-columns ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--fso-text-muted);
+  font-size: 12px;
+}
+
+.fso-regime-columns li {
+  padding-left: 12px;
+  position: relative;
+}
+.fso-regime-columns li::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  color: var(--fso-text-faint);
+}

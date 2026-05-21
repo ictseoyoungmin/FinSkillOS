@@ -6,8 +6,11 @@ import type {
 import type { OperatingState } from "@/features/regime/types";
 import type { GuardSummary } from "@/features/risk-guards/types";
 import type { CatalystSummary } from "@/features/events/types";
-import type { TickerStripItem, WatchlistItem } from "@/features/market/types";
-import type { MarketTapePoint } from "@/features/market/components/PortfolioMarketTapePanel";
+import type {
+  MarketTapePoint,
+  TickerStripItem,
+  WatchlistItem,
+} from "@/features/market/types";
 
 export interface ControlRoomSystemStatus {
   db: string;

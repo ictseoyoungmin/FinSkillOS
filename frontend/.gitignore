@@ -8,3 +8,7 @@ playwright/.cache
 .env
 .env.*.local
 *.log
+
+# Slice 13.7 follow-up — output of frontend/e2e/_debug/* runs.
+# Regenerable via Docker Playwright; not part of the visual baseline.
+screenshots

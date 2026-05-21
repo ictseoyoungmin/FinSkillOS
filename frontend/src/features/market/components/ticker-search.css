@@ -1,0 +1,52 @@
+.fso-ticker-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--fso-bg-2);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-md);
+  padding: 8px 12px;
+}
+
+.fso-ticker-search-label {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-ticker-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--fso-text);
+  font-family: var(--fso-font-mono);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  outline: none;
+  padding: 4px 6px;
+}
+
+.fso-ticker-search-input::placeholder {
+  color: var(--fso-text-faint);
+  letter-spacing: 0.04em;
+}
+
+.fso-ticker-search-submit {
+  background: color-mix(in srgb, var(--fso-cyan) 18%, transparent);
+  border: 1px solid var(--fso-cyan-2);
+  color: var(--fso-text);
+  padding: 6px 14px;
+  border-radius: var(--fso-radius-sm);
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.fso-ticker-search-submit:hover {
+  background: color-mix(in srgb, var(--fso-cyan) 32%, transparent);
+}

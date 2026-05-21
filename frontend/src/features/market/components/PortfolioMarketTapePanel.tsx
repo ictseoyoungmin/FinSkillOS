@@ -1,12 +1,7 @@
 import { Panel } from "@/shared/ui";
-import { toNumber, type Numeric } from "@/shared/lib/format";
+import { toNumber } from "@/shared/lib/format";
+import type { MarketTapePoint } from "@/features/market/types";
 import "./portfolio-market-tape-panel.css";
-
-export interface MarketTapePoint {
-  label: string;
-  portfolio: Numeric;
-  benchmark: Numeric;
-}
 
 export interface PortfolioMarketTapePanelProps {
   points: MarketTapePoint[];

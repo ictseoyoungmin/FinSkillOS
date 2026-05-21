@@ -202,15 +202,121 @@ docker compose up -d postgres api web
 docker compose --profile e2e run --rm e2e
 ```
 
-## Completion placeholder
+## Completion note
 
 ```text
-Status: TODO
+Status: DONE_AS_REACT_MARKET_ANALYSIS_SYMBOL_V0 (2026-05-21)
+
 Implemented routes:
-Implemented React pages:
+- GET /api/market-kernel?ticker=<NVDA|TSLA|AAPL|MSFT|SMH> — fixture-first
+  payload (left-rail universe + header + bars + indicators + events +
+  watchpoints + interpretation + safety caption). Unknown tickers return
+  a MISSING-status payload with a setup hint instead of 5xx.
+- GET /api/analysis-workspace — fixture-first IndexLabViewModel payload
+  (17 rows: 14 ETFs + 3 macro proxies, strongest/weakest top-3 ranking,
+  regime context, missing-data list).
+- GET /api/symbol-lab?ticker=<...> — fixture-first SymbolLabViewModel
+  payload (header + technical snapshot + recent bars + position +
+  alerts + news + regime + watchpoints). TSLA is the held position; the
+  fixture also carries technical-only payloads for NVDA / AAPL / MSFT /
+  SMH so the page never crashes when a non-held ticker is selected.
+
+Implemented Pydantic schemas:
+- api/schemas/market_kernel.py
+- api/schemas/analysis_workspace.py
+- api/schemas/symbol_lab.py (reuses IndicatorSnapshot + RegimeContext)
+
+Implemented fixtures (api/fixtures/ package):
+- _common.py (FIXTURE_TIMESTAMP + 22-bucket bar calendar + Decimal helper)
+- _focus_tickers.py (deterministic OHLCV + indicators for NVDA / TSLA /
+  AAPL / MSFT / SMH; shared by Market Kernel + Symbol Lab)
+- control_room.py (moved from api/fixtures.py — Slice 13.6 payload
+  unchanged; CONTROL_ROOM_FIXTURE_TIMESTAMP re-exported)
+- market_kernel.py, analysis_workspace.py, symbol_lab.py
+
+Implemented React feature modules:
+- features/market/{api,kernel-types}.ts + components
+  (SymbolUniverseRail, TickerSearch, CandlePanel, IndicatorSnapshotPanel,
+  EventOverlayPanel, MarketKernelInterpretation)
+- features/analysis/{api,types}.ts + components
+  (IndexUniverseTable, TapeStrengthCards, RegimeContextPanel,
+  MissingDataPanel)
+- features/symbol/{api,types}.ts + components
+  (SymbolSearchPanel, SymbolPositionContext, SymbolTechnicalSnapshot,
+  SymbolRecentBarsTable, SymbolAlertsPanel, SymbolNewsPanel,
+  SymbolWatchpoints)
+- shared/charts/LineChart.tsx (extracted shared SVG line chart used by
+  CandlePanel; PortfolioMarketTapePanel still owns its normalised
+  legend so the v4.1 visual baseline stays byte-stable)
+
+Implemented React pages (replaced PlaceholderPage shells):
+- pages/market-kernel/MarketKernelPage.tsx
+- pages/analysis-workspace/AnalysisWorkspacePage.tsx
+- pages/symbol-lab/SymbolLabPage.tsx
+All three pages support ?ticker query params and update the URL via
+useSearchParams so navigating between symbols is deep-linkable. Routes
+defined in app/router/routes.tsx already exist; no router change needed.
+
+Frontend mock fixtures (shared/mocks/fixtures/):
+- marketKernel.fixture.ts (NVDA — used as React Query placeholderData)
+- analysisWorkspace.fixture.ts
+- symbolLab.fixture.ts (TSLA + technical-only fallback)
+- controlRoom.fixture.ts unchanged
+
+Type direction cleanup (this slice prologue, requested by user):
+- MarketTapePoint moved from PortfolioMarketTapePanel.tsx (component
+  file) to features/market/types.ts so feature types are co-located.
+  ControlRoom types import the canonical version from types.ts.
+
 Tests added:
+- tests/test_api_market_kernel.py (9 cases)
+- tests/test_api_analysis_workspace.py (7 cases)
+- tests/test_api_symbol_lab.py (9 cases)
+- frontend/e2e/market-analysis-symbol.spec.ts (6 specs)
+- frontend/e2e/navigation.spec.ts updated to drop the three promoted
+  routes from the placeholder list.
+
+Verification:
+- python3 -m compileall app.py finskillos api scripts  → clean
+- python3 -m ruff check finskillos api tests            → All checks passed
+- python3 -m pytest tests                               → 541 passed
+- npx tsc -b                                            → exit 0 (clean)
+- npm run lint                                          → 0 errors, 1 pre-existing warning
+- npm run build                                         → fails locally on Node 16
+                                                          (Vite 5 needs Node 18+);
+                                                          succeeds inside the Docker
+                                                          `web` (node:20-alpine) and
+                                                          `e2e` (mcr.microsoft.com/
+                                                          playwright:v1.49.1-noble)
+                                                          containers. Same situation
+                                                          documented in Slice 13.6.
+- npm run test:e2e: skipped locally for the same Node-version reason;
+  runs via `docker compose --profile e2e run --rm e2e` in CI / dev.
+
 Notes:
+- Routes stay fixture-first (same pattern Slice 13.6 used). The
+  view-model wrap is intentionally deferred — `api/dependencies.py`
+  TODO already tracks the live-DB error surfacing required before any
+  route reads real data.
+- Streamlit Slice 08 / 09 pages remain untouched and continue to work
+  as the debug surface.
+- Page descriptive-only rule preserved: every payload carries a
+  `safetyCaption` string and the page renders it in a non-removable
+  test-id'd element. Forbidden-execution-label scan covers the three
+  new routes via the Slice 13.7 e2e spec.
+
 Known issues:
+- npm run build / npm run test:e2e cannot run on the WSL bash that
+  ships Node 16; this is an environment limitation, not a code issue.
+  Use the Docker compose profiles documented in Slice 13.6 cleanup §3.
+- The `/api/market-kernel`, `/api/analysis-workspace`, `/api/symbol-lab`
+  routes still default to fixture even when a session is available.
+  Promoting to live data requires the explicit error-surface contract
+  from .devmd/13_6 cleanup §6 and the Pydantic mapper for the
+  IndexLabViewModel / SymbolLabViewModel dataclasses.
+- The shared `LineChart` is intentionally a thin descriptive line view
+  — no candlestick wicks, no overlays — matching the v4.1 mockup. Full
+  OHLC candles + overlay toggles are explicitly out of scope.
 ```
 
 ## Stop condition

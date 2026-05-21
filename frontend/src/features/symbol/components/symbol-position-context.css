@@ -1,0 +1,42 @@
+.fso-symbol-position-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.fso-symbol-position-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.fso-symbol-position-thesis {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-symbol-position-thesis-head {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-symbol-position-thesis p {
+  margin: 0;
+  color: var(--fso-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fso-symbol-position-caption {
+  display: block;
+  margin-top: 10px;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--fso-text-muted-2);
+}

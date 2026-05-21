@@ -1,0 +1,53 @@
+.fso-tape-strength-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.fso-tape-strength-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fso-tape-strength-list li {
+  display: grid;
+  grid-template-columns: 60px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+}
+
+.fso-tape-strength-list strong {
+  font-family: var(--fso-font-mono);
+  letter-spacing: 0.08em;
+}
+
+.fso-tape-strength-label {
+  color: var(--fso-text-muted);
+  font-size: 12px;
+}
+
+.fso-tape-strength-score {
+  font-family: var(--fso-font-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.fso-tape-strength-pos {
+  color: var(--fso-green);
+}
+.fso-tape-strength-neg {
+  color: var(--fso-red);
+}
+
+.fso-tape-strength-empty {
+  color: var(--fso-text-muted);
+  font-size: 12px;
+  margin: 0;
+}

@@ -1,0 +1,69 @@
+.fso-universe-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--fso-panel);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-md);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.fso-universe-group-head {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+  margin-bottom: 6px;
+}
+
+.fso-universe-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-universe-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--fso-radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--fso-text);
+  cursor: pointer;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  transition: background 0.18s ease, border-color 0.18s ease;
+  text-align: left;
+}
+
+.fso-universe-item:hover {
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  border-color: var(--fso-line-soft);
+}
+
+.fso-universe-item--active {
+  background: color-mix(in srgb, var(--fso-cyan) 12%, transparent);
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-text);
+  box-shadow: var(--fso-glow);
+}
+
+.fso-universe-symbol {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.fso-universe-label {
+  color: var(--fso-text-muted);
+  font-size: 11px;
+}

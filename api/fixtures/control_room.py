@@ -1,4 +1,4 @@
-"""Deterministic API fixtures — Slice 13.6.
+"""Control Room fixture — Slice 13.6.
 
 The Control Room endpoint defaults to fixture output so the React
 shell can render a stable v4.1 cockpit visual baseline without
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from api.fixtures._common import FIXTURE_TIMESTAMP
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import (
     CatalystSummary,
@@ -28,8 +29,9 @@ from api.schemas.control_room import (
     WatchlistItem,
 )
 
-# Stable timestamp so visual baselines stay deterministic across runs.
-CONTROL_ROOM_FIXTURE_TIMESTAMP = "2026-05-20T12:00:00+09:00"
+# Stable timestamp re-exported for backwards compatibility with Slice
+# 13.6 importers (`from api.fixtures import CONTROL_ROOM_FIXTURE_TIMESTAMP`).
+CONTROL_ROOM_FIXTURE_TIMESTAMP = FIXTURE_TIMESTAMP
 
 
 def control_room_fixture() -> ControlRoomResponse:

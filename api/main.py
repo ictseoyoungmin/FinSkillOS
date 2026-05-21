@@ -14,7 +14,13 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import control_room, health
+from api.routes import (
+    analysis_workspace,
+    control_room,
+    health,
+    market_kernel,
+    symbol_lab,
+)
 
 
 def _allowed_origins() -> list[str]:
@@ -35,7 +41,7 @@ def _allowed_origins() -> list[str]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="FinSkillOS API",
-        version="0.13.6",
+        version="0.13.7",
         description=(
             "Read-only FinSkillOS adapter API for the v4.1 React cockpit. "
             "Returns market state, risk interpretation, portfolio "
@@ -54,6 +60,9 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix="/api")
     app.include_router(control_room.router, prefix="/api")
+    app.include_router(market_kernel.router, prefix="/api")
+    app.include_router(analysis_workspace.router, prefix="/api")
+    app.include_router(symbol_lab.router, prefix="/api")
 
     return app
 

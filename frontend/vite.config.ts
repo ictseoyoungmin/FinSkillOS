@@ -15,6 +15,10 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
+    // Allow Docker-network hostnames so the Playwright e2e container
+    // can reach this dev server via `finskillos-web:5173`. Vite 5
+    // blocks unknown hosts by default — this is the dev server only.
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: apiTarget,

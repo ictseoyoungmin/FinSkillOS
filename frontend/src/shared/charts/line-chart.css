@@ -1,0 +1,76 @@
+.fso-linechart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fso-linechart-svg {
+  width: 100%;
+  height: 240px;
+  display: block;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fso-bg-3) 35%, transparent),
+    transparent
+  );
+  border-radius: var(--fso-radius-sm);
+}
+
+.fso-linechart-axis {
+  stroke: var(--fso-line);
+  stroke-width: 1;
+}
+
+.fso-linechart-axis-soft {
+  stroke: var(--fso-line-soft);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.fso-linechart-series {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.fso-linechart-series--primary {
+  stroke: var(--fso-cyan);
+  filter: drop-shadow(0 0 6px rgba(107, 220, 255, 0.35));
+}
+
+.fso-linechart-series--muted {
+  stroke: var(--fso-text-muted-2);
+  stroke-width: 1.8;
+}
+
+.fso-linechart-series--dashed {
+  stroke-dasharray: 6 4;
+}
+
+.fso-linechart-axislabels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  font-family: var(--fso-font-mono);
+  font-size: 9px;
+  color: var(--fso-text-muted-2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0 4px;
+  overflow: hidden;
+}
+
+.fso-linechart-axislabels > span {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fso-linechart-caption {
+  margin: 4px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fso-text-muted-2);
+}

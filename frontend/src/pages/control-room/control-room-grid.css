@@ -8,7 +8,10 @@
 
 .fso-control-grid {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 320px;
+  /* Use a fluid third column so the grid can still fit on a 1280-wide
+     viewport (the Playwright Desktop Chrome default) without dropping
+     the Risk Firewall / Catalyst Watch / Watchlist column. */
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) minmax(280px, 320px);
   gap: 14px;
   min-height: 0;
   flex: 1;
@@ -27,9 +30,9 @@
   padding-right: 0;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1180px) {
   .fso-control-grid {
-    grid-template-columns: 300px minmax(440px, 1fr);
+    grid-template-columns: 300px minmax(380px, 1fr);
   }
   .fso-control-column:nth-child(3) {
     display: none;
