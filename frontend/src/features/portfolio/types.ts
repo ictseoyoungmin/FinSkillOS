@@ -19,3 +19,66 @@ export interface ReviewQueueItem {
   note: string;
   tag: "weekly" | "mistake" | "thesis" | "event";
 }
+
+// --- Slice 13.8 (Mission Control) ---------------------------------------
+
+export type MilestoneState = "PENDING" | "APPROACHING" | "COMPLETED";
+
+export type CapitalMapTone =
+  | "info"
+  | "warning"
+  | "danger"
+  | "neutral"
+  | "success";
+
+export interface GoalTracker {
+  currentValue: Numeric;
+  targetValue: Numeric;
+  remainingValue: Numeric;
+  progressPct: Numeric;
+  progressRatio: Numeric;
+  goalMode: string;
+  earlyStopTriggered: boolean;
+  phase: string;
+  challengeLabel: string;
+}
+
+export interface MilestoneItem {
+  pct: number;
+  label: string;
+  state: MilestoneState;
+}
+
+export interface PortfolioSnapshotPanelData {
+  totalValue: Numeric;
+  cashValue: Numeric;
+  positionCount: number;
+  largestPositionTicker: string | null;
+  largestPositionWeightPct: Numeric;
+  overSingleLimitTickers: string[];
+}
+
+export interface CapitalMapSlice {
+  label: string;
+  weightPct: Numeric;
+  tone: CapitalMapTone;
+}
+
+export interface MissionControlSystemStatus {
+  db: string;
+  mode: string;
+  guardCount: number;
+}
+
+export interface MissionControlData {
+  generatedAt: string;
+  systemStatus: MissionControlSystemStatus;
+  goal: GoalTracker;
+  milestones: MilestoneItem[];
+  portfolio: PortfolioSnapshotPanelData;
+  capitalMap: CapitalMapSlice[];
+  themeMap: CapitalMapSlice[];
+  challengeStatusCaption: string;
+  safetyCaption: string;
+  source: "fixture" | "live";
+}

@@ -1,0 +1,55 @@
+.fso-active-alerts-empty {
+  margin: 0;
+  color: var(--fso-text-muted-2);
+  font-size: 12px;
+}
+
+.fso-active-alerts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-active-alerts-table th,
+.fso-active-alerts-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--fso-line-soft);
+  vertical-align: top;
+}
+
+.fso-active-alerts-table th {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-active-alerts-date {
+  font-family: var(--fso-font-mono);
+  white-space: nowrap;
+  color: var(--fso-text-muted);
+}
+
+.fso-active-alerts-guard {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}
+
+.fso-active-alerts-message {
+  color: var(--fso-text-muted);
+  line-height: 1.45;
+}
+
+.fso-active-alerts-pill {
+  display: inline-block;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--fso-line);
+}

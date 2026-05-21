@@ -19,7 +19,10 @@ from api.routes import (
     control_room,
     health,
     market_kernel,
+    mission_control,
+    risk_firewall,
     symbol_lab,
+    system_ops,
 )
 
 
@@ -41,12 +44,14 @@ def _allowed_origins() -> list[str]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="FinSkillOS API",
-        version="0.13.7",
+        version="0.13.8",
         description=(
             "Read-only FinSkillOS adapter API for the v4.1 React cockpit. "
             "Returns market state, risk interpretation, portfolio "
-            "constraints, watchpoints, and reflection support. No "
-            "execution endpoints exist."
+            "constraints, watchpoints, and reflection support. The only "
+            "writes exposed are the System Ops operational protocols "
+            "(seed sample data, recompute regime, run risk guards). No "
+            "execution / order / trade endpoints exist."
         ),
     )
 
@@ -54,7 +59,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=_allowed_origins(),
         allow_credentials=False,
-        allow_methods=["GET", "OPTIONS"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -63,6 +68,9 @@ def create_app() -> FastAPI:
     app.include_router(market_kernel.router, prefix="/api")
     app.include_router(analysis_workspace.router, prefix="/api")
     app.include_router(symbol_lab.router, prefix="/api")
+    app.include_router(risk_firewall.router, prefix="/api")
+    app.include_router(mission_control.router, prefix="/api")
+    app.include_router(system_ops.router, prefix="/api")
 
     return app
 

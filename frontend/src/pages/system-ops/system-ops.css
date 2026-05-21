@@ -1,0 +1,19 @@
+.fso-system-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fso-system-ops-protocol-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.fso-system-ops-caption {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fso-text-muted-2);
+}

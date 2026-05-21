@@ -41,14 +41,12 @@ test.describe("OS shell navigation", () => {
   test("placeholder routes clearly state they are shells", async ({ page }) => {
     const placeholderRoutes = [
       // Slice 13.7 promoted Market Kernel / Analysis Workspace /
-      // Symbol Lab to real pages — only the still-deferred routes
+      // Symbol Lab to real pages; Slice 13.8 promoted Risk Firewall /
+      // Mission Control / System Ops. Only the still-deferred routes
       // remain on the placeholder shell.
-      { path: "/risk-firewall", testId: "risk-firewall-page" },
-      { path: "/mission-control", testId: "mission-control-page" },
       { path: "/news-intel", testId: "news-intelligence-page" },
       { path: "/catalyst-watch", testId: "catalyst-watch-page" },
       { path: "/trade-memory", testId: "trade-memory-page" },
-      { path: "/system-ops", testId: "system-ops-page" },
     ];
     for (const route of placeholderRoutes) {
       await page.goto(route.path);

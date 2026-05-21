@@ -1,0 +1,88 @@
+"""System Ops API schemas — Slice 13.8.
+
+Camel-case Pydantic shape for ``GET /api/system-ops`` and the four
+operational POST endpoints (seed sample account, recompute regime,
+run risk guards, seed sample events). The protocol cards are safe by
+construction:
+
+* The wording avoids any execution / buy / sell phrasing.
+* Each protocol declares an ``idempotency_note`` so the React
+  confirm-dialog can quote it back to the user before running.
+"""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import Field
+
+from api.schemas.common import CamelModel, SystemStatus
+
+ProtocolKey = Literal[
+    "seed_sample_account",
+    "recompute_regime",
+    "run_risk_guards",
+    "seed_sample_events",
+]
+
+ProtocolStatus = Literal["OK", "NOOP", "ERROR"]
+ProtocolTone = Literal["info", "warning", "neutral", "success"]
+DataSourceStatus = Literal["LIVE", "FIXTURE", "MISSING"]
+
+
+class ProtocolCard(CamelModel):
+    """A safe, descriptive operational protocol the user can run."""
+
+    key: ProtocolKey
+    title: str
+    description: str
+    idempotency_note: str
+    button_label: str
+    confirm_label: str = Field(
+        default="Run protocol",
+        description=(
+            "Safe-wording button used inside the confirm dialog. Must "
+            "not include execution / order / buy / sell phrasing."
+        ),
+    )
+    tone: ProtocolTone = "info"
+    last_run_at: str | None = None
+
+
+class DataSourcePill(CamelModel):
+    """One entry in the LIVE / FIXTURE pill strip at the top of the page."""
+
+    label: str
+    status: DataSourceStatus
+    detail: str = ""
+
+
+class SystemOpsResponse(CamelModel):
+    generated_at: str
+    system_status: SystemStatus
+    protocols: list[ProtocolCard]
+    data_sources: list[DataSourcePill]
+    safety_caption: str = "Operational protocols only — no trading actions."
+    source: Literal["fixture", "live"] = "fixture"
+
+
+class ProtocolRunResult(CamelModel):
+    """Structured response from any POST /api/system-ops/<protocol>."""
+
+    protocol: ProtocolKey
+    status: ProtocolStatus
+    message: str
+    detail: str = ""
+    ran_at: str
+
+
+__all__ = [
+    "DataSourcePill",
+    "DataSourceStatus",
+    "ProtocolCard",
+    "ProtocolKey",
+    "ProtocolRunResult",
+    "ProtocolStatus",
+    "ProtocolTone",
+    "SystemOpsResponse",
+]

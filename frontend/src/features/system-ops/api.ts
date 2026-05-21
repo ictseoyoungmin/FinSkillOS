@@ -1,0 +1,55 @@
+import { ApiError, getJson } from "@/shared/api/client";
+import { apiEndpoints } from "@/shared/api/endpoints";
+import { systemOpsFixture } from "@/mocks/fixtures/systemOps.fixture";
+import type { ProtocolKey, ProtocolRunResult, SystemOpsData } from "./types";
+
+const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
+  seed_sample_account: "/system-ops/seed-sample-account",
+  recompute_regime: "/system-ops/recompute-regime",
+  run_risk_guards: "/system-ops/run-risk-guards",
+  seed_sample_events: "/system-ops/seed-sample-events",
+};
+
+/**
+ * Read the System Ops protocol catalogue. Fixture fallback matches
+ * the other Slice 13.6–13.8 routes so the page renders even when the
+ * FastAPI container is offline.
+ */
+export async function fetchSystemOps(
+  signal?: AbortSignal,
+): Promise<SystemOpsData> {
+  try {
+    return await getJson<SystemOpsData>(apiEndpoints.systemOps, { signal });
+  } catch (error) {
+    if (error instanceof ApiError && error.status >= 500) {
+      throw error;
+    }
+    return systemOpsFixture;
+  }
+}
+
+/**
+ * Run one operational protocol. The backend always responds with a
+ * structured ProtocolRunResult — never raw HTML or stack traces. The
+ * React confirm dialog quotes the result back to the user.
+ */
+export async function runSystemOpsProtocol(
+  key: ProtocolKey,
+  signal?: AbortSignal,
+): Promise<ProtocolRunResult> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}${PROTOCOL_PATHS[key]}`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText} for ${url}`,
+    );
+  }
+  return (await response.json()) as ProtocolRunResult;
+}

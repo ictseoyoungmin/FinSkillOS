@@ -1,0 +1,41 @@
+.fso-portfolio-snapshot-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.fso-portfolio-snapshot-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fso-portfolio-snapshot-grid dt {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-portfolio-snapshot-grid dd {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 14px;
+  color: var(--fso-text);
+}
+
+.fso-portfolio-snapshot-weight {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--fso-amber);
+}
+
+.fso-portfolio-snapshot-warning {
+  margin: 12px 0 0;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  color: var(--fso-amber);
+}
