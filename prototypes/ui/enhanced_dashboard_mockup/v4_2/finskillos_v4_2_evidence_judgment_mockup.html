@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="material">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinSkillOS v4.2 Evidence-to-Judgment Mockup</title>
+<style>
+:root{
+  --bg:#0b1118;--bg1:#101821;--bg2:#141e2a;--bg3:#182333;--panel:rgba(16,24,33,.96);--panel2:rgba(20,30,42,.94);
+  --line:#243346;--line2:rgba(122,153,188,.16);--line3:#35506b;
+  --t0:#e8f4ff;--t1:#b7cadc;--t2:#7892ab;--t3:#445b72;
+  --cyan:#6bdcff;--cyan2:#2fb8d8;--amber:#f4c76c;--green:#7bdc98;--red:#ef7d8b;--purple:#b99cff;--blue:#8ab4f8;--teal:#7adcc8;
+  --shadow:0 18px 50px rgba(0,0,0,.34);--glow:0 0 24px rgba(107,220,255,.16);
+  --r-lg:16px;--r-md:11px;--r-sm:7px;
+  --ui:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+  --mono:"JetBrains Mono","Roboto Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --head:"Space Grotesk",Inter,"Noto Sans KR",system-ui,sans-serif;
+  --scan:.014;--noise:.014;
+}
+html[data-theme=cyber]{--bg:#060910;--bg1:#0a0f16;--bg2:#0f1820;--bg3:#152030;--panel:rgba(10,15,22,.96);--panel2:rgba(15,24,32,.94);--line:#1a2d42;--line2:rgba(0,229,255,.11);--line3:#2e4e6e;--t0:#e8f4ff;--t1:#a8c8e8;--t2:#6090b8;--t3:#385878;--cyan:#00e5ff;--cyan2:#00b4cc;--amber:#ffb800;--green:#00ff88;--red:#ff3b5c;--purple:#a855f7;--scan:.03;--noise:.022}
+html[data-theme=light]{--bg:#eef2f7;--bg1:#fff;--bg2:#f7f9fc;--bg3:#eef3f8;--panel:rgba(255,255,255,.97);--panel2:rgba(247,249,252,.97);--line:#cfdae7;--line2:rgba(35,67,99,.12);--line3:#9eb0c3;--t0:#0c1b2a;--t1:#31455c;--t2:#667f98;--t3:#9aaabd;--cyan:#008faa;--cyan2:#0b6c86;--amber:#b97300;--green:#0b8f54;--red:#cf3752;--purple:#7146c7;--scan:0;--noise:0;--shadow:0 14px 34px rgba(18,34,52,.12)}
+*{box-sizing:border-box}html,body{margin:0;height:100%}body{background:radial-gradient(circle at 18% -10%,rgba(107,220,255,.09),transparent 28%),radial-gradient(circle at 82% -8%,rgba(185,156,255,.08),transparent 26%),var(--bg);color:var(--t0);font-family:var(--ui);overflow:hidden;font-size:13px}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--noise);z-index:900;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;opacity:var(--scan);z-index:901;background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--cyan) 3px,transparent 4px)}
+button,input,select,textarea{font:inherit}button{border:0;cursor:pointer}.app{height:100vh;display:grid;grid-template-rows:42px 28px 1fr}
+
+/* OS tray */
+.tray{height:42px;display:flex;align-items:center;background:color-mix(in srgb,var(--bg1) 92%,transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(18px);z-index:30;min-width:0}
+.brand{display:flex;align-items:center;gap:10px;width:218px;padding:0 14px;border-right:1px solid var(--line);flex:0 0 auto}.brand-mark{width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg,var(--cyan2),var(--cyan));display:grid;place-items:center;box-shadow:var(--glow)}.brand-mark span{width:13px;height:13px;display:grid;grid-template-columns:1fr 1fr;gap:2px}.brand-mark i{display:block;border-radius:2px;background:rgba(255,255,255,.75)}.brand-text{font-family:var(--head);font-size:15px;font-weight:800;letter-spacing:.03em}.brand-text em{font-style:normal;color:var(--cyan)}
+.nav{display:flex;align-items:stretch;height:100%;flex:1;min-width:0;overflow:hidden}.nav-btn{color:var(--t2);background:transparent;height:100%;padding:0 9px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;transition:.14s}.nav-btn:hover{color:var(--t1);background:color-mix(in srgb,var(--bg2) 70%,transparent)}.nav-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 7%,transparent)}.nav-dot{width:6px;height:6px;border-radius:999px;background:currentColor;opacity:.55}.nav-btn.active .nav-dot{opacity:1;box-shadow:0 0 10px currentColor}
+.tray-right{display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--line);flex:0 0 auto}.pill{display:inline-flex;align-items:center;gap:6px;min-height:22px;padding:0 9px;border-radius:999px;border:1px solid var(--line);color:var(--t2);background:color-mix(in srgb,var(--bg2) 74%,transparent);font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase}.pill:before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}.pill.good{color:var(--green);border-color:color-mix(in srgb,var(--green) 35%,var(--line))}.pill.warn{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 40%,var(--line))}.pill.info{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 35%,var(--line))}.pill.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,var(--line))}
+.cmd-btn,.theme-btn{display:inline-flex;align-items:center;gap:7px;height:28px;border-radius:999px;border:1px solid var(--line);padding:0 10px;background:var(--bg2);color:var(--t1);font-family:var(--mono);font-size:10px;letter-spacing:.08em}.cmd-btn kbd{color:var(--cyan);border:1px solid var(--line3);padding:1px 5px;border-radius:4px;background:var(--bg1)}.clock{min-width:82px;color:var(--t2);font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ticker */
+.ticker-strip{position:relative;height:28px;border-bottom:1px solid var(--line2);background:color-mix(in srgb,var(--bg1) 88%,transparent);overflow:hidden}.ticker-strip:before,.ticker-strip:after{content:"";position:absolute;top:0;bottom:0;width:80px;z-index:2}.ticker-strip:before{left:0;background:linear-gradient(90deg,var(--bg1),transparent)}.ticker-strip:after{right:0;background:linear-gradient(-90deg,var(--bg1),transparent)}.ticker-scroll{height:100%;display:flex;align-items:center;gap:26px;padding:0 80px;width:max-content;animation:tickerMove 48s linear infinite}@keyframes tickerMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}.ticker-item{display:flex;gap:7px;align-items:baseline;font-family:var(--mono);font-size:11px;white-space:nowrap}.ticker-symbol{color:var(--t0);font-weight:700}.ticker-price{color:var(--t2)}.ticker-change.up{color:var(--green)}.ticker-change.down{color:var(--red)}
+
+/* layout */
+.workspace{position:relative;min-height:0;overflow:hidden}.page{position:absolute;inset:0;display:none;opacity:0;transition:opacity .16s;min-width:0;min-height:0}.page.active{display:block;opacity:1}.page-shell{height:100%;min-height:0;padding:12px;overflow:hidden}
+.tab-grid{display:grid;grid-template-rows:auto 1fr;gap:12px;height:100%;min-height:0}.detail-grid{display:grid;grid-template-columns:340px minmax(520px,1fr) 360px;gap:12px;min-height:0;height:100%}.column{display:flex;flex-direction:column;gap:12px;min-height:0}.scroll{overflow:auto;padding-right:2px}.scroll::-webkit-scrollbar{width:5px;height:5px}.scroll::-webkit-scrollbar-thumb{background:var(--line3);border-radius:10px}
+
+/* panels */
+.panel{border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel2) 90%,transparent));border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}.panel.soft{box-shadow:none}.panel-head{min-height:38px;padding:0 12px;border-bottom:1px solid var(--line2);background:color-mix(in srgb,var(--bg2) 70%,transparent);display:flex;align-items:center;gap:8px}.window-dots{display:flex;gap:5px;margin-right:4px}.window-dots span{width:8px;height:8px;border-radius:99px}.window-dots span:nth-child(1){background:#ff5f57}.window-dots span:nth-child(2){background:#febc2e}.window-dots span:nth-child(3){background:#28c840}.panel-title{flex:1;color:var(--t2);font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase}.panel-badge{color:var(--cyan);border:1px solid color-mix(in srgb,var(--cyan) 35%,var(--line));background:color-mix(in srgb,var(--cyan) 10%,transparent);padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:9px;letter-spacing:.08em}.panel-body{padding:12px}
+
+/* judgment header */
+.judgment{display:grid;grid-template-columns:minmax(390px,1.15fr) minmax(320px,.85fr) minmax(280px,.7fr);gap:12px}.judgment-main{padding:16px 16px 14px}.eyebrow{color:var(--t2);font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}.judgment-title{margin-top:6px;font-family:var(--head);font-size:30px;line-height:1.05;font-weight:850;letter-spacing:-.035em}.judgment-title .accent{color:var(--green);text-shadow:0 0 24px color-mix(in srgb,var(--green) 25%,transparent)}.judgment-summary{margin-top:10px;color:var(--t1);line-height:1.55}.confidence-row{display:flex;gap:8px;align-items:center;margin-top:10px}.confidence-meter{height:8px;flex:1;border-radius:999px;background:var(--bg3);border:1px solid var(--line2);overflow:hidden}.confidence-meter span{display:block;height:100%;width:var(--w);border-radius:999px;background:linear-gradient(90deg,var(--cyan2),var(--cyan))}
+.driver-list,.conflict-list,.watch-list{display:flex;flex-direction:column;gap:8px}.driver,.conflict,.watch{border:1px solid var(--line2);border-radius:var(--r-md);background:color-mix(in srgb,var(--bg2) 82%,transparent);padding:9px 10px}.driver{display:grid;grid-template-columns:32px 1fr;gap:8px}.driver-score{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-family:var(--head);font-weight:850;color:var(--cyan);background:color-mix(in srgb,var(--cyan) 11%,transparent);border:1px solid color-mix(in srgb,var(--cyan) 25%,var(--line))}.driver-title,.conflict-title,.watch-title{font-weight:750;color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.driver-note,.conflict-note,.watch-note{color:var(--t2);font-size:11px;line-height:1.45;margin-top:2px}
+
+/* evidence */
+.evidence-card{border:1px solid var(--line2);border-radius:var(--r-md);background:color-mix(in srgb,var(--bg2) 82%,transparent);padding:12px}.evidence-card .source{display:flex;align-items:center;gap:8px;color:var(--t2);font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase}.source:before{content:"";width:7px;height:7px;border-radius:99px;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}.evidence-value{font-family:var(--head);font-size:25px;font-weight:850;letter-spacing:-.03em;margin-top:8px}.evidence-meaning{margin-top:6px;color:var(--t1);line-height:1.5;font-size:12px}.evidence-impact{margin-top:9px;color:var(--t2);font-size:11px}.evidence-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.metric{border:1px solid var(--line2);border-radius:var(--r-md);background:color-mix(in srgb,var(--bg2) 82%,transparent);padding:12px;min-width:0}.metric .k{color:var(--t2);font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:7px}.metric .v{color:var(--t0);font-family:var(--head);font-size:23px;font-weight:800;letter-spacing:-.03em}.metric .s{color:var(--t2);margin-top:4px;font-size:11px}
+.table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}.table th{text-align:left;color:var(--t2);font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line2)}.table td{color:var(--t1);padding:9px 10px;border-bottom:1px solid var(--line2)}.table tr:hover td{background:color-mix(in srgb,var(--cyan) 4%,transparent)}
+.chart-wrap{position:relative;min-height:250px;height:100%;background:linear-gradient(var(--line2) 1px,transparent 1px),linear-gradient(90deg,var(--line2) 1px,transparent 1px),var(--bg2);background-size:100% 48px,78px 100%;border-radius:0 0 var(--r-lg) var(--r-lg)}.chart-canvas{display:block;width:100%;height:100%}
+.item-list{display:flex;flex-direction:column;gap:8px}.item{border:1px solid var(--line2);border-radius:var(--r-md);background:color-mix(in srgb,var(--bg2) 82%,transparent);padding:10px 11px}.item-row{display:flex;align-items:center;gap:9px}.item-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:color-mix(in srgb,var(--cyan) 12%,transparent);color:var(--cyan);flex:0 0 auto;font-weight:800}.item-main{flex:1;min-width:0}.item-title{font-weight:700;color:var(--t0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.item-sub{margin-top:3px;color:var(--t2);font-size:11px;line-height:1.45}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;border:1px solid var(--line);color:var(--t2);background:color-mix(in srgb,var(--bg1) 60%,transparent);font-family:var(--mono);font-size:9px;letter-spacing:.06em;white-space:nowrap}.tag.cyan{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 34%,var(--line))}.tag.green{color:var(--green);border-color:color-mix(in srgb,var(--green) 34%,var(--line))}.tag.amber{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 38%,var(--line))}.tag.red{color:var(--red);border-color:color-mix(in srgb,var(--red) 34%,var(--line))}.tag.purple{color:var(--purple);border-color:color-mix(in srgb,var(--purple) 34%,var(--line))}
+.up{color:var(--green)!important}.down{color:var(--red)!important}.warn{color:var(--amber)!important}.info{color:var(--cyan)!important}.sym{color:var(--t0);font-weight:800}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.space{flex:1}.muted{color:var(--t2)}.soft{color:var(--t1)}.mono{font-family:var(--mono)}.mt8{margin-top:8px}.mb8{margin-bottom:8px}.input,textarea,select{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg2);color:var(--t0);padding:10px 12px;outline:0}
+
+/* command palette */
+.cmd-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.46);backdrop-filter:blur(10px);align-items:flex-start;justify-content:center;padding-top:88px}.cmd-overlay.open{display:flex}.cmd-box{width:min(760px,calc(100vw - 32px));border:1px solid color-mix(in srgb,var(--cyan) 35%,var(--line));background:color-mix(in srgb,var(--bg1) 96%,transparent);border-radius:18px;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.55),var(--glow)}.cmd-input{display:flex;align-items:center;gap:12px;padding:18px;border-bottom:1px solid var(--line)}.cmd-input span{color:var(--cyan);font-size:20px;font-weight:900}.cmd-input input{flex:1;border:0;outline:0;background:transparent;color:var(--t0);font-size:16px}.cmd-results{padding:9px}.cmd-result{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:11px 12px;border-radius:12px;cursor:pointer}.cmd-result:hover{background:color-mix(in srgb,var(--cyan) 8%,transparent)}.cmd-result .ico{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:var(--cyan);background:color-mix(in srgb,var(--cyan) 10%,transparent)}.cmd-result strong{display:block;color:var(--t0);margin-bottom:2px}.cmd-result small{color:var(--t2)}.cmd-result code{color:var(--t2);font-family:var(--mono);font-size:10px}
+
+@media(max-width:1420px){.detail-grid{grid-template-columns:310px minmax(470px,1fr) 320px}.nav-btn{padding:0 6px;font-size:8.8px}.judgment{grid-template-columns:1fr 1fr}.judgment>.panel:last-child{display:none}}
+@media(max-width:980px){body{overflow:auto}.app{min-height:100vh;height:auto;grid-template-rows:auto 28px auto}.tray{height:auto;min-height:42px;flex-wrap:wrap}.brand{width:auto}.nav{order:3;width:100%;flex-basis:100%;overflow-x:auto}.tray-right{margin-left:auto}.page,.page.active{position:relative;display:block;opacity:1}.page:not(.active){display:none}.page-shell{height:auto;overflow:visible}.tab-grid,.detail-grid,.judgment{display:block;height:auto}.panel{margin-bottom:12px}.evidence-grid,.metric-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="tray">
+    <div class="brand"><div class="brand-mark"><span><i></i><i></i><i></i><i></i></span></div><div class="brand-text">Fin<em>Skill</em>OS</div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="tray-right">
+      <span class="pill good">DB Live</span><span class="pill info">Read Mode</span><span class="pill warn">Evidence Mode</span>
+      <button class="cmd-btn" id="cmdOpen"><kbd>⌘K</kbd> Command</button><button class="theme-btn" id="themeBtn">Theme · Material</button><div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+  <div class="ticker-strip"><div class="ticker-scroll" id="tickerScroll"></div></div>
+  <main class="workspace" id="workspace"></main>
+</div>
+
+<div class="cmd-overlay" id="cmdOverlay">
+  <div class="cmd-box">
+    <div class="cmd-input"><span>⌘</span><input id="cmdInput" placeholder="Open module, review evidence, inspect watchpoints..." /></div>
+    <div class="cmd-results" id="cmdResults"></div>
+  </div>
+</div>
+
+<script>
+const tabs = [
+  {id:"control", label:"Control Room"},
+  {id:"kernel", label:"Market Kernel"},
+  {id:"analysis", label:"Analysis WS"},
+  {id:"symbol", label:"Symbol Lab"},
+  {id:"firewall", label:"Risk Firewall"},
+  {id:"mission", label:"Mission Control"},
+  {id:"news", label:"News Intel"},
+  {id:"catalyst", label:"Catalyst Watch"},
+  {id:"memory", label:"Trade Memory"},
+  {id:"ops", label:"System Ops"},
+];
+
+const tickers=[["SPY","672.48","+0.42%","up"],["QQQ","586.12","+0.81%","up"],["SMH","266.92","+1.74%","up"],["NVDA","142.76","+2.18%","up"],["TSLA","238.42","-0.91%","down"],["VIX","18.44","+5.02%","down"],["US10Y","4.17","+0.03","down"]];
+
+const pages = {
+control: {
+  eyebrow:"GLOBAL OPERATING VERDICT",
+  title:"Risk-On <span class='accent'>but Extended</span>",
+  confidence:68,
+  summary:"추세는 우호적이지만 AI/Semis 집중도, TSLA 단일 종목 한도, NVDA/FOMC 이벤트 밀집으로 추가 리스크 판단은 제한적입니다.",
+  drivers:[["92","SMH leadership","시장 내부 강세가 반도체/AI에 집중됨"],["31%","AI/Semis exposure","포트폴리오가 같은 narrative에 묶여 있음"],["2","Active guards","단일 종목/섹터 집중 경고가 동시 발생"]],
+  conflicts:[["Trend vs Breadth","QQQ/SMH는 강하지만 IWM이 약해 참여 폭은 좁음"],["Momentum vs Event","상승 모멘텀과 이벤트 변동성 리스크가 동시에 존재"]],
+  watch:[["Breadth confirmation","IWM/Equal-weight 개선 여부"],["Event volatility","NVDA earnings, FOMC window"],["Sizing review","TSLA/AI-Semis exposure가 완화되는지"]],
+  leftTitle:"Portfolio Evidence",
+  left:`<div class="metric-grid"><div class="metric"><div class="k">Goal Progress</div><div class="v info">73.4%</div><div class="s">₩73.42M / ₩100M</div></div><div class="metric"><div class="k">Largest Position</div><div class="v warn">TSLA</div><div class="s">13.8% · soft limit exceeded</div></div></div>
+  <div class="evidence-grid mt8">
+    ${evidence("Mission","73.4%","목표는 진척 중이나 손실 제한이 더 중요해지는 구간","Risk budget narrows")}
+    ${evidence("Cash Buffer","₩9.2M","현금 버퍼는 아직 방어 여력을 제공","Guard state: OK")}
+    ${evidence("Sector Exposure","AI/Semis 31.4%","같은 이벤트와 narrative에 포트폴리오가 묶임","Concentration risk")}
+    ${evidence("Review Queue","4 items","오늘 점검해야 할 근거가 명확함","Risk/Event/Memory")}</div>`,
+  centerTitle:"Integrated Market Tape",
+  chart:"line",
+  centerExtra:`<div class="evidence-grid mt8">${evidence("Regime","Risk-On Overheat","강한 tape지만 확장 구간으로 분류","Add risk is constrained")}${evidence("Tape","SMH/QQQ lead","강세의 질은 좁고 집중적","Breadth confirmation needed")}</div>`,
+  rightTitle:"Judgment Output",
+  right:`${judgmentOutput("운영 모드","Limited Risk Mode","시장 자체는 우호적이지만 포트폴리오 제약과 이벤트 밀집 때문에 관찰/리뷰 우선 모드입니다.")}
+  ${miniList("Next Review Conditions",[["Breadth expands","IWM/Equal-weight가 개선되면 신뢰도 상승"],["Vol shock","VIX 급등 시 risk mode 하향"],["Guard clears","TSLA/sector guard 완화 시 제약 완화"]])}`
+},
+kernel:{
+  eyebrow:"TECHNICAL SIGNAL JUDGMENT",
+  title:"Constructive Tape <span class='accent'>with Overheat Risk</span>",
+  confidence:72,
+  summary:"EMA 구조는 우호적이고 가격 흐름은 견조합니다. 다만 RSI와 이벤트 근접성이 상승 추세의 단기 안정성을 낮춥니다.",
+  drivers:[["EMA","20 > 60","중기 추세가 상승 구조를 유지"],["68","RSI","과열권에 가까워 추격 판단은 위험"],["7D","Event proximity","실적/매크로 이벤트가 차트 해석에 섞임"]],
+  conflicts:[["Trend vs RSI","가격은 강하지만 모멘텀 과열 신호도 있음"],["Volume vs Volatility","관심 증가는 긍정적이나 변동성 확대 요인도 됨"]],
+  watch:[["EMA break","EMA20 이탈 여부"],["RSI reset","RSI가 식으며 추세 유지되는지"],["Event overlay","이벤트 전후 gap/volume 변화"]],
+  leftTitle:"Signal Inputs",
+  left:`<div class="evidence-grid">${evidence("Trend","Positive","EMA20이 EMA60 위에 있어 추세는 우호적","Medium-term support")}${evidence("Momentum","Elevated","RSI 68은 과열 근접으로 해석","Short-term caution")}${evidence("Volume","Z +1.4","평균보다 높은 거래 관심","Attention rising")}${evidence("Volatility","Expanding","이벤트 전후 변동성 확대 가능","Fragility")}</div>`,
+  centerTitle:"Chart Terminal",
+  chart:"candle",
+  centerExtra:`<table class="table mt8"><thead><tr><th>Indicator</th><th>Value</th><th>Meaning</th></tr></thead><tbody><tr><td>EMA20/60</td><td class="up">Bullish</td><td>Trend support</td></tr><tr><td>RSI14</td><td class="warn">68.2</td><td>Elevated</td></tr><tr><td>BB Pos</td><td class="warn">0.81</td><td>Upper band proximity</td></tr></tbody></table>`,
+  rightTitle:"Interpretation",
+  right:`${judgmentOutput("Signal Verdict","Constructive but stretched","차트는 우호적이나 단기 과열과 이벤트 오버레이를 함께 읽어야 합니다.")}
+  ${miniList("Review Conditions",[["Trend weakens","EMA20 아래로 종가가 이동"],["Healthy reset","RSI 50~60대로 완화 후 가격 유지"],["Volume spike","이벤트 전후 비정상 거래량"]])}`
+},
+analysis:{
+  eyebrow:"MARKET STRUCTURE JUDGMENT",
+  title:"Leadership is <span class='accent'>Narrow</span>",
+  confidence:64,
+  summary:"시장 내부 강세는 존재하지만 SMH/QQQ에 집중되어 있습니다. IWM 약세와 일부 데이터 공백은 regime 신뢰도를 낮춥니다.",
+  drivers:[["92","SMH RS","반도체가 시장을 주도"],["38","IWM RS","소형주는 참여하지 못함"],["2","Missing feeds","DXY/US10Y 데이터 공백이 있음"]],
+  conflicts:[["Index high vs breadth","상위 지수는 강하지만 참여 폭은 좁음"],["Defensive bid","XLU의 완만한 bid는 risk-on 순도를 낮춤"]],
+  watch:[["ETF rotation","SMH→broad market 확산 여부"],["Data freshness","DXY/US10Y snapshot 보강"],["Breadth","IWM 개선 여부"]],
+  leftTitle:"Index Universe",
+  left:`<table class="table"><thead><tr><th>Symbol</th><th>Rel Str</th><th>Read</th></tr></thead><tbody><tr><td class="sym">SMH</td><td class="up">92</td><td>Leader</td></tr><tr><td class="sym">QQQ</td><td class="up">86</td><td>Bullish</td></tr><tr><td class="sym">SPY</td><td>78</td><td>Constructive</td></tr><tr><td class="sym">IWM</td><td class="down">38</td><td>Lagging</td></tr><tr><td class="sym">XLU</td><td class="warn">51</td><td>Defensive bid</td></tr></tbody></table>`,
+  centerTitle:"Relative Strength Overlay",
+  chart:"line",
+  centerExtra:`<div class="evidence-grid mt8">${evidence("Strongest","SMH","AI/Semis narrative가 tape를 주도","Narrow leadership")}${evidence("Weakest","IWM","소형주 참여 부족","Breadth risk")}</div>`,
+  rightTitle:"Structure Interpretation",
+  right:`${judgmentOutput("Breadth Verdict","Risk-on is concentrated","상승은 존재하지만 시장 전체의 broad participation으로 보기엔 약합니다.")}
+  ${miniList("Missing / Refresh Needs",[["DXY","Latest market bar missing"],["US10Y","No indicator snapshot"],["Equal-weight","Relative strength needed"]])}`
+},
+symbol:{
+  eyebrow:"SYMBOL JUDGMENT · TSLA",
+  title:"Recovering but <span class='accent'>Constrained</span>",
+  confidence:61,
+  summary:"TSLA는 기술적으로 회복 중이나 상대강도와 포지션 제약이 약합니다. 이벤트 chatter는 speculative로 취급해야 합니다.",
+  drivers:[["13.8%","Portfolio weight","단일 종목 영향이 이미 큼"],["68","RSI","단기 과열권 근접"],["SPEC","Event status","확정되지 않은 이벤트 narrative"]],
+  conflicts:[["Recovery vs leadership","반등은 있으나 SMH/QQQ 대비 leadership은 약함"],["Narrative vs confidence","뉴스는 많지만 date confidence가 낮음"]],
+  watch:[["Position value","₩10M soft cap 아래로 완화되는지"],["Event certainty","Speculative → reported/confirmed 여부"],["Relative strength","TSLA가 QQQ 대비 개선되는지"]],
+  leftTitle:"Position Evidence",
+  left:`<div class="metric-grid"><div class="metric"><div class="k">Market Value</div><div class="v warn">₩10.13M</div><div class="s">above soft cap</div></div><div class="metric"><div class="k">Weight</div><div class="v warn">13.8%</div><div class="s">single-name review</div></div></div>
+  <div class="evidence-grid mt8">${evidence("Held","Yes","이 종목 판단은 포트폴리오 위험과 직접 연결됨","Position-aware")}${evidence("Guard","Yellow","한도 초과로 추가 리스크 판단은 제한적","Review required")}</div>`,
+  centerTitle:"Technical / Narrative Evidence",
+  chart:"candle",
+  centerExtra:`<table class="table mt8"><tbody><tr><td>RSI14</td><td class="warn">68.2</td><td>Elevated</td></tr><tr><td>EMA20</td><td>241.8</td><td>Support</td></tr><tr><td>Event news</td><td class="warn">2</td><td>Tentative</td></tr></tbody></table>`,
+  rightTitle:"Symbol Watchpoints",
+  right:`${judgmentOutput("Symbol Verdict","Watch, do not over-interpret","기술 회복과 이벤트 narrative가 있으나 포지션 한도와 낮은 date confidence가 핵심 제약입니다.")}
+  ${miniList("Ticker News",[["Delivery data","Mixed margin interpretation"],["Robotaxi window","Tentative event-linked news"],["Sizing constraint","Guard remains yellow"]])}`
+},
+firewall:{
+  eyebrow:"RISK PERMISSION JUDGMENT",
+  title:"Limited Risk <span class='accent'>Mode</span>",
+  confidence:82,
+  summary:"차단 상태는 아니지만 단일 종목과 섹터 집중이 동시에 yellow 상태입니다. 포트폴리오 행동은 검토/감시 중심으로 제한됩니다.",
+  drivers:[["Y","Single position","TSLA value exceeds soft threshold"],["Y","Sector concentration","AI/Semis exposure elevated"],["G","Drawdown guard","현재 낙폭은 방어 모드 미만"]],
+  conflicts:[["Drawdown OK vs concentration","전체 손실은 제한적이나 특정 narrative 노출이 높음"]],
+  watch:[["Threshold clear","TSLA value or portfolio weight falls"],["Drawdown worsens","8%/15% guard thresholds"],["Sector risk","AI/Semis exposure decreases"]],
+  leftTitle:"Guard Results",
+  left:`${miniList("Active Guards",[["Single Position Guard","Observed ₩10.13M / limit ₩10.0M · yellow"],["Drawdown Guard","Below defensive threshold · green"],["Sector Concentration","AI/Semis elevated · yellow"]])}`,
+  centerTitle:"Protocol Matrix",
+  chart:null,
+  centerExtra:`<div class="evidence-grid">${evidence("Allowed","Review / journal / monitor","정보 해석과 회고는 계속 허용","Safe actions")}${evidence("Limited","Additional risk review","집중도/과열 경고가 있는 상태","Requires evidence")}${evidence("Blocked","Execution commands","이 UI는 거래 실행 기능을 노출하지 않음","Safety contract")}${evidence("Alerts","2 active","리스크 상태가 사용자의 주의를 요구","Watchlist")}</div>`,
+  rightTitle:"Risk Output",
+  right:`${judgmentOutput("Permission State","Limited, not blocked","현재는 방어 전환이 아니라 추가 리스크 판단 제한 상태입니다.")}
+  ${miniList("What changes state",[["Improves","Concentration falls or guard clears"],["Worsens","Drawdown crosses yellow/defensive thresholds"],["Needs review","Event cluster grows near held positions"]])}`
+},
+mission:{
+  eyebrow:"MISSION RISK JUDGMENT",
+  title:"Progress Strong, <span class='accent'>Risk Budget Narrows</span>",
+  confidence:77,
+  summary:"목표 달성률은 73.4%로 높아졌기 때문에 단순 수익 추구보다 drawdown control과 milestone 보호가 더 중요해지는 구간입니다.",
+  drivers:[["73%","Goal progress","목표에 가까워질수록 낙폭 관리의 중요도 상승"],["₩9.2M","Cash buffer","일부 방어 여력 유지"],["31%","Sector exposure","목표 진행을 특정 theme가 좌우할 가능성"]],
+  conflicts:[["Progress vs concentration","목표는 진척되지만 concentration risk가 성과를 흔들 수 있음"]],
+  watch:[["75% milestone","다음 milestone 근접"],["Cash buffer","방어 여력이 유지되는지"],["Drawdown","목표 대비 낙폭이 허용 범위를 넘는지"]],
+  leftTitle:"Goal / Milestone Evidence",
+  left:`<div class="metric-grid"><div class="metric"><div class="k">Progress</div><div class="v info">73.4%</div><div class="s">₩73.42M / ₩100M</div></div><div class="metric"><div class="k">Next Milestone</div><div class="v warn">75%</div><div class="s">approaching</div></div></div><table class="table mt8"><tbody><tr><td>25%</td><td class="up">Completed</td></tr><tr><td>50%</td><td class="up">Completed</td></tr><tr><td>75%</td><td class="warn">Approaching</td></tr><tr><td>100%</td><td>Pending</td></tr></tbody></table>`,
+  centerTitle:"Capital Map",
+  chart:"bar",
+  centerExtra:`<div class="evidence-grid mt8">${evidence("Cash","12.5%","리스크 이벤트에 대응할 완충재 존재","Buffer OK")}${evidence("Largest narrative","AI/Semis","목표 진행과 drawdown이 같은 theme에 묶임","Concentration watch")}</div>`,
+  rightTitle:"Mission Posture",
+  right:`${judgmentOutput("Mission State","Protect progress while interpreting risk","목표 진척률이 높아진 만큼 과도한 변동성 노출은 성과 보호 관점에서 검토되어야 합니다.")}
+  ${miniList("Review Conditions",[["Challenge complete","100% reached"],["Early-stop warning","Drawdown breaches configured threshold"],["Milestone mode","75% milestone reached"]])}`
+},
+news:{
+  eyebrow:"NARRATIVE JUDGMENT",
+  title:"AI Narrative Strong, <span class='accent'>Volatility Risk Elevated</span>",
+  confidence:66,
+  summary:"뉴스 흐름은 AI/Semis에 우호적이지만 NVDA earnings와 연결되어 event volatility를 키웁니다. TSLA 관련 이벤트는 date confidence가 낮습니다.",
+  drivers:[["AI","Dominant theme","AI infrastructure news가 포트폴리오 핵심 노출과 연결"],["3","NVDA links","이벤트 관련 기사 수 증가"],["SPEC","TSLA event","확정되지 않은 narrative는 낮은 신뢰도로 처리"]],
+  conflicts:[["Positive narrative vs event risk","좋은 narrative가 오히려 이벤트 변동성을 키움"],["News count vs certainty","기사 수는 많지만 날짜 확정성은 낮음"]],
+  watch:[["Source quality","manual source vs confirmed source"],["Event key density","NVDA_EARNINGS linked article count"],["Holdings relevance","보유 ticker와 news impact의 연결도"]],
+  leftTitle:"Holdings-Relevant News",
+  left:`${miniList("Relevant Items",[["AI chip demand remains elevated","Affects NVDA / SMH · positive narrative"],["Tesla event window reported","Date confidence tentative"],["FOMC tone remains data-dependent","Macro volatility note"]])}`,
+  centerTitle:"Impact Map",
+  chart:null,
+  centerExtra:`<table class="table"><thead><tr><th>Theme</th><th>Risk</th><th>Tickers</th><th>Interpretation</th></tr></thead><tbody><tr><td>AI / Semis</td><td class="warn">High</td><td>NVDA, SMH</td><td>positive but event-linked</td></tr><tr><td>Macro</td><td class="warn">Medium</td><td>QQQ, SPY</td><td>rate sensitivity</td></tr><tr><td>Space</td><td class="info">Watch</td><td>RKLB</td><td>speculative window</td></tr></tbody></table>
+  <div class="evidence-grid mt8">${evidence("Manual Entry","Short summary only","긴 원문 저장 없이 요약/impact만 저장","Copyright-safe")}${evidence("Event Link","NVDA_EARNINGS","뉴스와 Event Radar가 같은 key로 연결됨","Cross-tab evidence")}</div>`,
+  rightTitle:"Narrative Output",
+  right:`${judgmentOutput("News State","Relevant but not sufficient alone","뉴스는 포트폴리오 노출과 이벤트 리스크를 설명하는 근거이며 단독 판단 근거가 아닙니다.")}
+  <textarea style="height:90px" readonly>Manual article entry:
+title / source / url / short summary / ticker / theme / event_key</textarea>`
+},
+catalyst:{
+  eyebrow:"EVENT EXPOSURE JUDGMENT",
+  title:"Event Cluster <span class='accent'>High</span>",
+  confidence:69,
+  summary:"NVDA earnings와 FOMC window가 가까워 이벤트 노출이 높습니다. score는 예측이 아니라 포트폴리오 노출, 날짜 근접성, regime multiplier 기반의 준비 점수입니다.",
+  drivers:[["7.2","NVDA score","AI/Semis 31.4% + event within 7D"],["5.1","FOMC score","Macro sensitivity affects QQQ/SPY"],["MIX","Date status","reported/window/speculative가 혼재"]],
+  conflicts:[["Known event vs uncertain date","일부 이벤트는 날짜가 명확하지만 일부는 speculative"],["High exposure vs no prediction","점수는 가격 방향이 아니라 준비 우선순위"]],
+  watch:[["Date status changes","speculative → reported/confirmed"],["Linked news count","event_key 기사 수 증가"],["Regime multiplier","overheat/panic 전환 여부"]],
+  leftTitle:"Upcoming / High Risk Events",
+  left:`<table class="table"><thead><tr><th>Event</th><th>Status</th><th>Score</th></tr></thead><tbody><tr><td class="sym">NVDA Earnings</td><td><span class="tag amber">Reported</span></td><td class="down">7.2</td></tr><tr><td class="sym">FOMC</td><td><span class="tag cyan">Window</span></td><td class="warn">5.1</td></tr><tr><td class="sym">SpaceX IPO</td><td><span class="tag purple">Speculative</span></td><td>2.8</td></tr></tbody></table>`,
+  centerTitle:"Score Driver Breakdown",
+  chart:null,
+  centerExtra:`<div class="evidence-grid">${evidence("Portfolio Exposure","31.4% AI/Semis","NVDA event가 포트폴리오 핵심 theme와 직접 연결","Weight driver")}${evidence("Time Proximity","Within 7D","이벤트가 가까울수록 준비 우선순위 상승","Time driver")}${evidence("Regime","Overheat Watch","과열 regime은 이벤트 변동성을 더 크게 해석","Regime driver")}${evidence("Linked News","3 articles","기사 수 증가는 narrative pressure로 해석","News driver")}</div>`,
+  rightTitle:"Manual Event / Linked News",
+  right:`${judgmentOutput("Event State","Prepare, do not predict","날짜와 노출 기반으로 감시 우선순위를 정하지만 방향성 예측은 하지 않습니다.")}
+  <textarea style="height:96px" readonly>Manual event:
+title / date_status / start_date / end_date / source / event_key</textarea>`
+},
+memory:{
+  eyebrow:"PROCESS JUDGMENT",
+  title:"Profits in Risk-On, <span class='accent'>Losses in FOMO</span>",
+  confidence:74,
+  summary:"최근 수익은 Risk-On regime에서 집중됐고, 손실은 Overheat + Event FOMO 조건에서 반복됐습니다. Chasing tag가 손실 전 가장 자주 등장합니다.",
+  drivers:[["5","Risk-On trades","수익이 우호 regime에 집중됨"],["3","Chasing tags","손실 전 반복되는 행동 패턴"],["2","Event FOMO","이벤트 전후 과잉 반응이 약점"]],
+  conflicts:[["Good regime vs poor process","환경은 우호적이어도 chase하면 손실이 반복됨"],["Win rate vs mistake clustering","승률만 보면 괜찮지만 특정 실수의 손실 기여가 큼"]],
+  watch:[["Before event window","position sizing reflection"],["Emotion state","urgency/FOMO 기록 여부"],["Strategy filter","overheat regime의 setup 품질"]],
+  leftTitle:"Weekly Review / Recent Entries",
+  left:`<div class="metric-grid"><div class="metric"><div class="k">Trades</div><div class="v">8</div><div class="s">This week</div></div><div class="metric"><div class="k">Win Rate</div><div class="v up">62%</div><div class="s">process sample</div></div></div><table class="table mt8"><tbody><tr><td>NVDA</td><td>Risk-On</td><td class="up">+0.8R</td></tr><tr><td>TSLA</td><td>Overheat</td><td class="down">-0.4R</td></tr><tr><td>QQQ</td><td>Risk-On</td><td class="up">+0.3R</td></tr></tbody></table>`,
+  centerTitle:"Reflection Analytics",
+  chart:null,
+  centerExtra:`<div class="evidence-grid">${evidence("By Regime","Risk-On +₩1.8M","환경 적합성이 수익에 크게 기여","Best condition")}${evidence("By Strategy","Momentum positive","단, 이벤트 FOMO 전략군은 음수","Strategy filter")}${evidence("Mistake Frequency","Chasing ×3","손실 전 반복되는 행동 패턴","Top review")}${evidence("Emotion","Urgency before losses","감정 상태가 실수와 연결됨","Process signal")}</div>`,
+  rightTitle:"Process Diagnosis",
+  right:`${judgmentOutput("Weekly Pattern","Review sizing before event windows","다음 주 핵심은 시장 예측이 아니라 이벤트 전 포지션 크기와 감정 상태를 기록하는 것입니다.")}
+  <textarea style="height:112px" readonly>## Weekly Review
+- Best condition: Risk-On
+- Weakest pattern: Overheat + Event FOMO
+- Repeated mistake: Chasing
+- Review priority: sizing before event windows</textarea>`
+},
+ops:{
+  eyebrow:"SYSTEM TRUST JUDGMENT",
+  title:"Local System <span class='accent'>Usable with Partial Data</span>",
+  confidence:81,
+  summary:"DB와 migration은 정상이나 일부 market/news data freshness는 partial입니다. Product UI는 read-only interpretation mode로 유지됩니다.",
+  drivers:[["OK","Postgres","연결 및 migration head 상태"],["PART","Freshness","일부 symbol의 latest bar/snapshot 공백"],["SAFE","Read mode","운영 프로토콜은 해석/seed/recompute만 수행"]],
+  conflicts:[["DB live vs data stale","인프라는 정상이나 일부 입력 데이터는 오래됨"],["Protocol actions vs safety","운영 작업은 가능하지만 거래 실행은 범위 밖"]],
+  watch:[["Migration drift","head 상태 유지"],["Data freshness","stale symbols count"],["Seed protocol","sample data와 live data 구분"]],
+  leftTitle:"System Health",
+  left:`${miniList("Data Layer",[["PostgreSQL","Connected · migrations at head"],["Market Bars","Partial freshness"],["News / Event Stores","Manual upsert and seed helpers available"],["Streamlit Debug UI","Kept as internal/admin route"]])}`,
+  centerTitle:"Operational Protocols",
+  chart:null,
+  centerExtra:`<div class="evidence-grid">${evidence("Seed Sample Account","Creates demo account/snapshots","개발/검수용 데이터 준비","Non-destructive sample")}${evidence("Recompute Regime","Uses latest indicator snapshots","시장 해석 레이어 갱신","Interpretation only")}${evidence("Run Risk Guards","Creates descriptive alerts","포트폴리오 제약 재계산","No execution")}${evidence("Seed Events","Uncertain events stay tentative","Event Radar 검수용 데이터","Date status preserved")}</div>`,
+  rightTitle:"Safety Contract",
+  right:`${judgmentOutput("Trust State","Ready for local stop/start workflow","Docker stop/start 사용에 맞춰 named volume을 유지하고, down -v는 초기화 용도로만 사용합니다.")}
+  ${miniList("System Rules",[["No execution endpoints","Product UI remains interpretation-first"],["Stored data only","No hidden live refresh"],["Visual QA later","13.10 handles screenshot parity"]])}`
+}
+};
+
+function evidence(source,value,meaning,impact){return `<div class="evidence-card"><div class="source">${source}</div><div class="evidence-value">${value}</div><div class="evidence-meaning">${meaning}</div><div class="evidence-impact">${impact}</div></div>`}
+function miniList(title,items){return `<div class="panel soft"><div class="panel-head"><div class="panel-title">${title}</div></div><div class="panel-body item-list">${items.map(([t,s])=>`<div class="item"><div class="item-title">${t}</div><div class="item-sub">${s}</div></div>`).join("")}</div></div>`}
+function judgmentOutput(k,v,note){return `<div class="evidence-card mb8"><div class="source">${k}</div><div class="evidence-value">${v}</div><div class="evidence-meaning">${note}</div><div class="evidence-impact">Judgment, not execution instruction</div></div>`}
+function panel(title,body,badge=""){return `<div class="panel"><div class="panel-head"><div class="window-dots"><span></span><span></span><span></span></div><div class="panel-title">${title}</div>${badge?`<span class="panel-badge">${badge}</span>`:""}</div><div class="panel-body">${body}</div></div>`}
+function chartPanel(title,id,badge="Evidence"){return `<div class="panel"><div class="panel-head"><div class="window-dots"><span></span><span></span><span></span></div><div class="panel-title">${title}</div><span class="panel-badge">${badge}</span></div><div class="chart-wrap" style="height:280px"><canvas class="chart-canvas" id="${id}"></canvas></div></div>`}
+function judgmentHeader(d){return `<div class="judgment">
+  <div class="panel"><div class="judgment-main"><div class="eyebrow">${d.eyebrow}</div><div class="judgment-title">${d.title}</div><div class="judgment-summary">${d.summary}</div><div class="confidence-row"><span class="tag cyan">Confidence</span><div class="confidence-meter" style="--w:${d.confidence}%"><span></span></div><span class="tag ${d.confidence>75?"green":d.confidence>60?"amber":"red"}">${d.confidence}%</span></div></div></div>
+  ${panel("Primary Drivers", `<div class="driver-list">${d.drivers.map(([score,t,n])=>`<div class="driver"><div class="driver-score">${score}</div><div><div class="driver-title">${t}</div><div class="driver-note">${n}</div></div></div>`).join("")}</div>`, "Evidence")}
+  ${panel("Conflicts / Watch", `<div class="conflict-list">${d.conflicts.map(([t,n])=>`<div class="conflict"><div class="conflict-title">${t}</div><div class="conflict-note">${n}</div></div>`).join("")}</div><div class="watch-list mt8">${d.watch.map(([t,n])=>`<div class="watch"><div class="watch-title">${t}</div><div class="watch-note">${n}</div></div>`).join("")}</div>`, "Review")}
+</div>`}
+function renderPage(id,d){const chartId=`chart-${id}`;return `<section class="page ${id==="control"?"active":""}" id="page-${id}"><div class="page-shell"><div class="tab-grid">
+${judgmentHeader(d)}
+<div class="detail-grid">
+  <div class="column scroll">${panel(d.leftTitle,d.left,"Evidence")}</div>
+  <div class="column scroll">${d.chart?chartPanel(d.centerTitle,chartId,d.chart==="candle"?"Chart":d.chart==="bar"?"Map":"Tape"):""}${panel(d.centerTitle,d.centerExtra,"Synthesis")}</div>
+  <div class="column scroll">${panel(d.rightTitle,d.right,"Output")}</div>
+</div>
+</div></div></section>`}
+function boot(){document.getElementById("nav").innerHTML=tabs.map(t=>`<button class="nav-btn ${t.id==="control"?"active":""}" data-page="${t.id}"><span class="nav-dot"></span>${t.label}</button>`).join("");document.getElementById("workspace").innerHTML=tabs.map(t=>renderPage(t.id,pages[t.id])).join("");document.getElementById("cmdResults").innerHTML=tabs.map(t=>`<div class="cmd-result" data-page="${t.id}"><div class="ico">⌁</div><div><strong>Open ${t.label}</strong><small>Review evidence-to-judgment panel</small></div><code>GO</code></div>`).join("");initTicker();initNav();initControls();updateClock();setInterval(updateClock,1000);setTimeout(drawAllCharts,120);window.addEventListener("resize",()=>setTimeout(drawAllCharts,80))}
+function initTicker(){document.getElementById("tickerScroll").innerHTML=[...tickers,...tickers].map(([sym,px,ch,cls])=>`<div class="ticker-item"><span class="ticker-symbol">${sym}</span><span class="ticker-price">${px}</span><span class="ticker-change ${cls}">${ch}</span></div>`).join("")}
+function initNav(){document.querySelectorAll(".nav-btn,.cmd-result").forEach(btn=>btn.addEventListener("click",()=>{setPage(btn.dataset.page);document.getElementById("cmdOverlay").classList.remove("open")}))}
+function setPage(id){document.querySelectorAll(".page").forEach(el=>el.classList.remove("active"));document.getElementById(`page-${id}`)?.classList.add("active");document.querySelectorAll(".nav-btn").forEach(btn=>btn.classList.toggle("active",btn.dataset.page===id));setTimeout(drawAllCharts,60)}
+const themeNames=["material","cyber","light"];let themeIndex=0;function initControls(){const overlay=document.getElementById("cmdOverlay");document.getElementById("cmdOpen").addEventListener("click",()=>overlay.classList.add("open"));overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.classList.remove("open")});document.getElementById("themeBtn").addEventListener("click",()=>{themeIndex=(themeIndex+1)%themeNames.length;const theme=themeNames[themeIndex];document.documentElement.dataset.theme=theme;document.getElementById("themeBtn").textContent="Theme · "+(theme==="material"?"Material":theme==="cyber"?"Cyber":"Light");setTimeout(drawAllCharts,80)});document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();overlay.classList.toggle("open");if(overlay.classList.contains("open"))document.getElementById("cmdInput").focus()}if(e.key==="Escape")overlay.classList.remove("open")})}
+function updateClock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString("ko-KR",{hour12:false})}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}function resizeCanvas(canvas){const rect=canvas.getBoundingClientRect();const dpr=window.devicePixelRatio||1;canvas.width=Math.max(1,Math.floor(rect.width*dpr));canvas.height=Math.max(1,Math.floor(rect.height*dpr));const ctx=canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);return{ctx,w:rect.width,h:rect.height}}
+let seed=42;function rnd(){seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296}function series(n,start=100,vol=4,trend=.2){let y=start;return Array.from({length:n},(_,i)=>{y+=Math.sin(i*.28)*vol*.22+(rnd()-.44)*vol+trend;return y})}
+function drawLine(canvas,label){const{ctx,w,h}=resizeCanvas(canvas);ctx.clearRect(0,0,w,h);const line=css("--line2"),cyan=css("--cyan"),amber=css("--amber"),green=css("--green"),text=css("--t1");for(let i=0;i<6;i++){ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(0,i*h/5);ctx.lineTo(w,i*h/5);ctx.stroke()}seed=42;const s=series(80),min=Math.min(...s),max=Math.max(...s),pad=24,x=i=>pad+i*(w-pad*2)/(s.length-1),y=v=>h-pad-(v-min)/(max-min||1)*(h-pad*2);const grad=ctx.createLinearGradient(0,pad,0,h-pad);grad.addColorStop(0,"rgba(107,220,255,.25)");grad.addColorStop(1,"rgba(107,220,255,0)");ctx.beginPath();s.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));ctx.lineTo(x(s.length-1),h-pad);ctx.lineTo(x(0),h-pad);ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.beginPath();s.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));ctx.lineWidth=2.2;ctx.strokeStyle=cyan;ctx.shadowColor=cyan;ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;const s2=series(80,94,3,.07),min2=Math.min(...s2,min),max2=Math.max(...s2,max),y2=v=>h-pad-(v-min2)/(max2-min2||1)*(h-pad*2);ctx.beginPath();s2.forEach((v,i)=>i?ctx.lineTo(x(i),y2(v)):ctx.moveTo(x(i),y2(v)));ctx.lineWidth=1.5;ctx.strokeStyle=amber;ctx.setLineDash([6,5]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=text;ctx.font="11px ui-monospace, monospace";ctx.fillText(label,18,20);ctx.fillStyle=green;ctx.fillText("+12.8%",w-74,20)}
+function drawCandle(canvas){const{ctx,w,h}=resizeCanvas(canvas);ctx.clearRect(0,0,w,h);const green=css("--green"),red=css("--red"),cyan=css("--cyan"),purple=css("--purple"),line=css("--line2"),text=css("--t1");for(let i=0;i<7;i++){ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(0,i*h/6);ctx.lineTo(w,i*h/6);ctx.stroke()}seed=88;let price=120;const cs=[];for(let i=0;i<62;i++){const o=price+(rnd()-.5)*3,c=o+(rnd()-.43)*8+Math.sin(i*.18)*.8,hi=Math.max(o,c)+rnd()*5,lo=Math.min(o,c)-rnd()*5;price=c;cs.push({o,c,hi,lo})}const min=Math.min(...cs.map(c=>c.lo)),max=Math.max(...cs.map(c=>c.hi)),pad=28,bw=Math.max(3,(w-pad*2)/cs.length*.55),x=i=>pad+i*(w-pad*2)/(cs.length-1),y=v=>h-pad-(v-min)/(max-min)*(h-pad*2);cs.forEach((c,i)=>{const up=c.c>=c.o;ctx.strokeStyle=up?green:red;ctx.fillStyle=up?green:red;const xx=x(i);ctx.beginPath();ctx.moveTo(xx,y(c.hi));ctx.lineTo(xx,y(c.lo));ctx.stroke();ctx.fillRect(xx-bw/2,y(Math.max(c.o,c.c)),bw,Math.max(2,Math.abs(y(c.o)-y(c.c))))});ctx.lineWidth=1.6;ctx.strokeStyle=cyan;ctx.beginPath();cs.forEach((c,i)=>{const v=c.c+Math.sin(i*.15)*2;i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v))});ctx.stroke();ctx.strokeStyle=purple;ctx.beginPath();cs.forEach((c,i)=>{const v=c.c-5+Math.cos(i*.11)*2.5;i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v))});ctx.stroke();ctx.fillStyle=text;ctx.font="11px ui-monospace, monospace";ctx.fillText("Candle · EMA20 · EMA60 · stored bars",18,20)}
+function drawBar(canvas){const{ctx,w,h}=resizeCanvas(canvas);ctx.clearRect(0,0,w,h);const colors=[css("--cyan"),css("--amber"),css("--green"),css("--purple"),css("--red")],labels=["Semis","Mega Tech","Cash","Space","Other"],values=[31,25,13,9,22],pad=32,bw=(w-pad*2)/values.length*.54;values.forEach((v,i)=>{const x=pad+i*(w-pad*2)/values.length+bw/2,bh=(h-pad*2)*v/36;ctx.fillStyle=colors[i];ctx.fillRect(x,h-pad-bh,bw,bh);ctx.fillStyle=css("--t1");ctx.font="11px ui-monospace, monospace";ctx.fillText(labels[i],x-8,h-12);ctx.fillText(v+"%",x,h-pad-bh-8)})}
+function drawAllCharts(){document.querySelectorAll("canvas").forEach(canvas=>{if(!canvas.offsetParent)return;const id=canvas.id;const d=Object.values(pages).find(p=>`chart-${Object.keys(pages).find(k=>pages[k]===p)}`===id);if(id.includes("kernel")||id.includes("symbol"))drawCandle(canvas);else if(id.includes("mission"))drawBar(canvas);else drawLine(canvas, id.includes("analysis")?"Index overlay · relative strength":"Normalized evidence tape · not prediction")})}
+document.addEventListener("DOMContentLoaded",boot);
+</script>
+</body>
+</html>

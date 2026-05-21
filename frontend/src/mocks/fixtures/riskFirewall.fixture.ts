@@ -103,7 +103,7 @@ export const riskFirewallFixture: RiskFirewallData = {
       tone: "limited",
       label: "Limited",
       description:
-        "Additional risk while concentration or overheat flags remain active. Consider reducing exposure size.",
+        "Exposure-size review remains required while concentration or overheat flags remain active.",
     },
     {
       tone: "blocked",

@@ -19,7 +19,12 @@ Targeted modules:
 ```text
 .devmd/13_6_Frontend_Migration_Shell.md
 .devmd/13_7_React_Market_Analysis_Symbol.md     (precedent for camelCase API + shell pattern)
-prototypes/ui/enhanced_dashboard_mockup/finskillos_v4_1_product_cockpit_index.html
+
+v4.1 visual shell baseline:
+prototypes/ui/enhanced_dashboard_mockup/index.html
+
+v4.2 Evidence-to-Judgment UX baseline:
+prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html
 
 finskillos/services/risk_guard_service.py
 finskillos/services/portfolio_service.py
@@ -328,3 +333,46 @@ Known issues:
 
 Stop after 13.8. Do not start 13.9 / 13.10 unless the user
 explicitly asks.
+
+## Post-Slice-13.8 Cleanup
+
+```text
+13.8 Cleanup Status: DONE_AS_REACT_RISK_MISSION_OPS_CLEANUP_V0 (2026-05-21)
+
+Cleanup implemented:
+- Aligned Playwright e2e Docker image with @playwright/test version.
+  frontend/Dockerfile.e2e:
+    mcr.microsoft.com/playwright:v1.49.1-noble
+    → mcr.microsoft.com/playwright:v1.60.0-noble
+- Softened Risk Firewall limited protocol wording from advisory action
+  to constraint-state wording.
+  api/fixtures/risk_firewall.py + frontend/src/mocks/fixtures/
+    riskFirewall.fixture.ts now use:
+    "Exposure-size review remains required while concentration or
+     overheat flags remain active."
+  (replaces "Consider reducing exposure size.")
+- Normalized prototype path references across slice 13.7 / 13.8 /
+  13.9 / 13.10 devmd Read-first sections:
+    v4.1 shell baseline:
+      prototypes/ui/enhanced_dashboard_mockup/index.html
+    v4.2 Evidence-to-Judgment baseline:
+      prototypes/ui/enhanced_dashboard_mockup/v4_2/
+        finskillos_v4_2_evidence_judgment_mockup.html
+- Updated frontend package metadata to Slice 13.8:
+    frontend/package.json: version 0.13.8 + Slice-13.8 description.
+    frontend/package-lock.json: root package version bumped to 0.13.8
+    (lockfile metadata only — no dependency version changes).
+- Updated .devmd/13_9 instructions to use the v4.2
+  Evidence-to-Judgment UX direction. Each tab now reads as
+  Judgment Header → Primary Drivers → Conflicts / Uncertainty →
+  Evidence Details → Integrated Interpretation → Watchpoints, with
+  per-tab judgment vocab (Narrative / Event Exposure / Process)
+  and the matching v4.2 component list.
+
+Remaining:
+- 13.9 still not implemented.
+- 13.7 / 13.8 pages are functionally complete but not refactored
+  into the v4.2 Judgment Header structure — that is the 13.10
+  visual-parity / refactor job.
+- Full screenshot parity remains deferred to 13.10.
+```

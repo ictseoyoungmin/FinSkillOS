@@ -17,7 +17,12 @@ the static HTML mockup.
 .devmd/13_7_React_Market_Analysis_Symbol.md
 .devmd/13_8_React_Risk_Mission_Ops.md
 .devmd/13_9_React_News_Events_TradeMemory.md
-prototypes/ui/enhanced_dashboard_mockup/finskillos_v4_1_product_cockpit_index.html
+
+v4.1 visual shell baseline:
+prototypes/ui/enhanced_dashboard_mockup/index.html
+
+v4.2 Evidence-to-Judgment UX baseline:
+prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html
 
 frontend/playwright.config.ts
 frontend/e2e/visual/control-room.visual.spec.ts   (existing baseline pattern)

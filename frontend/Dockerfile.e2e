@@ -5,7 +5,7 @@
 # official Playwright base image that already bundles Chromium +
 # dependencies, then installs the locked frontend deps with `npm ci`.
 
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.60.0-noble
 
 WORKDIR /work/frontend
 ENV CI=1

@@ -14,13 +14,62 @@ Targeted modules:
 - Trade Memory       (finskillos.services.trade_journal_service + reflection_service)
 ```
 
+## UX Direction — v4.2 Evidence-to-Judgment
+
+Slice 13.9 must use the v4.2 Evidence-to-Judgment prototype as the
+primary UX direction:
+
+```text
+prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html
+```
+
+For each tab, avoid a simple table/card dump. The page should read
+as:
+
+```text
+Judgment Header
+→ Primary Drivers
+→ Conflicts / Uncertainty
+→ Evidence Details
+→ Integrated Interpretation
+→ Watchpoints / Review Conditions
+```
+
+This does not mean implementing pixel-perfect v4.2 styling in this
+slice. It means the information hierarchy must let the user
+understand how raw news/events/journal data combines into a
+judgment-support view.
+
+Allowed judgment types:
+
+```text
+- narrative state
+- event exposure state
+- process/reflection state
+- data freshness state
+- portfolio relevance state
+```
+
+Forbidden:
+
+```text
+- direct buy/sell recommendation
+- order/execution controls
+- guaranteed return language
+```
+
 ## Read first
 
 ```text
 .devmd/13_6_Frontend_Migration_Shell.md
 .devmd/13_7_React_Market_Analysis_Symbol.md     (camelCase API + shell pattern precedent)
 .devmd/13_8_React_Risk_Mission_Ops.md           (POST protocol pattern precedent)
-prototypes/ui/enhanced_dashboard_mockup/finskillos_v4_1_product_cockpit_index.html
+
+v4.1 visual shell baseline:
+prototypes/ui/enhanced_dashboard_mockup/index.html
+
+v4.2 Evidence-to-Judgment UX baseline:
+prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html
 
 finskillos/services/news_service.py
 finskillos/services/event_service.py
@@ -73,90 +122,242 @@ Not allowed:
 
 ## Required UI per tab
 
-### News Intelligence
+### News Intelligence — v4.2 target
+
+News Intelligence should answer:
 
 ```text
-- Latest news cards/table (title / source / published_at /
-  sentiment / impact tags).
-- Holdings-relevant news section (matched via position tickers).
-- Impact map (affected tickers + sectors + themes).
-- Event-linked news badge (rows where is_event_linked = True).
-- Manual article entry form (title / source / url / published_at /
-  short summary + optional ticker / sector / theme / event_key).
-  - Summary input is hard-capped at MAX_SUMMARY_CHARS = 500.
-  - No "full article body" field.
-- Disclaimer: "Short summaries only — no full article body stored."
+What narrative is affecting my portfolio, and what evidence supports
+that interpretation?
 ```
 
-Components:
+Required structure:
 
 ```text
-features/news/components/LatestNewsTable.tsx
+Judgment Header:
+- Narrative Judgment
+- confidence
+- dominant theme
+- portfolio relevance
+- event linkage
+- sentiment / risk tone
+
+Primary Drivers:
+- affected holdings
+- theme exposure
+- linked event count
+- source quality / freshness
+
+Conflicts / Uncertainty:
+- positive narrative vs event volatility
+- article count vs source/date confidence
+- broad market news vs holding-specific relevance
+
+Evidence Details:
+- holdings-relevant news
+- impact map
+- event-linked news
+- manual article entry
+
+Integrated Interpretation:
+- what today's news means for portfolio context
+- why it matters
+- what remains uncertain
+
+Watchpoints:
+- source confirmation
+- change in linked event status
+- sudden cluster in same theme/ticker
+```
+
+Required components:
+
+```text
+features/news/components/NewsJudgmentHeader.tsx
 features/news/components/HoldingsRelevantNews.tsx
 features/news/components/NewsImpactMap.tsx
 features/news/components/EventLinkedNewsPanel.tsx
 features/news/components/ManualArticleEntry.tsx
+features/news/components/NewsWatchpointsPanel.tsx
 ```
 
-### Catalyst Watch / Event Radar
+Manual article entry safety rules:
 
 ```text
-- Upcoming events table sorted by start_date.
-- Date status badges with explicit colour coding:
-    CONFIRMED → success
-    WINDOW    → info
-    TENTATIVE → warning
-    REPORTED  → warning
-    SPECULATIVE → purple
-- Event risk score column with caption "Preparation / exposure
-  score, not a prediction." — re-use the cleanup wording from
-  .devmd/cleanup/11_cleanup.md Task 4.
-- High-risk events callout (score ≥ 7).
-- Holdings-linked events panel (events where any link.ticker is in
-  current positions).
-- Linked-news panel (joins news_impacts.event_key /
-  news_impacts.ticker).
-- Manual event entry form (title / event_type / date_status /
-  start_date / optional end_date / importance / source / description
-  + optional ticker / sector / theme / event_key).
-  - date_status defaults to TENTATIVE.
-  - CONFIRMED + source="manual_seed" must be rejected via existing
-    EventService validator.
-- "Seed sample events" button (idempotent, uses existing
-  seed_sample_events helper).
+- Summary input is hard-capped at MAX_SUMMARY_CHARS = 500.
+- No "full article body" field.
+- Disclaimer: "Short summaries only — no full article body stored."
+- Stored fields only: title / source / url / published_at /
+  short_summary / affected_tickers / theme / event_key /
+  sentiment / risk tags.
 ```
 
-Components:
+API targets:
 
 ```text
+GET  /api/news-intelligence
+POST /api/news-intelligence/manual-article
+```
+
+### Catalyst Watch / Event Radar — v4.2 target
+
+Catalyst Watch should answer:
+
+```text
+Which upcoming events create exposure, and why is the event risk
+score high or low?
+```
+
+Required structure:
+
+```text
+Judgment Header:
+- Event Exposure Judgment
+- confidence
+- highest-risk event
+- cluster status
+- portfolio-linked exposure
+- date-confidence mix
+
+Primary Drivers:
+- portfolio exposure
+- days to event
+- date status
+- regime multiplier
+- linked news count
+
+Conflicts / Uncertainty:
+- confirmed event vs speculative event
+- high news attention vs low date confidence
+- event risk score is not price prediction
+
+Evidence Details:
+- upcoming event table
+- date status badges
+- high-risk events
+- holdings-linked events
+- linked news
+- manual event entry
+- sample event seed action
+
+Integrated Interpretation:
+- why the event deserves attention
+- how it relates to portfolio exposure
+- what makes the score uncertain
+
+Watchpoints:
+- speculative → reported/confirmed date status transition
+- linked news count increase
+- regime shift increasing/decreasing event multiplier
+```
+
+Required event status badges (colour coding preserved):
+
+```text
+CONFIRMED   → success
+WINDOW      → info
+TENTATIVE   → warning
+REPORTED    → warning
+SPECULATIVE → purple
+```
+
+Required components:
+
+```text
+features/events/components/EventExposureJudgment.tsx
 features/events/components/EventRiskTable.tsx
 features/events/components/EventStatusBadge.tsx
 features/events/components/HighRiskEventsPanel.tsx
 features/events/components/HoldingsLinkedEventsPanel.tsx
-features/events/components/EventLinkedNewsPanel.tsx
+features/events/components/EventScoreDrivers.tsx
 features/events/components/ManualEventEntry.tsx
-features/events/components/SeedSampleEventsButton.tsx
+features/events/components/EventLinkedNewsPanel.tsx
 ```
 
-### Trade Memory
+Manual event entry safety rules:
 
 ```text
-- Recent entries table (date / ticker / side / strategy / regime /
-  sector / emotion / P&L / R / mistake tags).
-- Add journal entry form (side selector limited to LONG / SHORT /
-  WATCH / EXIT_REVIEW / OTHER — legacy BUY/SELL load-only).
-- Weekly review panel: trade count / total P&L / win rate /
-  best regime / weakest regime / process notes.
-- Performance breakdowns (by regime, by sector/theme, by strategy).
-- Mistake-tag frequency table.
-- Copyable weekly-review markdown text_area (already produced by
-  TradeMemoryViewModel.weekly_review_markdown).
-- Caption: "Reflection / process review — no execution controls."
+- date_status defaults to TENTATIVE.
+- CONFIRMED + source="manual_seed" rejected by the existing
+  EventService validator.
+- "Seed sample events" stays idempotent (existing
+  seed_sample_events helper).
 ```
 
-Components:
+API targets:
 
 ```text
+GET  /api/event-radar
+POST /api/event-radar/manual-event
+POST /api/event-radar/seed-sample-events
+```
+
+Important wording rule:
+
+```text
+Event risk score = preparation / exposure score only.
+It must never be described as price direction prediction.
+```
+
+### Trade Memory — v4.2 target
+
+Trade Memory should answer:
+
+```text
+What repeated behavior pattern is visible, and what should I review
+before the next week?
+```
+
+Required structure:
+
+```text
+Judgment Header:
+- Process Judgment
+- confidence
+- best condition
+- weakest condition
+- repeated mistake
+- review priority
+
+Primary Drivers:
+- recent entries
+- PnL by regime
+- PnL by sector/theme
+- PnL by strategy
+- mistake frequency
+- emotion tags before losses
+
+Conflicts / Uncertainty:
+- good market regime vs poor process behavior
+- high win rate vs clustered mistakes
+- short sample size limitations
+
+Evidence Details:
+- recent entries table
+- add journal entry form
+- weekly review panel
+- performance by regime
+- performance by sector/theme
+- performance by strategy
+- mistake frequency
+- copyable weekly review markdown
+
+Integrated Interpretation:
+- what pattern appeared this week
+- what condition helped
+- what condition harmed
+- what review condition matters next
+
+Watchpoints:
+- chasing before event windows
+- oversizing in overheat regime
+- emotion tag clustering before losses
+```
+
+Required components:
+
+```text
+features/trades/components/ProcessJudgmentHeader.tsx
 features/trades/components/RecentEntriesTable.tsx
 features/trades/components/TradeEntryForm.tsx
 features/trades/components/WeeklyReviewPanel.tsx
@@ -165,6 +366,25 @@ features/trades/components/PerformanceBySectorTheme.tsx
 features/trades/components/PerformanceByStrategy.tsx
 features/trades/components/MistakeFrequencyPanel.tsx
 features/trades/components/WeeklyMarkdownExport.tsx
+features/trades/components/TradeMemoryWatchpoints.tsx
+```
+
+Form / safety rules:
+
+```text
+- side selector limited to LONG / SHORT / WATCH / EXIT_REVIEW /
+  OTHER (legacy BUY/SELL load-only).
+- Caption: "Reflection / process review — no execution controls."
+- Copyable weekly-review markdown text_area already produced by
+  TradeMemoryViewModel.weekly_review_markdown.
+```
+
+API targets:
+
+```text
+GET  /api/trade-memory
+POST /api/trade-memory/entries
+GET  /api/trade-memory/weekly-review
 ```
 
 ## Safety contract (must re-enforce)

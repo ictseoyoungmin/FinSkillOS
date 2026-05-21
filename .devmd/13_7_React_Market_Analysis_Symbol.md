@@ -23,7 +23,12 @@ v4.1 mockup layout.
 ```text
 .devmd/13_6_Frontend_Migration_Shell.md          (cleanup completion)
 .devmd/cleanup/13_6_cleanup.md
-prototypes/ui/enhanced_dashboard_mockup/finskillos_v4_1_product_cockpit_index.html
+
+v4.1 visual shell baseline:
+prototypes/ui/enhanced_dashboard_mockup/index.html
+
+v4.2 Evidence-to-Judgment UX baseline:
+prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html
 
 api/main.py
 api/dependencies.py
