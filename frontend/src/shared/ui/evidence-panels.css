@@ -1,0 +1,118 @@
+.fso-drivers-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fso-drivers-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  border-top: 1px solid var(--fso-line);
+  padding-top: 10px;
+}
+
+.fso-drivers-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.fso-drivers-row dt {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-drivers-row dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fso-drivers-value {
+  font-size: 13px;
+  color: var(--fso-text);
+}
+
+.fso-drivers-detail {
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}
+
+@media (max-width: 700px) {
+  .fso-drivers-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fso-conflicts-list,
+.fso-watchpoints-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fso-conflicts-row,
+.fso-watchpoints-row {
+  border-left: 2px solid var(--fso-line);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-conflicts-label,
+.fso-watchpoints-label {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--fso-text);
+  text-transform: uppercase;
+}
+
+.fso-conflicts-desc,
+.fso-watchpoints-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fso-text-muted);
+}
+
+.fso-tone-warning {
+  border-left-color: var(--fso-amber);
+}
+
+.fso-tone-danger {
+  border-left-color: var(--fso-red);
+}
+
+.fso-tone-info {
+  border-left-color: var(--fso-cyan);
+}
+
+.fso-tone-success {
+  border-left-color: var(--fso-green);
+}
+
+.fso-tone-neutral {
+  border-left-color: var(--fso-line);
+}
+
+.fso-interpretation-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fso-text);
+  line-height: 1.55;
+}

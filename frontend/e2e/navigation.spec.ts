@@ -38,24 +38,23 @@ test.describe("OS shell navigation", () => {
     ).toContainText("not prediction");
   });
 
-  test("placeholder routes clearly state they are shells", async ({ page }) => {
-    const placeholderRoutes = [
-      // Slice 13.7 promoted Market Kernel / Analysis Workspace /
-      // Symbol Lab to real pages; Slice 13.8 promoted Risk Firewall /
-      // Mission Control / System Ops. Only the still-deferred routes
-      // remain on the placeholder shell.
+  test("Slice 13.9 promoted routes render their dedicated pages", async ({
+    page,
+  }) => {
+    // Slice 13.7 promoted Market Kernel / Analysis Workspace / Symbol
+    // Lab. Slice 13.8 promoted Risk Firewall / Mission Control /
+    // System Ops. Slice 13.9 promoted News Intel / Catalyst Watch /
+    // Trade Memory. No placeholder shells remain at the top-level OS
+    // nav after Slice 13.9.
+    const promotedRoutes = [
       { path: "/news-intel", testId: "news-intelligence-page" },
       { path: "/catalyst-watch", testId: "catalyst-watch-page" },
       { path: "/trade-memory", testId: "trade-memory-page" },
     ];
-    for (const route of placeholderRoutes) {
+    for (const route of promotedRoutes) {
       await page.goto(route.path);
       const shell = page.getByTestId(route.testId);
       await expect(shell).toBeVisible();
-      // Every shell uses the same EmptyState helper which surfaces the
-      // "Module shell ready" copy — that's how the user knows it's a
-      // deferred route rather than a broken page.
-      await expect(shell).toContainText("Module shell ready");
     }
   });
 

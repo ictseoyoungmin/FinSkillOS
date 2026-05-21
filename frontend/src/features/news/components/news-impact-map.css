@@ -1,0 +1,40 @@
+.fso-news-impact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-news-impact-table th,
+.fso-news-impact-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--fso-line);
+  color: var(--fso-text);
+}
+
+.fso-news-impact-table th {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-news-impact-dim {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--fso-text-muted);
+  text-transform: uppercase;
+}
+
+.fso-news-impact-count {
+  font-family: var(--fso-font-mono);
+  color: var(--fso-text);
+}
+
+.fso-news-impact-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+}

@@ -1,0 +1,10 @@
+.fso-event-status-badge {
+  display: inline-block;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  padding: 2px 6px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid currentColor;
+  text-transform: uppercase;
+}

@@ -12,3 +12,14 @@ export { SectionHeader } from "./SectionHeader";
 export type { SectionHeaderProps } from "./SectionHeader";
 export { StatusPill } from "./StatusPill";
 export type { StatusPillProps } from "./StatusPill";
+export {
+  ConflictsPanel,
+  DriversPanel,
+  InterpretationPanel,
+  WatchpointsPanel,
+} from "./EvidencePanels";
+export type {
+  ConflictRow,
+  DriverRow,
+  EvidenceTone,
+} from "./EvidencePanels";

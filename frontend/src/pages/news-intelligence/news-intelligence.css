@@ -1,0 +1,32 @@
+.fso-news-intel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fso-news-intel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.fso-news-intel-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .fso-news-intel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fso-news-intel-caption {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fso-text-muted-2);
+}

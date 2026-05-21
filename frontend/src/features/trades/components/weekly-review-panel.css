@@ -1,0 +1,76 @@
+.fso-weekly-review-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.fso-weekly-review-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-weekly-review-stats dt {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-weekly-review-stats dd {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 14px;
+  color: var(--fso-text);
+}
+
+.fso-weekly-review-block {
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fso-weekly-review-block h3 {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-weekly-review-block ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--fso-text);
+}
+
+.fso-weekly-review-tag {
+  font-family: var(--fso-font-mono);
+  letter-spacing: 0.1em;
+}
+
+.fso-weekly-review-line {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--fso-text);
+}
+
+.fso-weekly-review-notes {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fso-text-muted);
+  line-height: 1.5;
+}

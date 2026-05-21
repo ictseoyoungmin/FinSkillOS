@@ -1,0 +1,70 @@
+.fso-trade-recent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-trade-recent-table th,
+.fso-trade-recent-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--fso-line);
+  color: var(--fso-text);
+  vertical-align: top;
+}
+
+.fso-trade-recent-table th {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-trade-mono {
+  font-family: var(--fso-font-mono);
+}
+
+.fso-trade-meta {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--fso-text-muted);
+}
+
+.fso-trade-pnl {
+  font-family: var(--fso-font-mono);
+}
+
+.fso-trade-pnl--pos {
+  color: var(--fso-green);
+}
+
+.fso-trade-pnl--neg {
+  color: var(--fso-red);
+}
+
+.fso-trade-tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fso-trade-tag-list li {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--fso-line);
+  color: var(--fso-text-muted);
+}
+
+.fso-trade-recent-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+}

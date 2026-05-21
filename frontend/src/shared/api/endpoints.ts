@@ -8,6 +8,14 @@ export const apiEndpoints = {
   riskFirewall: "/risk-firewall",
   missionControl: "/mission-control",
   systemOps: "/system-ops",
+  newsIntelligence: "/news-intelligence",
+  newsManualArticle: "/news-intelligence/manual-article",
+  eventRadar: "/event-radar",
+  eventManualEvent: "/event-radar/manual-event",
+  eventSeedSampleEvents: "/event-radar/seed-sample-events",
+  tradeMemory: "/trade-memory",
+  tradeEntries: "/trade-memory/entries",
+  tradeWeeklyReview: "/trade-memory/weekly-review",
 } as const;
 
 export type ApiEndpoint = (typeof apiEndpoints)[keyof typeof apiEndpoints];

@@ -1,0 +1,31 @@
+.fso-weekly-markdown {
+  width: 100%;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.fso-weekly-markdown-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.fso-weekly-markdown-btn {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}

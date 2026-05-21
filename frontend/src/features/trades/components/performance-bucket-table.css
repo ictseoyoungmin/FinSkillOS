@@ -1,0 +1,39 @@
+.fso-perf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-perf-table th,
+.fso-perf-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--fso-line);
+  color: var(--fso-text);
+}
+
+.fso-perf-table th {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-perf-mono {
+  font-family: var(--fso-font-mono);
+}
+
+.fso-perf-pos {
+  color: var(--fso-green);
+}
+
+.fso-perf-neg {
+  color: var(--fso-red);
+}
+
+.fso-perf-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+}

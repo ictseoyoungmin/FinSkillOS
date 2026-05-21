@@ -1,0 +1,33 @@
+.fso-event-judgment-headline {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fso-text);
+}
+
+.fso-event-judgment-tags {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.fso-event-judgment-tags > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-event-judgment-tags dt {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-event-judgment-tags dd {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fso-text);
+}

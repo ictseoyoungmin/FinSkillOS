@@ -1,0 +1,74 @@
+.fso-event-risk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-event-risk-table th,
+.fso-event-risk-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--fso-line);
+  vertical-align: top;
+  color: var(--fso-text);
+}
+
+.fso-event-risk-table th {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-event-risk-title {
+  font-size: 13px;
+}
+
+.fso-event-risk-meta {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--fso-text-muted-2);
+  text-transform: uppercase;
+}
+
+.fso-event-risk-date,
+.fso-event-risk-score,
+.fso-event-risk-exposure {
+  font-family: var(--fso-font-mono);
+  color: var(--fso-text);
+}
+
+.fso-event-risk-label {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--fso-text-muted);
+  text-transform: uppercase;
+}
+
+.fso-event-risk-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fso-event-risk-tags li {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--fso-line);
+  color: var(--fso-text-muted);
+}
+
+.fso-event-risk-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+}
