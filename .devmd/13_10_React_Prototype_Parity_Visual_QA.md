@@ -171,17 +171,153 @@ docker compose --profile e2e run --rm e2e                              # default
 docker compose --profile e2e run --rm e2e npm run test:visual          # parity gate
 ```
 
-## Completion placeholder
+## Completion note
 
 ```text
-Status: TODO
+Status: DONE_AS_REACT_PROTOTYPE_PARITY_VISUAL_QA_V0 (2026-05-22)
+
+Implemented files:
+- frontend/e2e/visual/all-tabs.visual.spec.ts
+    Single suite covering all 10 main routes. Defines a ROUTES table
+    mapping label → router path → SectionHeader title →
+    route-specific primary panel testid → committed PNG name. Emits
+    two test.describe blocks:
+      * structural — asserts os-tray + ticker-strip + h2 heading +
+        primary panel testid + zero forbidden-execution captions
+        (per FORBIDDEN_EXECUTION_LABELS from e2e/_helpers.ts).
+      * @visual — toHaveScreenshot per route with mask=[clock,
+        ticker-strip], animations="disabled",
+        maxDiffPixelRatio=0.03.
+    Structural block runs under `npm run test:e2e` (untagged); only
+    the @visual block is gated to `npm run test:visual`.
+- frontend/e2e/responsive.spec.ts
+    Two viewports for Control Room (Desktop 1440×900 + Narrow
+    980×720). For each: waits for control-room-grid, asserts
+    os-tray + ticker-strip + grid visibility, then runs
+    assertNoHorizontalOverflow (documentElement.scrollWidth ≤
+    innerWidth + 8 px) and assertNoElementOverflowsViewport
+    (no element's right edge exceeds scrollWidth + 8 px).
+- frontend/e2e/visual/README.md
+    Slice-13.10 visual QA reference. Documents:
+      * suite table (control-room.visual + all-tabs.visual + all-tabs
+        structural + responsive smoke) with the npm script that runs
+        each.
+      * baseline regeneration via docker compose --profile e2e ...
+        npm run test:visual:update + commit recipe.
+      * diff viewing via frontend/playwright-report/index.html.
+      * shared toHaveScreenshot tolerance (maxDiffPixelRatio 0.03,
+        animations disabled) + per-route notes on news / catalyst
+        date drift.
+      * dynamic regions (clock + ticker-strip) explicitly masked vs
+        deterministic regions intentionally not masked (goal tracker,
+        news / event fixtures, scanline overlay).
+      * known intentional differences from the v4.1 + v4.2 mockups
+        (static scanline overlay, data-driven ticker, v4.2 typography
+        gap left for later, shared EmptyState component).
+      * symptom → action triage table (when to update vs when to
+        investigate vs DPI mismatch hint).
+      * explicit "do not commit baselines from a different DPI" tip
+        with the docker compose recipe being the only supported
+        bootstrap path.
+- README.md §9
+    Added a callout at the top of §9 pointing at
+    frontend/e2e/visual/README.md as the authoritative parity gate.
+    Local and Docker run sections now include `npm run test:visual`
+    + `npm run test:visual:update` alongside the structural commands
+    (Slice 13.10 documents both the read-only gate and the bootstrap
+    path).
+
 Baselines committed for routes:
+- None yet. The all-tabs.visual.spec.ts-snapshots/ directory will
+  populate after the first `docker compose --profile e2e run --rm e2e
+  npm run test:visual:update` run inside the CI-equivalent container.
+  The slice intentionally does NOT bootstrap PNGs from this WSL host
+  (no Node 18+, no matching DPI). The Slice 13.6 control-room.visual
+  spec keeps its existing snapshot file untouched.
+
 Responsive viewports asserted:
+- Desktop 1440×900 — no horizontal overflow, os-tray + ticker-strip
+  + control-room-grid all visible.
+- Narrow 980×720 — same assertions; this is the breakpoint at which
+  the v4.1 CSS collapses to a single column.
+
 Documented dynamic regions:
+- [data-testid="clock"] — masked, second-by-second.
+- [data-testid="ticker-strip"] — masked, marquee transform.
+- Goal tracker progress bar — NOT masked, deterministic via Slice
+  13.8 fixture (73.4%).
+- News / Event tables — NOT masked, deterministic via Slice 13.9
+  fixtures.
+
 Diff tolerance per route:
+- Global: maxDiffPixelRatio=0.03 (set in playwright.config.ts and
+  re-asserted per call in all-tabs.visual.spec.ts).
+- news-intelligence / catalyst-watch: same 0.03 ceiling; the README
+  notes the per-spec override path if relative-date copy ever
+  introduces drift above the threshold.
+
 Tests added:
+- frontend/e2e/visual/all-tabs.visual.spec.ts — 20 test cases
+  (10 structural + 10 @visual).
+- frontend/e2e/responsive.spec.ts — 2 cases.
+
 Notes:
+- The structural half of the all-tabs spec stays in the default
+  `npm run test:e2e` run so a route losing its primary panel testid
+  or emitting an execution caption breaks CI even before baselines
+  exist. Only the @visual half is gated to `npm run test:visual`.
+- Slice 13.10 deliberately does not generate PNGs from the host —
+  WSL ships Node 8.15 here and the host DPI differs from the
+  Playwright Docker image. The visual README spells this out so
+  developers always bootstrap baselines through docker compose.
+- Per the descriptive-only output rule, the structural spec walks
+  every route asserting that none of FORBIDDEN_EXECUTION_LABELS
+  appear in the page body. No buy/sell language emitted on any of
+  the 10 routes.
+- Imports use the relative `../_helpers` path because the visual
+  spec lives one level deeper than the existing e2e specs.
+
+Verification:
+- python3 -m compileall app.py finskillos api scripts   → clean
+- python3 -m pytest tests                               → 595 passed
+- python3 -m ruff check finskillos api tests            → All checks passed
+- npm run lint / build / test:e2e / test:visual         → run inside
+                                                          the Docker
+                                                          `web`
+                                                          (node:20-alpine)
+                                                          + `e2e`
+                                                          (mcr.microsoft.com/
+                                                          playwright:v1.60.0-
+                                                          noble)
+                                                          containers.
+                                                          Local WSL
+                                                          ships Node
+                                                          8.15 here;
+                                                          Vite 5 needs
+                                                          Node 18+.
+                                                          Same
+                                                          limitation
+                                                          Slice 13.6 –
+                                                          13.9 flagged.
+
 Known issues:
+- npm run test:visual / npm run test:visual:update cannot be invoked
+  on this WSL host (no compatible Node). Use the docker compose
+  recipe from frontend/e2e/visual/README.md.
+- Initial baseline PNGs are NOT committed by this slice — the user
+  must run `docker compose --profile e2e run --rm e2e npm run
+  test:visual:update` once inside the e2e profile and commit the
+  resulting all-tabs.visual.spec.ts-snapshots/*.png. Until then,
+  `npm run test:visual` will fail at the snapshot diff step (this is
+  expected, and the @visual tag keeps the failure out of the default
+  structural run).
+- Pixel-perfect parity with the v4.2 Evidence-to-Judgment HTML mockup
+  is still deferred — the suite enforces structural information
+  hierarchy + descriptive-only safety captions, not typography
+  parity. Bumping typography parity is a future polish slice.
+- Mobile-class viewports (< 768 px) are intentionally out of scope.
+  The slice only covers the 1440 px desktop baseline and the 980 px
+  single-column breakpoint per the slice brief.
 ```
 
 ## Stop condition

@@ -187,6 +187,11 @@ reflection support* 범주 안에서 작성되며, `finskillos.guards.base.asser
 Streamlit 앱은 디버그/관리용으로 유지되고, 새 제품 UI는 FastAPI(`api/`) +
 Vite React(`frontend/`) 조합으로 동작합니다.
 
+> **Visual parity gate (Slice 13.10).** 프로토타입과의 회귀 추적은
+> `npm run test:visual`(또는 docker compose 변형)이 권위 있는 게이트입니다.
+> 자세한 baseline 재생성·diff 확인·tolerance 정책은
+> [`frontend/e2e/visual/README.md`](frontend/e2e/visual/README.md)을 참조하세요.
+
 ### 로컬 (호스트에서 직접 실행)
 
 ```bash
@@ -200,7 +205,8 @@ npm run dev          # http://localhost:5173
 
 # Playwright (e2e) — 한 번만 chromium 설치 후 실행
 npm run test:e2e:install
-npm run test:e2e
+npm run test:e2e          # 구조 가드 (@visual 제외)
+npm run test:visual       # 스크린샷 baseline 비교 (Slice 13.10 parity gate)
 ```
 
 ### Docker Compose (api + web + e2e 동시 기동)
@@ -211,6 +217,12 @@ docker compose up -d postgres api web
 
 # Playwright e2e 한 번 돌리기 (e2e 프로파일 명시 필수)
 docker compose --profile e2e run --rm e2e npm run test:e2e
+
+# Slice 13.10 visual parity gate (이미 baseline PNG가 커밋된 상태에서 비교)
+docker compose --profile e2e run --rm e2e npm run test:visual
+
+# Slice 13.10 baseline 최초 1회 부트스트랩 / 의도된 UI 변경 후 갱신
+docker compose --profile e2e run --rm e2e npm run test:visual:update
 
 # 정상 종료 / 재개 — 볼륨 유지
 docker compose stop
