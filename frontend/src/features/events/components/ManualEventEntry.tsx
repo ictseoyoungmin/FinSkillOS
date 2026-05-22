@@ -1,3 +1,4 @@
+import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import { Panel } from "@/shared/ui";
 import {
@@ -83,14 +84,14 @@ export function ManualEventEntry({ rules }: ManualEventEntryProps) {
   const onChange =
     (key: keyof FormState) =>
     (
-      event: React.ChangeEvent<
+      event: ChangeEvent<
         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
       >,
     ) => {
       setForm((prev) => ({ ...prev, [key]: event.target.value }));
     };
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setResult(null);

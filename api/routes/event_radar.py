@@ -99,7 +99,6 @@ def post_manual_event(payload: ManualEventInput) -> ManualEventResult:
         try:
             from finskillos.services.event_service import (
                 EventInput,
-                EventLinkInput,
                 EventService,
             )
 

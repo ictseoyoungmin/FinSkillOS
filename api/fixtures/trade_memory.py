@@ -216,7 +216,7 @@ def trade_memory_fixture() -> TradeMemoryResponse:
                 catalyst="data center upgrade",
                 sector="Semiconductors",
                 theme="AI",
-                notes="Plan executed; trimmed at first resistance.",
+                notes="Followed plan; trimmed at first resistance.",
                 thesis="Data-center demand momentum.",
                 reason="Aligned with regime + thesis.",
             ),

@@ -1,3 +1,4 @@
+import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import { Panel } from "@/shared/ui";
 import { submitTradeEntry } from "../api";
@@ -68,7 +69,7 @@ export function TradeEntryForm({ rules }: TradeEntryFormProps) {
   const onChange =
     (key: keyof Omit<FormState, "mistakeTags">) =>
     (
-      event: React.ChangeEvent<
+      event: ChangeEvent<
         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
       >,
     ) => {
@@ -88,7 +89,7 @@ export function TradeEntryForm({ rules }: TradeEntryFormProps) {
     });
   };
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setResult(null);

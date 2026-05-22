@@ -1,3 +1,4 @@
+import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import { Panel } from "@/shared/ui";
 import { submitManualArticle } from "../api";
@@ -64,12 +65,16 @@ export function ManualArticleEntry({ rules }: ManualArticleEntryProps) {
 
   const onChange =
     (key: keyof FormState) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    (
+      event: ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >,
+    ) => {
       const value = event.target.value;
       setForm((prev) => ({ ...prev, [key]: value }));
     };
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setResult(null);

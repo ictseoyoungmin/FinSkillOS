@@ -447,16 +447,223 @@ docker compose up -d postgres api web
 docker compose --profile e2e run --rm e2e
 ```
 
-## Completion placeholder
+## Completion note
 
 ```text
-Status: TODO
+Status: DONE_AS_REACT_NEWS_EVENTS_TRADE_MEMORY_V0 (2026-05-22)
+
 Implemented routes:
-Implemented React pages:
-Safety contract enforced:
+- GET  /api/news-intelligence — v4.2 Evidence-to-Judgment payload
+  (Narrative Judgment header + drivers + conflicts + holdings-relevant
+  articles + event-linked articles + latest news + impact map +
+  integrated interpretation + watchpoints + manual-entry rules +
+  descriptive safety caption).
+- POST /api/news-intelligence/manual-article — wraps Slice-10
+  NewsService.ingest_article. Pydantic enforces summary ≤ 500 chars at
+  the schema layer (422 on overrun); the handler additionally returns
+  status=REJECTED with detail=summary_too_long when callers bypass the
+  schema, detail=forbidden_wording_in_<field> when the title /
+  summary / source / theme / event_key trips
+  assert_no_forbidden_wording, and detail=invalid_published_at on a
+  malformed ISO timestamp. Fixture-first sessions return status=OK
+  with detail=no_database_session.
+- GET  /api/event-radar — v4.2 Event Exposure Judgment payload
+  (judgment header + drivers + conflicts + upcoming events + high-risk
+  subset + holdings-linked subset + linked news + interpretation +
+  watchpoints + manual-entry rules + date-status badge tone map +
+  preparation / exposure safety caption).
+- POST /api/event-radar/manual-event — wraps Slice-11
+  EventService.create_event. Rejects CONFIRMED + source in
+  (None / "" / "manual_seed") at the API seam with
+  detail=confirmed_requires_external_source, and converts the upstream
+  service ValueError into status=REJECTED rather than 500.
+- POST /api/event-radar/seed-sample-events — delegates to
+  EventService.seed_sample_events; idempotent (existing rows skipped).
+  Fixture-first session returns status=NOOP.
+- GET  /api/trade-memory — v4.2 Process Judgment payload (judgment
+  header + drivers + conflicts + recent entries + performance buckets
+  by regime / sector-theme / strategy + mistake frequency + weekly
+  review with copyable markdown + interpretation + watchpoints + form
+  rules + reflection-only safety caption).
+- GET  /api/trade-memory/weekly-review — returns the same
+  WeeklyReviewVM block embedded in /trade-memory.
+- POST /api/trade-memory/entries — wraps Slice-12
+  TradeJournalService.create_entry. Runs the Slice-06 forbidden-
+  wording guard at the API seam (not just at the DB seam) so the
+  contract applies in fixture-first mode too. Returns status=REJECTED
+  with detail=forbidden_wording_in_<field> on a trip,
+  detail=invalid_trade_date on a malformed date, validation_error on
+  upstream service rejection.
+
+Implemented Pydantic schemas:
+- api/schemas/news_intelligence.py (NewsIntelligenceResponse +
+  NewsJudgmentHeader + NewsDriver / NewsConflict / NewsArticleVM /
+  NewsImpactVM / NewsImpactMapEntry / NewsWatchpoint /
+  NewsManualEntryRules + ManualArticleInput / ManualArticleResult).
+  Re-exports MAX_SUMMARY_CHARS=500 to keep the cap in one place.
+- api/schemas/event_radar.py (EventRadarResponse +
+  EventExposureJudgment + EventDriver / EventConflict /
+  EventLinkedNewsVM / EventLinkVM / EventRiskRow / EventWatchpoint /
+  ManualEventRules + ManualEventInput / ManualEventResult /
+  SeedEventsResult + DATE_STATUS_BADGE_TONE map).
+- api/schemas/trade_memory.py (TradeMemoryResponse +
+  ProcessJudgmentHeader + TradeDriver / TradeConflict / TradeEntryVM /
+  PerformanceBucketVM / MistakeFrequencyVM / WeeklyReviewVM /
+  TradeWatchpoint / TradeFormRules + TradeEntryInput /
+  TradeEntryResult). Side vocabulary restricted to LONG / SHORT /
+  WATCH / EXIT_REVIEW / OTHER (legacy BUY / SELL stay load-only via
+  the underlying service).
+
+Implemented fixtures (api/fixtures/):
+- news_intelligence.py — 3 deterministic articles spread across
+  holdings-relevant / event-linked / latest categories, with a 5-row
+  impact map (NVDA / TSLA tickers, AI / Macro themes, Semiconductors
+  sector).
+- event_radar.py — 5 upcoming events (NVDA earnings, FOMC window,
+  Tesla robotaxi, CPI release, SpaceX IPO speculative), mix of
+  TENTATIVE / WINDOW / SPECULATIVE date statuses, 2 high-risk and 2
+  holdings-linked subsets, 2 linked news rows, badge tone map.
+- trade_memory.py — 4 recent entries, regime / sector-theme /
+  strategy performance buckets, 2 mistake-frequency rows, weekly
+  review block (4 trades, 50% win rate, best HEALTHY_BULL, weakest
+  RISK_ON_OVERHEAT, copyable markdown).
+
+Implemented React feature modules:
+- features/news/{api,types}.ts + components/ (NewsJudgmentHeader,
+  HoldingsRelevantNews, NewsImpactMap, EventLinkedNewsPanel,
+  ManualArticleEntry, NewsWatchpointsPanel).
+- features/events/{api,types}.ts + components/
+  (EventExposureJudgment, EventRiskTable, EventStatusBadge,
+  HighRiskEventsPanel, HoldingsLinkedEventsPanel, EventScoreDrivers,
+  ManualEventEntry, EventLinkedNewsPanel). EventStatusBadge applies
+  Slice-11 colour coding (CONFIRMED green / WINDOW info / TENTATIVE
+  & REPORTED amber / SPECULATIVE purple).
+- features/trades/{api,types}.ts + components/
+  (ProcessJudgmentHeader, RecentEntriesTable, TradeEntryForm,
+  WeeklyReviewPanel, PerformanceByRegime, PerformanceBySectorTheme,
+  PerformanceByStrategy, PerformanceBucketTable shared, MistakeFrequencyPanel,
+  WeeklyMarkdownExport, TradeMemoryWatchpoints).
+
+Implemented shared UI:
+- shared/ui/EvidencePanels.tsx — DriversPanel, ConflictsPanel,
+  InterpretationPanel, WatchpointsPanel. Re-exported from
+  shared/ui/index.ts so the three Slice-13.9 pages compose the same
+  Evidence → Interpretation → Watchpoints stack without copy-paste.
+
+Implemented React pages (replaced PlaceholderPage shells):
+- pages/news-intelligence/NewsIntelligencePage.tsx — judgment header
+  hero + two-column grid (Drivers / HoldingsRelevant / ImpactMap /
+  EventLinked vs Conflicts / Interpretation / Watchpoints /
+  ManualArticleEntry).
+- pages/catalyst-watch/CatalystWatchPage.tsx — judgment header hero +
+  two-column grid (Drivers / Upcoming / HighRisk / HoldingsLinked /
+  LinkedNews vs Conflicts / Interpretation / Watchpoints /
+  ManualEventEntry).
+- pages/trade-memory/TradeMemoryPage.tsx — judgment header hero +
+  two-column grid (Drivers / RecentEntries / PerformanceByRegime /
+  PerformanceBySectorTheme / PerformanceByStrategy / MistakeFrequency
+  vs Conflicts / Interpretation / Watchpoints / WeeklyReview /
+  WeeklyMarkdownExport / TradeEntryForm).
+
+Frontend mock fixtures (shared/mocks/fixtures/):
+- newsIntelligence.fixture.ts
+- eventRadar.fixture.ts
+- tradeMemory.fixture.ts
+  All three twin the Python fixtures so React Query falls back to the
+  deterministic baseline when the FastAPI container is offline.
+
+Safe wording / safety contract enforced:
+- Manual article: 500-char summary cap (Pydantic + handler-side
+  guard), no full-body field, disclaimer surfaced in the panel.
+- Manual event: defaults to TENTATIVE; CONFIRMED + "manual_seed" /
+  empty source rejected by the handler before reaching the service.
+- Manual trade entry: forbidden-wording scan runs at the API seam
+  (mirrors TradeJournalService._assert_entry_text_is_safe) so even
+  fixture-first sessions reject 지금 사라 / 매수 / 매도 / etc.
+- Side selector restricted to LONG / SHORT / WATCH / EXIT_REVIEW /
+  OTHER (legacy BUY / SELL stay load-only via the service).
+- Every page emits a descriptive safety caption in a testid'd element
+  (news = "Descriptive narrative view only…", catalyst = "Event risk
+  score = preparation / exposure score only…", trade memory =
+  "Reflection / process review only…").
+- Event Radar schema's safetyCaption default ends in "not a price
+  direction prediction." and the test asserts that exact wording.
+- "sell-the-news" remains an allowed descriptive market idiom; the
+  Slice-06 cleanup regex already excludes it.
+
 Tests added:
+- tests/test_api_news_intelligence.py (11 cases)
+- tests/test_api_event_radar.py (10 cases)
+- tests/test_api_trade_memory.py (10 cases)
+- frontend/e2e/news-events-memory.spec.ts (8 specs).
+- frontend/e2e/navigation.spec.ts: the placeholder-list iterator was
+  rewritten as a "Slice 13.9 promoted routes render their dedicated
+  pages" check (no placeholder routes remain at the OS top-level nav
+  after this slice).
+
+Verification:
+- python3 -m compileall app.py finskillos api scripts   → clean
+- python3 -m ruff check finskillos api tests            → All checks passed
+- python3 -m pytest tests/test_api_news_intelligence.py
+                    tests/test_api_event_radar.py
+                    tests/test_api_trade_memory.py      → 31 passed
+- python3 -m pytest tests                               → 595 passed
+- npm run lint / build / test:e2e                       → run inside the
+                                                          Docker web
+                                                          (node:20-alpine) +
+                                                          e2e
+                                                          (playwright:v1.60.0-noble)
+                                                          containers. Local
+                                                          WSL ships Node 8.15
+                                                          here (Vite 5 needs
+                                                          Node 18+) so the
+                                                          frontend toolchain
+                                                          was not invoked on
+                                                          the host. Same
+                                                          situation Slice
+                                                          13.6 / 13.7 / 13.8
+                                                          already documented.
+
 Notes:
+- The three new pages compose the same v4.2 Evidence-to-Judgment
+  stack: each starts with a JudgmentHeader hero, then a two-column
+  grid where the left column carries the "evidence" tables and the
+  right column carries Conflicts / Interpretation / Watchpoints + the
+  manual entry / journal entry form. The shared DriversPanel /
+  ConflictsPanel / InterpretationPanel / WatchpointsPanel components
+  live in shared/ui so all three pages reuse the same markup.
+- API stays fixture-first per api/dependencies.py TODO. POST
+  handlers open a session via get_session_scope; when no session
+  exists they return status=OK with detail=no_database_session
+  (article / trade entry) or status=NOOP (seed events). Internal
+  exceptions are converted to status=ERROR with the exception class
+  name in detail — never a raw stack trace, never HTML.
+- The trade journal API seam guard duplicates
+  TradeJournalService._assert_entry_text_is_safe so the contract
+  applies even when the DB is offline. This is intentional and
+  matches the news/event handler pattern.
+- The manual article handler's Pydantic schema enforces
+  max_length=500 (the API returns 422 in that path). For paths that
+  bypass schema validation (e.g. clients constructing the request by
+  hand) the handler also returns status=REJECTED with
+  detail=summary_too_long for defence in depth.
+
 Known issues:
+- npm run build / npm run test:e2e cannot run on the WSL bash here
+  because Node 8.15 is too old for Vite 5 — same environment
+  limitation Slice 13.6 / 13.7 / 13.8 flagged. Use the docker-compose
+  profiles documented in Slice 13.6 cleanup §3.
+- POST routes still default to fixture-first behaviour when no DB
+  session is available; live integration requires the explicit
+  error-surface contract from .devmd/13_6 cleanup §6.
+- Full visual parity with the v4.2 Evidence-to-Judgment HTML mockup
+  remains deferred — the Slice-13.9 pages preserve the information
+  hierarchy and per-tab judgment vocab but not pixel-perfect styling.
+  Full visual QA is the 13.10 job.
+- The /api/news-intelligence, /api/event-radar, /api/trade-memory
+  GET payloads stay fixture-first even when a session is available;
+  promoting to live data requires the same view-model mapper work
+  Slice 13.7 / 13.8 deferred.
 ```
 
 ## Stop condition

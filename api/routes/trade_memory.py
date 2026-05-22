@@ -72,6 +72,17 @@ def post_trade_entry(payload: TradeEntryInput) -> TradeEntryResult:
             detail="invalid_trade_date",
         )
 
+    safety_error = _scan_entry_text_for_forbidden_wording(payload)
+    if safety_error is not None:
+        return TradeEntryResult(
+            status="REJECTED",
+            message=(
+                "Entry contains direct-advice or execution wording. "
+                "Journal entries must be descriptive only."
+            ),
+            detail=safety_error,
+        )
+
     with get_session_scope() as session:
         if session is None:
             return TradeEntryResult(
@@ -161,6 +172,61 @@ def _parse_iso_date(value: str) -> date | None:
         return date.fromisoformat(value)
     except ValueError:
         return None
+
+
+def _scan_entry_text_for_forbidden_wording(
+    payload: TradeEntryInput,
+) -> str | None:
+    """Run the Slice-06 forbidden-wording guard at the API seam.
+
+    Mirrors ``TradeJournalService._assert_entry_text_is_safe`` so the
+    same contract applies even in fixture-first mode (no DB session).
+    """
+
+    from finskillos.guards.base import (
+        GuardResult,
+        assert_no_forbidden_wording,
+    )
+
+    fields: tuple[tuple[str, str | None], ...] = (
+        ("reason", payload.reason),
+        ("thesis", payload.thesis),
+        ("catalyst", payload.catalyst),
+        ("notes", payload.notes),
+        ("emotion_state", payload.emotion_state),
+        ("sector", payload.sector),
+        ("theme", payload.theme),
+        ("event_key", payload.event_key),
+    )
+    for name, value in fields:
+        if not value:
+            continue
+        placeholder = GuardResult(
+            guard_name=f"TRADE_ENTRY_WRITE:{name}",
+            status="INFO",
+            risk_level="GREEN",
+            title="",
+            message=value,
+        )
+        try:
+            assert_no_forbidden_wording(placeholder)
+        except AssertionError:
+            return f"forbidden_wording_in_{name}"
+    for tag in payload.mistake_tags or ():
+        if not tag:
+            continue
+        placeholder = GuardResult(
+            guard_name="TRADE_ENTRY_WRITE:mistake_tags",
+            status="INFO",
+            risk_level="GREEN",
+            title="",
+            message=tag,
+        )
+        try:
+            assert_no_forbidden_wording(placeholder)
+        except AssertionError:
+            return "forbidden_wording_in_mistake_tags"
+    return None
 
 
 __all__ = ["router"]
