@@ -1,3 +1,11 @@
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
+
 export type ProtocolKey =
   | "seed_sample_account"
   | "recompute_regime"
@@ -34,6 +42,11 @@ export interface SystemOpsSystemStatus {
 export interface SystemOpsData {
   generatedAt: string;
   systemStatus: SystemOpsSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  interpretation: IntegratedInterpretationData;
+  watchpoints: EvidenceWatchpointData[];
   protocols: ProtocolCard[];
   dataSources: DataSourcePill[];
   safetyCaption: string;

@@ -4,6 +4,18 @@
   gap: 18px;
 }
 
+.fso-system-ops-evidence-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 1100px) {
+  .fso-system-ops-evidence-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fso-system-ops-protocol-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

@@ -21,7 +21,7 @@ export function SymbolNewsPanel({ news }: SymbolNewsPanelProps) {
       title="Symbol News"
       badge={`${news.length}`}
       badgeTone="info"
-      testId="symbol-news-panel"
+      testId="ticker-news"
     >
       {news.length === 0 ? (
         <EmptyState

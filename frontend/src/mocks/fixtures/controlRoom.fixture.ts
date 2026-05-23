@@ -11,6 +11,36 @@ export const controlRoomFixture: ControlRoomData = {
   generatedAt: CONTROL_ROOM_FIXTURE_TIMESTAMP,
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 2 },
+  judgment: {
+    eyebrow: "GLOBAL OPERATING VERDICT",
+    title: "Risk-On but",
+    accent: "Extended",
+    summary:
+      "Portfolio context remains constructive, but overheat and event-cluster flags keep the operating posture conditional.",
+    confidence: 72,
+  },
+  drivers: [
+    { score: "64", title: "Preparation score", note: "Risk-on state with measured exposure review." },
+    { score: "3", title: "Active guard notes", note: "Concentration, single-name, and regime flags are visible." },
+    { score: "7D", title: "Event cluster", note: "Earnings and macro windows sit inside the next review horizon." },
+  ],
+  conflicts: [
+    { title: "Constructive tape vs overheat", note: "Trend support remains present while RSI elevation reduces comfort." },
+    { title: "Portfolio relevance vs event timing", note: "AI / Semis exposure overlaps with near-term catalyst windows." },
+  ],
+  interpretation: {
+    verdict: "Risk-On but Extended remains the working operating verdict.",
+    whyItMatters:
+      "The dashboard combines tape, guard, mission, and event context before the user reviews exposure.",
+    whatRemainsUncertain:
+      "Fixture freshness and event date certainty can still change the posture.",
+  },
+  watchpoints: [
+    { title: "Overheat persistence", note: "Review if RSI elevation remains active across leadership names." },
+    { title: "Event cluster", note: "Recheck catalyst status when linked news or date confidence changes." },
+    { title: "Guard escalation", note: "Any RED guard keeps the posture in review mode." },
+  ],
+  safetyCaption: "Global operating posture (not execution).",
   tickerStrip: [
     { symbol: "SPY", price: "672.48", change: "+0.42%", direction: "up" },
     { symbol: "QQQ", price: "556.71", change: "+0.61%", direction: "up" },

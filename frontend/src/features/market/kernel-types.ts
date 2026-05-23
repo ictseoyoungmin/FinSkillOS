@@ -1,4 +1,11 @@
 import type { Numeric } from "@/shared/lib/format";
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
 
 export type UniverseKind = "FOCUS" | "INDEX_ETF" | "SECTOR_ETF" | "MACRO_PROXY";
 
@@ -61,6 +68,11 @@ export interface MarketKernelSystemStatus {
 export interface MarketKernelData {
   generatedAt: string;
   systemStatus: MarketKernelSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  integratedInterpretation: IntegratedInterpretationData;
+  reviewWatchpoints: EvidenceWatchpointData[];
   universe: UniverseTicker[];
   header: MarketKernelHeader;
   bars: MarketBarPoint[];

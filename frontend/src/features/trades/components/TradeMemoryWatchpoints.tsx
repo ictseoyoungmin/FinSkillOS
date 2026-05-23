@@ -17,7 +17,6 @@ export function TradeMemoryWatchpoints({
         description: entry.description,
         tone: entry.tone,
       }))}
-      testId="trade-watchpoints"
     />
   );
 }

@@ -34,7 +34,7 @@ export function CapitalMapPanel({
       title={title}
       badge={badge ?? "Exposure"}
       badgeTone="info"
-      testId={testId ?? "mission-capital-map"}
+      testId={testId ?? "capital-map"}
     >
       <ul className="fso-capital-map-list">
         {slices.map((slice) => {

@@ -15,6 +15,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from api.fixtures._common import FIXTURE_TIMESTAMP
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import (
     CatalystSummary,
@@ -39,6 +40,57 @@ def control_room_fixture() -> ControlRoomResponse:
         generated_at=CONTROL_ROOM_FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=2),
+        judgment=judgment(
+            "GLOBAL OPERATING VERDICT",
+            "Risk-On but",
+            "Extended",
+            (
+                "Portfolio context remains constructive, but overheat and "
+                "event-cluster flags keep the operating posture conditional."
+            ),
+            72,
+        ),
+        drivers=drivers(
+            ("64", "Preparation score", "Risk-on state with measured exposure review."),
+            (
+                "3",
+                "Active guard notes",
+                "Concentration, single-name, and regime flags are visible.",
+            ),
+            (
+                "7D",
+                "Event cluster",
+                "Earnings and macro windows sit inside the next review horizon.",
+            ),
+        ),
+        conflicts=conflicts(
+            (
+                "Constructive tape vs overheat",
+                "Trend support remains present while RSI elevation reduces comfort.",
+            ),
+            (
+                "Portfolio relevance vs event timing",
+                "AI / Semis exposure overlaps with near-term catalyst windows.",
+            ),
+        ),
+        interpretation=interpretation(
+            "Risk-On but Extended remains the working operating verdict.",
+            "The dashboard combines tape, guard, mission, and event context "
+            "before the user reviews exposure.",
+            "Fixture freshness and event date certainty can still change the posture.",
+        ),
+        watchpoints=watchpoints(
+            (
+                "Overheat persistence",
+                "Review if RSI elevation remains active across leadership names.",
+            ),
+            (
+                "Event cluster",
+                "Recheck catalyst status when linked news or date confidence changes.",
+            ),
+            ("Guard escalation", "Any RED guard keeps the posture in review mode."),
+        ),
+        safety_caption="Global operating posture (not execution).",
         ticker_strip=[
             TickerStripItem(symbol="SPY", price="672.48", change="+0.42%", direction="up"),
             TickerStripItem(symbol="QQQ", price="556.71", change="+0.61%", direction="up"),

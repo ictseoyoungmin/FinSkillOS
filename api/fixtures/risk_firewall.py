@@ -10,6 +10,7 @@ GuardCard component stays canonical for both pages.
 from __future__ import annotations
 
 from api.fixtures._common import FIXTURE_TIMESTAMP
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import GuardSummaryVM
 from api.schemas.risk_firewall import (
@@ -27,6 +28,48 @@ def risk_firewall_fixture() -> RiskFirewallResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=3),
+        judgment=judgment(
+            "RISK PERMISSION JUDGMENT",
+            "Limited",
+            "Risk Mode",
+            (
+                "Concentration and regime flags keep the firewall in a "
+                "limited, read-only review posture."
+            ),
+            78,
+        ),
+        drivers=drivers(
+            (
+                "RED",
+                "Overall risk level",
+                "Sector concentration is the highest active guard state.",
+            ),
+            ("3", "Active alerts", "Single-position, sector, and regime alerts are visible."),
+            ("Limited", "Protocol state", "Review constraints remain active until flags clear."),
+        ),
+        conflicts=conflicts(
+            (
+                "Allowed review vs blocked action",
+                "The page supports interpretation and monitoring only.",
+            ),
+            (
+                "Green guards vs red concentration",
+                "Passing checks do not cancel the highest active alert.",
+            ),
+        ),
+        interpretation=interpretation(
+            "Risk Firewall is in Limited Risk Mode.",
+            "The guard ladder explains which constraints are active before any portfolio review.",
+            "Alert freshness and future guard runs may change the top-level state.",
+        ),
+        watchpoints=watchpoints(
+            (
+                "Concentration flag",
+                "Review if AI / Semis exposure remains above the configured threshold.",
+            ),
+            ("Overheat flag", "Monitor regime and RSI notes before changing posture."),
+            ("Protocol boundary", "Trading-action commands remain outside this view."),
+        ),
         overall_status="FAIL",
         overall_risk_level="RED",
         guards=[

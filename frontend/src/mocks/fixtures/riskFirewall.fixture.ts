@@ -9,6 +9,35 @@ export const riskFirewallFixture: RiskFirewallData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 3 },
+  judgment: {
+    eyebrow: "RISK PERMISSION JUDGMENT",
+    title: "Limited",
+    accent: "Risk Mode",
+    summary:
+      "Concentration and regime flags keep the firewall in a limited, read-only review posture.",
+    confidence: 78,
+  },
+  drivers: [
+    { score: "RED", title: "Overall risk level", note: "Sector concentration is the highest active guard state." },
+    { score: "3", title: "Active alerts", note: "Single-position, sector, and regime alerts are visible." },
+    { score: "Limited", title: "Protocol state", note: "Review constraints remain active until flags clear." },
+  ],
+  conflicts: [
+    { title: "Allowed review vs blocked action", note: "The page supports interpretation and monitoring only." },
+    { title: "Green guards vs red concentration", note: "Passing checks do not cancel the highest active alert." },
+  ],
+  interpretation: {
+    verdict: "Risk Firewall is in Limited Risk Mode.",
+    whyItMatters:
+      "The guard ladder explains which constraints are active before any portfolio review.",
+    whatRemainsUncertain:
+      "Alert freshness and future guard runs may change the top-level state.",
+  },
+  watchpoints: [
+    { title: "Concentration flag", note: "Review if AI / Semis exposure remains above the configured threshold." },
+    { title: "Overheat flag", note: "Monitor regime and RSI notes before changing posture." },
+    { title: "Protocol boundary", note: "Trading-action commands remain outside this view." },
+  ],
   overallStatus: "FAIL",
   overallRiskLevel: "RED",
   guards: [
@@ -112,5 +141,5 @@ export const riskFirewallFixture: RiskFirewallData = {
         "Execution commands and guaranteed-return language are blocked by contract. Risk Firewall is descriptive only.",
     },
   ],
-  safetyCaption: "Read mode — this view never modifies positions.",
+  safetyCaption: "Read-only · Read mode — this view never modifies positions.",
 };

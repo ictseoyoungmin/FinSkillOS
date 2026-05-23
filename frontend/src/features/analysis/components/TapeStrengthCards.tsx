@@ -57,12 +57,12 @@ export function TapeStrengthCards({
   weakest,
 }: TapeStrengthCardsProps) {
   return (
-    <div className="fso-tape-strength-grid">
+    <div className="fso-tape-strength-grid" data-testid="tape-strength-cards">
       <Panel
         title="Strongest"
         badge="Top 3"
         badgeTone="success"
-        testId="analysis-workspace-strongest"
+        testId="relative-strength-ranking"
       >
         <ScoreList
           entries={strongest}

@@ -13,7 +13,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 from api.schemas.control_room import GuardSummaryVM
 
 # Re-use the GuardSummaryVM shape from Control Room so the React
@@ -44,12 +52,17 @@ class RiskProtocolEntry(CamelModel):
 class RiskFirewallResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    interpretation: IntegratedInterpretation
+    watchpoints: list[EvidenceWatchpoint]
     overall_status: Literal["PASS", "WARN", "FAIL", "BLOCKED", "INFO"]
     overall_risk_level: Literal["GREEN", "YELLOW", "ORANGE", "RED", "UNKNOWN"]
     guards: list[GuardSummaryVM]
     active_alerts: list[ActiveAlertItem]
     protocol: list[RiskProtocolEntry]
-    safety_caption: str = "Read mode — this view never modifies positions."
+    safety_caption: str = "Read-only · Read mode — this view never modifies positions."
     source: Literal["fixture", "live"] = "fixture"
 
 

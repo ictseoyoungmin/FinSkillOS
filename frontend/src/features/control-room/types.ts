@@ -11,6 +11,13 @@ import type {
   TickerStripItem,
   WatchlistItem,
 } from "@/features/market/types";
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
 
 export interface ControlRoomSystemStatus {
   db: string;
@@ -21,6 +28,12 @@ export interface ControlRoomSystemStatus {
 export interface ControlRoomData {
   generatedAt: string;
   systemStatus: ControlRoomSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  interpretation: IntegratedInterpretationData;
+  watchpoints: EvidenceWatchpointData[];
+  safetyCaption: string;
   tickerStrip: TickerStripItem[];
   mission: MissionProgress;
   operatingState: OperatingState;

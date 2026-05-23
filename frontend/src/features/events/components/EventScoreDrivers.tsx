@@ -11,7 +11,6 @@ export function EventScoreDrivers({ drivers }: EventScoreDriversProps) {
     <DriversPanel
       title="Primary Drivers"
       drivers={drivers}
-      testId="event-drivers"
     />
   );
 }

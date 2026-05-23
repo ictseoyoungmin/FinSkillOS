@@ -9,6 +9,7 @@ buy / sell phrasing appears anywhere.
 from __future__ import annotations
 
 from api.fixtures._common import FIXTURE_TIMESTAMP
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.system_ops import (
     DataSourcePill,
@@ -22,6 +23,45 @@ def system_ops_fixture() -> SystemOpsResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=3),
+        judgment=judgment(
+            "SYSTEM TRUST JUDGMENT",
+            "Local System Usable",
+            "with Partial Data",
+            (
+                "Core protocols are available in read mode while several "
+                "data sources remain fixture-first."
+            ),
+            69,
+        ),
+        drivers=drivers(
+            (
+                "4",
+                "Protocols",
+                "Operational cards are available for deterministic local workflows.",
+            ),
+            ("Fixture", "Data layer", "Market, event, and news stores remain fixture-first."),
+            ("Read", "Mode", "The system exposes operational protocols only."),
+        ),
+        conflicts=conflicts(
+            (
+                "Usable system vs fixture data",
+                "The cockpit can run locally, but source freshness is limited.",
+            ),
+            (
+                "Protocol actions vs trading actions",
+                "Operational buttons do not create brokerage workflows.",
+            ),
+        ),
+        interpretation=interpretation(
+            "Local System Usable with Partial Data is the current trust read.",
+            "The page explains data-source status and safe operational protocols before a run.",
+            "Live adapter state and last-run timestamps can change the confidence level.",
+        ),
+        watchpoints=watchpoints(
+            ("Fixture source", "Review data-source pills before relying on freshness."),
+            ("Protocol idempotency", "Read each idempotency note before running a protocol."),
+            ("Container health", "Check API and database status if protocol results drift."),
+        ),
         protocols=[
             ProtocolCard(
                 key="seed_sample_account",
@@ -31,8 +71,7 @@ def system_ops_fixture() -> SystemOpsResponse:
                     "initial portfolio snapshot used by the cockpit."
                 ),
                 idempotency_note=(
-                    "Idempotent · reuses the existing account and "
-                    "snapshot when already present."
+                    "Idempotent · reuses the existing account and snapshot when already present."
                 ),
                 button_label="Seed sample data",
                 confirm_label="Seed sample data",

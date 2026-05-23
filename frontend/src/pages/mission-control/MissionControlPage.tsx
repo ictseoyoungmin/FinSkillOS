@@ -5,7 +5,17 @@ import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTime
 import { MissionGoalTracker } from "@/features/portfolio/components/MissionGoalTracker";
 import { PortfolioSnapshotPanel } from "@/features/portfolio/components/PortfolioSnapshotPanel";
 import { missionControlFixture } from "@/mocks/fixtures/missionControl.fixture";
-import { EmptyState, Panel, SectionHeader } from "@/shared/ui";
+import {
+  ConflictsPanel,
+  DriversPanel,
+  EmptyState,
+  InterpretationPanel,
+  JudgmentHeader,
+  Panel,
+  SafetyCaption,
+  SectionHeader,
+  WatchpointsPanel,
+} from "@/shared/ui";
 import "./mission-control.css";
 
 export function MissionControlPage() {
@@ -33,10 +43,30 @@ export function MissionControlPage() {
   return (
     <div className="fso-mission-control" data-testid="mission-control-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Mission Control" />
+      <JudgmentHeader judgment={payload.judgment} />
+      <div className="fso-mission-control-evidence-row">
+        <DriversPanel
+          drivers={payload.drivers.map((driver) => ({
+            label: driver.title,
+            value: driver.score,
+            detail: driver.note,
+          }))}
+        />
+        <ConflictsPanel
+          conflicts={payload.conflicts.map((conflict) => ({
+            label: conflict.title,
+            description: conflict.note,
+          }))}
+        />
+      </div>
       <div className="fso-mission-control-grid">
         <div className="fso-mission-control-col">
-          <MissionGoalTracker goal={payload.goal} />
-          <MilestoneTimeline milestones={payload.milestones} />
+          <div data-testid="mission-goal-tracker">
+            <MissionGoalTracker goal={payload.goal} />
+          </div>
+          <div data-testid="mission-milestone-timeline">
+            <MilestoneTimeline milestones={payload.milestones} />
+          </div>
           {payload.goal.earlyStopTriggered ? (
             <Panel
               title="Challenge Complete"
@@ -52,13 +82,17 @@ export function MissionControlPage() {
           ) : null}
         </div>
         <div className="fso-mission-control-col">
-          <PortfolioSnapshotPanel snapshot={payload.portfolio} />
-          <CapitalMapPanel
-            title="Sector Exposure"
-            badge="Sector"
-            slices={payload.capitalMap}
-            testId="mission-capital-map-sector"
-          />
+          <div data-testid="mission-portfolio-snapshot">
+            <PortfolioSnapshotPanel snapshot={payload.portfolio} />
+          </div>
+          <div data-testid="mission-capital-map-sector">
+            <CapitalMapPanel
+              title="Sector Exposure"
+              badge="Sector"
+              slices={payload.capitalMap}
+              testId="capital-map"
+            />
+          </div>
           {payload.themeMap.length > 0 ? (
             <CapitalMapPanel
               title="Theme Exposure"
@@ -81,6 +115,20 @@ export function MissionControlPage() {
       >
         {payload.safetyCaption}
       </p>
+      <InterpretationPanel
+        bullets={[
+          payload.interpretation.verdict,
+          payload.interpretation.whyItMatters,
+          payload.interpretation.whatRemainsUncertain,
+        ]}
+      />
+      <WatchpointsPanel
+        watchpoints={payload.watchpoints.map((watchpoint) => ({
+          label: watchpoint.title,
+          description: watchpoint.note,
+        }))}
+      />
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

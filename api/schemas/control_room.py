@@ -12,7 +12,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 
 
 class TickerStripItem(CamelModel):
@@ -102,6 +110,12 @@ class ReviewQueueItem(CamelModel):
 class ControlRoomResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    interpretation: IntegratedInterpretation
+    watchpoints: list[EvidenceWatchpoint]
+    safety_caption: str = "Global operating posture (not execution)."
     ticker_strip: list[TickerStripItem]
     mission: MissionProgress
     operating_state: OperatingState

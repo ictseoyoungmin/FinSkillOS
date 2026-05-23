@@ -8,7 +8,15 @@ import { GuardStack } from "@/features/risk-guards/components/GuardStack";
 import { CatalystListCard } from "@/features/events/components/CatalystListCard";
 import { WatchlistCard } from "@/features/market/components/WatchlistCard";
 import { PortfolioMarketTapePanel } from "@/features/market/components/PortfolioMarketTapePanel";
-import { SectionHeader } from "@/shared/ui";
+import {
+  ConflictsPanel,
+  DriversPanel,
+  InterpretationPanel,
+  JudgmentHeader,
+  SafetyCaption,
+  SectionHeader,
+  WatchpointsPanel,
+} from "@/shared/ui";
 import type { ControlRoomData } from "@/features/control-room/types";
 import "./control-room-grid.css";
 
@@ -23,6 +31,22 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
         eyebrow="FinSkillOS · Module"
         title="Control Room"
       />
+      <JudgmentHeader judgment={data.judgment} />
+      <div className="fso-control-evidence-row">
+        <DriversPanel
+          drivers={data.drivers.map((driver) => ({
+            label: driver.title,
+            value: driver.score,
+            detail: driver.note,
+          }))}
+        />
+        <ConflictsPanel
+          conflicts={data.conflicts.map((conflict) => ({
+            label: conflict.title,
+            description: conflict.note,
+          }))}
+        />
+      </div>
       <div className="fso-control-grid">
         <section
           className="fso-control-column"
@@ -55,6 +79,20 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
           <WatchlistCard items={data.watchlist} />
         </section>
       </div>
+      <InterpretationPanel
+        bullets={[
+          data.interpretation.verdict,
+          data.interpretation.whyItMatters,
+          data.interpretation.whatRemainsUncertain,
+        ]}
+      />
+      <WatchpointsPanel
+        watchpoints={data.watchpoints.map((watchpoint) => ({
+          label: watchpoint.title,
+          description: watchpoint.note,
+        }))}
+      />
+      <SafetyCaption>{data.safetyCaption}</SafetyCaption>
     </div>
   );
 }

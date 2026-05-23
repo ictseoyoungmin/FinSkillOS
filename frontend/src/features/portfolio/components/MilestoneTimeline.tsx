@@ -28,7 +28,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
       title="Milestones"
       badge="Quarter Steps"
       badgeTone="info"
-      testId="mission-milestone-timeline"
+      testId="milestone-timeline"
     >
       <ol className="fso-milestone-list">
         {milestones.map((milestone) => {

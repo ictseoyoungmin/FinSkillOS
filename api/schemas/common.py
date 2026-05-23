@@ -51,4 +51,43 @@ class ApiMeta(CamelModel):
     )
 
 
-__all__ = ["ApiMeta", "CamelModel", "SystemStatus"]
+class JudgmentHeader(CamelModel):
+    eyebrow: str
+    title: str
+    accent: str = ""
+    summary: str
+    confidence: int = Field(default=0, ge=0, le=100)
+
+
+class EvidenceDriver(CamelModel):
+    score: str
+    title: str
+    note: str
+
+
+class EvidenceConflict(CamelModel):
+    title: str
+    note: str
+
+
+class EvidenceWatchpoint(CamelModel):
+    title: str
+    note: str
+
+
+class IntegratedInterpretation(CamelModel):
+    verdict: str
+    why_it_matters: str
+    what_remains_uncertain: str
+
+
+__all__ = [
+    "ApiMeta",
+    "CamelModel",
+    "EvidenceConflict",
+    "EvidenceDriver",
+    "EvidenceWatchpoint",
+    "IntegratedInterpretation",
+    "JudgmentHeader",
+    "SystemStatus",
+]

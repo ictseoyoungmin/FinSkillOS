@@ -28,7 +28,7 @@ export function WeeklyMarkdownExport({ markdown }: WeeklyMarkdownExportProps) {
       title="Weekly Review Markdown"
       badge="Copyable"
       badgeTone="info"
-      testId="trade-weekly-markdown"
+      testId="markdown-export"
     >
       <textarea
         className="fso-weekly-markdown"

@@ -16,6 +16,7 @@ import {
   DriversPanel,
   EmptyState,
   InterpretationPanel,
+  SafetyCaption,
   SectionHeader,
 } from "@/shared/ui";
 import "./trade-memory.css";
@@ -48,7 +49,7 @@ export function TradeMemoryPage() {
       <ProcessJudgmentHeader judgment={payload.judgment} />
       <div className="fso-trade-memory-grid">
         <div className="fso-trade-memory-col">
-          <DriversPanel drivers={payload.drivers} testId="trade-drivers" />
+          <DriversPanel drivers={payload.drivers} />
           <RecentEntriesTable entries={payload.recentEntries} />
           <PerformanceByRegime buckets={payload.performanceByRegime} />
           <PerformanceBySectorTheme
@@ -58,13 +59,9 @@ export function TradeMemoryPage() {
           <MistakeFrequencyPanel rows={payload.mistakeFrequency} />
         </div>
         <div className="fso-trade-memory-col">
-          <ConflictsPanel
-            conflicts={payload.conflicts}
-            testId="trade-conflicts"
-          />
+          <ConflictsPanel conflicts={payload.conflicts} />
           <InterpretationPanel
             bullets={payload.integratedInterpretation}
-            testId="trade-interpretation"
           />
           <TradeMemoryWatchpoints watchpoints={payload.watchpoints} />
           <WeeklyReviewPanel review={payload.weeklyReview} />
@@ -72,12 +69,7 @@ export function TradeMemoryPage() {
           <TradeEntryForm rules={payload.formRules} />
         </div>
       </div>
-      <p
-        className="fso-trade-memory-caption"
-        data-testid="trade-memory-safety-caption"
-      >
-        {payload.safetyCaption}
-      </p>
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

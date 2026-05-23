@@ -20,7 +20,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 
 
 class UniverseTicker(CamelModel):
@@ -79,6 +87,11 @@ class MarketKernelHeader(CamelModel):
 class MarketKernelResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    integrated_interpretation: IntegratedInterpretation
+    review_watchpoints: list[EvidenceWatchpoint]
     universe: list[UniverseTicker]
     header: MarketKernelHeader
     bars: list[MarketBarPoint]
@@ -87,7 +100,10 @@ class MarketKernelResponse(CamelModel):
     watchpoints: list[str] = Field(default_factory=list)
     interpretation: str = ""
     setup_hint: str | None = None
-    safety_caption: str = "Stored data only · not prediction · no execution"
+    safety_caption: str = (
+        "Technical interpretation (not entry signal). Stored data only · "
+        "not prediction."
+    )
     source: Literal["fixture", "live"] = "fixture"
 
 

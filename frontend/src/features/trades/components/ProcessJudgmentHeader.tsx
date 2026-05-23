@@ -1,6 +1,5 @@
-import { Panel } from "@/shared/ui";
+import { JudgmentHeader } from "@/shared/ui";
 import type { ProcessJudgmentHeader as ProcessJudgmentHeaderData } from "../types";
-import "./process-judgment-header.css";
 
 export interface ProcessJudgmentHeaderProps {
   judgment: ProcessJudgmentHeaderData;
@@ -15,37 +14,14 @@ export function ProcessJudgmentHeader({
   judgment,
 }: ProcessJudgmentHeaderProps) {
   return (
-    <Panel
-      title="Process Judgment"
-      badge={judgment.confidence}
-      badgeTone={
-        judgment.confidence === "HIGH"
-          ? "success"
-          : judgment.confidence === "MODERATE"
-            ? "info"
-            : "warning"
-      }
-      testId="trade-judgment-header"
-    >
-      <p className="fso-process-judgment-headline">{judgment.headline}</p>
-      <dl className="fso-process-judgment-tags">
-        <div>
-          <dt>Best condition</dt>
-          <dd>{judgment.bestCondition}</dd>
-        </div>
-        <div>
-          <dt>Weakest condition</dt>
-          <dd>{judgment.weakestCondition}</dd>
-        </div>
-        <div>
-          <dt>Repeated mistake</dt>
-          <dd>{judgment.repeatedMistake}</dd>
-        </div>
-        <div>
-          <dt>Review priority</dt>
-          <dd>{judgment.reviewPriority}</dd>
-        </div>
-      </dl>
-    </Panel>
+    <JudgmentHeader
+      judgment={{
+        eyebrow: "PROCESS JUDGMENT",
+        title: "Profits in Risk-On,",
+        accent: "Losses in FOMO",
+        summary: `${judgment.headline} Best condition: ${judgment.bestCondition}; review priority: ${judgment.reviewPriority}.`,
+        confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
+      }}
+    />
   );
 }

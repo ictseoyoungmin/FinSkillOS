@@ -11,7 +11,17 @@
   align-items: start;
 }
 
+.fso-symbol-lab-evidence-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
 @media (max-width: 1100px) {
+  .fso-symbol-lab-evidence-row {
+    grid-template-columns: 1fr;
+  }
+
   .fso-symbol-lab-grid {
     grid-template-columns: 1fr;
   }

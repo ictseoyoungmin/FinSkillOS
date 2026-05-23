@@ -34,7 +34,7 @@ export function ActiveAlertsTable({ alerts }: ActiveAlertsTableProps) {
         title="Active Alerts"
         badge="0"
         badgeTone="success"
-        testId="risk-firewall-active-alerts"
+        testId="active-alerts"
       >
         <p className="fso-active-alerts-empty">
           No active alerts at the snapshot time.
@@ -47,7 +47,7 @@ export function ActiveAlertsTable({ alerts }: ActiveAlertsTableProps) {
       title="Active Alerts"
       badge={String(alerts.length)}
       badgeTone="warning"
-      testId="risk-firewall-active-alerts"
+      testId="active-alerts"
     >
       <table
         className="fso-active-alerts-table"

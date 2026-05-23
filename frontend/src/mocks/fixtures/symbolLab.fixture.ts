@@ -11,6 +11,34 @@ const TSLA: SymbolLabData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 1 },
+  judgment: {
+    eyebrow: "SYMBOL JUDGMENT · TSLA",
+    title: "Recovering but",
+    accent: "Constrained",
+    summary:
+      "TSLA combines stored technical evidence, position context, alerts, and news into a descriptive view.",
+    confidence: 66,
+  },
+  drivers: [
+    { score: "WEAK_BULLISH", title: "Trend state", note: "Latest stored indicator state." },
+    { score: "1", title: "Active alerts", note: "Position and risk context attached to the symbol." },
+    { score: "1", title: "News items", note: "Recent symbol-linked headlines in the fixture." },
+  ],
+  conflicts: [
+    { title: "Technical recovery vs risk context", note: "Signal evidence must be read beside position and alert state." },
+    { title: "Ticker-specific vs portfolio-level", note: "Symbol context may differ from the broader operating posture." },
+  ],
+  integratedInterpretation: {
+    verdict: "TSLA is recovering but remains constrained by review conditions.",
+    whyItMatters:
+      "The page binds technical, position, alert, and news evidence before forming a symbol read.",
+    whatRemainsUncertain:
+      "Fresh bars, alerts, or news can change the confidence score.",
+  },
+  reviewWatchpoints: [
+    { title: "Position guard", note: "Recheck any active single-position or concentration alert." },
+    { title: "News tone", note: "Watch whether symbol-linked news clusters in one theme." },
+  ],
   header: {
     ticker: "TSLA",
     timeframe: "1d",
@@ -94,7 +122,8 @@ const TSLA: SymbolLabData = {
     "Position value is above the single-position limit; this view " +
     "describes exposure context, not a price prediction.",
   setupHint: null,
-  safetyCaption: "Stored data only · not prediction · no execution",
+  safetyCaption:
+    "Symbol interpretation (not trade signal). Stored data only · not prediction.",
 };
 
 export function symbolLabFixture(ticker: string): SymbolLabData {
@@ -102,6 +131,11 @@ export function symbolLabFixture(ticker: string): SymbolLabData {
   if (t === "TSLA") return TSLA;
   return {
     ...TSLA,
+    judgment: {
+      ...TSLA.judgment,
+      eyebrow: `SYMBOL JUDGMENT · ${t}`,
+      summary: `${t} reuses the deterministic TSLA fixture snapshot for offline rendering.`,
+    },
     header: { ...TSLA.header, ticker: t },
     position: null,
     alerts: [],

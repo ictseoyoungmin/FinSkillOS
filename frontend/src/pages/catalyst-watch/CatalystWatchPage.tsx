@@ -12,6 +12,7 @@ import {
   ConflictsPanel,
   EmptyState,
   InterpretationPanel,
+  SafetyCaption,
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
@@ -45,13 +46,18 @@ export function CatalystWatchPage() {
       <EventExposureJudgment judgment={payload.judgment} />
       <div className="fso-catalyst-watch-grid">
         <div className="fso-catalyst-watch-col">
-          <EventScoreDrivers drivers={payload.drivers} />
+          <div data-testid="event-score-drivers">
+            <EventScoreDrivers drivers={payload.drivers} />
+          </div>
           <EventRiskTable
             title="Upcoming Events"
             events={payload.upcoming}
             toneMap={payload.dateStatusBadgeTone}
-            testId="event-upcoming"
+            testId="event-risk-table"
           />
+          <div className="fso-date-status-badges" data-testid="date-status-badges">
+            {Object.keys(payload.dateStatusBadgeTone).join(" · ")}
+          </div>
           <HighRiskEventsPanel
             events={payload.highRisk}
             toneMap={payload.dateStatusBadgeTone}
@@ -63,28 +69,18 @@ export function CatalystWatchPage() {
           <EventLinkedNewsPanel articles={payload.linkedNews} />
         </div>
         <div className="fso-catalyst-watch-col">
-          <ConflictsPanel
-            conflicts={payload.conflicts}
-            testId="event-conflicts"
-          />
+          <ConflictsPanel conflicts={payload.conflicts} />
           <InterpretationPanel
             bullets={payload.integratedInterpretation}
-            testId="event-interpretation"
           />
           <WatchpointsPanel
             watchpoints={payload.watchpoints}
             title="Watchpoints"
-            testId="event-watchpoints"
           />
           <ManualEventEntry rules={payload.manualEntryRules} />
         </div>
       </div>
-      <p
-        className="fso-catalyst-watch-caption"
-        data-testid="catalyst-watch-safety-caption"
-      >
-        {payload.safetyCaption}
-      </p>
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

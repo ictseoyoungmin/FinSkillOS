@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<DataSourceStatus, string> = {
  */
 export function DataSourceStrip({ pills }: DataSourceStripProps) {
   return (
-    <ul className="fso-data-source-strip" data-testid="system-ops-data-sources">
+    <ul className="fso-data-source-strip" data-testid="data-source-strip">
       {pills.map((pill) => {
         const tone = STATUS_TONE[pill.status];
         return (

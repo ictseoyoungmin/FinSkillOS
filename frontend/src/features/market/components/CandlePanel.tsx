@@ -39,7 +39,7 @@ export function CandlePanel({ header, bars, badge }: CandlePanelProps) {
       title={`Chart · ${header.ticker}`}
       badge={badge ?? header.timeframe.toUpperCase()}
       badgeTone="info"
-      testId="market-kernel-chart-panel"
+      testId="chart-panel"
     >
       <div className="fso-kernel-chart-header" data-testid="market-kernel-header">
         <div>

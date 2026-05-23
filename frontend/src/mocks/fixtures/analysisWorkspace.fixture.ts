@@ -9,6 +9,34 @@ export const analysisWorkspaceFixture: AnalysisWorkspaceData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 0 },
+  judgment: {
+    eyebrow: "MARKET STRUCTURE JUDGMENT",
+    title: "Leadership is",
+    accent: "Narrow",
+    summary:
+      "Semiconductor and mega-cap technology strength carries the tape while defensive groups lag.",
+    confidence: 70,
+  },
+  drivers: [
+    { score: "SMH", title: "Strongest tape", note: "Semiconductors lead the relative-strength table." },
+    { score: "XLU", title: "Weakest tape", note: "Defensive utilities remain the weakest sector read." },
+    { score: "0", title: "Missing series", note: "The fixture universe is complete for this snapshot." },
+  ],
+  conflicts: [
+    { title: "Broad index strength vs narrow leadership", note: "Index-level support is present but concentrated in fewer groups." },
+    { title: "Risk-on regime vs macro pressure", note: "Yield proxy pressure remains a review condition." },
+  ],
+  interpretation: {
+    verdict: "Market structure remains constructive but leadership is narrow.",
+    whyItMatters:
+      "Breadth context helps separate broad participation from concentrated theme leadership.",
+    whatRemainsUncertain:
+      "Rotation or missing-data changes could weaken the judgment.",
+  },
+  watchpoints: [
+    { title: "Leadership rotation", note: "Watch whether strength expands beyond AI / Semis." },
+    { title: "Macro proxy pressure", note: "Track US10Y and VIX if risk tone changes." },
+  ],
   timeframe: "1d",
   universe: [
     {
@@ -138,5 +166,5 @@ export const analysisWorkspaceFixture: AnalysisWorkspaceData = {
     snapshotTime: "2026-05-19T00:00:00+00:00",
   },
   setupHint: null,
-  safetyCaption: "Stored data only · interpretation, not prediction",
+  safetyCaption: "Structural breadth read (not allocation call).",
 };

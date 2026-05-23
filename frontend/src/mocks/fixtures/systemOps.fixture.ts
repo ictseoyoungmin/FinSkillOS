@@ -8,6 +8,35 @@ export const systemOpsFixture: SystemOpsData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 3 },
+  judgment: {
+    eyebrow: "SYSTEM TRUST JUDGMENT",
+    title: "Local System Usable",
+    accent: "with Partial Data",
+    summary:
+      "Core protocols are available in read mode while several data sources remain fixture-first.",
+    confidence: 69,
+  },
+  drivers: [
+    { score: "4", title: "Protocols", note: "Operational cards are available for deterministic local workflows." },
+    { score: "Fixture", title: "Data layer", note: "Market, event, and news stores remain fixture-first." },
+    { score: "Read", title: "Mode", note: "The system exposes operational protocols only." },
+  ],
+  conflicts: [
+    { title: "Usable system vs fixture data", note: "The cockpit can run locally, but source freshness is limited." },
+    { title: "Protocol actions vs trading actions", note: "Operational buttons do not create brokerage workflows." },
+  ],
+  interpretation: {
+    verdict: "Local System Usable with Partial Data is the current trust read.",
+    whyItMatters:
+      "The page explains data-source status and safe operational protocols before a run.",
+    whatRemainsUncertain:
+      "Live adapter state and last-run timestamps can change the confidence level.",
+  },
+  watchpoints: [
+    { title: "Fixture source", note: "Review data-source pills before relying on freshness." },
+    { title: "Protocol idempotency", note: "Read each idempotency note before running a protocol." },
+    { title: "Container health", note: "Check API and database status if protocol results drift." },
+  ],
   protocols: [
     {
       key: "seed_sample_account",

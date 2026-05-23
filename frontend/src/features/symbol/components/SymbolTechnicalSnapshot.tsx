@@ -29,7 +29,7 @@ export function SymbolTechnicalSnapshot({
       title="Technical Snapshot"
       badge={indicators.trendState ?? "—"}
       badgeTone="info"
-      testId="symbol-technical-snapshot"
+      testId="technical-snapshot"
     >
       <div className="fso-kernel-chart-header">
         <div>

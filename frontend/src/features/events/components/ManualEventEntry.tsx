@@ -152,7 +152,7 @@ export function ManualEventEntry({ rules }: ManualEventEntryProps) {
       title="Manual Event Entry"
       badge="Tentative by default"
       badgeTone="warning"
-      testId="event-manual-entry"
+      testId="manual-event-entry"
     >
       <p
         className="fso-manual-event-disclaimer"

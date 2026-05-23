@@ -22,7 +22,7 @@ export function WeeklyReviewPanel({ review }: WeeklyReviewPanelProps) {
       title="Weekly Review"
       badge={`${review.startDate} → ${review.endDate}`}
       badgeTone="info"
-      testId="trade-weekly-review"
+      testId="weekly-review"
     >
       <dl className="fso-weekly-review-stats">
         <div>

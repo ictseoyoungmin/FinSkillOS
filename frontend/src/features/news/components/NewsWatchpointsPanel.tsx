@@ -17,7 +17,6 @@ export function NewsWatchpointsPanel({
         description: entry.description,
         tone: entry.tone,
       }))}
-      testId="news-watchpoints"
     />
   );
 }

@@ -16,7 +16,7 @@ export function MarketKernelInterpretation({
       title="Interpretation"
       badge="Read-only"
       badgeTone="neutral"
-      testId="market-kernel-interpretation"
+      testId="market-interpretation"
     >
       <p className="fso-kernel-interpretation">{interpretation}</p>
       {watchpoints.length > 0 ? (

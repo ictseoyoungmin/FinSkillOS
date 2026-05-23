@@ -11,7 +11,17 @@
   align-items: start;
 }
 
+.fso-risk-firewall-evidence-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
 @media (max-width: 1200px) {
+  .fso-risk-firewall-evidence-row {
+    grid-template-columns: 1fr;
+  }
+
   .fso-risk-firewall-grid {
     grid-template-columns: 1fr;
   }

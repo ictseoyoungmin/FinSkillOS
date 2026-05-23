@@ -1,4 +1,11 @@
 import type { Numeric } from "@/shared/lib/format";
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
 
 export interface MissionProgress {
   currentValue: Numeric;
@@ -73,6 +80,11 @@ export interface MissionControlSystemStatus {
 export interface MissionControlData {
   generatedAt: string;
   systemStatus: MissionControlSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  interpretation: IntegratedInterpretationData;
+  watchpoints: EvidenceWatchpointData[];
   goal: GoalTracker;
   milestones: MilestoneItem[];
   portfolio: PortfolioSnapshotPanelData;

@@ -16,7 +16,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 
 ProtocolKey = Literal[
     "seed_sample_account",
@@ -60,6 +68,11 @@ class DataSourcePill(CamelModel):
 class SystemOpsResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    interpretation: IntegratedInterpretation
+    watchpoints: list[EvidenceWatchpoint]
     protocols: list[ProtocolCard]
     data_sources: list[DataSourcePill]
     safety_caption: str = "Operational protocols only — no trading actions."

@@ -1,4 +1,11 @@
 import type { Numeric } from "@/shared/lib/format";
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
 
 export type IndexKind = "INDEX_ETF" | "SECTOR_ETF" | "MACRO_PROXY";
 export type DataStatus = "OK" | "PARTIAL" | "MISSING";
@@ -51,6 +58,11 @@ export interface AnalysisWorkspaceSystemStatus {
 export interface AnalysisWorkspaceData {
   generatedAt: string;
   systemStatus: AnalysisWorkspaceSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  interpretation: IntegratedInterpretationData;
+  watchpoints: EvidenceWatchpointData[];
   timeframe: string;
   universe: IndexUniverseRow[];
   strongest: TapeStrengthEntry[];

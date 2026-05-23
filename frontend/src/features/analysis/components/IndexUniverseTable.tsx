@@ -25,7 +25,7 @@ export function IndexUniverseTable({ rows }: IndexUniverseTableProps) {
       title="Index Universe"
       badge={`${rows.length} rows`}
       badgeTone="info"
-      testId="analysis-workspace-universe-table"
+      testId="index-universe-table"
     >
       <div className="fso-analysis-table-scroller">
         <table className="fso-analysis-table">

@@ -9,6 +9,35 @@ export const missionControlFixture: MissionControlData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 3 },
+  judgment: {
+    eyebrow: "MISSION RISK JUDGMENT",
+    title: "Progress Strong,",
+    accent: "Risk Budget Narrows",
+    summary:
+      "Challenge progress is high enough that portfolio and guard context matter more than raw growth pace.",
+    confidence: 74,
+  },
+  drivers: [
+    { score: "73.4%", title: "Goal progress", note: "The challenge is approaching the 75% milestone." },
+    { score: "TSLA", title: "Largest position", note: "Single-name weight remains a review factor." },
+    { score: "3", title: "Guard count", note: "Risk context is active beside mission progress." },
+  ],
+  conflicts: [
+    { title: "Strong progress vs narrowing budget", note: "Higher completion progress increases sensitivity to drawdown review." },
+    { title: "Theme exposure vs cash buffer", note: "AI / EV exposure remains meaningful while cash is finite." },
+  ],
+  interpretation: {
+    verdict: "Mission progress is strong, but the risk budget narrows.",
+    whyItMatters:
+      "The page connects goal progress, milestones, portfolio composition, and guard context.",
+    whatRemainsUncertain:
+      "Future portfolio value and concentration changes can alter the review priority.",
+  },
+  watchpoints: [
+    { title: "75% milestone", note: "Recheck mission state as the next milestone is approached." },
+    { title: "Largest position", note: "Monitor any single-name review threshold." },
+    { title: "Cash buffer", note: "Track whether cash remains adequate for the current goal mode." },
+  ],
   goal: {
     currentValue: 73_420_000,
     targetValue: 100_000_000,
@@ -50,5 +79,5 @@ export const missionControlFixture: MissionControlData = {
   ],
   challengeStatusCaption:
     "1억 KRW challenge active · 73.4% progress · challenge complete + early-stop state remain pending.",
-  safetyCaption: "Read mode — descriptive view only.",
+  safetyCaption: "Read mode — Goal interpretation (not return forecast).",
 };

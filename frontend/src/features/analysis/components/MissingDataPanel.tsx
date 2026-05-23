@@ -6,15 +6,12 @@ export interface MissingDataPanelProps {
 }
 
 export function MissingDataPanel({ tickers, setupHint }: MissingDataPanelProps) {
-  if (tickers.length === 0 && !setupHint) {
-    return null;
-  }
   return (
     <Panel
       title="Missing Data"
       badge={`${tickers.length}`}
       badgeTone="warning"
-      testId="analysis-workspace-missing-data"
+      testId="missing-data-panel"
     >
       {setupHint ? (
         <p className="fso-missing-hint">{setupHint}</p>
@@ -25,7 +22,9 @@ export function MissingDataPanel({ tickers, setupHint }: MissingDataPanelProps) 
             <li key={t}>{t}</li>
           ))}
         </ul>
-      ) : null}
+      ) : (
+        <p className="fso-missing-hint">No missing data in this snapshot.</p>
+      )}
     </Panel>
   );
 }

@@ -13,7 +13,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 
 
 class IndexUniverseRow(CamelModel):
@@ -58,6 +66,11 @@ class RegimeContext(CamelModel):
 class AnalysisWorkspaceResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    interpretation: IntegratedInterpretation
+    watchpoints: list[EvidenceWatchpoint]
     timeframe: str
     universe: list[IndexUniverseRow]
     strongest: list[TapeStrengthEntry]
@@ -65,7 +78,7 @@ class AnalysisWorkspaceResponse(CamelModel):
     missing_data: list[str] = Field(default_factory=list)
     regime: RegimeContext | None = None
     setup_hint: str | None = None
-    safety_caption: str = "Stored data only · interpretation, not prediction"
+    safety_caption: str = "Structural breadth read (not allocation call)."
     source: Literal["fixture", "live"] = "fixture"
 
 

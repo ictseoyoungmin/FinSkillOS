@@ -15,7 +15,7 @@ export function SymbolSearchPanel({
       title="Symbol Search"
       badge="Ticker"
       badgeTone="info"
-      testId="symbol-search-panel"
+      testId="symbol-search"
     >
       <TickerSearch initialValue={currentTicker} onSubmit={onSelect} />
     </Panel>

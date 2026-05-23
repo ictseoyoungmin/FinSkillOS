@@ -21,7 +21,7 @@ export function MissionGoalTracker({ goal }: MissionGoalTrackerProps) {
       title="Goal Tracker"
       badge={goal.phase}
       badgeTone="info"
-      testId="mission-goal-tracker"
+      testId="goal-tracker"
     >
       <div className="fso-goal-tracker-figure">
         <span className="fso-goal-tracker-percent">

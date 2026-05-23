@@ -20,7 +20,7 @@ export function RecentEntriesTable({ entries }: RecentEntriesTableProps) {
         title="Recent Entries"
         badge="0"
         badgeTone="info"
-        testId="trade-recent-entries"
+        testId="recent-entries"
       >
         <p className="fso-trade-recent-empty">No journal entries yet.</p>
       </Panel>
@@ -31,7 +31,7 @@ export function RecentEntriesTable({ entries }: RecentEntriesTableProps) {
       title="Recent Entries"
       badge={String(entries.length)}
       badgeTone="info"
-      testId="trade-recent-entries"
+      testId="recent-entries"
     >
       <table
         className="fso-trade-recent-table"

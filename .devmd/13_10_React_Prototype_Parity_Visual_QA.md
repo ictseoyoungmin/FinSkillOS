@@ -174,6 +174,68 @@ docker compose --profile e2e run --rm e2e npm run test:visual          # parity 
 ## Completion note
 
 ```text
+Status: PARTIAL_AS_QA_SCAFFOLD_ONLY (2026-05-22, downgraded same day)
+
+Why downgraded:
+- The original Slice 13.10 brief assumed 13.7 / 13.8 / 13.9 had already
+  promoted every React tab into a v4.2 Evidence-to-Judgment layout, so
+  13.10 only needed to wrap them in a visual gate. Audit on 2026-05-22
+  showed that assumption was wrong:
+    * Only 3 of 10 tabs carry a v4.2 JudgmentHeader (News, Catalyst,
+      Trade Memory — the Slice 13.9 surface).
+    * The other 7 tabs (Control / Market Kernel / Analysis / Symbol /
+      Risk Firewall / Mission / System Ops) still render the v4.1
+      shell-era layout with no Judgment Header, no Conflicts panel, no
+      Watchpoints panel, and no per-tab Safety Caption testid.
+- The 13.10 all-tabs structural spec only asserts the OS shell + the
+  `*-page` root testid + the SectionHeader heading, which means a tab
+  that is missing the v4.2 information hierarchy still passes.
+- Screenshot baselines are not committed (the slice deferred them to
+  the docker e2e profile but never bootstrapped). As a "visual parity
+  gate" the slice has no baseline to compare against.
+
+What landed (kept):
+- frontend/e2e/visual/all-tabs.visual.spec.ts (20 cases — 10 structural
+  + 10 @visual). Structural half still useful as a smoke gate and is
+  superseded by the stricter 13.11 spec.
+- frontend/e2e/responsive.spec.ts (2 cases — Desktop 1440×900 + Narrow
+  980×720). Stands as-is.
+- frontend/e2e/visual/README.md (suite table, docker baseline recipe,
+  diff viewer, dynamic regions, intentional mockup differences,
+  symptom→action triage). Stands as-is.
+- README.md §9 — visual parity gate pointer + `npm run test:visual` /
+  `test:visual:update` recipe. Stands as-is.
+
+What is NOT done:
+- v4.2 Evidence-to-Judgment 구조 (Judgment Header / Primary Drivers /
+  Conflicts / Evidence / Integrated Interpretation / Watchpoints /
+  Safety Caption) for the 7 missing tabs.
+- Per-tab required-panel testid contract — the all-tabs spec must be
+  rewritten so each route asserts its own 5–6 evidence testids, not
+  just the page root.
+- Screenshot baseline PNGs in
+  frontend/e2e/visual/all-tabs.visual.spec.ts-snapshots/.
+
+Follow-up slice:
+- .devmd/13_11_UI_Completeness_Parity.md drives all three items above.
+  Do not reopen 13.10. Treat the files added by 13.10 as scaffolding
+  that 13.11 hardens.
+
+Verification (snapshot of what was actually executed on 2026-05-22):
+- python3 -m compileall app.py finskillos api scripts   → clean
+- python3 -m pytest tests                               → 595 passed
+- python3 -m ruff check finskillos api tests            → All checks passed
+- npm run lint / build / test:e2e / test:visual         → deferred to
+                                                          Docker e2e
+                                                          profile;
+                                                          baseline PNGs
+                                                          never
+                                                          generated.
+```
+
+Original (pre-downgrade) completion note kept for trace:
+
+```text
 Status: DONE_AS_REACT_PROTOTYPE_PARITY_VISUAL_QA_V0 (2026-05-22)
 
 Implemented files:

@@ -14,7 +14,7 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
         title="Regime Context"
         badge="No data"
         badgeTone="neutral"
-        testId="analysis-workspace-regime"
+        testId="regime-context"
       >
         <EmptyState
           title="No regime snapshot yet"
@@ -31,7 +31,7 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
       title="Regime Context"
       badge={regime.regime}
       badgeTone="warning"
-      testId="analysis-workspace-regime"
+      testId="regime-context"
     >
       <div className="fso-regime-meta">
         <Badge tone="info">{regime.decisionMode}</Badge>

@@ -1,0 +1,102 @@
+.fso-judgment-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 16px;
+  align-items: stretch;
+  padding: 20px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-md);
+  background: var(--fso-panel);
+  box-shadow: var(--fso-shadow);
+}
+
+.fso-judgment-copy {
+  min-width: 0;
+}
+
+.fso-judgment-eyebrow {
+  margin: 0 0 8px;
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.fso-judgment-title {
+  margin: 0;
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 32px;
+  line-height: 1.12;
+}
+
+.fso-judgment-accent {
+  color: var(--fso-cyan);
+}
+
+.fso-judgment-summary {
+  max-width: 72ch;
+  margin: 12px 0 0;
+  color: var(--fso-text-muted);
+  line-height: 1.55;
+}
+
+.fso-judgment-confidence {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: var(--fso-panel-2);
+}
+
+.fso-judgment-confidence-label {
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.fso-judgment-confidence strong {
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 24px;
+}
+
+.fso-judgment-confidence-meter {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fso-line);
+}
+
+.fso-judgment-confidence-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fso-green);
+}
+
+.fso-judgment-confidence[data-tone="warning"] .fso-judgment-confidence-meter span {
+  background: var(--fso-amber);
+}
+
+.fso-judgment-confidence[data-tone="danger"] .fso-judgment-confidence-meter span {
+  background: var(--fso-red);
+}
+
+@media (max-width: 820px) {
+  .fso-judgment-header {
+    grid-template-columns: 1fr;
+  }
+
+  .fso-judgment-title {
+    font-size: 24px;
+  }
+}

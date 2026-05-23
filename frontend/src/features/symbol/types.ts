@@ -1,6 +1,13 @@
 import type { Numeric } from "@/shared/lib/format";
 import type { IndicatorSnapshot } from "@/features/market/kernel-types";
 import type { RegimeContext } from "@/features/analysis/types";
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
 
 export type DataStatus = "OK" | "PARTIAL" | "MISSING";
 
@@ -61,6 +68,11 @@ export interface SymbolLabSystemStatus {
 export interface SymbolLabData {
   generatedAt: string;
   systemStatus: SymbolLabSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  integratedInterpretation: IntegratedInterpretationData;
+  reviewWatchpoints: EvidenceWatchpointData[];
   header: SymbolLabHeader;
   technical: IndicatorSnapshot;
   recentBars: SymbolRecentBar[];

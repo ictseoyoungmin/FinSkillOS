@@ -12,6 +12,7 @@ import {
   DriversPanel,
   EmptyState,
   InterpretationPanel,
+  SafetyCaption,
   SectionHeader,
 } from "@/shared/ui";
 import "./news-intelligence.css";
@@ -44,33 +45,21 @@ export function NewsIntelligencePage() {
       <NewsJudgmentHeader judgment={payload.judgment} />
       <div className="fso-news-intel-grid">
         <div className="fso-news-intel-col">
-          <DriversPanel
-            drivers={payload.drivers}
-            testId="news-drivers"
-          />
+          <DriversPanel drivers={payload.drivers} />
           <HoldingsRelevantNews articles={payload.holdingsRelevant} />
           <NewsImpactMap entries={payload.impactMap} />
           <EventLinkedNewsPanel articles={payload.eventLinked} />
         </div>
         <div className="fso-news-intel-col">
-          <ConflictsPanel
-            conflicts={payload.conflicts}
-            testId="news-conflicts"
-          />
+          <ConflictsPanel conflicts={payload.conflicts} />
           <InterpretationPanel
             bullets={payload.integratedInterpretation}
-            testId="news-interpretation"
           />
           <NewsWatchpointsPanel watchpoints={payload.watchpoints} />
           <ManualArticleEntry rules={payload.manualEntryRules} />
         </div>
       </div>
-      <p
-        className="fso-news-intel-caption"
-        data-testid="news-intelligence-safety-caption"
-      >
-        {payload.safetyCaption}
-      </p>
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

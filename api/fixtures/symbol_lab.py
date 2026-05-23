@@ -14,6 +14,7 @@ from datetime import date
 
 from api.fixtures._common import FIXTURE_TIMESTAMP, D
 from api.fixtures._focus_tickers import FOCUS_TICKERS, FocusTicker
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.fixtures.analysis_workspace import _regime_context
 from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import IndicatorSnapshot
@@ -140,6 +141,49 @@ def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
             mode="READ_MODE",
             guard_count=len(alerts),
         ),
+        judgment=judgment(
+            f"SYMBOL JUDGMENT · {focus.symbol}",
+            "Recovering but",
+            "Constrained",
+            (
+                f"{focus.symbol} combines stored technical evidence, "
+                "position context, alerts, and news into a descriptive view."
+            ),
+            66,
+        ),
+        drivers=drivers(
+            (
+                focus.indicators.trend_state or "UNKNOWN",
+                "Trend state",
+                "Latest stored indicator state.",
+            ),
+            (
+                str(len(alerts)),
+                "Active alerts",
+                "Position and risk context attached to the symbol.",
+            ),
+            (str(len(news)), "News items", "Recent symbol-linked headlines in the fixture."),
+        ),
+        conflicts=conflicts(
+            (
+                "Technical recovery vs risk context",
+                "Signal evidence must be read beside position and alert state.",
+            ),
+            (
+                "Ticker-specific vs portfolio-level",
+                "Symbol context may differ from the broader operating posture.",
+            ),
+        ),
+        integrated_interpretation=interpretation(
+            f"{focus.symbol} is recovering but remains constrained by review conditions.",
+            "The page binds technical, position, alert, and news evidence "
+            "before forming a symbol read.",
+            "Fresh bars, alerts, or news can change the confidence score.",
+        ),
+        review_watchpoints=watchpoints(
+            ("Position guard", "Recheck any active single-position or concentration alert."),
+            ("News tone", "Watch whether symbol-linked news clusters in one theme."),
+        ),
         header=SymbolLabHeader(
             ticker=focus.symbol,
             timeframe="1d",
@@ -175,6 +219,9 @@ def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
         watchpoints=list(focus.watchpoints),
         interpretation=focus.interpretation,
         setup_hint=None,
+        safety_caption=(
+            "Symbol interpretation (not trade signal). Stored data only · not prediction."
+        ),
     )
 
 
@@ -190,6 +237,32 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        judgment=judgment(
+            f"SYMBOL JUDGMENT · {ticker}",
+            "Data Missing",
+            "for Selected Symbol",
+            f"{ticker} has no stored symbol fixture evidence.",
+            30,
+        ),
+        drivers=drivers(
+            ("0", "Stored bars", "No local technical series is available."),
+            ("0", "Active alerts", "No symbol-specific guard context is attached."),
+            ("0", "News items", "No symbol-linked fixture headlines are available."),
+        ),
+        conflicts=conflicts(
+            (
+                "Selected symbol vs fixture scope",
+                "The requested ticker is outside the deterministic fixture universe.",
+            ),
+        ),
+        integrated_interpretation=interpretation(
+            "No symbol judgment is available for the selected ticker.",
+            "The UI should surface missing evidence instead of inventing symbol context.",
+            "A supported ticker or future stored snapshot is required.",
+        ),
+        review_watchpoints=watchpoints(
+            ("Fixture coverage", "Select a ticker with stored symbol evidence."),
+        ),
         header=SymbolLabHeader(
             ticker=ticker,
             timeframe="1d",
@@ -207,12 +280,14 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
             f"No stored market bar or indicator snapshot exists for {ticker}.",
         ],
         interpretation=(
-            f"{ticker} has no stored market bars or indicator snapshots in "
-            "the v0 fixture set."
+            f"{ticker} has no stored market bars or indicator snapshots in the v0 fixture set."
         ),
         setup_hint=(
             f"{ticker} is not in the Slice 13.7 fixture set. "
             f"Supported tickers: {', '.join(sorted(FOCUS_TICKERS.keys()))}."
+        ),
+        safety_caption=(
+            "Symbol interpretation (not trade signal). Stored data only · not prediction."
         ),
     )
 

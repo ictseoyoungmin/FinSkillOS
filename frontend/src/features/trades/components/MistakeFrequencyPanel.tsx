@@ -15,7 +15,7 @@ export function MistakeFrequencyPanel({ rows }: MistakeFrequencyPanelProps) {
         title="Mistake Frequency"
         badge="0"
         badgeTone="info"
-        testId="trade-mistake-frequency"
+        testId="mistake-frequency"
       >
         <p className="fso-mistake-empty">No mistake tags recorded yet.</p>
       </Panel>
@@ -26,7 +26,7 @@ export function MistakeFrequencyPanel({ rows }: MistakeFrequencyPanelProps) {
       title="Mistake Frequency"
       badge={String(rows.length)}
       badgeTone="warning"
-      testId="trade-mistake-frequency"
+      testId="mistake-frequency"
     >
       <table
         className="fso-mistake-table"

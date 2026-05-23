@@ -20,7 +20,7 @@ export function IndicatorSnapshotPanel({
       title="Indicator Snapshot"
       badge={indicators.trendState ?? "—"}
       badgeTone="info"
-      testId="indicator-snapshot-panel"
+      testId="indicator-snapshot"
     >
       <div className="fso-indicator-grid">
         <Metric label="RSI(14)" value={fmt(indicators.rsi14, 1)} />

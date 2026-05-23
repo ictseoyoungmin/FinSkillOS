@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from api.fixtures._common import FIXTURE_TIMESTAMP
 from api.fixtures._focus_tickers import FOCUS_TICKERS, FocusTicker
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import (
     EventOverlayItem,
@@ -53,6 +54,46 @@ def market_kernel_fixture(ticker: str | None = None) -> MarketKernelResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        judgment=judgment(
+            "TECHNICAL SIGNAL JUDGMENT",
+            "Constructive Tape",
+            "with Overheat Risk",
+            (
+                f"{focus.symbol} keeps a constructive trend stack while "
+                "momentum and event proximity make the signal conditional."
+            ),
+            68,
+        ),
+        drivers=drivers(
+            (str(focus.indicators.rsi_14), "RSI(14)", "Elevated momentum requires context."),
+            (
+                focus.indicators.trend_state or "UNKNOWN",
+                "Trend state",
+                "Stored indicator snapshot remains constructive.",
+            ),
+            (
+                str(len(focus.events)),
+                "Linked events",
+                "Catalyst overlays are part of the interpretation.",
+            ),
+        ),
+        conflicts=conflicts(
+            ("Trend support vs overheat", "EMA alignment is constructive while RSI is elevated."),
+            (
+                "Stored bars vs live tape",
+                "The fixture snapshot is deterministic and not a live feed.",
+            ),
+        ),
+        integrated_interpretation=interpretation(
+            "Technical signal is constructive but constrained by overheat risk.",
+            "The view separates chart evidence, indicator state, and event "
+            "overlays before forming context.",
+            "Fresh market bars or event updates may alter the confidence level.",
+        ),
+        review_watchpoints=watchpoints(
+            ("RSI cooldown", "Watch whether momentum normalizes without breaking the trend stack."),
+            ("Event proximity", "Recheck overlays when event timing or linked news changes."),
+        ),
         universe=list(_UNIVERSE),
         header=MarketKernelHeader(
             ticker=focus.symbol,
@@ -87,6 +128,9 @@ def market_kernel_fixture(ticker: str | None = None) -> MarketKernelResponse:
         watchpoints=list(focus.watchpoints),
         interpretation=focus.interpretation,
         setup_hint=None,
+        safety_caption=(
+            "Technical interpretation (not entry signal). Stored data only · not prediction."
+        ),
     )
 
 
@@ -102,6 +146,32 @@ def _missing_payload(ticker: str) -> MarketKernelResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        judgment=judgment(
+            "TECHNICAL SIGNAL JUDGMENT",
+            "Data Missing",
+            "for Selected Symbol",
+            f"{ticker} has no stored technical snapshot in the fixture set.",
+            30,
+        ),
+        drivers=drivers(
+            ("0", "Stored bars", "No local bar series is available."),
+            ("MISSING", "Data status", "The page can only show setup guidance."),
+            ("0", "Linked events", "No event overlay is attached to this symbol."),
+        ),
+        conflicts=conflicts(
+            (
+                "Selected symbol vs fixture scope",
+                "The requested ticker is outside the deterministic fixture universe.",
+            ),
+        ),
+        integrated_interpretation=interpretation(
+            "No technical judgment is available for the selected ticker.",
+            "This prevents the UI from inventing signal context when source data is missing.",
+            "A supported ticker or future stored snapshot is required.",
+        ),
+        review_watchpoints=watchpoints(
+            ("Fixture coverage", "Select a left-rail ticker with stored bars."),
+        ),
         universe=list(_UNIVERSE),
         header=MarketKernelHeader(
             ticker=ticker,
@@ -124,6 +194,9 @@ def _missing_payload(ticker: str) -> MarketKernelResponse:
         setup_hint=(
             f"{ticker} is not in the Slice 13.7 fixture set. "
             f"Supported tickers: {', '.join(SUPPORTED_FOCUS_TICKERS)}."
+        ),
+        safety_caption=(
+            "Technical interpretation (not entry signal). Stored data only · not prediction."
         ),
     )
 

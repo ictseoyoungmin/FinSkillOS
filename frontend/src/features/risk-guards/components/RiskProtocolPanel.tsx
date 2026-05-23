@@ -27,9 +27,9 @@ export function RiskProtocolPanel({
       title="Risk Protocol"
       badge="Read mode"
       badgeTone="info"
-      testId="risk-firewall-protocol"
+      testId="risk-protocol-panel"
     >
-      <ul className="fso-risk-protocol-list">
+      <ul className="fso-risk-protocol-list" data-testid="protocol-matrix-explanation">
         {protocol.map((entry) => {
           const tone = TONE_COLOR[entry.tone];
           return (

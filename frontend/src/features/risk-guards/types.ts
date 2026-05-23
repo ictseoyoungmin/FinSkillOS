@@ -1,3 +1,11 @@
+import type {
+  EvidenceConflictData,
+  EvidenceDriverData,
+  EvidenceWatchpointData,
+  IntegratedInterpretationData,
+  JudgmentHeaderData,
+} from "@/shared/types/evidence";
+
 export type GuardStatus = "PASS" | "WARN" | "FAIL" | "BLOCKED" | "INFO";
 export type RiskLevel = "GREEN" | "YELLOW" | "ORANGE" | "RED" | "UNKNOWN";
 export type AlertSeverity = "INFO" | "YELLOW" | "ORANGE" | "RED";
@@ -34,6 +42,11 @@ export interface RiskFirewallSystemStatus {
 export interface RiskFirewallData {
   generatedAt: string;
   systemStatus: RiskFirewallSystemStatus;
+  judgment: JudgmentHeaderData;
+  drivers: EvidenceDriverData[];
+  conflicts: EvidenceConflictData[];
+  interpretation: IntegratedInterpretationData;
+  watchpoints: EvidenceWatchpointData[];
   overallStatus: GuardStatus;
   overallRiskLevel: RiskLevel;
   guards: GuardSummary[];

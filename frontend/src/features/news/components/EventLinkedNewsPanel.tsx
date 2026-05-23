@@ -17,7 +17,7 @@ export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
         title="Event-Linked News"
         badge="0"
         badgeTone="info"
-        testId="news-event-linked"
+        testId="event-linked-news"
       >
         <p className="fso-news-empty">
           No stored articles cite an event_key.
@@ -30,7 +30,7 @@ export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
       title="Event-Linked News"
       badge={String(articles.length)}
       badgeTone="warning"
-      testId="news-event-linked"
+      testId="event-linked-news"
     >
       <ul className="fso-news-list">
         {articles.map((article) => {

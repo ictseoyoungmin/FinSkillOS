@@ -9,7 +9,16 @@ import { MarketKernelInterpretation } from "@/features/market/components/MarketK
 import { SymbolUniverseRail } from "@/features/market/components/SymbolUniverseRail";
 import { TickerSearch } from "@/features/market/components/TickerSearch";
 import { marketKernelFixture } from "@/mocks/fixtures/marketKernel.fixture";
-import { EmptyState, SectionHeader } from "@/shared/ui";
+import {
+  ConflictsPanel,
+  DriversPanel,
+  EmptyState,
+  InterpretationPanel,
+  JudgmentHeader,
+  SafetyCaption,
+  SectionHeader,
+  WatchpointsPanel,
+} from "@/shared/ui";
 import "./market-kernel.css";
 
 const DEFAULT_TICKER = "NVDA";
@@ -53,6 +62,22 @@ export function MarketKernelPage() {
         eyebrow="FinSkillOS · Module"
         title="Market Kernel"
       />
+      <JudgmentHeader judgment={payload.judgment} />
+      <div className="fso-market-kernel-evidence-row">
+        <DriversPanel
+          drivers={payload.drivers.map((driver) => ({
+            label: driver.title,
+            value: driver.score,
+            detail: driver.note,
+          }))}
+        />
+        <ConflictsPanel
+          conflicts={payload.conflicts.map((conflict) => ({
+            label: conflict.title,
+            description: conflict.note,
+          }))}
+        />
+      </div>
       <div className="fso-market-kernel-grid">
         <SymbolUniverseRail
           universe={payload.universe}
@@ -106,6 +131,20 @@ export function MarketKernelPage() {
           />
         </div>
       </div>
+      <InterpretationPanel
+        bullets={[
+          payload.integratedInterpretation.verdict,
+          payload.integratedInterpretation.whyItMatters,
+          payload.integratedInterpretation.whatRemainsUncertain,
+        ]}
+      />
+      <WatchpointsPanel
+        watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
+          label: watchpoint.title,
+          description: watchpoint.note,
+        }))}
+      />
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

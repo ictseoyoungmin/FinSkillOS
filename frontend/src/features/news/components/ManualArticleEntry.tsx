@@ -117,7 +117,7 @@ export function ManualArticleEntry({ rules }: ManualArticleEntryProps) {
       title="Manual Article Entry"
       badge="Short summary only"
       badgeTone="info"
-      testId="news-manual-article"
+      testId="manual-article-entry"
     >
       <p
         className="fso-manual-article-disclaimer"

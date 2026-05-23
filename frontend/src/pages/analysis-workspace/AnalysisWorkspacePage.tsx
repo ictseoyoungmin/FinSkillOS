@@ -5,7 +5,16 @@ import { TapeStrengthCards } from "@/features/analysis/components/TapeStrengthCa
 import { RegimeContextPanel } from "@/features/analysis/components/RegimeContextPanel";
 import { MissingDataPanel } from "@/features/analysis/components/MissingDataPanel";
 import { analysisWorkspaceFixture } from "@/mocks/fixtures/analysisWorkspace.fixture";
-import { EmptyState, SectionHeader } from "@/shared/ui";
+import {
+  ConflictsPanel,
+  DriversPanel,
+  EmptyState,
+  InterpretationPanel,
+  JudgmentHeader,
+  SafetyCaption,
+  SectionHeader,
+  WatchpointsPanel,
+} from "@/shared/ui";
 import "./analysis-workspace.css";
 
 export function AnalysisWorkspacePage() {
@@ -39,6 +48,22 @@ export function AnalysisWorkspacePage() {
         eyebrow="FinSkillOS · Module"
         title="Analysis Workspace"
       />
+      <JudgmentHeader judgment={payload.judgment} />
+      <div className="fso-analysis-evidence-row">
+        <DriversPanel
+          drivers={payload.drivers.map((driver) => ({
+            label: driver.title,
+            value: driver.score,
+            detail: driver.note,
+          }))}
+        />
+        <ConflictsPanel
+          conflicts={payload.conflicts.map((conflict) => ({
+            label: conflict.title,
+            description: conflict.note,
+          }))}
+        />
+      </div>
       <div className="fso-analysis-grid">
         <div className="fso-analysis-main">
           <IndexUniverseTable rows={payload.universe} />
@@ -61,6 +86,20 @@ export function AnalysisWorkspacePage() {
       >
         {payload.safetyCaption}
       </p>
+      <InterpretationPanel
+        bullets={[
+          payload.interpretation.verdict,
+          payload.interpretation.whyItMatters,
+          payload.interpretation.whatRemainsUncertain,
+        ]}
+      />
+      <WatchpointsPanel
+        watchpoints={payload.watchpoints.map((watchpoint) => ({
+          label: watchpoint.title,
+          description: watchpoint.note,
+        }))}
+      />
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

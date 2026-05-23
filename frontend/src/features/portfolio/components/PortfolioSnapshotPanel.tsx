@@ -20,7 +20,7 @@ export function PortfolioSnapshotPanel({ snapshot }: PortfolioSnapshotPanelProps
       title="Portfolio Snapshot"
       badge={`${snapshot.positionCount} positions`}
       badgeTone="info"
-      testId="mission-portfolio-snapshot"
+      testId="portfolio-snapshot"
     >
       <dl className="fso-portfolio-snapshot-grid">
         <div>

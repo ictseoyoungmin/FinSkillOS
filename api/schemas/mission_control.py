@@ -13,7 +13,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 
 MilestoneState = Literal["PENDING", "APPROACHING", "COMPLETED"]
 
@@ -71,6 +79,11 @@ class CapitalMapSlice(CamelModel):
 class MissionControlResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    interpretation: IntegratedInterpretation
+    watchpoints: list[EvidenceWatchpoint]
     goal: GoalTracker
     milestones: list[MilestoneItem]
     portfolio: PortfolioSnapshotPanel
@@ -82,7 +95,7 @@ class MissionControlResponse(CamelModel):
             "no execution controls."
         ),
     )
-    safety_caption: str = "Read mode — descriptive view only."
+    safety_caption: str = "Read mode — Goal interpretation (not return forecast)."
     source: Literal["fixture", "live"] = "fixture"
 
 

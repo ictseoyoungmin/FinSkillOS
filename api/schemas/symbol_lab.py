@@ -15,7 +15,15 @@ from typing import Literal
 from pydantic import Field
 
 from api.schemas.analysis_workspace import RegimeContext
-from api.schemas.common import CamelModel, SystemStatus
+from api.schemas.common import (
+    CamelModel,
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+    SystemStatus,
+)
 from api.schemas.market_kernel import IndicatorSnapshot
 
 
@@ -70,6 +78,11 @@ class SymbolLabHeader(CamelModel):
 class SymbolLabResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    integrated_interpretation: IntegratedInterpretation
+    review_watchpoints: list[EvidenceWatchpoint]
     header: SymbolLabHeader
     technical: IndicatorSnapshot
     recent_bars: list[SymbolRecentBar] = Field(default_factory=list)
@@ -80,7 +93,10 @@ class SymbolLabResponse(CamelModel):
     watchpoints: list[str] = Field(default_factory=list)
     interpretation: str = ""
     setup_hint: str | None = None
-    safety_caption: str = "Stored data only · not prediction · no execution"
+    safety_caption: str = (
+        "Symbol interpretation (not trade signal). Stored data only · "
+        "not prediction."
+    )
     source: Literal["fixture", "live"] = "fixture"
 
 

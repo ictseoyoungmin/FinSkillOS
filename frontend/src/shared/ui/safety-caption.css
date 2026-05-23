@@ -1,0 +1,9 @@
+.fso-safety-caption {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  color: var(--fso-text-muted);
+  background: var(--fso-panel);
+  font-size: 13px;
+}

@@ -18,7 +18,7 @@ export function HoldingsRelevantNews({ articles }: HoldingsRelevantNewsProps) {
         title="Holdings-Relevant News"
         badge="0"
         badgeTone="info"
-        testId="news-holdings-relevant"
+        testId="holdings-relevant-news"
       >
         <p className="fso-news-empty">
           No stored articles map to current holdings.
@@ -31,7 +31,7 @@ export function HoldingsRelevantNews({ articles }: HoldingsRelevantNewsProps) {
       title="Holdings-Relevant News"
       badge={String(articles.length)}
       badgeTone="info"
-      testId="news-holdings-relevant"
+      testId="holdings-relevant-news"
     >
       <ul className="fso-news-list">
         {articles.map((article) => (

@@ -24,11 +24,11 @@ export interface ConflictRow {
 export function DriversPanel({
   title = "Primary Drivers",
   drivers,
-  testId,
+  testId = "drivers-panel",
 }: {
   title?: string;
   drivers: DriverRow[];
-  testId: string;
+  testId?: string;
 }) {
   return (
     <Panel
@@ -57,10 +57,10 @@ export function DriversPanel({
 /** Conflicts / Uncertainty panel. */
 export function ConflictsPanel({
   conflicts,
-  testId,
+  testId = "conflicts-panel",
 }: {
   conflicts: ConflictRow[];
-  testId: string;
+  testId?: string;
 }) {
   return (
     <Panel
@@ -87,10 +87,10 @@ export function ConflictsPanel({
 /** Integrated Interpretation panel — bulleted descriptive paragraphs. */
 export function InterpretationPanel({
   bullets,
-  testId,
+  testId = "interpretation-panel",
 }: {
   bullets: string[];
-  testId: string;
+  testId?: string;
 }) {
   return (
     <Panel
@@ -112,11 +112,11 @@ export function InterpretationPanel({
 export function WatchpointsPanel({
   watchpoints,
   title = "Watchpoints",
-  testId,
+  testId = "watchpoints-panel",
 }: {
   watchpoints: ConflictRow[];
   title?: string;
-  testId: string;
+  testId?: string;
 }) {
   return (
     <Panel

@@ -10,7 +10,16 @@ import { SymbolTechnicalSnapshot } from "@/features/symbol/components/SymbolTech
 import { SymbolWatchpoints } from "@/features/symbol/components/SymbolWatchpoints";
 import { RegimeContextPanel } from "@/features/analysis/components/RegimeContextPanel";
 import { symbolLabFixture } from "@/mocks/fixtures/symbolLab.fixture";
-import { EmptyState, SectionHeader } from "@/shared/ui";
+import {
+  ConflictsPanel,
+  DriversPanel,
+  EmptyState,
+  InterpretationPanel,
+  JudgmentHeader,
+  SafetyCaption,
+  SectionHeader,
+  WatchpointsPanel,
+} from "@/shared/ui";
 import "@/pages/market-kernel/market-kernel.css";
 import "./symbol-lab.css";
 
@@ -50,6 +59,22 @@ export function SymbolLabPage() {
   return (
     <div className="fso-symbol-lab" data-testid="symbol-lab-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Symbol Lab" />
+      <JudgmentHeader judgment={payload.judgment} />
+      <div className="fso-symbol-lab-evidence-row">
+        <DriversPanel
+          drivers={payload.drivers.map((driver) => ({
+            label: driver.title,
+            value: driver.score,
+            detail: driver.note,
+          }))}
+        />
+        <ConflictsPanel
+          conflicts={payload.conflicts.map((conflict) => ({
+            label: conflict.title,
+            description: conflict.note,
+          }))}
+        />
+      </div>
       <SymbolSearchPanel
         currentTicker={payload.header.ticker}
         onSelect={selectTicker}
@@ -84,6 +109,20 @@ export function SymbolLabPage() {
           <RegimeContextPanel regime={payload.regime} />
         </aside>
       </div>
+      <InterpretationPanel
+        bullets={[
+          payload.integratedInterpretation.verdict,
+          payload.integratedInterpretation.whyItMatters,
+          payload.integratedInterpretation.whatRemainsUncertain,
+        ]}
+      />
+      <WatchpointsPanel
+        watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
+          label: watchpoint.title,
+          description: watchpoint.note,
+        }))}
+      />
+      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
 }

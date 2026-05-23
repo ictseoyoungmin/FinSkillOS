@@ -9,6 +9,7 @@ fixture so the two pages tell the same story.
 from __future__ import annotations
 
 from api.fixtures._common import FIXTURE_TIMESTAMP, D
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.mission_control import (
     CapitalMapSlice,
@@ -24,6 +25,42 @@ def mission_control_fixture() -> MissionControlResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=3),
+        judgment=judgment(
+            "MISSION RISK JUDGMENT",
+            "Progress Strong,",
+            "Risk Budget Narrows",
+            (
+                "Challenge progress is high enough that portfolio and guard "
+                "context matter more than raw growth pace."
+            ),
+            74,
+        ),
+        drivers=drivers(
+            ("73.4%", "Goal progress", "The challenge is approaching the 75% milestone."),
+            ("TSLA", "Largest position", "Single-name weight remains a review factor."),
+            ("3", "Guard count", "Risk context is active beside mission progress."),
+        ),
+        conflicts=conflicts(
+            (
+                "Strong progress vs narrowing budget",
+                "Higher completion progress increases sensitivity to drawdown review.",
+            ),
+            (
+                "Theme exposure vs cash buffer",
+                "AI / EV exposure remains meaningful while cash is finite.",
+            ),
+        ),
+        interpretation=interpretation(
+            "Mission progress is strong, but the risk budget narrows.",
+            "The page connects goal progress, milestones, portfolio composition, "
+            "and guard context.",
+            "Future portfolio value and concentration changes can alter the review priority.",
+        ),
+        watchpoints=watchpoints(
+            ("75% milestone", "Recheck mission state as the next milestone is approached."),
+            ("Largest position", "Monitor any single-name review threshold."),
+            ("Cash buffer", "Track whether cash remains adequate for the current goal mode."),
+        ),
         goal=GoalTracker(
             current_value=D("73420000"),
             target_value=D("100000000"),
@@ -67,6 +104,7 @@ def mission_control_fixture() -> MissionControlResponse:
             "1억 KRW challenge active · 73.4% progress · "
             "challenge complete + early-stop state remain pending."
         ),
+        safety_caption="Read mode — Goal interpretation (not return forecast).",
     )
 
 

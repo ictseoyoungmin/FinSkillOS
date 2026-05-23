@@ -18,7 +18,7 @@ export function GuardResultCard({ guards }: GuardResultCardProps) {
       title="Guard Results"
       badge="Active"
       badgeTone="info"
-      testId="risk-firewall-guard-results"
+      testId="guard-result-cards"
     >
       {guards.map((guard) => (
         <GuardCard key={guard.name} guard={guard} />

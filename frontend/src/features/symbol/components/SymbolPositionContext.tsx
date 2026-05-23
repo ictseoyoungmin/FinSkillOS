@@ -23,7 +23,7 @@ export function SymbolPositionContext({
         title="Position Context"
         badge={ticker}
         badgeTone="neutral"
-        testId="symbol-position-context"
+        testId="position-context"
       >
         <EmptyState
           title="No current holding"
@@ -43,7 +43,7 @@ export function SymbolPositionContext({
       title="Position Context"
       badge={position.ticker}
       badgeTone={position.overSinglePositionLimit ? "warning" : "info"}
-      testId="symbol-position-context"
+      testId="position-context"
     >
       <div className="fso-symbol-position-meta">
         {position.sector ? <Badge tone="info">{position.sector}</Badge> : null}

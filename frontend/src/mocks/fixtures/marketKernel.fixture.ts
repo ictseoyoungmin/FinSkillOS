@@ -9,6 +9,34 @@ const NVDA: MarketKernelData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 0 },
+  judgment: {
+    eyebrow: "TECHNICAL SIGNAL JUDGMENT",
+    title: "Constructive Tape",
+    accent: "with Overheat Risk",
+    summary:
+      "NVDA keeps a constructive trend stack while momentum and event proximity make the signal conditional.",
+    confidence: 68,
+  },
+  drivers: [
+    { score: "71.4", title: "RSI(14)", note: "Elevated momentum requires context." },
+    { score: "BULLISH", title: "Trend state", note: "Stored indicator snapshot remains constructive." },
+    { score: "2", title: "Linked events", note: "Catalyst overlays are part of the interpretation." },
+  ],
+  conflicts: [
+    { title: "Trend support vs overheat", note: "EMA alignment is constructive while RSI is elevated." },
+    { title: "Stored bars vs live tape", note: "The fixture snapshot is deterministic and not a live feed." },
+  ],
+  integratedInterpretation: {
+    verdict: "Technical signal is constructive but constrained by overheat risk.",
+    whyItMatters:
+      "The view separates chart evidence, indicator state, and event overlays before forming context.",
+    whatRemainsUncertain:
+      "Fresh market bars or event updates may alter the confidence level.",
+  },
+  reviewWatchpoints: [
+    { title: "RSI cooldown", note: "Watch whether momentum normalizes without breaking the trend stack." },
+    { title: "Event proximity", note: "Recheck overlays when event timing or linked news changes." },
+  ],
   universe: [
     { symbol: "NVDA", label: "NVIDIA", kind: "FOCUS" },
     { symbol: "TSLA", label: "Tesla", kind: "FOCUS" },
@@ -72,7 +100,8 @@ const NVDA: MarketKernelData = {
     "Earnings event is inside the catalyst window; this view describes " +
     "exposure context, not a price prediction.",
   setupHint: null,
-  safetyCaption: "Stored data only · not prediction · no execution",
+  safetyCaption:
+    "Technical interpretation (not entry signal). Stored data only · not prediction.",
 };
 
 export function marketKernelFixture(ticker: string): MarketKernelData {
@@ -81,6 +110,11 @@ export function marketKernelFixture(ticker: string): MarketKernelData {
   if (ticker.toUpperCase() === "NVDA") return NVDA;
   return {
     ...NVDA,
+    judgment: {
+      ...NVDA.judgment,
+      summary:
+        `${ticker.toUpperCase()} reuses the deterministic NVDA fixture snapshot for offline rendering.`,
+    },
     header: { ...NVDA.header, ticker: ticker.toUpperCase(), label: ticker.toUpperCase() },
   };
 }
