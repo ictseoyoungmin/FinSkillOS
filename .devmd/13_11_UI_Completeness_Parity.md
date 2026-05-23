@@ -449,7 +449,7 @@ docker compose --profile e2e run --rm e2e npm run test:visual         # parity g
 ## Completion placeholder
 
 ```text
-Status: PARTIAL_AS_V4_2_CONTRACT_IMPLEMENTED_DOCKER_STRUCTURAL_PASS (2026-05-23)
+Status: DONE_AS_V4_2_UI_COMPLETION_PARITY_GATE_V0 (2026-05-23)
 
 Tabs upgraded to v4.2 hierarchy:
 - Control Room
@@ -486,11 +486,28 @@ Structural test rewrites:
   layout deltas
 
 Screenshot baselines committed:
-- Not yet. Requires Docker e2e visual-update flow after frontend verification.
+- Docker-generated all-tabs baselines committed under
+  `frontend/e2e/visual/all-tabs.visual.spec.ts-snapshots/`.
 
 Tests added:
 - frontend/e2e/judgment-header.spec.ts
 - tests/test_api_v42_contract.py
+- tests/test_api_news_intelligence.py
+- tests/test_api_event_radar.py
+- tests/test_api_trade_memory.py
+
+Cleanup completed:
+- Added missing Catalyst Watch `date-status-badges` testid.
+- Fixed `ManualArticleInput.summary` validation so over-cap input reaches
+  the route-level structured `REJECTED / summary_too_long` response.
+- Added / completed backend API tests for News Intelligence, Event Radar,
+  and Trade Memory.
+- Updated frontend/API metadata to 0.13.11.
+- Added the e2e bind mount required for Docker visual snapshot generation
+  to persist PNGs into the host repository.
+- Full Docker structural e2e passed with no grep narrowing.
+- Generated and staged all-tabs visual baselines from Docker e2e.
+- Docker visual parity gate passed.
 
 Notes:
 - System Ops now includes explicit System Health and Migration Status panels.
@@ -507,10 +524,12 @@ Notes:
 
 Verification:
 - python3 -m compileall app.py finskillos api scripts -> PASS
-- python3 -m pytest tests -q -> PASS
+- timeout 120 python3 -m pytest tests/test_api_news_intelligence.py \
+  tests/test_api_event_radar.py tests/test_api_trade_memory.py \
+  tests/test_api_v42_contract.py -q -> PASS (41 passed)
 - python3 -m ruff check finskillos api tests -> PASS
-- docker compose -f docker-compose.yml --profile e2e build e2e -> PASS
-- docker compose -f docker-compose.yml build api web -> PASS
+- docker compose -f docker-compose.yml build api web e2e -> PASS
+- docker compose -f docker-compose.yml up -d postgres api web -> PASS
 - docker compose -f docker-compose.yml --profile e2e run --rm e2e \
   npx playwright test e2e/risk-mission-ops.spec.ts \
   e2e/visual/all-tabs.visual.spec.ts \
@@ -526,12 +545,18 @@ Verification:
   npm run test:e2e -> PASS (45 passed)
 - docker compose -f docker-compose.yml --profile e2e run --rm e2e \
   npm run test:visual:layout -> PASS (10 passed)
+- docker compose -f docker-compose.yml --profile e2e run --rm e2e \
+  npm run test:visual:update -> PASS (31 passed; baselines written)
+- find frontend/e2e/visual -path '*all-tabs.visual.spec.ts-snapshots*' \
+  -name '*.png' -print -> PASS (10 all-tabs PNGs)
+- git add frontend/e2e/visual/all-tabs.visual.spec.ts-snapshots/*.png -> PASS
+- docker compose -f docker-compose.yml --profile e2e run --rm e2e \
+  npm run test:visual -> PASS (31 passed)
 
-Known issues:
-- Local host npm/node is intentionally not the verification path in this WSL
-  shell. Use Docker e2e images.
-- Screenshot baselines still need `npm run test:visual:update` inside Docker
-  e2e before the visual parity gate can pass.
+Remaining:
+- Pixel-perfect parity is still not required; the accepted gate is structural
+  v4.2 hierarchy plus screenshot regression baseline.
+- Deployment hardening remains deferred to `.devmd/14_Deployment_Operations.md`.
 ```
 
 ## Stop condition

@@ -1,10 +1,8 @@
-"""FastAPI app factory — Slice 13.6.
+"""FastAPI app factory — Slice 13.11.
 
 Mounts the read-only API used by the React frontend at ``/api/*``.
-The app is intentionally tiny: routing + CORS + a `/api/health`
-probe + the Control Room route. Every other product route is
-deferred to future slices but the placeholder is reserved so the
-React shell can render a clear "coming soon" state without 404.
+The app stays intentionally small: routing + CORS + a `/api/health`
+probe + deterministic v4.2 Evidence-to-Judgment cockpit snapshots.
 """
 
 from __future__ import annotations
@@ -47,9 +45,10 @@ def _allowed_origins() -> list[str]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="FinSkillOS API",
-        version="0.13.9",
+        version="0.13.11",
         description=(
-            "Read-only FinSkillOS adapter API for the v4.1 React cockpit. "
+            "Read-only FinSkillOS adapter API for the v4.2 React "
+            "Evidence-to-Judgment cockpit. "
             "Returns market state, risk interpretation, portfolio "
             "constraints, watchpoints, and reflection support. The only "
             "writes exposed are the System Ops operational protocols "

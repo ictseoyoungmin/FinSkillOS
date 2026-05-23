@@ -87,6 +87,7 @@ services:
       PLAYWRIGHT_BASE_URL: http://web:5173
       CI: "1"
     volumes:
+      - ./frontend/e2e:/work/frontend/e2e
       - ./frontend/playwright-report:/work/frontend/playwright-report
       - ./frontend/test-results:/work/frontend/test-results
     depends_on:

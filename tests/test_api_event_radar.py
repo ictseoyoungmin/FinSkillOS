@@ -67,6 +67,17 @@ def test_event_radar_returns_full_payload() -> None:
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
 
+def test_event_radar_snapshot_exposes_v42_contract() -> None:
+    body = _client().get("/api/event-radar").json()
+
+    assert body["judgment"]
+    assert body["drivers"]
+    assert body["conflicts"]
+    assert body["dateStatusBadgeTone"]
+    assert "preparation / exposure score" in body["safetyCaption"]
+    assert "price direction prediction" in body["safetyCaption"]
+
+
 def test_event_radar_judgment_describes_preparation_not_prediction() -> None:
     body = _client().get("/api/event-radar").json()
     caption = body["safetyCaption"].lower()
@@ -121,6 +132,31 @@ def test_event_radar_payload_descriptive_only_wording() -> None:
 
 
 def test_manual_event_rejects_confirmed_plus_manual_seed() -> None:
+    response = _client().post(
+        "/api/event-radar/manual-event",
+        json={
+            "title": "Should be rejected",
+            "eventType": "EARNINGS",
+            "dateStatus": "CONFIRMED",
+            "startDate": "2026-06-01",
+            "endDate": None,
+            "source": "manual_seed",
+            "sourceUrl": None,
+            "description": None,
+            "importanceScore": "1.0",
+            "ticker": None,
+            "sector": None,
+            "theme": None,
+            "eventKey": None,
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "REJECTED"
+    assert body["detail"] == "confirmed_requires_external_source"
+
+
+def test_manual_event_rejects_confirmed_manual_seed() -> None:
     response = _client().post(
         "/api/event-radar/manual-event",
         json={
@@ -205,6 +241,15 @@ def test_seed_sample_events_returns_structured_result() -> None:
     # No raw stack-trace material in the message.
     for marker in ("Traceback", 'File "', "line "):
         assert marker not in body["message"], body
+
+
+def test_seed_sample_events_returns_structured_json() -> None:
+    response = _client().post("/api/event-radar/seed-sample-events")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] in {"OK", "NOOP", "ERROR"}
+    assert "message" in body
+    assert "detail" in body
 
 
 def test_use_fixture_header_is_accepted_on_event_radar() -> None:

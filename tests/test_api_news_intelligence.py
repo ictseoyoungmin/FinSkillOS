@@ -62,6 +62,17 @@ def test_news_intelligence_returns_full_payload() -> None:
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
 
+def test_news_intelligence_snapshot_exposes_v42_contract() -> None:
+    body = _client().get("/api/news-intelligence").json()
+
+    assert body["judgment"]
+    assert body["drivers"]
+    assert body["conflicts"]
+    assert body["impactMap"]
+    assert body["manualEntryRules"]["maxSummaryChars"] == 500
+    assert "Descriptive narrative view only" in body["safetyCaption"]
+
+
 def test_news_intelligence_judgment_header_fields_are_present() -> None:
     body = _client().get("/api/news-intelligence").json()
     judgment = body["judgment"]
@@ -103,6 +114,28 @@ def test_news_intelligence_payload_contains_no_forbidden_wording() -> None:
 
 
 def test_manual_article_rejects_over_cap_summary() -> None:
+    response = _client().post(
+        "/api/news-intelligence/manual-article",
+        json={
+            "title": "Probe",
+            "source": "Probe",
+            "url": "https://example.com/probe",
+            "publishedAt": "2026-05-20T12:00:00+00:00",
+            "summary": "x" * 700,
+            "affectedTickers": [],
+            "theme": None,
+            "eventKey": None,
+            "sentiment": "UNKNOWN",
+            "riskLevel": "UNKNOWN",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "REJECTED"
+    assert body["detail"] == "summary_too_long"
+
+
+def test_manual_article_rejects_over_cap_summary_with_structured_response() -> None:
     response = _client().post(
         "/api/news-intelligence/manual-article",
         json={

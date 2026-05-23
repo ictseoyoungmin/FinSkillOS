@@ -1,9 +1,9 @@
 {
   "name": "finskillos-frontend",
   "private": true,
-  "version": "0.13.8",
+  "version": "0.13.11",
   "type": "module",
-  "description": "FinSkillOS v4 React cockpit — Vite + React shell through Slice 13.8.",
+  "description": "FinSkillOS v4.2 React Evidence-to-Judgment cockpit through Slice 13.11.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

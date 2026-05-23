@@ -65,6 +65,17 @@ def test_trade_memory_returns_full_payload() -> None:
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
 
+def test_trade_memory_snapshot_exposes_v42_contract() -> None:
+    body = _client().get("/api/trade-memory").json()
+
+    assert body["judgment"]
+    assert body["drivers"]
+    assert body["conflicts"]
+    assert body["weeklyReview"]["markdown"]
+    assert body["mistakeFrequency"]
+    assert "Reflection / process review" in body["safetyCaption"]
+
+
 def test_trade_memory_form_rules_use_slice_12_sides() -> None:
     body = _client().get("/api/trade-memory").json()
     rules = body["formRules"]
@@ -114,6 +125,12 @@ def test_trade_memory_weekly_review_route_matches() -> None:
     assert "markdown" in weekly
 
 
+def test_trade_memory_weekly_review_endpoint_returns_markdown() -> None:
+    body = _client().get("/api/trade-memory/weekly-review").json()
+    assert body["markdown"]
+    assert body["tradeCount"] >= 0
+
+
 def test_trade_memory_payload_descriptive_only_wording() -> None:
     raw = json.dumps(_client().get("/api/trade-memory").json()).lower()
     # The Trade Memory payload references legacy BUY / SELL inside
@@ -143,6 +160,22 @@ def test_post_trade_entry_rejects_invalid_trade_date() -> None:
 
 
 def test_post_trade_entry_rejects_forbidden_wording_in_notes() -> None:
+    response = _client().post(
+        "/api/trade-memory/entries",
+        json={
+            "tradeDate": "2026-05-19",
+            "ticker": "TSLA",
+            "side": "LONG",
+            "notes": "지금 사라",
+            "mistakeTags": [],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "REJECTED"
+
+
+def test_trade_entry_rejects_forbidden_wording() -> None:
     response = _client().post(
         "/api/trade-memory/entries",
         json={
