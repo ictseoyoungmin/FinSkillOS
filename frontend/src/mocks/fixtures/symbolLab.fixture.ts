@@ -39,6 +39,13 @@ const TSLA: SymbolLabData = {
     { title: "Position guard", note: "Recheck any active single-position or concentration alert." },
     { title: "News tone", note: "Watch whether symbol-linked news clusters in one theme." },
   ],
+  symbolUniverse: [
+    { symbol: "NVDA", label: "NVIDIA", kind: "FOCUS" },
+    { symbol: "TSLA", label: "Tesla", kind: "FOCUS" },
+    { symbol: "AAPL", label: "Apple", kind: "FOCUS" },
+    { symbol: "MSFT", label: "Microsoft", kind: "FOCUS" },
+    { symbol: "SMH", label: "Semiconductor ETF", kind: "SECTOR_ETF" },
+  ],
   header: {
     ticker: "TSLA",
     timeframe: "1d",

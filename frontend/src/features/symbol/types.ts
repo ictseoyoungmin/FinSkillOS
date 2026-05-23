@@ -1,5 +1,8 @@
 import type { Numeric } from "@/shared/lib/format";
-import type { IndicatorSnapshot } from "@/features/market/kernel-types";
+import type {
+  IndicatorSnapshot,
+  UniverseTicker,
+} from "@/features/market/kernel-types";
 import type { RegimeContext } from "@/features/analysis/types";
 import type {
   EvidenceConflictData,
@@ -73,6 +76,7 @@ export interface SymbolLabData {
   conflicts: EvidenceConflictData[];
   integratedInterpretation: IntegratedInterpretationData;
   reviewWatchpoints: EvidenceWatchpointData[];
+  symbolUniverse: UniverseTicker[];
   header: SymbolLabHeader;
   technical: IndicatorSnapshot;
   recentBars: SymbolRecentBar[];

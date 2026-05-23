@@ -7,12 +7,13 @@ Date: 2026-05-24
 
 Allow Symbol Lab users to search any ticker text, while preserving the existing stored-evidence model.
 
-The ten visible tickers are now shortcuts, not the full supported universe. If a searched symbol has no stored snapshot, the UI returns a structured `MISSING` state instead of implying the symbol is unsupported.
+Visible ticker buttons are now stored-data shortcuts, not the full supported universe. If a searched symbol has no stored snapshot, the UI returns a structured `MISSING` state instead of implying the symbol is unsupported.
 
 ## Scope
 
 - Symbol Lab accepts arbitrary ticker input and normalizes it to uppercase.
 - Stored fixture symbols remain available as quick shortcut buttons.
+- Macro/index proxies without stored snapshots remain free-text searchable, but are not shown as shortcuts.
 - Unknown symbols return deterministic missing-state cards, setup hints, and empty tables.
 - No live market-data adapter is introduced in this slice.
 - No trade execution, brokerage integration, or deployment operations are included.

@@ -51,6 +51,7 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await page.goto("/symbol-lab");
     await expect(page.getByTestId("symbol-lab-page")).toBeVisible();
     await expect(page.getByTestId("ticker-search")).toBeVisible();
+    await expect(page.locator(".fso-ticker-search-option")).toHaveCount(5);
     await expect(page.getByTestId("symbol-technical-snapshot")).toBeVisible();
     await expect(page.getByTestId("symbol-recent-bars")).toBeVisible();
     const position = page.getByTestId("symbol-position-context");
@@ -70,6 +71,43 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     const position = page.getByTestId("symbol-position-context");
     await expect(position).toBeVisible();
     await expect(position).toContainText("No current holding");
+  });
+
+  test("Symbol Lab shortcut buttons search stored fixture symbols", async ({
+    page,
+  }) => {
+    await page.goto("/symbol-lab");
+    await page
+      .locator(".fso-ticker-search-option", { hasText: "SMH" })
+      .click();
+    await expect(page).toHaveURL(/ticker=SMH/);
+    await expect(page.getByTestId("judgment-header")).toContainText("SMH");
+  });
+
+  test("Symbol Lab accepts arbitrary ticker input", async ({ page }) => {
+    await page.goto("/symbol-lab");
+    await page.locator("#ticker-search-input").fill("adbe");
+    await page.getByTestId("ticker-search-submit").click();
+    await expect(page).toHaveURL(/ticker=ADBE/);
+    await expect(page.getByTestId("judgment-header")).toContainText("ADBE");
+    await expect(page.getByTestId("symbol-lab-setup-hint")).toContainText(
+      "ADBE",
+    );
+  });
+
+  test("Symbol Lab macro proxies remain searchable through free text", async ({
+    page,
+  }) => {
+    await page.goto("/symbol-lab");
+    await expect(
+      page.locator(".fso-ticker-search-option", { hasText: "US10Y" }),
+    ).toHaveCount(0);
+    await page.locator("#ticker-search-input").fill("us10y");
+    await page.getByTestId("ticker-search-submit").click();
+    await expect(page).toHaveURL(/ticker=US10Y/);
+    await expect(page.getByTestId("symbol-lab-setup-hint")).toContainText(
+      "US10Y",
+    );
   });
 
   test("Slice 13.7 routes never expose forbidden execution captions", async ({

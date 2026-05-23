@@ -24,7 +24,7 @@ from api.schemas.common import (
     JudgmentHeader,
     SystemStatus,
 )
-from api.schemas.market_kernel import IndicatorSnapshot
+from api.schemas.market_kernel import IndicatorSnapshot, UniverseTicker
 
 
 class SymbolPosition(CamelModel):
@@ -83,6 +83,7 @@ class SymbolLabResponse(CamelModel):
     conflicts: list[EvidenceConflict]
     integrated_interpretation: IntegratedInterpretation
     review_watchpoints: list[EvidenceWatchpoint]
+    symbol_universe: list[UniverseTicker] = Field(default_factory=list)
     header: SymbolLabHeader
     technical: IndicatorSnapshot
     recent_bars: list[SymbolRecentBar] = Field(default_factory=list)
@@ -107,4 +108,5 @@ __all__ = [
     "SymbolNewsItem",
     "SymbolPosition",
     "SymbolRecentBar",
+    "UniverseTicker",
 ]

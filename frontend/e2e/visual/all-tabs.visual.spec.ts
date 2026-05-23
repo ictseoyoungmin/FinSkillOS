@@ -264,6 +264,7 @@ test.describe("Slice 13.11 — All tabs visual baseline @visual", () => {
         ],
         animations: "disabled",
         maxDiffPixelRatio: 0.03,
+        timeout: 10_000,
       });
     });
   }

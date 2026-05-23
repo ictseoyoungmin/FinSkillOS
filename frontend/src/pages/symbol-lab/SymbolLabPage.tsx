@@ -77,6 +77,7 @@ export function SymbolLabPage() {
       </div>
       <SymbolSearchPanel
         currentTicker={payload.header.ticker}
+        universe={payload.symbolUniverse}
         onSelect={selectTicker}
       />
       {payload.setupHint ? (

@@ -31,12 +31,19 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
         "regime",
         "watchpoints",
         "interpretation",
+        "symbolUniverse",
         "safetyCaption",
         "source",
     }
     assert expected.issubset(body.keys())
     assert body["header"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
+
+
+def test_symbol_lab_universe_exposes_all_searchable_symbols() -> None:
+    body = _client().get("/api/symbol-lab").json()
+    symbols = {row["symbol"] for row in body["symbolUniverse"]}
+    assert symbols == {"NVDA", "TSLA", "AAPL", "MSFT", "SMH"}
 
 
 def test_symbol_lab_default_ticker_has_position_context() -> None:
@@ -71,7 +78,23 @@ def test_symbol_lab_unknown_ticker_returns_missing_status() -> None:
     assert body["header"]["dataStatus"] == "MISSING"
     assert body["recentBars"] == []
     assert body["position"] is None
+    assert body["symbolUniverse"]
     assert body["setupHint"] is not None
+
+
+def test_symbol_lab_arbitrary_ticker_search_is_structured() -> None:
+    body = _client().get("/api/symbol-lab?ticker=ADBE").json()
+    assert body["header"]["ticker"] == "ADBE"
+    assert body["header"]["dataStatus"] == "MISSING"
+    assert "searched successfully" in body["setupHint"]
+
+
+def test_symbol_lab_macro_proxy_is_input_search_only_until_snapshot_exists() -> None:
+    body = _client().get("/api/symbol-lab?ticker=US10Y").json()
+    shortcuts = {row["symbol"] for row in body["symbolUniverse"]}
+    assert "US10Y" not in shortcuts
+    assert body["header"]["ticker"] == "US10Y"
+    assert body["header"]["dataStatus"] == "MISSING"
 
 
 def test_symbol_lab_technical_block_has_required_fields() -> None:

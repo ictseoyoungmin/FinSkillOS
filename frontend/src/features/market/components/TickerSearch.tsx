@@ -1,9 +1,15 @@
 import { useState, type FormEvent } from "react";
 import "./ticker-search.css";
 
+export interface TickerSearchOption {
+  symbol: string;
+  label: string;
+}
+
 export interface TickerSearchProps {
   initialValue: string;
   placeholder?: string;
+  suggestions?: TickerSearchOption[];
   onSubmit: (value: string) => void;
 }
 
@@ -15,9 +21,11 @@ export interface TickerSearchProps {
 export function TickerSearch({
   initialValue,
   placeholder = "Search ticker (e.g. NVDA, TSLA, AAPL)",
+  suggestions = [],
   onSubmit,
 }: TickerSearchProps) {
   const [value, setValue] = useState<string>(initialValue);
+  const listId = suggestions.length > 0 ? "ticker-search-options" : undefined;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -43,8 +51,20 @@ export function TickerSearch({
         onChange={(event) => setValue(event.target.value)}
         placeholder={placeholder}
         autoComplete="off"
+        list={listId}
         aria-label="Ticker search"
       />
+      {suggestions.length > 0 ? (
+        <datalist id="ticker-search-options">
+          {suggestions.map((option) => (
+            <option
+              key={option.symbol}
+              value={option.symbol}
+              label={option.label}
+            />
+          ))}
+        </datalist>
+      ) : null}
       <button
         type="submit"
         className="fso-ticker-search-submit"
@@ -52,6 +72,24 @@ export function TickerSearch({
       >
         Load
       </button>
+      {suggestions.length > 0 ? (
+        <div className="fso-ticker-search-options" aria-label="Stored symbol shortcuts">
+          {suggestions.map((option) => (
+            <button
+              key={option.symbol}
+              type="button"
+              className="fso-ticker-search-option"
+              onClick={() => {
+                setValue(option.symbol);
+                onSubmit(option.symbol);
+              }}
+              title={option.label}
+            >
+              {option.symbol}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </form>
   );
 }

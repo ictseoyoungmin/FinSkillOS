@@ -47,7 +47,7 @@ export function SymbolTechnicalSnapshot({
           <Badge tone={STATUS_TONE[header.dataStatus]}>{header.dataStatus}</Badge>
         </div>
       </div>
-      <div className="fso-indicator-grid">
+      <div className="fso-indicator-grid fso-indicator-grid--wide">
         <Metric label="RSI(14)" value={fmt(indicators.rsi14, 1)} />
         <Metric label="EMA(20)" value={fmt(indicators.ema20)} />
         <Metric label="EMA(60)" value={fmt(indicators.ema60)} />

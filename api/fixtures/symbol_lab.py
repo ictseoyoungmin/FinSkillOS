@@ -25,9 +25,18 @@ from api.schemas.symbol_lab import (
     SymbolNewsItem,
     SymbolPosition,
     SymbolRecentBar,
+    UniverseTicker,
 )
 
 SYMBOL_LAB_DEFAULT_TICKER = "TSLA"
+
+_SYMBOL_UNIVERSE: tuple[UniverseTicker, ...] = (
+    UniverseTicker(symbol="NVDA", label="NVIDIA", kind="FOCUS"),
+    UniverseTicker(symbol="TSLA", label="Tesla", kind="FOCUS"),
+    UniverseTicker(symbol="AAPL", label="Apple", kind="FOCUS"),
+    UniverseTicker(symbol="MSFT", label="Microsoft", kind="FOCUS"),
+    UniverseTicker(symbol="SMH", label="Semiconductor ETF", kind="SECTOR_ETF"),
+)
 
 
 # Position fixtures keyed by ticker — only TSLA is currently held in
@@ -184,6 +193,7 @@ def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
             ("Position guard", "Recheck any active single-position or concentration alert."),
             ("News tone", "Watch whether symbol-linked news clusters in one theme."),
         ),
+        symbol_universe=list(_SYMBOL_UNIVERSE),
         header=SymbolLabHeader(
             ticker=focus.symbol,
             timeframe="1d",
@@ -241,7 +251,7 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
             f"SYMBOL JUDGMENT · {ticker}",
             "Data Missing",
             "for Selected Symbol",
-            f"{ticker} has no stored symbol fixture evidence.",
+            f"{ticker} has no stored symbol evidence yet.",
             30,
         ),
         drivers=drivers(
@@ -251,18 +261,19 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
         ),
         conflicts=conflicts(
             (
-                "Selected symbol vs fixture scope",
-                "The requested ticker is outside the deterministic fixture universe.",
+                "Selected symbol vs stored evidence",
+                "The requested ticker can be searched, but no local snapshot is stored yet.",
             ),
         ),
         integrated_interpretation=interpretation(
             "No symbol judgment is available for the selected ticker.",
             "The UI should surface missing evidence instead of inventing symbol context.",
-            "A supported ticker or future stored snapshot is required.",
+            "A future stored snapshot is required before technical context can be shown.",
         ),
         review_watchpoints=watchpoints(
-            ("Fixture coverage", "Select a ticker with stored symbol evidence."),
+            ("Stored evidence", "Search any ticker; populated context appears when data exists."),
         ),
+        symbol_universe=list(_SYMBOL_UNIVERSE),
         header=SymbolLabHeader(
             ticker=ticker,
             timeframe="1d",
@@ -280,11 +291,11 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
             f"No stored market bar or indicator snapshot exists for {ticker}.",
         ],
         interpretation=(
-            f"{ticker} has no stored market bars or indicator snapshots in the v0 fixture set."
+            f"{ticker} has no stored market bars or indicator snapshots yet."
         ),
         setup_hint=(
-            f"{ticker} is not in the Slice 13.7 fixture set. "
-            f"Supported tickers: {', '.join(sorted(FOCUS_TICKERS.keys()))}."
+            f"{ticker} was searched successfully, but no stored technical snapshot "
+            "exists yet."
         ),
         safety_caption=(
             "Symbol interpretation (not trade signal). Stored data only · not prediction."

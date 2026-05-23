@@ -1,11 +1,37 @@
 .fso-ticker-search {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr) auto;
   align-items: center;
   gap: 10px;
   background: var(--fso-bg-2);
   border: 1px solid var(--fso-line);
   border-radius: var(--fso-radius-md);
   padding: 8px 12px;
+}
+
+.fso-ticker-search-options {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fso-ticker-search-option {
+  min-width: 48px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  color: var(--fso-text-muted);
+  background: color-mix(in srgb, var(--fso-panel-1) 88%, transparent);
+  padding: 4px 8px;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.fso-ticker-search-option:hover {
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-text);
 }
 
 .fso-ticker-search-label {

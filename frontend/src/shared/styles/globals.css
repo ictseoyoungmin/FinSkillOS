@@ -61,7 +61,7 @@ button {
 
 .fso-v42-topline {
   display: grid;
-  grid-template-columns: minmax(360px, 1.15fr) minmax(280px, 0.85fr) minmax(260px, 0.7fr);
+  grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.08fr) minmax(280px, 0.8fr);
   gap: 12px;
   align-items: stretch;
   min-width: 0;
@@ -114,24 +114,32 @@ button {
 }
 
 .fso-v42-topline .fso-drivers-row {
-  grid-template-columns: 42px 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(160px, 0.4fr) minmax(0, 1fr);
+  gap: 12px;
   padding-top: 8px;
 }
 
 .fso-v42-topline .fso-drivers-row dt {
   color: var(--fso-cyan);
   font-size: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fso-v42-topline .fso-drivers-row dd {
+  min-width: 0;
 }
 
 .fso-v42-topline .fso-drivers-value {
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .fso-v42-topline .fso-drivers-detail,
 .fso-v42-topline .fso-conflicts-desc {
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .fso-v42-topline .fso-conflicts-row {
