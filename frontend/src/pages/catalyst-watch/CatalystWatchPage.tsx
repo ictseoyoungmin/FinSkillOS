@@ -43,20 +43,24 @@ export function CatalystWatchPage() {
   return (
     <div className="fso-catalyst-watch" data-testid="catalyst-watch-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Catalyst Watch" />
-      <EventExposureJudgment judgment={payload.judgment} />
+      <div className="fso-v42-topline">
+        <EventExposureJudgment judgment={payload.judgment} />
+        <div data-testid="event-score-drivers">
+          <EventScoreDrivers drivers={payload.drivers} />
+        </div>
+        <ConflictsPanel conflicts={payload.conflicts} />
+      </div>
       <div className="fso-catalyst-watch-grid">
         <div className="fso-catalyst-watch-col">
-          <div data-testid="event-score-drivers">
-            <EventScoreDrivers drivers={payload.drivers} />
-          </div>
-          <EventRiskTable
-            title="Upcoming Events"
-            events={payload.upcoming}
-            toneMap={payload.dateStatusBadgeTone}
-            testId="event-risk-table"
-          />
-          <div className="fso-date-status-badges" data-testid="date-status-badges">
-            {Object.keys(payload.dateStatusBadgeTone).join(" · ")}
+          <div data-testid="event-upcoming">
+            <div data-testid="event-upcoming-table">
+              <EventRiskTable
+                title="Upcoming Events"
+                events={payload.upcoming}
+                toneMap={payload.dateStatusBadgeTone}
+                testId="event-risk-table"
+              />
+            </div>
           </div>
           <HighRiskEventsPanel
             events={payload.highRisk}
@@ -69,7 +73,6 @@ export function CatalystWatchPage() {
           <EventLinkedNewsPanel articles={payload.linkedNews} />
         </div>
         <div className="fso-catalyst-watch-col">
-          <ConflictsPanel conflicts={payload.conflicts} />
           <InterpretationPanel
             bullets={payload.integratedInterpretation}
           />
@@ -77,10 +80,14 @@ export function CatalystWatchPage() {
             watchpoints={payload.watchpoints}
             title="Watchpoints"
           />
-          <ManualEventEntry rules={payload.manualEntryRules} />
+          <div data-testid="event-manual-entry">
+            <ManualEventEntry rules={payload.manualEntryRules} />
+          </div>
         </div>
       </div>
-      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+      <div data-testid="catalyst-watch-safety-caption">
+        <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+      </div>
     </div>
   );
 }

@@ -480,6 +480,10 @@ Structural test rewrites:
 - frontend/e2e/visual/all-tabs.visual.spec.ts rewritten to assert per-route
   required testids, judgment eyebrow, safety caption category, and forbidden
   execution labels
+- frontend/e2e/visual/prototype-layout.visual.spec.ts added as a Docker
+  visual report that compares React landmark placement against the v4.2
+  mockup HTML and attaches mockup / React / reference PNGs plus normalized
+  layout deltas
 
 Screenshot baselines committed:
 - Not yet. Requires Docker e2e visual-update flow after frontend verification.
@@ -492,6 +496,14 @@ Notes:
 - System Ops now includes explicit System Health and Migration Status panels.
 - Missing Data panel now renders a stable empty state so the testid contract
   is always visible.
+- v4.2 compact top-line layout (`JudgmentHeader` + primary drivers +
+  conflicts) is applied across all tabs.
+- News Intelligence / Catalyst Watch / Trade Memory now place their
+  drivers and conflicts in the same top-line hierarchy as the 13.6-13.8
+  tabs.
+- Market Kernel body layout now matches the v4.2 mockup structure more
+  closely: left symbol rail, center chart workspace, and right
+  interpretation / indicator rail.
 
 Verification:
 - python3 -m compileall app.py finskillos api scripts -> PASS
@@ -504,11 +516,20 @@ Verification:
   e2e/visual/all-tabs.visual.spec.ts \
   --grep "risk-firewall|mission-control|system-ops|Risk Firewall|Mission Control|System Ops" \
   --grep-invert @visual -> PASS (8 passed)
+- docker compose -f docker-compose.yml --profile e2e run --rm e2e \
+  npx playwright test e2e/news-events-memory.spec.ts \
+  --grep "Manual article|Catalyst Watch|Trade Memory renders|News Intelligence renders" \
+  -> PASS (8 passed)
+- docker compose -f docker-compose.yml --profile e2e run --rm e2e \
+  npx playwright test e2e/responsive.spec.ts -> PASS (2 passed)
+- docker compose -f docker-compose.yml --profile e2e run --rm e2e \
+  npm run test:e2e -> PASS (45 passed)
+- docker compose -f docker-compose.yml --profile e2e run --rm e2e \
+  npm run test:visual:layout -> PASS (10 passed)
 
 Known issues:
 - Local host npm/node is intentionally not the verification path in this WSL
   shell. Use Docker e2e images.
-- Full all-tabs `npm run test:e2e` still needs a complete Docker pass.
 - Screenshot baselines still need `npm run test:visual:update` inside Docker
   e2e before the visual parity gate can pass.
 ```

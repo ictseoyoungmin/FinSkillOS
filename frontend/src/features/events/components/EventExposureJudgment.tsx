@@ -13,14 +13,16 @@ export interface EventExposureJudgmentProps {
  */
 export function EventExposureJudgment({ judgment }: EventExposureJudgmentProps) {
   return (
-    <JudgmentHeader
-      judgment={{
-        eyebrow: "EVENT EXPOSURE JUDGMENT",
-        title: "Event Cluster",
-        accent: "High",
-        summary: `${judgment.headline} Highest-risk event: ${judgment.highestRiskEvent}; cluster status: ${judgment.clusterStatus}.`,
-        confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
-      }}
-    />
+    <div data-testid="event-judgment-header">
+      <JudgmentHeader
+        judgment={{
+          eyebrow: "EVENT EXPOSURE JUDGMENT",
+          title: "Event Cluster",
+          accent: "High",
+          summary: `${judgment.headline} Highest-risk event: ${judgment.highestRiskEvent}; cluster status: ${judgment.clusterStatus}.`,
+          confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
+        }}
+      />
+    </div>
   );
 }

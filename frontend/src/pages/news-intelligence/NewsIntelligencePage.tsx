@@ -42,24 +42,30 @@ export function NewsIntelligencePage() {
   return (
     <div className="fso-news-intel" data-testid="news-intelligence-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="News Intelligence" />
-      <NewsJudgmentHeader judgment={payload.judgment} />
+      <div className="fso-v42-topline">
+        <NewsJudgmentHeader judgment={payload.judgment} />
+        <DriversPanel drivers={payload.drivers} />
+        <ConflictsPanel conflicts={payload.conflicts} />
+      </div>
       <div className="fso-news-intel-grid">
         <div className="fso-news-intel-col">
-          <DriversPanel drivers={payload.drivers} />
           <HoldingsRelevantNews articles={payload.holdingsRelevant} />
           <NewsImpactMap entries={payload.impactMap} />
           <EventLinkedNewsPanel articles={payload.eventLinked} />
         </div>
         <div className="fso-news-intel-col">
-          <ConflictsPanel conflicts={payload.conflicts} />
           <InterpretationPanel
             bullets={payload.integratedInterpretation}
           />
           <NewsWatchpointsPanel watchpoints={payload.watchpoints} />
-          <ManualArticleEntry rules={payload.manualEntryRules} />
+          <div data-testid="news-manual-article">
+            <ManualArticleEntry rules={payload.manualEntryRules} />
+          </div>
         </div>
       </div>
-      <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+      <div data-testid="news-intelligence-safety-caption">
+        <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+      </div>
     </div>
   );
 }

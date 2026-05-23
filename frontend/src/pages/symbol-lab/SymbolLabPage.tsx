@@ -59,8 +59,8 @@ export function SymbolLabPage() {
   return (
     <div className="fso-symbol-lab" data-testid="symbol-lab-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Symbol Lab" />
-      <JudgmentHeader judgment={payload.judgment} />
-      <div className="fso-symbol-lab-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={payload.judgment} />
         <DriversPanel
           drivers={payload.drivers.map((driver) => ({
             label: driver.title,
@@ -88,10 +88,12 @@ export function SymbolLabPage() {
       ) : null}
       <div className="fso-symbol-lab-grid">
         <div className="fso-symbol-lab-main">
-          <SymbolTechnicalSnapshot
-            header={payload.header}
-            indicators={payload.technical}
-          />
+          <div data-testid="symbol-technical-snapshot">
+            <SymbolTechnicalSnapshot
+              header={payload.header}
+              indicators={payload.technical}
+            />
+          </div>
           <SymbolRecentBarsTable bars={payload.recentBars} />
           <SymbolWatchpoints
             watchpoints={payload.watchpoints}
@@ -100,10 +102,12 @@ export function SymbolLabPage() {
           />
         </div>
         <aside className="fso-symbol-lab-side" aria-label="Position + Risk context">
-          <SymbolPositionContext
-            position={payload.position}
-            ticker={payload.header.ticker}
-          />
+          <div data-testid="symbol-position-context">
+            <SymbolPositionContext
+              position={payload.position}
+              ticker={payload.header.ticker}
+            />
+          </div>
           <SymbolAlertsPanel alerts={payload.alerts} />
           <SymbolNewsPanel news={payload.news} />
           <RegimeContextPanel regime={payload.regime} />

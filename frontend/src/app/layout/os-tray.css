@@ -4,6 +4,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 50px;
   padding: 0 12px;
   background: color-mix(in srgb, var(--fso-bg-1) 92%, transparent);
@@ -81,6 +84,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   padding-left: 12px;
   border-left: 1px solid var(--fso-line);
 }
@@ -114,4 +118,25 @@
   font-size: 11px;
   letter-spacing: 0.18em;
   padding-left: 4px;
+}
+
+@media (max-width: 980px) {
+  .fso-tray {
+    height: auto;
+    min-height: 50px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 10px 12px;
+  }
+
+  .fso-tray-nav {
+    order: 3;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .fso-tray-right {
+    margin-left: auto;
+  }
 }

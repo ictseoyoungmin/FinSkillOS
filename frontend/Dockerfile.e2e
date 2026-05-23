@@ -11,17 +11,20 @@ WORKDIR /work/frontend
 ENV CI=1
 
 # Reproducible install matches the dev/web stage.
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 # App source (Playwright config / e2e specs / fixture + components
 # that the structural tests render against).
-COPY tsconfig.json vite.config.ts index.html ./
-COPY .eslintrc.cjs ./
-COPY src ./src
-COPY public ./public
-COPY playwright.config.ts ./
-COPY e2e ./e2e
+COPY frontend/tsconfig.json frontend/vite.config.ts frontend/index.html ./
+COPY frontend/.eslintrc.cjs ./
+COPY frontend/src ./src
+COPY frontend/public ./public
+COPY frontend/playwright.config.ts ./
+COPY frontend/e2e ./e2e
+
+# v4.2 prototype reference used by the layout-parity visual report.
+COPY prototypes/ui/enhanced_dashboard_mockup/v4_2 /work/prototypes/ui/enhanced_dashboard_mockup/v4_2
 
 # Default to the structural suite — `npm run test:visual` is opt-in
 # (visual baselines require a committed PNG).

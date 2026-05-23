@@ -44,8 +44,8 @@ export function RiskFirewallPage() {
         eyebrow="FinSkillOS · Module"
         title="Risk Firewall"
       />
-      <JudgmentHeader judgment={payload.judgment} />
-      <div className="fso-risk-firewall-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={payload.judgment} />
         <DriversPanel
           drivers={payload.drivers.map((driver) => ({
             label: driver.title,

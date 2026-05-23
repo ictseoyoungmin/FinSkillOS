@@ -46,10 +46,13 @@ export function TradeMemoryPage() {
   return (
     <div className="fso-trade-memory" data-testid="trade-memory-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Trade Memory" />
-      <ProcessJudgmentHeader judgment={payload.judgment} />
+      <div className="fso-v42-topline">
+        <ProcessJudgmentHeader judgment={payload.judgment} />
+        <DriversPanel drivers={payload.drivers} />
+        <ConflictsPanel conflicts={payload.conflicts} />
+      </div>
       <div className="fso-trade-memory-grid">
         <div className="fso-trade-memory-col">
-          <DriversPanel drivers={payload.drivers} />
           <RecentEntriesTable entries={payload.recentEntries} />
           <PerformanceByRegime buckets={payload.performanceByRegime} />
           <PerformanceBySectorTheme
@@ -59,7 +62,6 @@ export function TradeMemoryPage() {
           <MistakeFrequencyPanel rows={payload.mistakeFrequency} />
         </div>
         <div className="fso-trade-memory-col">
-          <ConflictsPanel conflicts={payload.conflicts} />
           <InterpretationPanel
             bullets={payload.integratedInterpretation}
           />

@@ -43,8 +43,8 @@ export function MissionControlPage() {
   return (
     <div className="fso-mission-control" data-testid="mission-control-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Mission Control" />
-      <JudgmentHeader judgment={payload.judgment} />
-      <div className="fso-mission-control-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={payload.judgment} />
         <DriversPanel
           drivers={payload.drivers.map((driver) => ({
             label: driver.title,

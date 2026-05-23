@@ -14,14 +14,16 @@ export interface NewsJudgmentHeaderProps {
  */
 export function NewsJudgmentHeader({ judgment }: NewsJudgmentHeaderProps) {
   return (
-    <JudgmentHeader
-      judgment={{
-        eyebrow: "NARRATIVE JUDGMENT",
-        title: "AI Narrative Strong,",
-        accent: "Volatility Risk Elevated",
-        summary: `${judgment.headline} Dominant theme: ${judgment.dominantTheme}; portfolio relevance: ${judgment.portfolioRelevance}.`,
-        confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
-      }}
-    />
+    <div data-testid="news-judgment-header">
+      <JudgmentHeader
+        judgment={{
+          eyebrow: "NARRATIVE JUDGMENT",
+          title: "AI Narrative Strong,",
+          accent: "Volatility Risk Elevated",
+          summary: `${judgment.headline} Dominant theme: ${judgment.dominantTheme}; portfolio relevance: ${judgment.portfolioRelevance}.`,
+          confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
+        }}
+      />
+    </div>
   );
 }

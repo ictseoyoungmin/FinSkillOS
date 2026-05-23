@@ -6,8 +6,8 @@
 
 .fso-market-kernel-grid {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(210px, 240px) minmax(420px, 1fr) minmax(260px, 320px);
+  gap: 12px;
   align-items: start;
 }
 
@@ -30,12 +30,20 @@
 .fso-market-kernel-main {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fso-market-kernel-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
 
 .fso-market-kernel-toolbar {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
 }

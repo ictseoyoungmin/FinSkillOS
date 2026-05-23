@@ -14,14 +14,16 @@ export function ProcessJudgmentHeader({
   judgment,
 }: ProcessJudgmentHeaderProps) {
   return (
-    <JudgmentHeader
-      judgment={{
-        eyebrow: "PROCESS JUDGMENT",
-        title: "Profits in Risk-On,",
-        accent: "Losses in FOMO",
-        summary: `${judgment.headline} Best condition: ${judgment.bestCondition}; review priority: ${judgment.reviewPriority}.`,
-        confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
-      }}
-    />
+    <div data-testid="trade-judgment-header">
+      <JudgmentHeader
+        judgment={{
+          eyebrow: "PROCESS JUDGMENT",
+          title: "Profits in Risk-On,",
+          accent: "Losses in FOMO",
+          summary: `${judgment.headline} Best condition: ${judgment.bestCondition}; review priority: ${judgment.reviewPriority}.`,
+          confidence: judgment.confidence === "HIGH" ? 82 : judgment.confidence === "MODERATE" ? 66 : 42,
+        }}
+      />
+    </div>
   );
 }

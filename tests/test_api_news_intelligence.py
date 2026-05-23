@@ -118,10 +118,10 @@ def test_manual_article_rejects_over_cap_summary() -> None:
             "riskLevel": "UNKNOWN",
         },
     )
-    assert response.status_code == 422
-    # Pydantic rejects this at the schema layer (max_length=500). The
-    # API contract treats both 422 + REJECTED as user-correctable;
-    # bumping summary down to 500 chars exercises the service path.
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "REJECTED"
+    assert body["detail"] == "summary_too_long"
 
 
 def test_manual_article_accepts_summary_at_cap() -> None:

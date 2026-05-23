@@ -48,8 +48,8 @@ export function AnalysisWorkspacePage() {
         eyebrow="FinSkillOS · Module"
         title="Analysis Workspace"
       />
-      <JudgmentHeader judgment={payload.judgment} />
-      <div className="fso-analysis-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={payload.judgment} />
         <DriversPanel
           drivers={payload.drivers.map((driver) => ({
             label: driver.title,
@@ -66,14 +66,20 @@ export function AnalysisWorkspacePage() {
       </div>
       <div className="fso-analysis-grid">
         <div className="fso-analysis-main">
-          <IndexUniverseTable rows={payload.universe} />
-          <TapeStrengthCards
-            strongest={payload.strongest}
-            weakest={payload.weakest}
-          />
+          <div data-testid="analysis-workspace-universe-table">
+            <IndexUniverseTable rows={payload.universe} />
+          </div>
+          <div data-testid="analysis-workspace-strongest">
+            <TapeStrengthCards
+              strongest={payload.strongest}
+              weakest={payload.weakest}
+            />
+          </div>
         </div>
         <aside className="fso-analysis-side" aria-label="Regime context">
-          <RegimeContextPanel regime={payload.regime} />
+          <div data-testid="analysis-workspace-regime">
+            <RegimeContextPanel regime={payload.regime} />
+          </div>
           <MissingDataPanel
             tickers={payload.missingData}
             setupHint={payload.setupHint}
@@ -84,7 +90,7 @@ export function AnalysisWorkspacePage() {
         className="fso-analysis-safety"
         data-testid="analysis-workspace-safety-caption"
       >
-        {payload.safetyCaption}
+        {payload.safetyCaption} Stored data only.
       </p>
       <InterpretationPanel
         bullets={[

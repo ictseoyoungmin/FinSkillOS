@@ -10,6 +10,7 @@ prototypes. The intent is "regression catch", not pixel-perfect parity.
 | -------------------------------- | ------------------------------------- | ---------------------------- |
 | Control Room baseline (Slice 13.6) | `control-room.visual.spec.ts`       | `npm run test:visual`        |
 | All-tabs baseline (Slice 13.10)  | `all-tabs.visual.spec.ts`             | `npm run test:visual`        |
+| v4.2 prototype layout report     | `prototype-layout.visual.spec.ts`     | `npm run test:visual:layout` |
 | All-tabs structural assertions   | `all-tabs.visual.spec.ts` (untagged)  | `npm run test:e2e`           |
 | Responsive smoke (Slice 13.10)   | `../responsive.spec.ts`               | `npm run test:e2e`           |
 
@@ -17,6 +18,20 @@ Tests tagged `@visual` are excluded from `npm run test:e2e` and only
 picked up by `npm run test:visual`. The structural tests in the all-tabs
 spec stay in the default run so a route that breaks its primary panel
 fails CI even if a baseline PNG has not been generated yet.
+
+The prototype layout report opens the v4.2 mockup HTML and the React
+route in the same Playwright browser, captures the main landmark
+bounding boxes (tray, ticker, judgment, drivers, conflicts, and the
+left / center / right evidence areas), and attaches:
+
+- the rendered mockup screenshot,
+- the current React screenshot,
+- the committed prototype PNG reference,
+- a normalized `layout-report.json` with per-landmark deltas.
+
+It is intentionally a report, not a pixel gate. Use it before
+regenerating baselines when you need to compare React placement against
+`prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html`.
 
 ## Regenerate baselines
 
@@ -30,6 +45,17 @@ docker compose --profile e2e run --rm e2e npm run test:visual:update
 
 Then commit the resulting files under
 `e2e/visual/<spec>-snapshots/*.png`.
+
+For layout comparison against the v4.2 mockup without updating
+baselines:
+
+```bash
+docker compose --profile e2e run --rm e2e npm run test:visual:layout
+```
+
+The Docker e2e service mounts `frontend/playwright-report/` and
+`frontend/test-results/`, so the HTML report and layout attachments
+remain available after `--rm` removes the runner container.
 
 > **Do not commit baselines from a screen with a different DPI.**
 > Screenshots taken on the host (typically WSL → Windows X server) and

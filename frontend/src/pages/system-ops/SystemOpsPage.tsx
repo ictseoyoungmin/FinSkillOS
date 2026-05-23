@@ -41,8 +41,8 @@ export function SystemOpsPage() {
   return (
     <div className="fso-system-ops" data-testid="system-ops-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="System Ops" />
-      <JudgmentHeader judgment={payload.judgment} />
-      <div className="fso-system-ops-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={payload.judgment} />
         <DriversPanel
           drivers={payload.drivers.map((driver) => ({
             label: driver.title,

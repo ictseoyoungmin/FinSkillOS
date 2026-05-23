@@ -150,7 +150,7 @@ class ManualArticleInput(CamelModel):
     source: str = Field(..., min_length=1, max_length=120)
     url: str = Field(..., min_length=1, max_length=1024)
     published_at: str = Field(..., description="ISO-8601 timestamp.")
-    summary: str = Field(..., min_length=1, max_length=MAX_SUMMARY_CHARS)
+    summary: str = Field(..., min_length=1)
     affected_tickers: list[str] = Field(default_factory=list)
     theme: str | None = None
     event_key: str | None = None

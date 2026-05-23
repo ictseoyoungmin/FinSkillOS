@@ -79,13 +79,16 @@ services:
   # ------------------------------------------------------------------
   e2e:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.e2e
+      context: .
+      dockerfile: frontend/Dockerfile.e2e
     profiles: ["e2e"]
     working_dir: /work/frontend
     environment:
       PLAYWRIGHT_BASE_URL: http://web:5173
       CI: "1"
+    volumes:
+      - ./frontend/playwright-report:/work/frontend/playwright-report
+      - ./frontend/test-results:/work/frontend/test-results
     depends_on:
       - web
 

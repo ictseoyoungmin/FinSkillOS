@@ -4,15 +4,6 @@
   gap: 18px;
 }
 
-.fso-date-status-badges {
-  padding: 8px 10px;
-  border: 1px solid var(--fso-line);
-  border-radius: var(--fso-radius-sm);
-  color: var(--fso-text-muted);
-  font-family: var(--fso-font-mono);
-  font-size: 11px;
-}
-
 .fso-catalyst-watch-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);

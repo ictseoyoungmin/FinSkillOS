@@ -67,7 +67,7 @@ export function EventRiskTable({
                 {event.startDate}
                 {event.endDate ? ` → ${event.endDate}` : ""}
               </td>
-              <td>
+              <td data-testid="date-status-badges">
                 <EventStatusBadge status={event.dateStatus} toneMap={toneMap} />
               </td>
               <td className="fso-event-risk-score">

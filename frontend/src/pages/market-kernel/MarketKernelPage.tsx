@@ -62,8 +62,8 @@ export function MarketKernelPage() {
         eyebrow="FinSkillOS · Module"
         title="Market Kernel"
       />
-      <JudgmentHeader judgment={payload.judgment} />
-      <div className="fso-market-kernel-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={payload.judgment} />
         <DriversPanel
           drivers={payload.drivers.map((driver) => ({
             label: driver.title,
@@ -121,7 +121,11 @@ export function MarketKernelPage() {
             />
           ) : null}
 
-          <CandlePanel header={payload.header} bars={payload.bars} />
+          <div data-testid="market-kernel-chart-panel">
+            <CandlePanel header={payload.header} bars={payload.bars} />
+          </div>
+        </div>
+        <aside className="fso-market-kernel-side" aria-label="Market interpretation">
           <IndicatorSnapshotPanel indicators={payload.indicators} />
           <EventOverlayPanel events={payload.events} />
           <MarketKernelInterpretation
@@ -129,7 +133,7 @@ export function MarketKernelPage() {
             watchpoints={payload.watchpoints}
             safetyCaption={payload.safetyCaption}
           />
-        </div>
+        </aside>
       </div>
       <InterpretationPanel
         bullets={[

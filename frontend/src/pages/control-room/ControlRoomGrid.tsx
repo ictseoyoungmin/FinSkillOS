@@ -31,8 +31,8 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
         eyebrow="FinSkillOS · Module"
         title="Control Room"
       />
-      <JudgmentHeader judgment={data.judgment} />
-      <div className="fso-control-evidence-row">
+      <div className="fso-v42-topline">
+        <JudgmentHeader judgment={data.judgment} />
         <DriversPanel
           drivers={data.drivers.map((driver) => ({
             label: driver.title,
