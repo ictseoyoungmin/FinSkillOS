@@ -42,9 +42,13 @@ _V42_ENDPOINTS = (
 _V42_FIXTURE_FIRST_ENDPOINTS = tuple(
     path
     for path, _, _ in _V42_ENDPOINTS
-    if path not in {"/api/market-kernel", "/api/risk-firewall"}
+    if path not in {"/api/market-kernel", "/api/symbol-lab", "/api/risk-firewall"}
 )
-_V42_LIVE_CAPABLE_ENDPOINTS = ("/api/market-kernel", "/api/risk-firewall")
+_V42_LIVE_CAPABLE_ENDPOINTS = (
+    "/api/market-kernel",
+    "/api/symbol-lab",
+    "/api/risk-firewall",
+)
 
 
 def test_all_v42_tabs_expose_core_read_model_contract() -> None:

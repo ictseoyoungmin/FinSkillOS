@@ -108,6 +108,7 @@ not the current implementation target.
 35. `24_Market_Kernel_DB_Read_Model.md`
 36. `25_System_Ops_Indicator_Calculate_Protocol.md`
 37. `26_Lightweight_Refresh_Worker.md`
+38. `27_Symbol_Lab_DB_Read_Model.md`
 
 ## Definition of done for this workplan
 

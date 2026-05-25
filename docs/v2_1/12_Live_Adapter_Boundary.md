@@ -28,7 +28,7 @@ own their own snapshot source.
 | `/api/control-room` | fixture | deferred | Promote only after a DB-backed aggregate read model exists. |
 | `/api/market-kernel` | fixture or live | promoted | Live when DB is reachable; missing ticker bars stay explicit. |
 | `/api/analysis-workspace` | fixture | deferred | Requires index/ETF universe freshness contract. |
-| `/api/symbol-lab` | fixture | deferred | Requires per-symbol DB fallback and arbitrary ticker policy. |
+| `/api/symbol-lab` | fixture or live | promoted | Live when stored bars exist; position/alert context attaches from DB. |
 | `/api/risk-firewall` | fixture or live | promoted first | Live when DB session and account exist; fixture fallback remains explicit. |
 | `/api/mission-control` | fixture | deferred | Promote after portfolio snapshot freshness is reliable. |
 | `/api/news-intelligence` | fixture/manual POST | deferred | Live polling is not enabled; manual writes may be DB-backed. |
@@ -43,7 +43,7 @@ Recommended order:
 2. Risk Firewall read model, because guard contracts are explicit. `DONE`.
 3. Mission Control, because portfolio snapshots are already operationally central.
 4. Market Kernel for stored bars and indicators. `DONE`.
-5. Symbol Lab for stored bars, indicators, and arbitrary ticker context.
+5. Symbol Lab for stored bars, indicators, and arbitrary ticker context. `DONE`.
 6. News/Event/Trade Memory read models after manual-write behavior is stable.
 7. Control Room last, because it aggregates every other module.
 
@@ -64,10 +64,10 @@ FINSKILLOS_MARKET_REFRESH_ADAPTER=yahoo
 FINSKILLOS_MARKET_REFRESH_TICKERS=SPY,QQQ,TSLA
 ```
 
-These paths write stored bars into the DB through `MarketDataService`. They do
-not make `/api/market-kernel` or `/api/symbol-lab` live by themselves. Those
-product tabs still need promoted DB-backed read models and missing-data labels
-before they should stop returning fixture snapshots.
+These paths write stored bars into the DB through `MarketDataService`.
+`/api/market-kernel` and `/api/symbol-lab` can read those stored bars without
+calling a provider during page rendering. Missing tickers remain explicit
+`MISSING` states instead of being filled with fixture bars.
 
 System Ops also exposes `POST /api/system-ops/calculate-indicators`, surfaced
 as a protocol card in the React UI. It computes descriptive indicator snapshots
@@ -75,6 +75,9 @@ from stored bars only. No provider call or worker queue is involved.
 
 News remains manual/sample only. A live news adapter requires source,
 attribution, rate-limit, and safety-copy rules before promotion.
+
+Symbol images/logos remain deferred. Add them only after provider, attribution,
+local cache, and fallback rules are explicit.
 
 ## 4. UI Rule
 
