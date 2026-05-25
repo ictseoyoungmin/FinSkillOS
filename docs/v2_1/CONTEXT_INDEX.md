@@ -33,6 +33,8 @@ Deployment and operations:
 - `.devmd/14_Deployment_Operations.md`
   - Current deployment slice target. Treat this as the live operations workplan
     before editing the older design document.
+- `.devmd/CURRENT_STATE.md`
+  - Current architecture, validation baseline, and next useful slices.
 
 Product and roadmap orientation:
 

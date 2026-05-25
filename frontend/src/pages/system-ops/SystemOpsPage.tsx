@@ -118,6 +118,18 @@ export function SystemOpsPage() {
               />
             ))}
           </div>
+          {payload.recentProtocolRuns.length > 0 ? (
+            <div
+              className="fso-system-ops-history"
+              data-testid="recent-protocol-runs"
+            >
+              {payload.recentProtocolRuns.map((run) => (
+                <p key={`${run.protocol}-${run.ranAt}`}>
+                  {run.ranAt} · {run.protocol} · {run.status} · {run.dbStatus}
+                </p>
+              ))}
+            </div>
+          ) : null}
         </Panel>
       </div>
       <p

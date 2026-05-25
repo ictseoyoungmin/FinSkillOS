@@ -87,6 +87,7 @@ export const systemOpsFixture: SystemOpsData = {
       lastRunAt: null,
     },
   ],
+  recentProtocolRuns: [],
   dataSources: [
     {
       label: "Database",

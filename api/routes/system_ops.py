@@ -19,7 +19,10 @@ Safety:
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends
 
@@ -27,6 +30,7 @@ from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import system_ops_fixture
 from api.schemas.system_ops import (
     ProtocolKey,
+    ProtocolRunRecord,
     ProtocolRunResult,
     SystemOpsResponse,
 )
@@ -45,6 +49,7 @@ def system_ops(
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> SystemOpsResponse:
     payload = system_ops_fixture()
+    payload.recent_protocol_runs = _read_recent_protocol_runs()
     if use_fixture:
         payload.source = "fixture"
     return payload
@@ -137,26 +142,30 @@ def _run_protocol(
 
     with get_session_scope() as session:
         if session is None:
-            return ProtocolRunResult(
+            result = ProtocolRunResult(
                 protocol=key,
                 status="NOOP",
                 message=fixture_message,
                 detail="no_database_session",
                 ran_at=_now_iso(),
             )
+            _append_protocol_run(result, db_status="MISSING", source="fixture")
+            return result
         try:
             status, message, detail = runner(session)
             session.commit()
-            return ProtocolRunResult(
+            result = ProtocolRunResult(
                 protocol=key,
                 status=status,
                 message=message,
                 detail=detail,
                 ran_at=_now_iso(),
             )
+            _append_protocol_run(result, db_status="LIVE", source="live")
+            return result
         except Exception as exc:  # noqa: BLE001 — surface as structured JSON
             session.rollback()
-            return ProtocolRunResult(
+            result = ProtocolRunResult(
                 protocol=key,
                 status="ERROR",
                 message=(
@@ -166,6 +175,63 @@ def _run_protocol(
                 detail=type(exc).__name__,
                 ran_at=_now_iso(),
             )
+            _append_protocol_run(result, db_status="LIVE", source="live")
+            return result
+
+
+def _audit_log_path() -> Path:
+    return Path(
+        os.environ.get(
+            "FINSKILLOS_SYSTEM_OPS_AUDIT_LOG",
+            "data/logs/system_ops_protocol_runs.jsonl",
+        )
+    )
+
+
+def _append_protocol_run(
+    result: ProtocolRunResult,
+    *,
+    db_status: str,
+    source: str,
+) -> None:
+    try:
+        path = _audit_log_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        record = ProtocolRunRecord(
+            protocol=result.protocol,
+            status=result.status,
+            message=result.message,
+            detail=result.detail,
+            ran_at=result.ran_at,
+            db_status=db_status,
+            source=source,
+        )
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(record.model_dump_json(by_alias=True))
+            handle.write("\n")
+    except OSError:
+        return
+
+
+def _read_recent_protocol_runs(limit: int = 5) -> list[ProtocolRunRecord]:
+    path = _audit_log_path()
+    if not path.exists():
+        return []
+
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+
+    records: list[ProtocolRunRecord] = []
+    for line in lines[-limit:]:
+        if not line.strip():
+            continue
+        try:
+            records.append(ProtocolRunRecord.model_validate(json.loads(line)))
+        except (json.JSONDecodeError, ValueError):
+            continue
+    return list(reversed(records))
 
 
 def _invoke_seed_sample_account(session) -> tuple[str, str, str]:

@@ -1,0 +1,115 @@
+# Current State — FinSkillOS v2.1 / v4.2 Cockpit
+
+Updated: 2026-05-25
+
+## Architecture
+
+FinSkillOS is now a Python domain/service/db core with a FastAPI adapter
+and a Vite React v4.2 Evidence-to-Judgment cockpit.
+
+```text
+finskillos/       domain, services, DB models, regime, signals, guards
+api/              FastAPI read-only adapter + System Ops protocols
+frontend/         React/Vite product cockpit
+.devmd/           active execution slices and handoff state
+docs/v2_1/        source design references
+tests/            API, UI, acceptance, regression, operations contracts
+```
+
+Streamlit remains available as debug/admin through the compose `app`
+profile. It is not the primary product UI.
+
+## Product Boundary
+
+Allowed output:
+
+```text
+market state
+risk interpretation
+portfolio constraints
+watchpoints
+reflection support
+operational protocols
+```
+
+Not allowed:
+
+```text
+buy/sell recommendations
+order placement
+brokerage execution
+direct trading actions
+price-direction commands
+```
+
+The FastAPI app is read-only except for idempotent System Ops
+operational protocols.
+
+## Current Completed Slices
+
+```text
+13.11  React UI Completion Audit + v4.2 Parity Polish
+13.12  Arbitrary Symbol Search
+13.13  Source-of-Truth Cleanup Before Operations
+14     Deployment and Operations
+15     System Ops Audit / History Evidence
+```
+
+Slice 14 is complete:
+
+```text
+- /api/system-status freshness and DB status contract implemented.
+- React System Ops consumes system-status in its health/freshness panels.
+- backup_postgres.sh and restore_postgres.sh added.
+- Live compose backup/temporary-DB restore drill verified.
+- Docker Playwright visual gate verified: 31 passed.
+- System Ops protocol runs are appended to a local JSONL audit log and
+  surfaced as recentProtocolRuns.
+```
+
+## Validation Baseline
+
+Use these focused checks before touching the v4.2 cockpit surface:
+
+```bash
+python3 -m pytest \
+  tests/test_api_v42_contract.py \
+  tests/test_api_health.py \
+  tests/test_api_system_ops.py \
+  tests/test_operations_scripts.py \
+  -q
+
+python3 -m ruff check \
+  api/routes/health.py \
+  api/dependencies.py \
+  tests/test_api_health.py \
+  tests/test_operations_scripts.py \
+  tests/test_api_v42_contract.py
+
+docker compose --profile e2e run --rm e2e npm run build
+docker compose --profile e2e run --rm e2e npm run test:visual
+```
+
+Host Node may be unreliable in WSL for this workspace; prefer the Docker
+e2e image for frontend build and visual checks.
+
+## Next Useful Slices
+
+1. Fixture/live/data-unavailable labeling
+   - Make every tab distinguish deterministic fixture, DB-backed live data,
+     and unavailable live data.
+   - Reuse `/api/system-status` as the operational source.
+
+2. Safety copy polish
+   - Review News Intelligence, Catalyst Watch, Symbol Lab, and Analysis
+     Workspace copy for recommendation-like phrasing.
+   - Keep output descriptive and evidence-first.
+
+3. Scheduler/refresh policy
+   - Document manual vs script-driven refresh for market data, indicators,
+     regimes, news/events, and risk guards.
+   - Do not add Celery/Redis until a concrete runtime need exists.
+
+4. Durable System Ops DB audit table
+   - Optional future replacement for local JSONL if multi-host operations
+     become necessary.

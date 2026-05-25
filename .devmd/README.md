@@ -95,6 +95,8 @@ not the current implementation target.
 22. `13_12_Arbitrary_Symbol_Search.md`
 23. `13_13_Docs_Source_Of_Truth_Cleanup.md`
 24. `14_Deployment_Operations.md`
+25. `CURRENT_STATE.md`
+26. `15_System_Ops_Audit_History.md`
 
 ## Definition of done for this workplan
 

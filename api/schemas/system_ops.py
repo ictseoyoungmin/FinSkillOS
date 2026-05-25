@@ -65,20 +65,6 @@ class DataSourcePill(CamelModel):
     detail: str = ""
 
 
-class SystemOpsResponse(CamelModel):
-    generated_at: str
-    system_status: SystemStatus
-    judgment: JudgmentHeader
-    drivers: list[EvidenceDriver]
-    conflicts: list[EvidenceConflict]
-    interpretation: IntegratedInterpretation
-    watchpoints: list[EvidenceWatchpoint]
-    protocols: list[ProtocolCard]
-    data_sources: list[DataSourcePill]
-    safety_caption: str = "Operational protocols only — no trading actions."
-    source: Literal["fixture", "live"] = "fixture"
-
-
 class ProtocolRunResult(CamelModel):
     """Structured response from any POST /api/system-ops/<protocol>."""
 
@@ -89,11 +75,34 @@ class ProtocolRunResult(CamelModel):
     ran_at: str
 
 
+class ProtocolRunRecord(ProtocolRunResult):
+    """Persisted local audit/history record for a protocol run."""
+
+    db_status: str = "UNKNOWN"
+    source: Literal["fixture", "live"] = "fixture"
+
+
+class SystemOpsResponse(CamelModel):
+    generated_at: str
+    system_status: SystemStatus
+    judgment: JudgmentHeader
+    drivers: list[EvidenceDriver]
+    conflicts: list[EvidenceConflict]
+    interpretation: IntegratedInterpretation
+    watchpoints: list[EvidenceWatchpoint]
+    protocols: list[ProtocolCard]
+    data_sources: list[DataSourcePill]
+    recent_protocol_runs: list[ProtocolRunRecord] = Field(default_factory=list)
+    safety_caption: str = "Operational protocols only — no trading actions."
+    source: Literal["fixture", "live"] = "fixture"
+
+
 __all__ = [
     "DataSourcePill",
     "DataSourceStatus",
     "ProtocolCard",
     "ProtocolKey",
+    "ProtocolRunRecord",
     "ProtocolRunResult",
     "ProtocolStatus",
     "ProtocolTone",

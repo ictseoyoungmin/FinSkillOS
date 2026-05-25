@@ -53,6 +53,7 @@ export interface SystemOpsData {
   watchpoints: EvidenceWatchpointData[];
   protocols: ProtocolCard[];
   dataSources: DataSourcePill[];
+  recentProtocolRuns: ProtocolRunRecord[];
   safetyCaption: string;
   source: "fixture" | "live";
 }
@@ -63,6 +64,11 @@ export interface ProtocolRunResult {
   message: string;
   detail: string;
   ranAt: string;
+}
+
+export interface ProtocolRunRecord extends ProtocolRunResult {
+  dbStatus: string;
+  source: "fixture" | "live";
 }
 
 export interface ProtocolAvailability {

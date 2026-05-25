@@ -60,6 +60,7 @@ def test_system_ops_get_returns_full_payload() -> None:
         "systemStatus",
         "protocols",
         "dataSources",
+        "recentProtocolRuns",
         "safetyCaption",
         "source",
     }
@@ -144,3 +145,25 @@ def test_use_fixture_header_is_accepted_on_system_ops() -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "fixture"
+
+
+def test_system_ops_protocol_runs_are_audited_to_jsonl(monkeypatch, tmp_path) -> None:
+    audit_path = tmp_path / "ops_runs.jsonl"
+    monkeypatch.setenv("FINSKILLOS_SYSTEM_OPS_AUDIT_LOG", str(audit_path))
+
+    client = _client()
+    post_body = client.post("/api/system-ops/seed-sample-account").json()
+    assert post_body["protocol"] == "seed_sample_account"
+
+    assert audit_path.exists()
+    audit_lines = audit_path.read_text(encoding="utf-8").splitlines()
+    assert len(audit_lines) == 1
+    raw_record = json.loads(audit_lines[0])
+    assert raw_record["protocol"] == "seed_sample_account"
+    assert raw_record["status"] in {"OK", "NOOP", "ERROR"}
+    assert raw_record["dbStatus"] in {"LIVE", "MISSING"}
+    assert raw_record["source"] in {"fixture", "live"}
+
+    get_body = client.get("/api/system-ops").json()
+    assert get_body["recentProtocolRuns"][0]["protocol"] == "seed_sample_account"
+    assert get_body["recentProtocolRuns"][0]["ranAt"] == post_body["ranAt"]

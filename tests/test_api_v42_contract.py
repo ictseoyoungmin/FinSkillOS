@@ -1,4 +1,11 @@
-"""Slice 13.11 — v4.2 Evidence-to-Judgment API contract tests."""
+"""v4.2 Evidence-to-Judgment API contract tests.
+
+This is the cross-tab monitor for the React cockpit read-model surface.
+Per-tab tests still own detailed shape checks; this file protects the
+shared contract all product tabs must keep: generated timestamp, source
+provenance, judgment block, drivers, conflicts, interpretation,
+watchpoints, and safety caption.
+"""
 
 from __future__ import annotations
 
@@ -13,51 +20,98 @@ def _client() -> TestClient:
 
 _V42_ENDPOINTS = (
     ("/api/control-room", "GLOBAL OPERATING VERDICT", "Global operating posture"),
-    ("/api/market-kernel", "TECHNICAL SIGNAL JUDGMENT", "Technical interpretation"),
-    ("/api/analysis-workspace", "MARKET STRUCTURE JUDGMENT", "Structural breadth read"),
+    (
+        "/api/market-kernel",
+        "TECHNICAL SIGNAL JUDGMENT",
+        "Technical interpretation",
+    ),
+    (
+        "/api/analysis-workspace",
+        "MARKET STRUCTURE JUDGMENT",
+        "Structural breadth read",
+    ),
     ("/api/symbol-lab", "SYMBOL JUDGMENT", "Symbol interpretation"),
     ("/api/risk-firewall", "RISK PERMISSION JUDGMENT", "Read-only"),
     ("/api/mission-control", "MISSION RISK JUDGMENT", "Goal interpretation"),
+    ("/api/news-intelligence", "AI demand", "Descriptive narrative view"),
+    ("/api/event-radar", "Event calendar", "preparation / exposure score"),
+    ("/api/trade-memory", "Process pattern", "Reflection / process review"),
     ("/api/system-ops", "SYSTEM TRUST JUDGMENT", "Operational protocols only"),
 )
 
 
-def test_v42_tabs_expose_judgment_driver_conflict_watchpoint_contract() -> None:
+def test_all_v42_tabs_expose_core_read_model_contract() -> None:
     client = _client()
 
-    for path, eyebrow, safety_category in _V42_ENDPOINTS:
-        body = client.get(path).json()
+    for path, judgment_anchor, safety_category in _V42_ENDPOINTS:
+        response = client.get(path)
+        assert response.status_code == 200, path
+        body = response.json()
 
-        assert body["judgment"]["eyebrow"].startswith(eyebrow)
-        assert {"title", "accent", "summary", "confidence"}.issubset(
-            body["judgment"]
-        )
-        assert 0 <= body["judgment"]["confidence"] <= 100
-        assert len(body["drivers"]) == 3
-        assert {"score", "title", "note"}.issubset(body["drivers"][0])
-        assert len(body["conflicts"]) >= 1
-        assert {"title", "note"}.issubset(body["conflicts"][0])
+        assert "generatedAt" in body
+        assert body["source"] in {"fixture", "live"}
+        assert body["systemStatus"]["mode"] == "READ_MODE"
         assert safety_category in body["safetyCaption"]
+
+        judgment_blob = _joined_strings(body["judgment"])
+        assert judgment_anchor in judgment_blob
+        assert "confidence" in body["judgment"]
+
+        assert len(body["drivers"]) >= 1
+        assert _matches_any_field_set(
+            body["drivers"][0],
+            (("score", "title", "note"), ("label", "value", "detail")),
+        )
+
+        assert len(body["conflicts"]) >= 1
+        assert _matches_any_field_set(
+            body["conflicts"][0],
+            (("title", "note"), ("label", "description")),
+        )
 
         watchpoints = body.get("reviewWatchpoints", body.get("watchpoints"))
         assert len(watchpoints) >= 1
-        assert {"title", "note"}.issubset(watchpoints[0])
-
-        interpretation = body.get("integratedInterpretation", body.get("interpretation"))
-        assert {"verdict", "whyItMatters", "whatRemainsUncertain"}.issubset(
-            interpretation
+        assert _matches_any_field_set(
+            watchpoints[0],
+            (("title", "note"), ("label", "description")),
         )
 
+        interpretation = body.get("integratedInterpretation", body.get("interpretation"))
+        assert interpretation
+        if isinstance(interpretation, dict):
+            assert {"verdict", "whyItMatters", "whatRemainsUncertain"}.issubset(
+                interpretation
+            )
+        else:
+            assert isinstance(interpretation, list)
+            assert all(isinstance(item, str) and item for item in interpretation)
 
-def test_slice_13_9_tabs_pin_safety_caption_categories() -> None:
+
+def test_all_v42_tabs_use_camelcase_public_fields() -> None:
     client = _client()
-    expected = (
-        ("/api/news-intelligence", "Descriptive narrative view only"),
-        ("/api/event-radar", "preparation / exposure score"),
-        ("/api/trade-memory", "Reflection / process review"),
-    )
 
-    for path, category in expected:
+    for path, _, _ in _V42_ENDPOINTS:
         body = client.get(path).json()
-        assert category in body["safetyCaption"]
+        assert "generatedAt" in body
+        assert "safetyCaption" in body
+        assert "systemStatus" in body
+        assert "generated_at" not in body
+        assert "safety_caption" not in body
+        assert "system_status" not in body
 
+
+def _joined_strings(payload: object) -> str:
+    if isinstance(payload, dict):
+        return " ".join(_joined_strings(value) for value in payload.values())
+    if isinstance(payload, list):
+        return " ".join(_joined_strings(value) for value in payload)
+    if isinstance(payload, str):
+        return payload
+    return ""
+
+
+def _matches_any_field_set(
+    payload: dict,
+    field_sets: tuple[tuple[str, ...], ...],
+) -> bool:
+    return any(set(fields).issubset(payload) for fields in field_sets)
