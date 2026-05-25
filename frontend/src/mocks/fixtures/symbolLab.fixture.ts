@@ -46,6 +46,14 @@ const TSLA: SymbolLabData = {
     { symbol: "MSFT", label: "Microsoft", kind: "FOCUS" },
     { symbol: "SMH", label: "Semiconductor ETF", kind: "SECTOR_ETF" },
   ],
+  identity: {
+    ticker: "TSLA",
+    name: "Tesla",
+    logoUrl: null,
+    logoSource: "local_fallback",
+    avatarText: "TS",
+    brandColor: "#b91c1c",
+  },
   header: {
     ticker: "TSLA",
     timeframe: "1d",
@@ -142,6 +150,13 @@ export function symbolLabFixture(ticker: string): SymbolLabData {
       ...TSLA.judgment,
       eyebrow: `SYMBOL JUDGMENT · ${t}`,
       summary: `${t} reuses the deterministic TSLA fixture snapshot for offline rendering.`,
+    },
+    identity: {
+      ...TSLA.identity,
+      ticker: t,
+      name: t,
+      avatarText: t.replace(/[^A-Z]/g, "").slice(0, 2) || t.slice(0, 2) || "?",
+      brandColor: "#475569",
     },
     header: { ...TSLA.header, ticker: t },
     position: null,

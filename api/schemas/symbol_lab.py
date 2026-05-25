@@ -75,6 +75,19 @@ class SymbolLabHeader(CamelModel):
     data_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
 
 
+class SymbolIdentity(CamelModel):
+    ticker: str
+    name: str
+    logo_url: str | None = None
+    logo_source: Literal[
+        "local_fallback",
+        "provider_cache",
+        "deferred",
+    ] = "local_fallback"
+    avatar_text: str
+    brand_color: str = "#475569"
+
+
 class SymbolLabResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -84,6 +97,7 @@ class SymbolLabResponse(CamelModel):
     integrated_interpretation: IntegratedInterpretation
     review_watchpoints: list[EvidenceWatchpoint]
     symbol_universe: list[UniverseTicker] = Field(default_factory=list)
+    identity: SymbolIdentity
     header: SymbolLabHeader
     technical: IndicatorSnapshot
     recent_bars: list[SymbolRecentBar] = Field(default_factory=list)
@@ -103,6 +117,7 @@ class SymbolLabResponse(CamelModel):
 
 __all__ = [
     "SymbolAlert",
+    "SymbolIdentity",
     "SymbolLabHeader",
     "SymbolLabResponse",
     "SymbolNewsItem",

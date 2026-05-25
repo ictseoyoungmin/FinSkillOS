@@ -65,6 +65,7 @@ operational protocols.
 25     System Ops Indicator Calculate Protocol
 26     Lightweight Refresh Worker
 27     Symbol Lab DB Read Model
+28     Symbol Identity / Logo Fallback
 ```
 
 Slice 14 is complete:
@@ -106,6 +107,9 @@ Slice 14 is complete:
 - `/api/symbol-lab` can read stored DB bars, latest indicator snapshots,
   current position context, and symbol-linked active alerts. Symbol logo/image
   retrieval remains deferred to a provider/cache slice.
+- Symbol Lab now exposes `identity` metadata and renders a local fallback
+  avatar. Official logo retrieval remains deferred until provider/cache and
+  attribution rules are clear.
 ```
 
 ## Validation Baseline
@@ -142,7 +146,8 @@ e2e image for frontend build and visual checks.
      rate-limit rules are clear.
 
 2. Symbol image/logo provider cache
-   - Add only after provider, attribution, cache, and fallback rules are clear.
+   - Promote `identity.logoUrl` to `provider_cache` only after provider,
+     attribution, cache, and fallback rules are clear.
 
 3. Mission Control DB read model
    - Promote portfolio/goal status after Risk Firewall live path settles.

@@ -43,11 +43,14 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
         "watchpoints",
         "interpretation",
         "symbolUniverse",
+        "identity",
         "safetyCaption",
         "source",
     }
     assert expected.issubset(body.keys())
     assert body["header"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
+    assert body["identity"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
+    assert body["identity"]["logoSource"] == "local_fallback"
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
 
@@ -87,6 +90,7 @@ def test_symbol_lab_non_held_ticker_returns_none_position() -> None:
 def test_symbol_lab_unknown_ticker_returns_missing_status() -> None:
     body = _client().get("/api/symbol-lab?ticker=ZZZZZ").json()
     assert body["header"]["dataStatus"] == "MISSING"
+    assert body["identity"]["avatarText"] == "ZZ"
     assert body["recentBars"] == []
     assert body["position"] is None
     assert body["symbolUniverse"]
@@ -176,6 +180,8 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         assert body["header"]["dataStatus"] == "OK"
         assert len(body["recentBars"]) == 30
         assert body["technical"]["rsi14"] is not None
+        assert body["identity"]["ticker"] == "SPY"
+        assert body["identity"]["logoSource"] == "local_fallback"
         assert body["position"] is None
         assert body["news"] == []
         assert body["generatedAt"] != FIXTURE_TIMESTAMP

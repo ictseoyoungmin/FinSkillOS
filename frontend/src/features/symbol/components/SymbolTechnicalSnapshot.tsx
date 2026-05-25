@@ -1,9 +1,10 @@
 import { Badge, Metric, Panel } from "@/shared/ui";
 import { toNumber, type Numeric } from "@/shared/lib/format";
 import type { IndicatorSnapshot } from "@/features/market/kernel-types";
-import type { SymbolLabHeader } from "../types";
+import type { SymbolIdentity, SymbolLabHeader } from "../types";
 
 export interface SymbolTechnicalSnapshotProps {
+  identity: SymbolIdentity;
   header: SymbolLabHeader;
   indicators: IndicatorSnapshot;
 }
@@ -21,6 +22,7 @@ const STATUS_TONE: Record<SymbolLabHeader["dataStatus"], "info" | "warning" | "d
 };
 
 export function SymbolTechnicalSnapshot({
+  identity,
   header,
   indicators,
 }: SymbolTechnicalSnapshotProps) {
@@ -32,8 +34,27 @@ export function SymbolTechnicalSnapshot({
       testId="technical-snapshot"
     >
       <div className="fso-kernel-chart-header">
-        <div>
-          <strong>{header.ticker}</strong>
+        <div className="fso-symbol-identity">
+          {identity.logoUrl ? (
+            <img
+              className="fso-symbol-avatar"
+              src={identity.logoUrl}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : (
+            <span
+              className="fso-symbol-avatar fso-symbol-avatar--fallback"
+              style={{ backgroundColor: identity.brandColor }}
+              aria-hidden="true"
+            >
+              {identity.avatarText}
+            </span>
+          )}
+          <div>
+            <strong>{header.ticker}</strong>
+            <span className="fso-kernel-chart-label">{identity.name}</span>
+          </div>
           <span className="fso-kernel-chart-label">
             {header.latestTime ? header.latestTime.slice(0, 10) : "—"}
           </span>

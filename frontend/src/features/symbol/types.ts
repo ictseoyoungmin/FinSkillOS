@@ -62,6 +62,15 @@ export interface SymbolLabHeader {
   dataStatus: DataStatus;
 }
 
+export interface SymbolIdentity {
+  ticker: string;
+  name: string;
+  logoUrl: string | null;
+  logoSource: "local_fallback" | "provider_cache" | "deferred";
+  avatarText: string;
+  brandColor: string;
+}
+
 export interface SymbolLabSystemStatus {
   db: string;
   mode: string;
@@ -77,6 +86,7 @@ export interface SymbolLabData {
   integratedInterpretation: IntegratedInterpretationData;
   reviewWatchpoints: EvidenceWatchpointData[];
   symbolUniverse: UniverseTicker[];
+  identity: SymbolIdentity;
   header: SymbolLabHeader;
   technical: IndicatorSnapshot;
   recentBars: SymbolRecentBar[];

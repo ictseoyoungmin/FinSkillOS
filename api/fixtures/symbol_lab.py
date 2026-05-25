@@ -20,6 +20,7 @@ from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import IndicatorSnapshot
 from api.schemas.symbol_lab import (
     SymbolAlert,
+    SymbolIdentity,
     SymbolLabHeader,
     SymbolLabResponse,
     SymbolNewsItem,
@@ -37,6 +38,36 @@ _SYMBOL_UNIVERSE: tuple[UniverseTicker, ...] = (
     UniverseTicker(symbol="MSFT", label="Microsoft", kind="FOCUS"),
     UniverseTicker(symbol="SMH", label="Semiconductor ETF", kind="SECTOR_ETF"),
 )
+
+_SYMBOL_NAMES: dict[str, str] = {
+    "NVDA": "NVIDIA",
+    "TSLA": "Tesla",
+    "AAPL": "Apple",
+    "MSFT": "Microsoft",
+    "AMZN": "Amazon",
+    "SMH": "Semiconductor ETF",
+    "SOXX": "Semiconductor ETF",
+    "SPY": "S&P 500 ETF",
+    "QQQ": "Nasdaq 100 ETF",
+    "VIX": "Volatility Proxy",
+    "US10Y": "10Y Yield Proxy",
+    "DXY": "USD Index Proxy",
+}
+
+_SYMBOL_COLORS: dict[str, str] = {
+    "NVDA": "#15803d",
+    "TSLA": "#b91c1c",
+    "AAPL": "#334155",
+    "MSFT": "#2563eb",
+    "AMZN": "#b45309",
+    "SMH": "#7c3aed",
+    "SOXX": "#4338ca",
+    "SPY": "#0f766e",
+    "QQQ": "#1d4ed8",
+    "VIX": "#dc2626",
+    "US10Y": "#a16207",
+    "DXY": "#475569",
+}
 
 
 # Position fixtures keyed by ticker — only TSLA is currently held in
@@ -194,6 +225,7 @@ def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
             ("News tone", "Watch whether symbol-linked news clusters in one theme."),
         ),
         symbol_universe=list(_SYMBOL_UNIVERSE),
+        identity=symbol_identity(focus.symbol),
         header=SymbolLabHeader(
             ticker=focus.symbol,
             timeframe="1d",
@@ -274,6 +306,7 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
             ("Stored evidence", "Search any ticker; populated context appears when data exists."),
         ),
         symbol_universe=list(_SYMBOL_UNIVERSE),
+        identity=symbol_identity(ticker),
         header=SymbolLabHeader(
             ticker=ticker,
             timeframe="1d",
@@ -303,4 +336,21 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
     )
 
 
-__all__ = ["SYMBOL_LAB_DEFAULT_TICKER", "symbol_lab_fixture"]
+def symbol_identity(ticker: str) -> SymbolIdentity:
+    normalized = ticker.strip().upper()
+    return SymbolIdentity(
+        ticker=normalized,
+        name=_SYMBOL_NAMES.get(normalized, normalized),
+        logo_url=None,
+        logo_source="local_fallback",
+        avatar_text=_avatar_text(normalized),
+        brand_color=_SYMBOL_COLORS.get(normalized, "#475569"),
+    )
+
+
+def _avatar_text(ticker: str) -> str:
+    letters = "".join(ch for ch in ticker if ch.isalpha())
+    return (letters[:2] or ticker[:2] or "?").upper()
+
+
+__all__ = ["SYMBOL_LAB_DEFAULT_TICKER", "symbol_identity", "symbol_lab_fixture"]

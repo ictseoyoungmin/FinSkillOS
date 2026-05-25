@@ -91,6 +91,7 @@ export function SymbolLabPage() {
         <div className="fso-symbol-lab-main">
           <div data-testid="symbol-technical-snapshot">
             <SymbolTechnicalSnapshot
+              identity={payload.identity}
               header={payload.header}
               indicators={payload.technical}
             />

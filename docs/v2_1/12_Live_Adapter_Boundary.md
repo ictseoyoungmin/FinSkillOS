@@ -76,8 +76,10 @@ from stored bars only. No provider call or worker queue is involved.
 News remains manual/sample only. A live news adapter requires source,
 attribution, rate-limit, and safety-copy rules before promotion.
 
-Symbol images/logos remain deferred. Add them only after provider, attribution,
-local cache, and fallback rules are explicit.
+Symbol Lab exposes `identity` metadata with a local fallback avatar. Official
+symbol images/logos remain deferred. Promote `identity.logoUrl` to a
+provider-backed cache only after provider, attribution, local cache, and
+fallback rules are explicit.
 
 ## 4. UI Rule
 

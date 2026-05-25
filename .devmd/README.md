@@ -109,6 +109,7 @@ not the current implementation target.
 36. `25_System_Ops_Indicator_Calculate_Protocol.md`
 37. `26_Lightweight_Refresh_Worker.md`
 38. `27_Symbol_Lab_DB_Read_Model.md`
+39. `28_Symbol_Identity_Logo_Fallback.md`
 
 ## Definition of done for this workplan
 

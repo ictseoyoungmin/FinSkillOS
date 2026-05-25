@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Query
 from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import symbol_lab_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
+from api.fixtures.symbol_lab import symbol_identity
 from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import IndicatorSnapshot
 from api.schemas.symbol_lab import (
@@ -119,6 +120,7 @@ def _live_response(
         guard_count=len(symbol_alerts),
     )
     payload.symbol_universe = _symbol_universe(ticker)
+    payload.identity = symbol_identity(ticker)
     payload.position = _position_context(position, positions)
     payload.alerts = symbol_alerts
     payload.news = []
