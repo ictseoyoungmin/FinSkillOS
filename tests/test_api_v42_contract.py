@@ -100,6 +100,28 @@ def test_all_v42_tabs_use_camelcase_public_fields() -> None:
         assert "system_status" not in body
 
 
+def test_all_v42_tabs_avoid_soft_action_instruction_copy() -> None:
+    client = _client()
+    discouraged_phrases = (
+        "신규 추격 진입",
+        "신규 진입 제한",
+        "신규 공격적 운용",
+        "신규 공격적 진입",
+        "현금 비중 확대",
+        "현금 비중을 최소치까지",
+        "약한 포지션 정리",
+        "익절/축소",
+        "비중을 키우세요",
+        "should have skipped",
+    )
+
+    for path, _, _ in _V42_ENDPOINTS:
+        body = client.get(path).json()
+        text = _joined_strings(body)
+        for phrase in discouraged_phrases:
+            assert phrase not in text, (path, phrase)
+
+
 def _joined_strings(payload: object) -> str:
     if isinstance(payload, dict):
         return " ".join(_joined_strings(value) for value in payload.values())

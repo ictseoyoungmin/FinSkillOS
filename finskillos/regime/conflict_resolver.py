@@ -50,7 +50,7 @@ def conflict_summary(scores: Scores, *, regime: str) -> str:
 
     if regime == R.REGIME_RISK_ON_OVERHEAT:
         return (
-            "상승 추세는 유지되고 있지만 RSI가 과열 구간에 들어가며 추격 진입의 "
+            "상승 추세는 유지되고 있지만 RSI가 과열 구간에 들어가며 추격형 노출의 "
             "기대값이 낮아질 수 있습니다."
         )
     if regime == R.REGIME_DISTRIBUTION_RISK:
@@ -65,7 +65,7 @@ def conflict_summary(scores: Scores, *, regime: str) -> str:
         )
     if regime == R.REGIME_RISK_OFF:
         return (
-            "위험 회피 신호가 다수 동시에 관찰되어 신규 공격적 운용보다 계좌 "
+            "위험 회피 신호가 다수 동시에 관찰되어 공격적 노출 확대보다 계좌 "
             "보호가 우선되는 환경입니다."
         )
     if regime == R.REGIME_PANIC:

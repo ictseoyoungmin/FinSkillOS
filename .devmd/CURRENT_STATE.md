@@ -54,6 +54,7 @@ operational protocols.
 14     Deployment and Operations
 15     System Ops Audit / History Evidence
 16     Fixture / Live / Data-Unavailable Labeling
+17     Safety Copy Polish
 ```
 
 Slice 14 is complete:
@@ -68,6 +69,8 @@ Slice 14 is complete:
   surfaced as recentProtocolRuns.
 - The global OS status bar labels snapshot source, DB status, freshness
   stale-count state, read-only mode, and snapshot timestamp on every tab.
+- Regime and risk guard copy uses constraint/review language instead of
+  action-like reduction, entry, or cash-increase instructions.
 ```
 
 ## Validation Baseline
@@ -98,16 +101,11 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Safety copy polish
-   - Review News Intelligence, Catalyst Watch, Symbol Lab, and Analysis
-     Workspace copy for recommendation-like phrasing.
-   - Keep output descriptive and evidence-first.
-
-2. Scheduler/refresh policy
+1. Scheduler/refresh policy
    - Document manual vs script-driven refresh for market data, indicators,
      regimes, news/events, and risk guards.
    - Do not add Celery/Redis until a concrete runtime need exists.
 
-3. Durable System Ops DB audit table
+2. Durable System Ops DB audit table
    - Optional future replacement for local JSONL if multi-host operations
      become necessary.

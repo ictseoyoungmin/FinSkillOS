@@ -406,7 +406,7 @@ _WHAT_HAPPENED: dict[str, str] = {
         "지수는 고점권을 유지하지만 모멘텀 약화 또는 breadth 축소가 함께 관찰됩니다."
     ),
     R.REGIME_RISK_ON_OVERHEAT: (
-        "주도 지수의 RSI가 70 이상으로 올라서며 추격 진입의 기대값이 낮아질 수 있습니다."
+        "주도 지수의 RSI가 70 이상으로 올라서며 추격형 노출의 기대값이 낮아질 수 있습니다."
     ),
     R.REGIME_AGGRESSIVE_RISK_ON: (
         "주도 섹터의 모멘텀이 강하게 유지되고 VIX는 안정 구간에 머무르고 있습니다."
@@ -427,16 +427,16 @@ _WHAT_IT_MEANS: dict[str, str] = {
         "추세 확인 없이 반등에만 기대는 접근은 신중해야 하며 계좌 보호가 우선됩니다."
     ),
     R.REGIME_RISK_OFF: (
-        "신규 공격적 운용보다 현금 비중 확보와 기존 포지션 점검이 우선입니다."
+        "공격적 노출 확대보다 유동성 버퍼와 기존 포지션 점검이 우선인 구간입니다."
     ),
     R.REGIME_DEFENSIVE_TRANSITION: (
-        "신규 추격 진입을 줄이고 약한 포지션의 stop 기준을 점검할 시점입니다."
+        "추격형 노출에는 제약이 붙고, 취약 포지션의 stop 기준 점검이 필요한 시점입니다."
     ),
     R.REGIME_DISTRIBUTION_RISK: (
-        "기존 강자의 비중을 축소하거나 익절 기준을 점검하는 운영이 어울리는 구간입니다."
+        "기존 강자의 노출 크기와 이익 보호 기준을 재점검하기 좋은 구간입니다."
     ),
     R.REGIME_RISK_ON_OVERHEAT: (
-        "기존 강자는 유지하되 신규 추격 진입은 제한하는 운영이 어울립니다."
+        "기존 강자 추세는 남아 있지만 추격형 노출에는 제한이 붙는 구간입니다."
     ),
     R.REGIME_AGGRESSIVE_RISK_ON: (
         "포지션 크기 관리만 유지된다면 주도 종목 중심 운용이 가능한 구간입니다."
@@ -475,7 +475,7 @@ _WATCH_NEXT: dict[str, tuple[str, ...]] = {
     ),
     R.REGIME_RISK_ON_OVERHEAT: (
         "기존 강자의 stop 기준 점검",
-        "신규 추격 진입 제한 유지",
+        "추격형 노출 제한 상태 유지",
         "주도 섹터 RSI가 70 위에서 머무는 기간",
     ),
     R.REGIME_AGGRESSIVE_RISK_ON: (
@@ -588,19 +588,19 @@ def _factor_lists(
     if regime == R.REGIME_PANIC:
         risks.append("패닉 수준의 변동성과 하락 추세가 동시에 관찰됩니다.")
     elif regime == R.REGIME_RISK_OFF:
-        risks.append("위험 회피 신호가 누적되어 신규 공격적 운용은 제한됩니다.")
+        risks.append("위험 회피 신호가 누적되어 공격적 노출 확대에는 제약이 붙습니다.")
     elif regime == R.REGIME_DEFENSIVE_TRANSITION:
-        risks.append("방어 전환 구간으로 약한 포지션 점검이 필요합니다.")
+        risks.append("방어 전환 구간으로 취약 포지션 점검이 필요합니다.")
     elif regime == R.REGIME_DISTRIBUTION_RISK:
         if bullish >= 1 and not any(
             "추세 스택" in p for p in positives
         ):
             positives.append("가격 추세는 여전히 고점권을 유지하고 있습니다.")
-        risks.append("분배 위험 신호가 누적되어 추격보다 익절/축소 점검이 어울립니다.")
+        risks.append("분배 위험 신호가 누적되어 추격보다 이익 보호 기준 점검이 어울립니다.")
     elif regime == R.REGIME_RISK_ON_OVERHEAT:
         if not any("추세 스택" in p for p in positives):
             positives.append("주도 지수 추세는 여전히 강세를 유지하고 있습니다.")
-        risks.append("RSI 과열로 추격 진입의 기대 수익률이 낮아질 수 있습니다.")
+        risks.append("RSI 과열로 추격형 노출의 기대 수익률이 낮아질 수 있습니다.")
     elif regime == R.REGIME_AGGRESSIVE_RISK_ON:
         positives.append("주도 섹터가 strict BULLISH 정렬을 유지하고 있습니다.")
         if overheat == 0:

@@ -69,7 +69,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             title="시장 regime이 우호적인 구간입니다.",
             message=(
                 f"현재 regime {inputs.regime} / 운영 모드 {inputs.decision_mode}에서 "
-                "정상 운영 가능한 환경입니다."
+                "기본 검토 모드가 가능한 환경입니다."
             ),
             evidence=evidence,
         )
@@ -82,12 +82,12 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             title="시장 regime이 주의 구간으로 진입했습니다.",
             message=(
                 f"현재 regime {inputs.regime}는 운영 모드 {inputs.decision_mode}로 "
-                "신규 공격적 진입은 제한이 필요합니다."
+                "공격적 노출 확대에는 제약 검토가 필요합니다."
             ),
             evidence=evidence,
             watch_next=(
                 "주도 섹터 RSI / VIX 추이 점검",
-                "신규 추격 진입 제한 유지",
+                "추격형 노출 제약 유지",
             ),
         )
 
@@ -104,7 +104,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             evidence=evidence,
             watch_next=(
                 "현금 비중 / drawdown guard 상태 점검",
-                "신규 공격적 운용 제한",
+                "공격적 노출 확대 제약 유지",
             ),
         )
 

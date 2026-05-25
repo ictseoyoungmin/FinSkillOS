@@ -84,7 +84,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
                 "total_value": inputs.total_value,
             },
             watch_next=(
-                "신규 진입보다 현금 비중 회복 우선",
+                "유동성 버퍼가 목표 하한 아래인지 확인",
                 "이벤트 캘린더 대비 현금 여력 점검",
             ),
         )
@@ -106,7 +106,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             "total_value": inputs.total_value,
         },
         watch_next=(
-            "현금 비중을 최소치까지 단계적으로 회복",
-            "신규 공격적 운용 제한",
+            "유동성 버퍼 목표치와 현재 격차 확인",
+            "공격적 노출 확대 제약 유지",
         ),
     )

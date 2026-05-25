@@ -74,7 +74,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             evidence=base_evidence,
             watch_next=(
                 "다음 목표 설정 전 냉각 기간 유지",
-                "이익 보호 / 분산 전환 검토",
+                "이익 보호 기준 / 분산 상태 검토",
             ),
         )
     if progress >= DEFAULT_GOAL_PROTECTION_PCT:
@@ -90,7 +90,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             evidence=base_evidence,
             watch_next=(
                 "drawdown guard 민감도 상향",
-                "신규 고위험 추격 진입 제한",
+                "고위험 추격형 노출 제약",
             ),
         )
     if progress >= DEFAULT_GOAL_WARN_PCT:
@@ -101,7 +101,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             title="목표 진행률이 상승 구간 — 무리한 위험 확대 경계.",
             message=(
                 f"목표 진행률 {progress:.1f}%로 후반부에 진입했습니다. "
-                "추가 위험 확대보다 이익 보호 비중을 키우세요."
+                "추가 위험 확대보다 이익 보호 기준 점검이 우선입니다."
             ),
             evidence=base_evidence,
             watch_next=(

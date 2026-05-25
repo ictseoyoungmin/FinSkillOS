@@ -81,7 +81,7 @@ export const tradeMemoryFixture: TradeMemoryData = {
       catalyst: "robotaxi rumor",
       sector: "Consumer Discretionary",
       theme: "EV",
-      notes: "Entered late after gap-up; should have skipped.",
+      notes: "Entered late after gap-up; process review flags a late-chase pattern.",
       thesis: "Robotaxi headline catalyst chase.",
       reason: "Wanted to participate in the news flow.",
     },

@@ -98,7 +98,7 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             evidence=base_evidence,
             watch_next=(
                 "약한 포지션의 stop 기준 점검",
-                "신규 단기 진입 제한 검토",
+                "단기 추격형 노출 제약 검토",
             ),
         )
     if drawdown >= Decimal("-15"):
@@ -108,14 +108,14 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             risk_level=RISK_ORANGE,
             title="고점 대비 -10% 이상 손실 — Risk Reduction Mode.",
             message=(
-                f"현재 drawdown {drawdown:.2f}%로 리스크 축소 구간에 진입했습니다. "
-                "현금 비중 확대와 약한 포지션 정리를 점검하세요."
+                f"현재 drawdown {drawdown:.2f}%로 리스크 검토 구간에 진입했습니다. "
+                "유동성 버퍼와 취약 포지션 기준을 점검하세요."
             ),
             evidence=base_evidence,
             watch_next=(
-                "현금 비중 확대 여부 점검",
-                "약한 포지션 정리 검토",
-                "신규 단기 진입 제한",
+                "유동성 버퍼 상태 점검",
+                "취약 포지션 기준 점검",
+                "단기 추격형 노출 제약 유지",
             ),
         )
 
@@ -126,11 +126,11 @@ def evaluate(inputs: GuardInput) -> GuardResult:
         title="고점 대비 -15% 이상 손실 — Defensive Mode.",
         message=(
             f"현재 drawdown {drawdown:.2f}%로 계좌 보호가 최우선되는 구간입니다. "
-            "신규 공격적 운용을 중단하고 주간 복기 후 재평가하세요."
+            "공격적 노출 확대를 보류하고 주간 복기 후 재평가하세요."
         ),
         evidence=base_evidence,
         watch_next=(
-            "주간 복기 전 신규 공격적 진입 제한",
+            "주간 복기 전 공격적 노출 확대 보류",
             "방어 모드 전환 점검",
         ),
     )
