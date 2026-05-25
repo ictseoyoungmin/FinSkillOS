@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchControlRoom } from "@/features/control-room/api";
+import { fetchSystemStatus } from "@/features/system-ops/api";
 import { controlRoomFixture } from "@/mocks/fixtures/controlRoom.fixture";
 import { OsTopTray } from "./OsTopTray";
 import { OsTickerStrip } from "./OsTickerStrip";
@@ -32,6 +33,12 @@ export function OsShell({ children }: OsShellProps) {
     queryKey: ["control-room"],
     queryFn: ({ signal }) => fetchControlRoom(signal),
     placeholderData: controlRoomFixture,
+  });
+
+  const { data: systemStatus } = useQuery({
+    queryKey: ["system-status"],
+    queryFn: ({ signal }) => fetchSystemStatus(signal),
+    staleTime: 30_000,
   });
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
@@ -67,7 +74,9 @@ export function OsShell({ children }: OsShellProps) {
       </main>
       <OsStatusBar
         source={data?.source ?? "fixture"}
+        dbStatus={systemStatus?.dbStatus ?? "MISSING"}
         generatedAt={data?.generatedAt ?? ""}
+        staleFlags={systemStatus?.staleFlags ?? ["system_status_pending"]}
       />
       <OsCommandPalette open={paletteOpen} onClose={closePalette} />
     </div>

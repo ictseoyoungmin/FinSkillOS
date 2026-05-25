@@ -66,6 +66,22 @@ test.describe("OS shell navigation", () => {
     }
   });
 
+  test("global status bar labels source, DB, freshness, and read mode", async ({
+    page,
+  }) => {
+    await gotoControlRoom(page);
+    const statusBar = page.getByTestId("os-status-bar");
+    await expect(statusBar).toBeVisible();
+    await expect(page.getByTestId("snapshot-source-status")).toContainText(
+      /FIXTURE|LIVE/,
+    );
+    await expect(page.getByTestId("db-status")).toContainText(/LIVE|MISSING/);
+    await expect(page.getByTestId("freshness-status")).toContainText(
+      /OK|stale/,
+    );
+    await expect(statusBar).toContainText("No execution controls");
+  });
+
   test("Analysis Workspace route resolves to its own page", async ({ page }) => {
     await page.goto("/analysis-workspace");
     await expect(page.getByTestId("analysis-workspace-page")).toBeVisible();

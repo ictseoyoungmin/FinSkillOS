@@ -53,6 +53,7 @@ operational protocols.
 13.13  Source-of-Truth Cleanup Before Operations
 14     Deployment and Operations
 15     System Ops Audit / History Evidence
+16     Fixture / Live / Data-Unavailable Labeling
 ```
 
 Slice 14 is complete:
@@ -65,6 +66,8 @@ Slice 14 is complete:
 - Docker Playwright visual gate verified: 31 passed.
 - System Ops protocol runs are appended to a local JSONL audit log and
   surfaced as recentProtocolRuns.
+- The global OS status bar labels snapshot source, DB status, freshness
+  stale-count state, read-only mode, and snapshot timestamp on every tab.
 ```
 
 ## Validation Baseline
@@ -95,21 +98,16 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Fixture/live/data-unavailable labeling
-   - Make every tab distinguish deterministic fixture, DB-backed live data,
-     and unavailable live data.
-   - Reuse `/api/system-status` as the operational source.
-
-2. Safety copy polish
+1. Safety copy polish
    - Review News Intelligence, Catalyst Watch, Symbol Lab, and Analysis
      Workspace copy for recommendation-like phrasing.
    - Keep output descriptive and evidence-first.
 
-3. Scheduler/refresh policy
+2. Scheduler/refresh policy
    - Document manual vs script-driven refresh for market data, indicators,
      regimes, news/events, and risk guards.
    - Do not add Celery/Redis until a concrete runtime need exists.
 
-4. Durable System Ops DB audit table
+3. Durable System Ops DB audit table
    - Optional future replacement for local JSONL if multi-host operations
      become necessary.

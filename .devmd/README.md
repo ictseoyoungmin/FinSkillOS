@@ -97,6 +97,7 @@ not the current implementation target.
 24. `14_Deployment_Operations.md`
 25. `CURRENT_STATE.md`
 26. `15_System_Ops_Audit_History.md`
+27. `16_Fixture_Live_Data_Unavailable_Labeling.md`
 
 ## Definition of done for this workplan
 
