@@ -11,6 +11,7 @@ RESTORE_SCRIPT = ROOT / "scripts" / "restore_postgres.sh"
 PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "refresh_market_data.py",
     ROOT / "scripts" / "calculate_indicators.py",
+    ROOT / "scripts" / "refresh_worker.py",
     ROOT / "scripts" / "run_regime_scan.py",
 )
 
@@ -83,5 +84,21 @@ def test_refresh_policy_document_tracks_script_order() -> None:
 
     assert "scripts/refresh_market_data.py" in body
     assert "scripts/calculate_indicators.py" in body
+    assert "scripts/refresh_worker.py" in body
     assert "scripts/run_regime_scan.py" in body
     assert "Do not add Celery" in body
+
+
+def test_refresh_worker_contract_is_lightweight_and_news_deferred() -> None:
+    body = (ROOT / "scripts" / "refresh_worker.py").read_text(encoding="utf-8")
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "FINSKILLOS_WORKER_INTERVAL_SECONDS" in body
+    assert "FINSKILLOS_WORKER_MARKET_ENABLED" in body
+    assert "FINSKILLOS_WORKER_INDICATOR_ENABLED" in body
+    assert "MarketDataService" in body
+    assert "SignalService" in body
+    assert "Celery" in body
+    assert "redis://" not in body.lower()
+    assert 'profiles: ["worker"]' in compose
+    assert 'command: ["python", "scripts/refresh_worker.py"]' in compose

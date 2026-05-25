@@ -68,6 +68,35 @@ services:
         condition: service_started
 
   # ------------------------------------------------------------------
+  # Slice 26 — optional lightweight refresh worker.
+  # Runs market-bar refresh and indicator calculation on an interval.
+  # Activated via the `worker` profile so normal local UI startup remains
+  # explicit and deterministic.
+  # Usage:
+  #   docker compose --profile worker up -d worker
+  # ------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: finskillos-worker
+    profiles: ["worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finskillos}:${POSTGRES_PASSWORD:-finskillos_dev_password}@postgres:5432/${POSTGRES_DB:-finskillos}
+      FINSKILLOS_MARKET_REFRESH_ADAPTER: ${FINSKILLOS_MARKET_REFRESH_ADAPTER:-mock}
+      FINSKILLOS_MARKET_REFRESH_TICKERS: ${FINSKILLOS_MARKET_REFRESH_TICKERS:-SPY,QQQ,NVDA,TSLA,AAPL,MSFT,AMZN,SMH,SOXX,VIX,US10Y,DXY}
+      FINSKILLOS_INDICATOR_REFRESH_TICKERS: ${FINSKILLOS_INDICATOR_REFRESH_TICKERS:-SPY,QQQ,NVDA,TSLA,AAPL,MSFT,AMZN,SMH,SOXX,VIX,US10Y,DXY}
+      FINSKILLOS_WORKER_INTERVAL_SECONDS: ${FINSKILLOS_WORKER_INTERVAL_SECONDS:-86400}
+      FINSKILLOS_WORKER_RUN_ON_START: ${FINSKILLOS_WORKER_RUN_ON_START:-1}
+      FINSKILLOS_WORKER_MARKET_ENABLED: ${FINSKILLOS_WORKER_MARKET_ENABLED:-1}
+      FINSKILLOS_WORKER_INDICATOR_ENABLED: ${FINSKILLOS_WORKER_INDICATOR_ENABLED:-1}
+      FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY: ${FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY:-0}
+    command: ["python", "scripts/refresh_worker.py"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------
   # Slice 13.6 — Playwright e2e runner (Slice 13.6 cleanup §4).
   # Self-contained image: frontend/Dockerfile.e2e bakes node_modules
   # via `npm ci` so a fresh clone can run the suite without a

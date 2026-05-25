@@ -107,6 +107,7 @@ not the current implementation target.
 34. `23_System_Ops_Market_Refresh_Protocol.md`
 35. `24_Market_Kernel_DB_Read_Model.md`
 36. `25_System_Ops_Indicator_Calculate_Protocol.md`
+37. `26_Lightweight_Refresh_Worker.md`
 
 ## Definition of done for this workplan
 

@@ -1,8 +1,9 @@
 # 11. Scheduler / Refresh Policy
 
 > Current status: v2.1 / v4.2 local operations policy.
-> This document defines the first refresh contract. It intentionally avoids
-> Celery, Redis, or always-on workers until a concrete runtime need appears.
+> This document defines the refresh contract. The default remains
+> manual-first, with an optional lightweight Docker worker for local
+> continuous market/indicator refresh. Celery and Redis remain out of scope.
 
 ## 1. Operating Stance
 
@@ -16,6 +17,7 @@ The default operating model is:
 manual-first
 script-driven
 cron-compatible
+optional lightweight worker
 System-Ops visible
 status-endpoint observable
 ```
@@ -25,8 +27,8 @@ status-endpoint observable
 | Data / state | Owner | Default trigger | Notes |
 |---|---|---|---|
 | Portfolio snapshot | user import / System Ops seed | manual | Real broker sync is out of scope. |
-| Market bars | `scripts/refresh_market_data.py` | manual or after-market cron | Uses configured adapter; mock/csv are offline-safe. |
-| Indicators | `scripts/calculate_indicators.py` | after market bars | Computes descriptive snapshots only. |
+| Market bars | `scripts/refresh_market_data.py` / `scripts/refresh_worker.py` | manual, after-market cron, or worker interval | Uses configured adapter; mock is offline-safe. |
+| Indicators | `scripts/calculate_indicators.py` / `scripts/refresh_worker.py` | after market bars | Computes descriptive snapshots only. |
 | Market regime | `scripts/run_regime_scan.py` | after indicators | Persists read-only regime interpretation. |
 | Risk guards | System Ops protocol | after portfolio/regime changes | Refreshes guard ladder / active alerts. |
 | News | manual entry / news service | manual | Live news polling is deferred. |
@@ -44,6 +46,25 @@ python3 scripts/run_regime_scan.py
 ```
 
 Then use System Ops to run risk guards if portfolio or regime state changed.
+
+To run the optional lightweight worker in Docker:
+
+```bash
+docker compose --profile worker up -d worker
+docker logs --tail 80 finskillos-worker
+```
+
+The worker runs this bounded sequence:
+
+```text
+refresh market bars
+calculate descriptive indicators
+sleep FINSKILLOS_WORKER_INTERVAL_SECONDS
+```
+
+It does not refresh news yet. Reference projects only showed a Naver Search
+API implementation; non-Naver news/crawling policy is deferred until source,
+attribution, rate-limit, and safety rules are explicit.
 
 For a cron-style local schedule, run the same commands in order and preserve
 logs. Example timing is deliberately local and conservative:
@@ -85,15 +106,18 @@ Refresh commands should fail softly:
 - Scripts should log summaries that can be copied into an operations note.
 - No refresh command should mutate brokerage state or execution workflows.
 
-## 6. Deferred Worker Policy
+## 6. Worker Policy
 
-Do not add Celery, Redis, APScheduler, or a daemon service until one of these
-needs is real:
+Do not add Celery, Redis, or APScheduler. The only approved resident process
+at this stage is the optional Docker `worker` profile running
+`scripts/refresh_worker.py`.
+
+Escalate beyond the lightweight worker only when one of these needs is real:
 
 - refreshes must continue while no terminal session is active;
 - multiple users or machines need coordinated job state;
 - job retries and audit state outgrow JSONL / logs;
 - live adapters require rate-limit orchestration.
 
-Until then, scripts plus System Ops protocols are the source of operational
-truth.
+Until then, scripts plus System Ops protocols plus the optional worker are the
+source of operational truth.

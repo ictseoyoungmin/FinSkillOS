@@ -63,6 +63,7 @@ operational protocols.
 23     System Ops Market Refresh Protocol
 24     Market Kernel DB Read Model
 25     System Ops Indicator Calculate Protocol
+26     Lightweight Refresh Worker
 ```
 
 Slice 14 is complete:
@@ -98,6 +99,9 @@ Slice 14 is complete:
 - System Ops exposes a `calculate_indicators` protocol card. It computes
   descriptive snapshots from stored bars and keeps worker infrastructure
   deferred.
+- Docker Compose exposes an optional `worker` profile running
+  `scripts/refresh_worker.py`. The worker refreshes market bars and
+  descriptive indicators only; news crawling/provider refresh remains deferred.
 ```
 
 ## Validation Baseline
@@ -132,9 +136,10 @@ e2e image for frontend build and visual checks.
    - Promote stored bars and indicators into read-only per-symbol snapshots.
    - Keep arbitrary ticker unavailable states explicit when DB data is missing.
 
-2. News provider adapter
-   - Add a news provider adapter only after source, attribution, and rate-limit
-     rules are clear.
+2. News crawling/provider design
+   - Reference assets only showed a Naver Search API implementation. Add a
+     non-Naver provider or crawler only after source, attribution, and
+     rate-limit rules are clear.
 
 3. Mission Control DB read model
    - Promote portfolio/goal status after Risk Firewall live path settles.
