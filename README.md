@@ -1,19 +1,26 @@
-# FinSkillOS v2.1
+# FinSkillOS v2.1 / v4.2 Cockpit
 
-FinSkillOS v2.1 is a personal trading operating system.
+FinSkillOS is a personal investment operating system. The current product
+surface is a FastAPI read-only adapter plus a Vite React v4.2
+Evidence-to-Judgment cockpit. Streamlit is kept as a debug/admin surface.
 
 ## 1. 구현 순서 / 참고 문서
 
 1. Read `.devmd/README.md`
 2. Read `docs/v2_1/CONTEXT_INDEX.md`
 3. Follow `.devmd` slices in numerical order when they exist
-4. Use `docs/v2_1` as source-of-truth references
-5. Use `prototypes/ui/os_style_mockup/index.html` as the UI direction when available
+4. Use `docs/v2_1` as source design references, but check newer `.devmd`
+   slices when architecture has moved forward
+5. Use `prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html`,
+   `frontend/src/`, and `frontend/e2e/visual/README.md` as the current UI
+   implementation references
 6. Do not implement direct buy/sell recommendation features
 
 ## 2. 프로젝트 레이아웃
 
-- `finskillos/` — v2.1 application code (`ui/`, `services/`, `db/`, `regime/`, `signals/`, `guards/`)
+- `finskillos/` — Python domain/service/db core (`ui/`, `services/`, `db/`, `regime/`, `signals`, `guards/`)
+- `api/` — FastAPI read-only adapter and System Ops operational protocols
+- `frontend/` — Vite React v4.2 product cockpit with Playwright gates
 - `docs/v2_1/` — source design documents
 - `.devmd/` — agent execution instructions (slice prompts, cleanup notes, completion blocks)
 - `prototypes/ui/` — HTML mockups and design references
@@ -21,28 +28,24 @@ FinSkillOS v2.1 is a personal trading operating system.
 - `tests/` — acceptance and regression tests (full suite green at 02–13)
 - `legacy_v1/` — preserved v1 competition project
 
-## 3. 빠른 시작 (Docker Compose)
+## 3. 빠른 시작 — Product Cockpit (Docker Compose)
 
-처음 실행하거나 모델 스키마를 따라잡지 못한 컨테이너를 정리할 때 사용합니다.
+기본 제품 UI는 React/FastAPI/Postgres 조합입니다.
 
 ```bash
-# 0) 깨끗한 상태에서 시작 (기존 데이터 폐기)
-docker compose down -v
+docker compose up -d postgres api web
+# API http://localhost:8000 / Web http://localhost:5173
 
-# 1) Postgres만 먼저 띄우기
-docker compose up -d postgres
+docker compose --profile e2e run --rm e2e npm run test:e2e
+docker compose --profile e2e run --rm e2e npm run test:visual
 
-# 2) 스키마를 최신(0007_trade_journal_fields)으로 마이그레이션
-docker compose run --rm app alembic upgrade head
-
-# 3) 샘플 계좌 + 57M KRW 스냅샷 시드 (선택)
-docker compose run --rm app python scripts/seed_sample_data.py
-
-# 4) Streamlit 앱 빌드 + 실행 (http://localhost:8501)
-docker compose --profile app up --build
+# 정상 종료 / 재개 — Postgres 볼륨 유지
+docker compose stop
+docker compose start
 ```
 
-> **Tip.** `--profile app` 플래그가 있어야 `app` 서비스가 기동됩니다. 그렇지 않으면 Postgres만 떠 있습니다.
+> **주의.** `docker compose down -v`는 Postgres 볼륨을 삭제합니다. 일상적인
+> stop/start나 스키마 복구에는 사용하지 마세요.
 
 ## 4. 이미 떠 있는 환경에서 마이그레이션만 다시 적용 (스키마 mismatch 복구)
 
@@ -53,8 +56,8 @@ docker compose --profile app up --build
 # Postgres 볼륨은 유지, 누락된 alembic 리비전만 따라잡기
 docker compose run --rm app alembic upgrade head
 
-# 떠 있는 Streamlit 컨테이너 재시작 (ORM 캐시 / 세션 초기화)
-docker compose restart app
+# 떠 있는 제품 컨테이너 재시작
+docker compose restart api web
 ```
 
 마이그레이션 체인 현재 상태는 다음과 같습니다 (마지막 = `head`):
@@ -71,12 +74,12 @@ docker compose restart app
 
 `alembic upgrade head`는 idempotent — 이미 최신이면 아무 변경 없이 종료합니다.
 
-## 5. 로컬 (Docker 없이) 실행
+## 5. 로컬 (Docker 없이) Product Cockpit 실행
 
-호스트에 Python 3.11+와 PostgreSQL이 직접 있을 때 사용합니다.
+호스트에 Python 3.11+, Node.js, PostgreSQL이 직접 있을 때 사용합니다.
 
 ```bash
-# 1) 의존성 설치
+# 1) Python 의존성 설치
 pip install -r requirements.txt
 
 # 2) Postgres 접속 URL을 설정
@@ -88,14 +91,30 @@ python3 -m alembic upgrade head
 # 4) 샘플 계좌 + 스냅샷 시드 (선택)
 python3 scripts/seed_sample_data.py
 
-# 5) Streamlit 앱 실행 (http://localhost:8501)
-streamlit run app.py
+# 5) FastAPI 어댑터
+python3 -m uvicorn api.main:app --reload --port 8000
+
+# 6) React/Vite (다른 터미널)
+cd frontend
+npm install
+npm run dev
 ```
 
 > WSL / Windows에서 호스트 Postgres가 컨테이너 password와 다르게 초기화돼 있다면
-> `docker compose down -v`로 볼륨을 초기화한 뒤 4번 과정으로 돌아오세요.
+> 먼저 `DATABASE_URL`과 compose env를 맞추세요. 볼륨 삭제는 의도적인 전체
+> reset이 필요할 때만 사용합니다.
 
-## 6. 보조 스크립트 (선택)
+## 6. Streamlit debug/admin UI
+
+Streamlit은 이전 MVP 화면과 운영 점검용 debug/admin surface로 유지됩니다.
+제품 UI의 기준은 React cockpit입니다.
+
+```bash
+docker compose --profile app up --build app
+# http://localhost:8501
+```
+
+## 7. 보조 스크립트 (선택)
 
 데이터 적재 / 점검 — 모두 `DATABASE_URL`을 읽고 idempotent하게 동작합니다.
 
@@ -144,7 +163,7 @@ docker compose run --rm app python scripts/run_regime_scan.py
 > 디렉터리(`/app`)는 넣지 않습니다. Streamlit / alembic 은 자체 진입점이
 > 별도로 `/app` 을 잡기 때문에 영향이 없습니다.
 
-## 7. 테스트 / 품질 게이트
+## 8. 테스트 / 품질 게이트
 
 전체 스위트와 acceptance 게이트는 Slice 13에서 정리된 명령어로 묶여 있습니다.
 
@@ -152,7 +171,7 @@ docker compose run --rm app python scripts/run_regime_scan.py
 # 컴파일 smoke
 python3 -m compileall app.py finskillos scripts
 
-# 전체 테스트 스위트 (현재 468 cases)
+# Python regression suite
 python3 -m pytest tests -q
 
 # Slice 13 acceptance + 안전 어휘 + 성능 smoke만
@@ -169,25 +188,42 @@ python3 -m pytest tests/integration/test_db_migrations.py -q
 python3 -m ruff check finskillos tests
 ```
 
+React / Playwright gate:
+
+```bash
+cd frontend
+npm run test:e2e
+npm run test:visual
+
+# Docker parity path, 권장
+docker compose --profile e2e run --rm e2e npm run test:e2e
+docker compose --profile e2e run --rm e2e npm run test:visual
+```
+
 `performance` 마커 (`tests/test_performance_budget_smoke.py`)는 CI에서 빼고 싶을 때:
 
 ```bash
 python3 -m pytest tests -q -m "not performance"
 ```
 
-## 8. 안전 / 해석-우선 원칙
+## 9. 안전 / 해석-우선 원칙
 
 FinSkillOS는 직접 매수 / 매도 / 실행 명령을 출력하지 않습니다. 모든 출력은
 *market state / risk interpretation / portfolio constraints / watchpoints /
 reflection support* 범주 안에서 작성되며, `finskillos.guards.base.assert_no_forbidden_wording`
 이 view-model / journal 시점에 직접-지시 어휘를 차단합니다.
 
-## 9. v4.1 Product Cockpit (Slice 13.6) — FastAPI + React/Vite
+## 10. v4.2 Product Cockpit — FastAPI + React/Vite
 
 Streamlit 앱은 디버그/관리용으로 유지되고, 새 제품 UI는 FastAPI(`api/`) +
 Vite React(`frontend/`) 조합으로 동작합니다.
 
-> **Visual parity gate (Slice 13.10).** 프로토타입과의 회귀 추적은
+FastAPI는 fixture-first v4.2 Evidence-to-Judgment snapshots를 반환하고,
+각 payload는 `generatedAt` / `generated_at` 및 `source`(`fixture` 또는
+`live`)를 노출합니다. DB-backed live mode는 이후 operations slice에서
+페이지별로 명확히 고정합니다.
+
+> **Visual parity gate.** 프로토타입과의 회귀 추적은
 > `npm run test:visual`(또는 docker compose 변형)이 권위 있는 게이트입니다.
 > 자세한 baseline 재생성·diff 확인·tolerance 정책은
 > [`frontend/e2e/visual/README.md`](frontend/e2e/visual/README.md)을 참조하세요.
@@ -203,10 +239,10 @@ cd frontend
 npm install
 npm run dev          # http://localhost:5173
 
-# Playwright (e2e) — 한 번만 chromium 설치 후 실행
+# Playwright (e2e)
 npm run test:e2e:install
 npm run test:e2e          # 구조 가드 (@visual 제외)
-npm run test:visual       # 스크린샷 baseline 비교 (Slice 13.10 parity gate)
+npm run test:visual       # 스크린샷 baseline 비교
 ```
 
 ### Docker Compose (api + web + e2e 동시 기동)
@@ -218,10 +254,10 @@ docker compose up -d postgres api web
 # Playwright e2e 한 번 돌리기 (e2e 프로파일 명시 필수)
 docker compose --profile e2e run --rm e2e npm run test:e2e
 
-# Slice 13.10 visual parity gate (이미 baseline PNG가 커밋된 상태에서 비교)
+# visual parity gate (이미 baseline PNG가 커밋된 상태에서 비교)
 docker compose --profile e2e run --rm e2e npm run test:visual
 
-# Slice 13.10 baseline 최초 1회 부트스트랩 / 의도된 UI 변경 후 갱신
+# baseline 최초 1회 부트스트랩 / 의도된 UI 변경 후 갱신
 docker compose --profile e2e run --rm e2e npm run test:visual:update
 
 # 정상 종료 / 재개 — 볼륨 유지

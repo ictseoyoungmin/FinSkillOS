@@ -11,9 +11,16 @@ UI implementation:
 
 - `05_UI_UX_Design.md`
 - `07_UI_Prototype_And_Agent_Implementation_Guide.md`
+- `prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html`
+  - Latest static UI reference for the v4.2 Evidence-to-Judgment hierarchy.
+- `frontend/src/`
+  - Current product UI implementation: Vite React cockpit with 10 routed tabs.
+- `frontend/e2e/visual/README.md`
+  - Current visual QA source of truth: all-tabs screenshots, structural assertions,
+    responsive smoke, and Docker-based baseline regeneration.
 - `prototypes/ui/os_style_mockup/index.html`
-  - Latest UI source of truth.
-  - v3.3 OS-style multi-tab mockup with Dark / Light / Studio theme switching.
+  - Historical v3.3 OS-style mockup. Use only for design archaeology, not as the
+    current implementation target.
 
 Regime and Risk Guard:
 
@@ -23,6 +30,9 @@ Regime and Risk Guard:
 Deployment and operations:
 
 - `10_Deployment_Operations.md`
+- `.devmd/14_Deployment_Operations.md`
+  - Current deployment slice target. Treat this as the live operations workplan
+    before editing the older design document.
 
 Product and roadmap orientation:
 

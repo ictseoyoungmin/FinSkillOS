@@ -4,6 +4,13 @@
 > 대상 경로: `docs/v2_1/10_Deployment_Operations.md`  
 > 핵심 원칙: **FinSkillOS v2.1은 개인 투자 운영체제이므로, 로컬 안정성, 데이터 백업, 장애 복구, 보안, 운영 루틴이 개발만큼 중요하다.**
 
+> **Current status (2026-05-25).** This document is historical design
+> context from the Streamlit-first phase. The current operations workplan
+> is `.devmd/14_Deployment_Operations.md`, which targets Docker Postgres
+> + FastAPI `api` + Vite React `frontend` + optional Streamlit
+> debug/admin + Playwright visual gates. Do not use the Streamlit MVP
+> commands below as the primary product deployment path.
+
 ---
 
 ## 1. 목적

@@ -1,9 +1,9 @@
 # FinSkillOS v2.1 Agent Workplan
 
-Version: `v2.1`  
-Date: `2026-05-15`  
-Primary implementation target: `FinSkillOS-Finance-Dashboard`  
-Product type: Personal Trading Operating System
+Version: `v2.1 / v4.2 cockpit`
+Date: `2026-05-25`
+Primary implementation target: `FinSkillOS-Finance-Dashboard`
+Product type: Personal Investment Operating System
 
 ## Purpose
 
@@ -25,41 +25,47 @@ Do not build a chart-first app.
 Build an interpretation-first operating system:
 
 ```text
-State → Interpretation → Risk → Action Mode → Reflection → Results
+Evidence → Interpretation → Risk Constraints → Watchpoints → Reflection
 ```
 
-Charts, news, indicators, and events are evidence. The product output is an understandable operating mode.
+Charts, news, indicators, and events are evidence. The product output is
+market state, risk interpretation, portfolio constraints, watchpoints,
+and reflection support. It is not a trade execution surface.
 
 ## Core navigation
 
 ```text
 1. Control Room
 2. Market Kernel
-3. Risk Firewall
-4. Mission Control
-5. Catalyst Watch
-6. Analysis Workspace
-   6-1. Index Terminal
-   6-2. Symbol Terminal
-   6-3. Intel Feed
-   6-4. Signal Console
-7. Trade Memory
-8. System Ops
+3. Analysis Workspace
+4. Symbol Lab
+5. Risk Firewall
+6. Mission Control
+7. News Intelligence
+8. Catalyst Watch
+9. Trade Memory
+10. System Ops
 ```
 
-The latest UI source of truth is `prototypes/ui/os_style_mockup/index.html`.
-It is the v3.3 OS-style multi-tab mockup with Dark / Light / Studio theme switching.
-Older navigation names are deprecated and must not be reintroduced in implementation.
+The latest static UI reference is
+`prototypes/ui/enhanced_dashboard_mockup/v4_2/finskillos_v4_2_evidence_judgment_mockup.html`.
+The implemented product UI lives in `frontend/src/`, and the visual QA
+source of truth lives in `frontend/e2e/visual/README.md`.
+`prototypes/ui/os_style_mockup/index.html` is historical design context,
+not the current implementation target.
 
 ## Architecture stance
 
-- PostgreSQL-first MVP.
-- Streamlit-first UX shell.
+- PostgreSQL-backed Python domain/service core.
+- FastAPI read-only adapter for the product cockpit.
+- Vite React v4.2 Evidence-to-Judgment UX shell.
+- Streamlit retained as debug/admin UI only.
 - Rule-first regime and guard logic.
 - Snapshot-first initial rendering.
 - Cache-heavy market data and news pipeline.
 - LLM-on-demand only, not required for MVP.
 - No direct buy/sell recommendations.
+- No order, brokerage, or trade execution endpoints.
 - No promised returns.
 - Risk-first interpretation.
 
@@ -79,7 +85,16 @@ Older navigation names are deprecated and must not be reintroduced in implementa
 12. `11_Event_Radar.md`
 13. `12_Trade_Journal_Reflection.md`
 14. `13_Testing_Acceptance.md`
-15. `14_Deployment_Operations.md`
+15. `13_5_OS_UI_Polish.md`
+16. `13_6_Frontend_Migration_Shell.md`
+17. `13_7_React_Market_Analysis_Symbol.md`
+18. `13_8_React_Risk_Mission_Ops.md`
+19. `13_9_React_News_Events_TradeMemory.md`
+20. `13_10_React_Prototype_Parity_Visual_QA.md`
+21. `13_11_UI_Completeness_Parity.md`
+22. `13_12_Arbitrary_Symbol_Search.md`
+23. `13_13_Docs_Source_Of_Truth_Cleanup.md`
+24. `14_Deployment_Operations.md`
 
 ## Definition of done for this workplan
 
