@@ -19,6 +19,7 @@ from finskillos.data_sources import (
     CsvMarketDataAdapter,
     MarketDataFetchError,
     MockMarketDataAdapter,
+    YahooChartMarketDataAdapter,
 )
 from finskillos.db.repositories import MarketRepository
 from finskillos.services.market_data_service import MarketDataService
@@ -65,6 +66,110 @@ def test_csv_adapter_raises_for_unknown_ticker() -> None:
     except MarketDataFetchError:
         return
     raise AssertionError("expected MarketDataFetchError for unknown ticker")
+
+
+class _FakeYahooResponse:
+    def __init__(self, payload: dict, *, status_error: Exception | None = None) -> None:
+        self.payload = payload
+        self.status_error = status_error
+
+    def raise_for_status(self) -> None:
+        if self.status_error is not None:
+            raise self.status_error
+
+    def json(self) -> dict:
+        return self.payload
+
+
+class _FakeYahooClient:
+    def __init__(self, payload: dict) -> None:
+        self.payload = payload
+        self.calls: list[tuple[str, dict]] = []
+
+    def get(self, url: str, *, params: dict) -> _FakeYahooResponse:
+        self.calls.append((url, params))
+        return _FakeYahooResponse(self.payload)
+
+
+def test_yahoo_chart_adapter_normalizes_provider_payload() -> None:
+    payload = {
+        "chart": {
+            "result": [
+                {
+                    "timestamp": [1_777_680_000, 1_777_766_400],
+                    "indicators": {
+                        "quote": [
+                            {
+                                "open": [100.0, 101.0],
+                                "high": [103.0, 104.0],
+                                "low": [99.0, 100.0],
+                                "close": [102.25, 103.5],
+                                "volume": [1000000, 1200000],
+                            }
+                        ],
+                        "adjclose": [{"adjclose": [102.0, 103.25]}],
+                    },
+                }
+            ],
+            "error": None,
+        }
+    }
+    client = _FakeYahooClient(payload)
+    adapter = YahooChartMarketDataAdapter(client=client)
+
+    bars = adapter.fetch_bars("spy", timeframe="1d")
+
+    assert [bar.ticker for bar in bars] == ["SPY", "SPY"]
+    assert bars[0].source == "yahoo"
+    assert bars[0].close == Decimal("102.25")
+    assert bars[1].volume == Decimal("1200000")
+    assert bars[1].adj_close == Decimal("103.25")
+    assert client.calls[0][0].endswith("/SPY")
+    assert client.calls[0][1]["range"] == "1y"
+
+
+def test_yahoo_chart_adapter_maps_common_macro_symbols() -> None:
+    payload = {
+        "chart": {
+            "result": [
+                {
+                    "timestamp": [1_777_680_000],
+                    "indicators": {
+                        "quote": [
+                            {
+                                "open": [19.0],
+                                "high": [20.0],
+                                "low": [18.5],
+                                "close": [19.5],
+                                "volume": [None],
+                            }
+                        ]
+                    },
+                }
+            ],
+            "error": None,
+        }
+    }
+    client = _FakeYahooClient(payload)
+    adapter = YahooChartMarketDataAdapter(client=client)
+
+    bars = adapter.fetch_bars("VIX")
+
+    assert bars[0].ticker == "VIX"
+    assert client.calls[0][0].endswith("/^VIX")
+
+
+def test_yahoo_chart_adapter_raises_fetch_error_for_empty_payload() -> None:
+    adapter = YahooChartMarketDataAdapter(
+        client=_FakeYahooClient({"chart": {"result": [], "error": None}})
+    )
+
+    try:
+        adapter.fetch_bars("SPY")
+    except MarketDataFetchError as exc:
+        assert "no result" in str(exc)
+    else:  # pragma: no cover - assertion failure
+        raise AssertionError("expected MarketDataFetchError for empty Yahoo payload")
 
 
 def test_refresh_bars_writes_initial_history(db_session: Session) -> None:

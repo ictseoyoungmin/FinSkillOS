@@ -35,7 +35,7 @@ def system_ops_fixture() -> SystemOpsResponse:
         ),
         drivers=drivers(
             (
-                "4",
+                "5",
                 "Protocols",
                 "Operational cards are available for deterministic local workflows.",
             ),
@@ -76,6 +76,22 @@ def system_ops_fixture() -> SystemOpsResponse:
                 button_label="Seed sample data",
                 confirm_label="Seed sample data",
                 tone="info",
+                last_run_at=None,
+            ),
+            ProtocolCard(
+                key="refresh_market_data",
+                title="Refresh market bars",
+                description=(
+                    "Updates stored OHLCV bars for the configured focus universe. "
+                    "Product pages remain read-only snapshots."
+                ),
+                idempotency_note=(
+                    "Idempotent · existing bars are upserted by ticker, timeframe, "
+                    "and timestamp."
+                ),
+                button_label="Refresh stored bars",
+                confirm_label="Refresh stored bars",
+                tone="success",
                 last_run_at=None,
             ),
             ProtocolCard(
@@ -137,7 +153,7 @@ def system_ops_fixture() -> SystemOpsResponse:
             DataSourcePill(
                 label="Market Bars",
                 status="FIXTURE",
-                detail="Stored data only · no automatic live refresh.",
+                detail="Stored data refresh is available through System Ops.",
             ),
             DataSourcePill(
                 label="News / Event Stores",

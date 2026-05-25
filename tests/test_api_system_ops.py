@@ -15,12 +15,18 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
+from finskillos.config import reset_settings_cache
+from finskillos.db.base import Base
+from finskillos.db.repositories import MarketRepository
 
 _PROTOCOL_KEYS = {
     "seed_sample_account",
+    "refresh_market_data",
     "recompute_regime",
     "run_risk_guards",
     "seed_sample_events",
@@ -28,6 +34,7 @@ _PROTOCOL_KEYS = {
 
 _POST_ENDPOINTS = (
     ("/api/system-ops/seed-sample-account", "seed_sample_account"),
+    ("/api/system-ops/refresh-market-data", "refresh_market_data"),
     ("/api/system-ops/recompute-regime", "recompute_regime"),
     ("/api/system-ops/run-risk-guards", "run_risk_guards"),
     ("/api/system-ops/seed-sample-events", "seed_sample_events"),
@@ -167,3 +174,57 @@ def test_system_ops_protocol_runs_are_audited_to_jsonl(monkeypatch, tmp_path) ->
     get_body = client.get("/api/system-ops").json()
     assert get_body["recentProtocolRuns"][0]["protocol"] == "seed_sample_account"
     assert get_body["recentProtocolRuns"][0]["ranAt"] == post_body["ranAt"]
+
+
+def test_refresh_market_data_protocol_writes_mock_bars(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_TICKERS", "SPY,QQQ")
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-market-data").json()
+
+        assert body["protocol"] == "refresh_market_data"
+        assert body["status"] == "OK"
+        assert "2 symbols available" in body["message"]
+        assert "bars=" in body["detail"]
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            repo = MarketRepository(session)
+            assert repo.count_for("SPY", "1d") > 0
+            assert repo.count_for("QQQ", "1d") > 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_refresh_market_data_protocol_rejects_unknown_adapter(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "unknown")
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-market-data").json()
+
+        assert body["protocol"] == "refresh_market_data"
+        assert body["status"] == "ERROR"
+        assert "Unsupported adapter" in body["message"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

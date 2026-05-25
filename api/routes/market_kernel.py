@@ -1,22 +1,28 @@
-"""GET /api/market-kernel — Slice 13.7.
+"""GET /api/market-kernel — Slice 13.7 / 24.
 
-Fixture-first wrapper around the existing Streamlit Market Kernel
-view-model output (``finskillos.ui.view_models.symbol_lab_vm``-style
-read model). The route is wired so a future slice can switch to live
-DB by delegating to the underlying market / indicator / event-risk
-services, but the default response stays fixture-first so the React
-shell + Playwright visual baseline remain deterministic.
+Fixture fallback wrapper around the Market Kernel read model. Slice 24
+promotes the endpoint to DB-backed mode when stored market bars are
+available. The route never calls an external provider during page
+rendering; provider refresh is handled by System Ops / scripts.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, Query
 
-from api.dependencies import use_fixture_flag
+from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import market_kernel_fixture
-from api.schemas.market_kernel import MarketKernelResponse
+from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
+from api.schemas.common import SystemStatus
+from api.schemas.market_kernel import MarketBarPoint, MarketKernelResponse
+from finskillos.data_sources import DEFAULT_TIMEFRAME
+from finskillos.db.repositories import IndicatorRepository, MarketRepository
 
 router = APIRouter(tags=["market-kernel"])
+UTC = timezone.utc
 
 
 @router.get(
@@ -35,10 +41,202 @@ def market_kernel(
     ),
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> MarketKernelResponse:
-    payload = market_kernel_fixture(ticker)
     if use_fixture:
-        payload.source = "fixture"
+        return market_kernel_fixture(ticker)
+
+    with get_session_scope() as session:
+        if session is None:
+            return market_kernel_fixture(ticker)
+
+        resolved_ticker = _normalize_ticker(ticker)
+        bars = MarketRepository(session).list_bars(resolved_ticker, DEFAULT_TIMEFRAME)
+        latest_indicator = IndicatorRepository(session).latest_for(
+            resolved_ticker, DEFAULT_TIMEFRAME
+        )
+        return _live_response(
+            ticker=resolved_ticker,
+            bars=bars,
+            latest_indicator=latest_indicator,
+        )
+
+
+def _live_response(
+    *,
+    ticker: str,
+    bars: list,
+    latest_indicator,
+) -> MarketKernelResponse:
+    generated_at = datetime.now(tz=UTC).isoformat()
+    payload = market_kernel_fixture(ticker)
+    payload.generated_at = generated_at
+    payload.source = "live"
+    payload.system_status = SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0)
+
+    if not bars:
+        payload.judgment = judgment(
+            "TECHNICAL SIGNAL JUDGMENT",
+            "Data Missing",
+            "for Stored Symbol",
+            f"{ticker} has no stored market bars in the local DB.",
+            28,
+        )
+        payload.drivers = drivers(
+            ("0", "Stored bars", "No DB-backed bar series is available."),
+            ("MISSING", "Data status", "The page is showing unavailable-state context."),
+            ("Live DB", "Source", "The database is reachable, but this ticker has no bars."),
+        )
+        payload.conflicts = conflicts(
+            (
+                "Live DB vs missing ticker",
+                "The adapter is reachable but cannot support a technical read without bars.",
+            ),
+        )
+        payload.integrated_interpretation = interpretation(
+            "No technical judgment is available for the selected ticker.",
+            "The route avoids filling DB gaps with fixture bars once live mode is active.",
+            "Run the System Ops market-bar refresh protocol or select a stored symbol.",
+        )
+        payload.review_watchpoints = watchpoints(
+            ("Stored bars", "Refresh market bars before using this ticker context."),
+        )
+        payload.header.ticker = ticker
+        payload.header.label = ticker
+        payload.header.timeframe = DEFAULT_TIMEFRAME
+        payload.header.latest_close = None
+        payload.header.latest_time = None
+        payload.header.data_status = "MISSING"
+        payload.bars = []
+        payload.indicators.rsi_14 = None
+        payload.indicators.ema_20 = None
+        payload.indicators.ema_60 = None
+        payload.indicators.ema_120 = None
+        payload.indicators.bb_position = None
+        payload.indicators.volume_z_score = None
+        payload.indicators.momentum_score = None
+        payload.indicators.trend_state = None
+        payload.events = []
+        payload.watchpoints = [
+            f"No stored market bars exist for {ticker}.",
+            "Use System Ops market-bar refresh before expecting live chart context.",
+        ]
+        payload.interpretation = (
+            f"{ticker} has no stored bar series in the local database. "
+            "The Market Kernel is live-aware but will not invent chart evidence."
+        )
+        payload.setup_hint = (
+            f"Run System Ops → Refresh market bars with {ticker} in "
+            "FINSKILLOS_MARKET_REFRESH_TICKERS."
+        )
+        return payload
+
+    visible_bars = bars[-120:]
+    latest_bar = visible_bars[-1]
+    payload.judgment = judgment(
+        "TECHNICAL SIGNAL JUDGMENT",
+        _trend_title(latest_indicator),
+        "from Stored Bars",
+        f"{ticker} has {len(bars)} stored {DEFAULT_TIMEFRAME} bars in the local DB.",
+        74 if latest_indicator is not None else 58,
+    )
+    payload.drivers = drivers(
+        (str(len(bars)), "Stored bars", "DB-backed OHLCV rows are available."),
+        (
+            _indicator_status(latest_indicator),
+            "Indicator snapshot",
+            "Latest stored indicator row attached when available.",
+        ),
+        ("Live DB", "Source", "Read from local storage; no provider call during render."),
+    )
+    payload.conflicts = conflicts(
+        (
+            "Stored bars vs live feed",
+            "The chart reflects the latest local refresh, not a streaming provider.",
+        ),
+        (
+            "Bars vs indicators",
+            "Indicator fields can be partial when calculation has not run after refresh.",
+        ),
+    )
+    payload.integrated_interpretation = interpretation(
+        "Market Kernel is reading stored technical evidence from the local DB.",
+        "Stored bars make the chart inspectable without introducing page-load provider risk.",
+        "Freshness depends on the latest System Ops refresh and indicator calculation.",
+    )
+    payload.review_watchpoints = watchpoints(
+        ("Refresh timestamp", "Check /api/system-status for latest market bar time."),
+        ("Indicator coverage", "Run indicator calculation if fields remain partial."),
+    )
+    payload.header.ticker = ticker
+    payload.header.label = ticker
+    payload.header.timeframe = DEFAULT_TIMEFRAME
+    payload.header.latest_close = latest_bar.close
+    payload.header.latest_time = _iso(latest_bar.bar_time)
+    payload.header.data_status = "OK" if latest_indicator is not None else "PARTIAL"
+    payload.bars = [
+        MarketBarPoint(
+            bar_time=_iso(bar.bar_time),
+            open=bar.open,
+            high=bar.high,
+            low=bar.low,
+            close=bar.close,
+            volume=bar.volume,
+        )
+        for bar in visible_bars
+    ]
+    payload.indicators.rsi_14 = getattr(latest_indicator, "rsi_14", None)
+    payload.indicators.ema_20 = getattr(latest_indicator, "ema_20", None)
+    payload.indicators.ema_60 = getattr(latest_indicator, "ema_60", None)
+    payload.indicators.ema_120 = getattr(latest_indicator, "ema_120", None)
+    payload.indicators.bb_position = _bb_position(latest_bar.close, latest_indicator)
+    payload.indicators.volume_z_score = getattr(latest_indicator, "volume_zscore", None)
+    payload.indicators.momentum_score = getattr(latest_indicator, "momentum_score", None)
+    payload.indicators.trend_state = getattr(latest_indicator, "trend_state", None)
+    payload.events = []
+    payload.watchpoints = [
+        "Stored bars are local snapshots, not a streaming quote feed.",
+        "Recompute indicators after refreshing market bars for full context.",
+    ]
+    payload.interpretation = (
+        f"{ticker} technical context is based on {len(bars)} stored bars. "
+        "Use this as evidence context, not an entry or exit instruction."
+    )
+    payload.setup_hint = None
     return payload
+
+
+def _normalize_ticker(ticker: str | None) -> str:
+    normalized = (ticker or "NVDA").strip().upper()
+    return normalized or "NVDA"
+
+
+def _iso(value) -> str:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC).isoformat()
+        return value.isoformat()
+    return str(value)
+
+
+def _indicator_status(latest_indicator) -> str:
+    if latest_indicator is None:
+        return "PARTIAL"
+    return latest_indicator.trend_state or "AVAILABLE"
+
+
+def _trend_title(latest_indicator) -> str:
+    if latest_indicator is None or not latest_indicator.trend_state:
+        return "Stored Tape"
+    return latest_indicator.trend_state.title()
+
+
+def _bb_position(close: Decimal, latest_indicator) -> Decimal | None:
+    if latest_indicator is None:
+        return None
+    upper = getattr(latest_indicator, "bb_upper", None)
+    lower = getattr(latest_indicator, "bb_lower", None)
+    if upper is None or lower is None or upper == lower:
+        return None
+    return (close - lower) / (upper - lower)
 
 
 __all__ = ["router"]

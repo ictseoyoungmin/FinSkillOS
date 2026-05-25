@@ -8,3 +8,5 @@ Current operations addenda:
 
 - `11_Scheduler_Refresh_Policy.md` — manual-first, cron-compatible refresh policy.
 - `12_Live_Adapter_Boundary.md` — fixture/live promotion boundary.
+  Includes the current `--adapter yahoo` market-bar refresh path and the
+  remaining news-provider deferral.

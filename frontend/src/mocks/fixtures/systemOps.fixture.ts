@@ -17,7 +17,7 @@ export const systemOpsFixture: SystemOpsData = {
     confidence: 69,
   },
   drivers: [
-    { score: "4", title: "Protocols", note: "Operational cards are available for deterministic local workflows." },
+    { score: "5", title: "Protocols", note: "Operational cards are available for deterministic local workflows." },
     { score: "Fixture", title: "Data layer", note: "Market, event, and news stores remain fixture-first." },
     { score: "Read", title: "Mode", note: "The system exposes operational protocols only." },
   ],
@@ -48,6 +48,18 @@ export const systemOpsFixture: SystemOpsData = {
       buttonLabel: "Seed sample data",
       confirmLabel: "Seed sample data",
       tone: "info",
+      lastRunAt: null,
+    },
+    {
+      key: "refresh_market_data",
+      title: "Refresh market bars",
+      description:
+        "Updates stored OHLCV bars for the configured focus universe. Product pages remain read-only snapshots.",
+      idempotencyNote:
+        "Idempotent · existing bars are upserted by ticker, timeframe, and timestamp.",
+      buttonLabel: "Refresh stored bars",
+      confirmLabel: "Refresh stored bars",
+      tone: "success",
       lastRunAt: null,
     },
     {
@@ -97,7 +109,7 @@ export const systemOpsFixture: SystemOpsData = {
     {
       label: "Market Bars",
       status: "FIXTURE",
-      detail: "Stored data only · no automatic live refresh.",
+      detail: "Stored data refresh is available through System Ops.",
     },
     {
       label: "News / Event Stores",

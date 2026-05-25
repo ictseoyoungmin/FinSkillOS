@@ -59,6 +59,9 @@ operational protocols.
 19     Restore and System Status Hardening
 20     Live Adapter Boundary Hardening
 21     Risk Firewall DB Read Model
+22     Market Provider Adapter
+23     System Ops Market Refresh Protocol
+24     Market Kernel DB Read Model
 ```
 
 Slice 14 is complete:
@@ -83,6 +86,14 @@ Slice 14 is complete:
   `docs/v2_1/12_Live_Adapter_Boundary.md` defines promotion order.
 - `/api/risk-firewall` is the first DB-backed product read model when a DB
   session and account exist; fixture fallback remains explicit.
+- `scripts/refresh_market_data.py --adapter yahoo` can explicitly fetch live
+  ticker bars through the Yahoo Chart API into the existing DB-backed market
+  data service. Product market tabs remain fixture-first until promoted.
+- System Ops exposes a `refresh_market_data` protocol card. It defaults to
+  offline-safe mock refresh and can use Yahoo only through explicit env
+  configuration.
+- `/api/market-kernel` can read stored DB bars and latest indicator snapshots
+  without calling a provider during page rendering.
 ```
 
 ## Validation Baseline
@@ -113,14 +124,17 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. External provider adapters
-   - Implement a real market adapter (for example yfinance) behind the
-     existing adapter interface.
-   - Add a news provider adapter only after source/rate-limit rules are clear.
+1. Symbol Lab DB read model
+   - Promote stored bars and indicators into read-only per-symbol snapshots.
+   - Keep arbitrary ticker unavailable states explicit when DB data is missing.
 
-2. Mission Control DB read model
+2. News provider adapter
+   - Add a news provider adapter only after source, attribution, and rate-limit
+     rules are clear.
+
+3. Mission Control DB read model
    - Promote portfolio/goal status after Risk Firewall live path settles.
 
-3. Durable System Ops DB audit table
+4. Durable System Ops DB audit table
    - Optional future replacement for local JSONL if multi-host operations
      become necessary.

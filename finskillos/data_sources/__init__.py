@@ -7,6 +7,7 @@ interface; tests rely on the deterministic `MockMarketDataAdapter` so
 nothing in this slice depends on a live internet connection.
 """
 
+from finskillos.data_sources.adapters.yfinance_adapter import YahooChartMarketDataAdapter
 from finskillos.data_sources.dto import (
     DEFAULT_TIMEFRAME,
     DEFAULT_US_TICKER_UNIVERSE,
@@ -29,4 +30,5 @@ __all__ = [
     "MarketBarDTO",
     "MarketDataFetchError",
     "MockMarketDataAdapter",
+    "YahooChartMarketDataAdapter",
 ]

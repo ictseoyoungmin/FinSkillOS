@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from api.fixtures import (
     FIXTURE_TIMESTAMP,
@@ -24,6 +26,11 @@ from api.fixtures import (
     SUPPORTED_FOCUS_TICKERS,
 )
 from api.main import create_app
+from finskillos.config import reset_settings_cache
+from finskillos.data_sources import MockMarketDataAdapter
+from finskillos.db.base import Base
+from finskillos.services.market_data_service import MarketDataService
+from finskillos.services.signal_service import SignalService
 
 
 def _client() -> TestClient:
@@ -124,3 +131,64 @@ def test_use_fixture_header_is_accepted_on_market_kernel() -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "fixture"
+
+
+def test_market_kernel_can_return_live_db_bars(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        market_service = MarketDataService(
+            session,
+            adapter=MockMarketDataAdapter(default_bars=30),
+            universe=["SPY"],
+        )
+        market_service.refresh_bars(["SPY"])
+        SignalService(session).compute_for_universe(["SPY"])
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/market-kernel?ticker=SPY").json()
+
+        assert body["source"] == "live"
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert body["header"]["ticker"] == "SPY"
+        assert body["header"]["dataStatus"] == "OK"
+        assert len(body["bars"]) == 30
+        assert body["indicators"]["rsi14"] is not None
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_market_kernel_live_db_missing_ticker_is_explicit(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/market-kernel?ticker=SPY").json()
+
+        assert body["source"] == "live"
+        assert body["header"]["dataStatus"] == "MISSING"
+        assert body["bars"] == []
+        assert "no stored bar series" in body["interpretation"].lower()
+        assert body["setupHint"] is not None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

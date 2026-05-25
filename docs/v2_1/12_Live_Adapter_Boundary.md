@@ -26,7 +26,7 @@ own their own snapshot source.
 | `/api/system-status` | live when DB reachable | promoted | Reports `dbStatus`, `source`, `dataCompleteness`, `staleFlags`. |
 | `/api/system-ops` | fixture catalogue | partial | Protocol runs can be live/NOOP; catalogue remains stable. |
 | `/api/control-room` | fixture | deferred | Promote only after a DB-backed aggregate read model exists. |
-| `/api/market-kernel` | fixture | deferred | Requires market bars + indicators + ticker fallback policy. |
+| `/api/market-kernel` | fixture or live | promoted | Live when DB is reachable; missing ticker bars stay explicit. |
 | `/api/analysis-workspace` | fixture | deferred | Requires index/ETF universe freshness contract. |
 | `/api/symbol-lab` | fixture | deferred | Requires per-symbol DB fallback and arbitrary ticker policy. |
 | `/api/risk-firewall` | fixture or live | promoted first | Live when DB session and account exist; fixture fallback remains explicit. |
@@ -42,9 +42,35 @@ Recommended order:
 1. System Ops status and protocol audit evidence.
 2. Risk Firewall read model, because guard contracts are explicit. `DONE`.
 3. Mission Control, because portfolio snapshots are already operationally central.
-4. Market Kernel / Symbol Lab for stored bars and indicators.
-5. News/Event/Trade Memory read models after manual-write behavior is stable.
-6. Control Room last, because it aggregates every other module.
+4. Market Kernel for stored bars and indicators. `DONE`.
+5. Symbol Lab for stored bars, indicators, and arbitrary ticker context.
+6. News/Event/Trade Memory read models after manual-write behavior is stable.
+7. Control Room last, because it aggregates every other module.
+
+## 3.1 Provider Adapter Status
+
+Market bars have an explicit live provider path through:
+
+```bash
+python3 scripts/refresh_market_data.py --adapter yahoo --tickers SPY QQQ TSLA
+```
+
+System Ops also exposes `POST /api/system-ops/refresh-market-data`, surfaced as
+a protocol card in the React UI. That protocol defaults to offline-safe mock
+refresh and can use Yahoo only through explicit environment configuration:
+
+```text
+FINSKILLOS_MARKET_REFRESH_ADAPTER=yahoo
+FINSKILLOS_MARKET_REFRESH_TICKERS=SPY,QQQ,TSLA
+```
+
+These paths write stored bars into the DB through `MarketDataService`. They do
+not make `/api/market-kernel` or `/api/symbol-lab` live by themselves. Those
+product tabs still need promoted DB-backed read models and missing-data labels
+before they should stop returning fixture snapshots.
+
+News remains manual/sample only. A live news adapter requires source,
+attribution, rate-limit, and safety-copy rules before promotion.
 
 ## 4. UI Rule
 

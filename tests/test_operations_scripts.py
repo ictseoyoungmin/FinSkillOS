@@ -40,6 +40,14 @@ def test_python_operation_scripts_expose_help() -> None:
         assert "usage:" in result.stdout
 
 
+def test_market_refresh_script_exposes_yahoo_adapter_option() -> None:
+    body = (ROOT / "scripts" / "refresh_market_data.py").read_text(encoding="utf-8")
+
+    assert 'choices=("mock", "csv", "yahoo")' in body
+    assert "YahooChartMarketDataAdapter" in body
+    assert "--adapter yahoo" in body
+
+
 def test_restore_script_requires_explicit_confirmation() -> None:
     body = RESTORE_SCRIPT.read_text(encoding="utf-8")
     assert "--confirm-restore" in body

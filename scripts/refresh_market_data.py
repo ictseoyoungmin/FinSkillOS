@@ -8,6 +8,7 @@ Examples:
     python3 scripts/refresh_market_data.py --adapter mock
     python3 scripts/refresh_market_data.py --tickers SPY QQQ SMH VIX
     python3 scripts/refresh_market_data.py --adapter csv --csv-path data/bars.csv
+    python3 scripts/refresh_market_data.py --adapter yahoo --tickers SPY QQQ TSLA
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ from finskillos.data_sources import (
     DEFAULT_US_TICKER_UNIVERSE,
     CsvMarketDataAdapter,
     MockMarketDataAdapter,
+    YahooChartMarketDataAdapter,
 )
 from finskillos.db.session import session_scope
 from finskillos.logging_config import setup_logging
@@ -75,9 +77,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--adapter",
-        choices=("mock", "csv"),
+        choices=("mock", "csv", "yahoo"),
         default="mock",
-        help="Market adapter to use. `mock` is deterministic and offline-safe.",
+        help=(
+            "Market adapter to use. `mock` is deterministic and offline-safe; "
+            "`yahoo` performs live HTTP when internet is available."
+        ),
     )
     parser.add_argument(
         "--csv-path",
@@ -107,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.csv_path is None:
             raise SystemExit("--csv-path is required when --adapter csv is selected")
         adapter = CsvMarketDataAdapter(args.csv_path)
+    elif args.adapter == "yahoo":
+        adapter = YahooChartMarketDataAdapter()
     else:
         adapter = MockMarketDataAdapter()
 

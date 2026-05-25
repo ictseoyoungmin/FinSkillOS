@@ -103,6 +103,9 @@ not the current implementation target.
 30. `19_Restore_And_Status_Hardening.md`
 31. `20_Live_Adapter_Boundary_Hardening.md`
 32. `21_Risk_Firewall_DB_Read_Model.md`
+33. `22_Market_Provider_Adapter.md`
+34. `23_System_Ops_Market_Refresh_Protocol.md`
+35. `24_Market_Kernel_DB_Read_Model.md`
 
 ## Definition of done for this workplan
 

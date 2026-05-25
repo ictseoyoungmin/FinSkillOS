@@ -34,6 +34,7 @@ from api.schemas.system_ops import (
     ProtocolRunResult,
     SystemOpsResponse,
 )
+from finskillos.data_sources import DEFAULT_US_TICKER_UNIVERSE
 
 router = APIRouter(tags=["system-ops"])
 
@@ -68,6 +69,22 @@ def run_seed_sample_account() -> ProtocolRunResult:
             "did not touch the database."
         ),
         runner=_invoke_seed_sample_account,
+    )
+
+
+@router.post(
+    "/system-ops/refresh-market-data",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: refresh stored market bars for the configured universe.",
+)
+def run_refresh_market_data() -> ProtocolRunResult:
+    return _run_protocol(
+        key="refresh_market_data",
+        fixture_message=(
+            "Market-bar refresh acknowledged. Fixture-first shell did "
+            "not touch the database."
+        ),
+        runner=_invoke_refresh_market_data,
     )
 
 
@@ -254,6 +271,45 @@ def _invoke_seed_sample_account(session) -> tuple[str, str, str]:
     )
 
 
+def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
+    from finskillos.data_sources import (
+        MockMarketDataAdapter,
+        YahooChartMarketDataAdapter,
+    )
+    from finskillos.services.market_data_service import MarketDataService
+
+    adapter_name = os.environ.get("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock").lower()
+    tickers = _market_refresh_tickers()
+    if adapter_name == "yahoo":
+        adapter = YahooChartMarketDataAdapter()
+    elif adapter_name == "mock":
+        adapter = MockMarketDataAdapter()
+    else:
+        return (
+            "ERROR",
+            "Market-bar refresh could not start. Unsupported adapter configured.",
+            f"unsupported_adapter:{adapter_name}",
+        )
+
+    service = MarketDataService(session, adapter=adapter, universe=tickers)
+    report = service.refresh_bars(tickers, end=datetime.now(tz=UTC))
+    failed = len(report.failed)
+    succeeded = len(report.succeeded)
+    status = "OK" if succeeded else "NOOP"
+    message = (
+        f"Market bars refreshed · adapter {adapter_name} · "
+        f"{succeeded} symbols available · {report.total_bars_written} bars written."
+    )
+    detail = (
+        f"adapter={adapter_name},tickers={len(tickers)},"
+        f"succeeded={succeeded},failed={failed},bars={report.total_bars_written}"
+    )
+    if failed:
+        failed_symbols = ",".join(item.ticker for item in report.failed[:5])
+        detail = f"{detail},failedSymbols={failed_symbols}"
+    return (status, message, detail)
+
+
 def _invoke_recompute_regime(session) -> tuple[str, str, str]:
     from finskillos.services.regime_service import RegimeService
 
@@ -309,6 +365,18 @@ def _invoke_seed_sample_events(session) -> tuple[str, str, str]:
         f"{len(created)} sample events loaded (tentative status preserved).",
         "events_seeded",
     )
+
+
+def _market_refresh_tickers() -> tuple[str, ...]:
+    raw = os.environ.get("FINSKILLOS_MARKET_REFRESH_TICKERS", "")
+    if not raw.strip():
+        return DEFAULT_US_TICKER_UNIVERSE
+    tickers = tuple(
+        item.strip().upper()
+        for item in raw.replace(";", ",").split(",")
+        if item.strip()
+    )
+    return tickers or DEFAULT_US_TICKER_UNIVERSE
 
 
 __all__ = ["router"]
