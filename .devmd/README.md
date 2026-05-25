@@ -110,6 +110,7 @@ not the current implementation target.
 37. `26_Lightweight_Refresh_Worker.md`
 38. `27_Symbol_Lab_DB_Read_Model.md`
 39. `28_Symbol_Identity_Logo_Fallback.md`
+40. `29_Symbol_Subscription_And_Live_Preview.md`
 
 ## Definition of done for this workplan
 

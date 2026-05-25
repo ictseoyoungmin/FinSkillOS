@@ -66,6 +66,7 @@ operational protocols.
 26     Lightweight Refresh Worker
 27     Symbol Lab DB Read Model
 28     Symbol Identity / Logo Fallback
+29     Symbol Subscription and Live Preview
 ```
 
 Slice 14 is complete:
@@ -110,6 +111,9 @@ Slice 14 is complete:
 - Symbol Lab now exposes `identity` metadata and renders a local fallback
   avatar. Official logo retrieval remains deferred until provider/cache and
   attribution rules are clear.
+- Symbol Lab supports arbitrary ticker subscription toggles. Active
+  `symbol_subscriptions` are included in System Ops and worker refresh
+  universes; unsubscribe keeps historical bars/indicators intact.
 ```
 
 ## Validation Baseline
@@ -149,7 +153,11 @@ e2e image for frontend build and visual checks.
    - Promote `identity.logoUrl` to `provider_cache` only after provider,
      attribution, cache, and fallback rules are clear.
 
-3. Mission Control DB read model
+3. Provider reliability / attribution hardening
+   - Yahoo preview can fail in restricted networks. Add provider diagnostics,
+     attribution, and fallback cache before relying on arbitrary live previews.
+
+4. Mission Control DB read model
    - Promote portfolio/goal status after Risk Firewall live path settles.
 
 4. Durable System Ops DB audit table

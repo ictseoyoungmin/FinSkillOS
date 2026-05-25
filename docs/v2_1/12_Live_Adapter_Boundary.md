@@ -81,6 +81,12 @@ symbol images/logos remain deferred. Promote `identity.logoUrl` to a
 provider-backed cache only after provider, attribution, local cache, and
 fallback rules are explicit.
 
+Symbol Lab also owns user-managed symbol subscriptions. Arbitrary searched
+tickers can be subscribed without editing `FINSKILLOS_MARKET_REFRESH_TICKERS`
+or `FINSKILLOS_INDICATOR_REFRESH_TICKERS`. Active subscriptions are added to
+System Ops and worker refresh universes. Unsubscribe sets `active=false`; it
+does not delete historical bars or indicator snapshots.
+
 ## 4. UI Rule
 
 Every page must keep source/completeness visible through the global OS status

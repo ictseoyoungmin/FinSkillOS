@@ -88,6 +88,13 @@ class SymbolIdentity(CamelModel):
     brand_color: str = "#475569"
 
 
+class SymbolSubscriptionState(CamelModel):
+    is_subscribed: bool = False
+    can_subscribe: bool = True
+    update_universe_member: bool = False
+    last_action: Literal["none", "subscribed", "unsubscribed"] = "none"
+
+
 class SymbolLabResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -98,6 +105,9 @@ class SymbolLabResponse(CamelModel):
     review_watchpoints: list[EvidenceWatchpoint]
     symbol_universe: list[UniverseTicker] = Field(default_factory=list)
     identity: SymbolIdentity
+    subscription: SymbolSubscriptionState = Field(
+        default_factory=SymbolSubscriptionState
+    )
     header: SymbolLabHeader
     technical: IndicatorSnapshot
     recent_bars: list[SymbolRecentBar] = Field(default_factory=list)
@@ -123,5 +133,6 @@ __all__ = [
     "SymbolNewsItem",
     "SymbolPosition",
     "SymbolRecentBar",
+    "SymbolSubscriptionState",
     "UniverseTicker",
 ]

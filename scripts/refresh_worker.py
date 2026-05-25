@@ -128,13 +128,15 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     }
 
     with session_scope() as session:
+        market_tickers = _with_subscribed_tickers(session, config.market_tickers)
+        indicator_tickers = _with_subscribed_tickers(session, config.indicator_tickers)
         if config.market_enabled:
             adapter = _build_market_adapter(config.market_adapter)
             market_service = MarketDataService(
-                session, adapter=adapter, universe=config.market_tickers
+                session, adapter=adapter, universe=market_tickers
             )
             report = market_service.refresh_bars(
-                config.market_tickers,
+                market_tickers,
                 timeframe=config.timeframe,
                 end=datetime.now(tz=UTC),
             )
@@ -151,7 +153,7 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
         if config.indicator_enabled:
             signal_service = SignalService(session)
             results = signal_service.compute_for_universe(
-                config.indicator_tickers,
+                indicator_tickers,
                 timeframe=config.timeframe,
                 persist_history=config.persist_indicator_history,
             )
@@ -168,6 +170,17 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
 
     summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
     return summary
+
+
+def _with_subscribed_tickers(session, tickers: tuple[str, ...]) -> tuple[str, ...]:
+    from finskillos.db.repositories import SymbolSubscriptionRepository
+
+    try:
+        subscribed = SymbolSubscriptionRepository(session).active_tickers()
+    except Exception:
+        session.rollback()
+        subscribed = ()
+    return tuple(dict.fromkeys((*tickers, *subscribed)))
 
 
 def build_parser() -> argparse.ArgumentParser:

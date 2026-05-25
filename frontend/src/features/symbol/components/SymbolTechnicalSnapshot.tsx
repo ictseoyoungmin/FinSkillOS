@@ -1,12 +1,19 @@
 import { Badge, Metric, Panel } from "@/shared/ui";
 import { toNumber, type Numeric } from "@/shared/lib/format";
 import type { IndicatorSnapshot } from "@/features/market/kernel-types";
-import type { SymbolIdentity, SymbolLabHeader } from "../types";
+import type {
+  SymbolIdentity,
+  SymbolLabHeader,
+  SymbolSubscriptionState,
+} from "../types";
 
 export interface SymbolTechnicalSnapshotProps {
   identity: SymbolIdentity;
   header: SymbolLabHeader;
   indicators: IndicatorSnapshot;
+  subscription: SymbolSubscriptionState;
+  subscriptionBusy?: boolean;
+  onToggleSubscription?: () => void;
 }
 
 function fmt(value: Numeric | null, fraction = 2): string {
@@ -25,7 +32,11 @@ export function SymbolTechnicalSnapshot({
   identity,
   header,
   indicators,
+  subscription,
+  subscriptionBusy = false,
+  onToggleSubscription,
 }: SymbolTechnicalSnapshotProps) {
+  const buttonLabel = subscription.isSubscribed ? "Subscribed" : "Subscribe";
   return (
     <Panel
       title="Technical Snapshot"
@@ -65,6 +76,18 @@ export function SymbolTechnicalSnapshot({
               ? "—"
               : toNumber(header.latestClose).toFixed(2)}
           </span>
+          <button
+            type="button"
+            className={
+              subscription.isSubscribed
+                ? "fso-symbol-subscribe fso-symbol-subscribe--active"
+                : "fso-symbol-subscribe"
+            }
+            disabled={!subscription.canSubscribe || subscriptionBusy}
+            onClick={onToggleSubscription}
+          >
+            {subscriptionBusy ? "Updating" : buttonLabel}
+          </button>
           <Badge tone={STATUS_TONE[header.dataStatus]}>{header.dataStatus}</Badge>
         </div>
       </div>

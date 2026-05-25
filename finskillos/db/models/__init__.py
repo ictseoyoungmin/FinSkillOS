@@ -14,6 +14,7 @@ from finskillos.db.models.news import NewsArticle, NewsImpact
 from finskillos.db.models.portfolio import PortfolioSnapshot
 from finskillos.db.models.position import Position
 from finskillos.db.models.regime import MarketRegime
+from finskillos.db.models.symbol_subscription import SymbolSubscription
 from finskillos.db.models.trade import Trade
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     "NewsImpact",
     "PortfolioSnapshot",
     "Position",
+    "SymbolSubscription",
     "Trade",
 ]

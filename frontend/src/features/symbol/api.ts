@@ -21,3 +21,16 @@ export async function fetchSymbolLab(
     return symbolLabFixture(ticker);
   }
 }
+
+export async function setSymbolSubscription(
+  ticker: string,
+  subscribed: boolean,
+  signal?: AbortSignal,
+): Promise<SymbolLabData> {
+  const action = subscribed ? "subscribe" : "unsubscribe";
+  const path = `${apiEndpoints.symbolLab}/${encodeURIComponent(ticker)}/${action}`;
+  return await getJson<SymbolLabData>(path, {
+    method: "POST",
+    signal,
+  });
+}

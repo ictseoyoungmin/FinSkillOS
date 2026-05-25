@@ -71,6 +71,13 @@ export interface SymbolIdentity {
   brandColor: string;
 }
 
+export interface SymbolSubscriptionState {
+  isSubscribed: boolean;
+  canSubscribe: boolean;
+  updateUniverseMember: boolean;
+  lastAction: "none" | "subscribed" | "unsubscribed";
+}
+
 export interface SymbolLabSystemStatus {
   db: string;
   mode: string;
@@ -87,6 +94,7 @@ export interface SymbolLabData {
   reviewWatchpoints: EvidenceWatchpointData[];
   symbolUniverse: UniverseTicker[];
   identity: SymbolIdentity;
+  subscription: SymbolSubscriptionState;
   header: SymbolLabHeader;
   technical: IndicatorSnapshot;
   recentBars: SymbolRecentBar[];

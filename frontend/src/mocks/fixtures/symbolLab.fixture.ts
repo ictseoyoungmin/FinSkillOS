@@ -54,6 +54,12 @@ const TSLA: SymbolLabData = {
     avatarText: "TS",
     brandColor: "#b91c1c",
   },
+  subscription: {
+    isSubscribed: true,
+    canSubscribe: true,
+    updateUniverseMember: true,
+    lastAction: "subscribed",
+  },
   header: {
     ticker: "TSLA",
     timeframe: "1d",
@@ -157,6 +163,12 @@ export function symbolLabFixture(ticker: string): SymbolLabData {
       name: t,
       avatarText: t.replace(/[^A-Z]/g, "").slice(0, 2) || t.slice(0, 2) || "?",
       brandColor: "#475569",
+    },
+    subscription: {
+      isSubscribed: false,
+      canSubscribe: true,
+      updateUniverseMember: false,
+      lastAction: "none",
     },
     header: { ...TSLA.header, ticker: t },
     position: null,

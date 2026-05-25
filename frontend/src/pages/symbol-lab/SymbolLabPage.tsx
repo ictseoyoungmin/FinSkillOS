@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { fetchSymbolLab } from "@/features/symbol/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchSymbolLab, setSymbolSubscription } from "@/features/symbol/api";
 import { SymbolAlertsPanel } from "@/features/symbol/components/SymbolAlertsPanel";
 import { SymbolNewsPanel } from "@/features/symbol/components/SymbolNewsPanel";
 import { SymbolPositionContext } from "@/features/symbol/components/SymbolPositionContext";
@@ -27,6 +27,7 @@ const DEFAULT_TICKER = "TSLA";
 
 export function SymbolLabPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const ticker = (searchParams.get("ticker") ?? DEFAULT_TICKER).toUpperCase();
 
   const { data, error } = useQuery({
@@ -40,6 +41,16 @@ export function SymbolLabPage() {
     params.set("ticker", next);
     setSearchParams(params, { replace: false });
   };
+
+  const subscriptionMutation = useMutation({
+    mutationFn: (nextSubscribed: boolean) =>
+      setSymbolSubscription(ticker, nextSubscribed),
+    onSuccess: (nextPayload) => {
+      queryClient.setQueryData(["symbol-lab", ticker], nextPayload);
+      queryClient.invalidateQueries({ queryKey: ["symbol-lab", ticker] });
+      queryClient.invalidateQueries({ queryKey: ["system-status"] });
+    },
+  });
 
   if (error && !data) {
     return (
@@ -94,6 +105,11 @@ export function SymbolLabPage() {
               identity={payload.identity}
               header={payload.header}
               indicators={payload.technical}
+              subscription={payload.subscription}
+              subscriptionBusy={subscriptionMutation.isPending}
+              onToggleSubscription={() =>
+                subscriptionMutation.mutate(!payload.subscription.isSubscribed)
+              }
             />
           </div>
           <SymbolRecentBarsTable bars={payload.recentBars} />

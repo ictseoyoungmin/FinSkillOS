@@ -8,6 +8,7 @@ rendering; provider refresh is handled by System Ops / scripts / worker.
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -25,15 +26,24 @@ from api.schemas.symbol_lab import (
     SymbolLabResponse,
     SymbolPosition,
     SymbolRecentBar,
+    SymbolSubscriptionState,
 )
-from finskillos.data_sources import DEFAULT_TIMEFRAME, DEFAULT_US_TICKER_UNIVERSE
+from finskillos.data_sources import (
+    DEFAULT_TIMEFRAME,
+    DEFAULT_US_TICKER_UNIVERSE,
+    MarketDataFetchError,
+    YahooChartMarketDataAdapter,
+)
 from finskillos.db.repositories import (
     AccountRepository,
     AlertRepository,
     IndicatorRepository,
     MarketRepository,
     PositionRepository,
+    SymbolSubscriptionRepository,
 )
+from finskillos.services.market_data_service import MarketDataService
+from finskillos.services.signal_service import SignalService
 
 router = APIRouter(tags=["symbol-lab"])
 UTC = timezone.utc
@@ -58,7 +68,10 @@ def symbol_lab(
 ) -> SymbolLabResponse:
     if use_fixture:
         return symbol_lab_fixture(ticker)
+    return _read_symbol_lab(ticker)
 
+
+def _read_symbol_lab(ticker: str | None) -> SymbolLabResponse:
     with get_session_scope() as session:
         if session is None:
             return symbol_lab_fixture(ticker)
@@ -90,6 +103,17 @@ def symbol_lab(
             else None
         )
         alerts = AlertRepository(session).list_active(account.id) if account else []
+        subscription = _get_subscription_safe(session, resolved_ticker)
+        if not bars and _symbol_preview_enabled():
+            try:
+                preview_bars = YahooChartMarketDataAdapter().fetch_bars(
+                    resolved_ticker,
+                    timeframe=DEFAULT_TIMEFRAME,
+                    end=datetime.now(tz=UTC),
+                )
+                bars = [bar for bar in preview_bars if _as_utc(bar.bar_time) <= now]
+            except MarketDataFetchError:
+                bars = []
         return _live_response(
             ticker=resolved_ticker,
             bars=bars,
@@ -97,7 +121,44 @@ def symbol_lab(
             position=position,
             positions=positions,
             alerts=alerts,
+            subscription=subscription,
         )
+
+
+@router.post(
+    "/symbol-lab/{ticker}/subscribe",
+    response_model=SymbolLabResponse,
+    summary="Subscribe a ticker to the local refresh universe.",
+)
+def subscribe_symbol(ticker: str) -> SymbolLabResponse:
+    resolved_ticker = _normalize_ticker(ticker)
+    with get_session_scope() as session:
+        if session is None:
+            return symbol_lab_fixture(resolved_ticker)
+
+        repo = SymbolSubscriptionRepository(session)
+        repo.subscribe(
+            resolved_ticker,
+            name=symbol_identity(resolved_ticker).name,
+        )
+        _refresh_subscribed_symbol(session, resolved_ticker)
+
+    return _read_symbol_lab(resolved_ticker)
+
+
+@router.post(
+    "/symbol-lab/{ticker}/unsubscribe",
+    response_model=SymbolLabResponse,
+    summary="Deactivate a ticker subscription without deleting historical data.",
+)
+def unsubscribe_symbol(ticker: str) -> SymbolLabResponse:
+    resolved_ticker = _normalize_ticker(ticker)
+    with get_session_scope() as session:
+        if session is None:
+            return symbol_lab_fixture(resolved_ticker)
+        SymbolSubscriptionRepository(session).unsubscribe(resolved_ticker)
+
+    return _read_symbol_lab(resolved_ticker)
 
 
 def _live_response(
@@ -108,6 +169,7 @@ def _live_response(
     position,
     positions: list,
     alerts: list,
+    subscription,
 ) -> SymbolLabResponse:
     generated_at = datetime.now(tz=UTC).isoformat()
     payload = symbol_lab_fixture(ticker)
@@ -121,6 +183,7 @@ def _live_response(
     )
     payload.symbol_universe = _symbol_universe(ticker)
     payload.identity = symbol_identity(ticker)
+    payload.subscription = _subscription_state(subscription)
     payload.position = _position_context(position, positions)
     payload.alerts = symbol_alerts
     payload.news = []
@@ -352,6 +415,43 @@ def _universe_row(symbol: str):
     elif symbol in {"VIX", "US10Y", "DXY"}:
         kind = "MACRO_PROXY"
     return UniverseTicker(symbol=symbol, label=_symbol_label(symbol), kind=kind)
+
+
+def _subscription_state(subscription) -> SymbolSubscriptionState:
+    active = bool(subscription and subscription.active)
+    last_action = "subscribed" if active else "unsubscribed" if subscription else "none"
+    return SymbolSubscriptionState(
+        is_subscribed=active,
+        can_subscribe=True,
+        update_universe_member=active,
+        last_action=last_action,
+    )
+
+
+def _get_subscription_safe(session, ticker: str):
+    try:
+        return SymbolSubscriptionRepository(session).get(ticker)
+    except Exception:
+        session.rollback()
+        return None
+
+
+def _refresh_subscribed_symbol(session, ticker: str) -> None:
+    adapter_name = os.environ.get("FINSKILLOS_SYMBOL_SUBSCRIBE_ADAPTER", "yahoo").lower()
+    if adapter_name == "off":
+        return
+    adapter = YahooChartMarketDataAdapter()
+    if adapter_name == "mock":
+        from finskillos.data_sources import MockMarketDataAdapter
+
+        adapter = MockMarketDataAdapter()
+    service = MarketDataService(session, adapter=adapter, universe=[ticker])
+    service.refresh_bars([ticker], end=datetime.now(tz=UTC))
+    SignalService(session).compute_for_universe([ticker])
+
+
+def _symbol_preview_enabled() -> bool:
+    return os.environ.get("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "yahoo").lower() != "off"
 
 
 def _symbol_label(symbol: str) -> str:

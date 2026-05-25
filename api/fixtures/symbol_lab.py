@@ -26,6 +26,7 @@ from api.schemas.symbol_lab import (
     SymbolNewsItem,
     SymbolPosition,
     SymbolRecentBar,
+    SymbolSubscriptionState,
     UniverseTicker,
 )
 
@@ -226,6 +227,10 @@ def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
         ),
         symbol_universe=list(_SYMBOL_UNIVERSE),
         identity=symbol_identity(focus.symbol),
+        subscription=SymbolSubscriptionState(
+            is_subscribed=focus.symbol in {"NVDA", "TSLA", "AAPL", "MSFT", "SMH"},
+            update_universe_member=True,
+        ),
         header=SymbolLabHeader(
             ticker=focus.symbol,
             timeframe="1d",
@@ -307,6 +312,7 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
         ),
         symbol_universe=list(_SYMBOL_UNIVERSE),
         identity=symbol_identity(ticker),
+        subscription=SymbolSubscriptionState(is_subscribed=False),
         header=SymbolLabHeader(
             ticker=ticker,
             timeframe="1d",

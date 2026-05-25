@@ -295,7 +295,7 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
     from finskillos.services.market_data_service import MarketDataService
 
     adapter_name = os.environ.get("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock").lower()
-    tickers = _market_refresh_tickers()
+    tickers = _with_subscribed_tickers(session, _market_refresh_tickers())
     if adapter_name == "yahoo":
         adapter = YahooChartMarketDataAdapter()
     elif adapter_name == "mock":
@@ -329,7 +329,7 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
 def _invoke_calculate_indicators(session) -> tuple[str, str, str]:
     from finskillos.services.signal_service import SignalService
 
-    tickers = _indicator_refresh_tickers()
+    tickers = _with_subscribed_tickers(session, _indicator_refresh_tickers())
     service = SignalService(session)
     results = service.compute_for_universe(tickers)
     succeeded = [item for item in results if item.ok]
@@ -428,6 +428,17 @@ def _ticker_env(name: str, *, fallback: str = "") -> tuple[str, ...]:
         if item.strip()
     )
     return tickers or DEFAULT_US_TICKER_UNIVERSE
+
+
+def _with_subscribed_tickers(session, tickers: tuple[str, ...]) -> tuple[str, ...]:
+    from finskillos.db.repositories import SymbolSubscriptionRepository
+
+    try:
+        subscribed = SymbolSubscriptionRepository(session).active_tickers()
+    except Exception:
+        session.rollback()
+        subscribed = ()
+    return tuple(dict.fromkeys((*tickers, *subscribed)))
 
 
 __all__ = ["router"]

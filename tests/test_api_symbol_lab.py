@@ -16,7 +16,12 @@ from finskillos.config import reset_settings_cache
 from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.data_sources.dto import MarketBarDTO
 from finskillos.db.base import Base
-from finskillos.db.repositories import AccountRepository, AlertRepository, PositionRepository
+from finskillos.db.repositories import (
+    AccountRepository,
+    AlertRepository,
+    PositionRepository,
+    SymbolSubscriptionRepository,
+)
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
 
@@ -25,8 +30,14 @@ def _client() -> TestClient:
     return TestClient(create_app())
 
 
+def _fixture_json(path: str = "/api/symbol-lab") -> dict:
+    return _client().get(path, headers={"X-FSO-Use-Fixture": "1"}).json()
+
+
 def test_symbol_lab_default_ticker_returns_full_payload() -> None:
-    response = _client().get("/api/symbol-lab")
+    response = _client().get(
+        "/api/symbol-lab", headers={"X-FSO-Use-Fixture": "1"}
+    )
     assert response.status_code == 200
     body = response.json()
 
@@ -51,17 +62,18 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
     assert body["header"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
     assert body["identity"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
     assert body["identity"]["logoSource"] == "local_fallback"
+    assert body["subscription"]["canSubscribe"] is True
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
 
 def test_symbol_lab_universe_exposes_all_searchable_symbols() -> None:
-    body = _client().get("/api/symbol-lab").json()
+    body = _fixture_json()
     symbols = {row["symbol"] for row in body["symbolUniverse"]}
     assert symbols == {"NVDA", "TSLA", "AAPL", "MSFT", "SMH"}
 
 
 def test_symbol_lab_default_ticker_has_position_context() -> None:
-    body = _client().get("/api/symbol-lab").json()
+    body = _fixture_json()
     position = body["position"]
     assert position is not None
     assert position["ticker"] == "TSLA"
@@ -70,7 +82,7 @@ def test_symbol_lab_default_ticker_has_position_context() -> None:
 
 
 def test_symbol_lab_alerts_match_position_context() -> None:
-    body = _client().get("/api/symbol-lab?ticker=TSLA").json()
+    body = _fixture_json("/api/symbol-lab?ticker=TSLA")
     alerts = body["alerts"]
     assert any(
         alert["guardName"] == "SINGLE_POSITION_LIMIT_GUARD" for alert in alerts
@@ -78,7 +90,7 @@ def test_symbol_lab_alerts_match_position_context() -> None:
 
 
 def test_symbol_lab_non_held_ticker_returns_none_position() -> None:
-    body = _client().get("/api/symbol-lab?ticker=NVDA").json()
+    body = _fixture_json("/api/symbol-lab?ticker=NVDA")
     assert body["header"]["ticker"] == "NVDA"
     assert body["position"] is None
     # NVDA still has technical data + watchpoints because we ship a
@@ -88,7 +100,7 @@ def test_symbol_lab_non_held_ticker_returns_none_position() -> None:
 
 
 def test_symbol_lab_unknown_ticker_returns_missing_status() -> None:
-    body = _client().get("/api/symbol-lab?ticker=ZZZZZ").json()
+    body = _fixture_json("/api/symbol-lab?ticker=ZZZZZ")
     assert body["header"]["dataStatus"] == "MISSING"
     assert body["identity"]["avatarText"] == "ZZ"
     assert body["recentBars"] == []
@@ -98,14 +110,14 @@ def test_symbol_lab_unknown_ticker_returns_missing_status() -> None:
 
 
 def test_symbol_lab_arbitrary_ticker_search_is_structured() -> None:
-    body = _client().get("/api/symbol-lab?ticker=ADBE").json()
+    body = _fixture_json("/api/symbol-lab?ticker=ADBE")
     assert body["header"]["ticker"] == "ADBE"
     assert body["header"]["dataStatus"] == "MISSING"
     assert "searched successfully" in body["setupHint"]
 
 
 def test_symbol_lab_macro_proxy_is_input_search_only_until_snapshot_exists() -> None:
-    body = _client().get("/api/symbol-lab?ticker=US10Y").json()
+    body = _fixture_json("/api/symbol-lab?ticker=US10Y")
     shortcuts = {row["symbol"] for row in body["symbolUniverse"]}
     assert "US10Y" not in shortcuts
     assert body["header"]["ticker"] == "US10Y"
@@ -113,7 +125,7 @@ def test_symbol_lab_macro_proxy_is_input_search_only_until_snapshot_exists() -> 
 
 
 def test_symbol_lab_technical_block_has_required_fields() -> None:
-    body = _client().get("/api/symbol-lab?ticker=NVDA").json()
+    body = _fixture_json("/api/symbol-lab?ticker=NVDA")
     tech = body["technical"]
     expected = {
         "rsi14",
@@ -130,13 +142,13 @@ def test_symbol_lab_technical_block_has_required_fields() -> None:
 
 
 def test_symbol_lab_safety_caption_is_descriptive() -> None:
-    body = _client().get("/api/symbol-lab").json()
+    body = _fixture_json()
     caption = body["safetyCaption"].lower()
     assert "stored data only" in caption
 
 
 def test_symbol_lab_response_does_not_expose_execution_concepts() -> None:
-    raw = json.dumps(_client().get("/api/symbol-lab").json()).lower()
+    raw = json.dumps(_fixture_json()).lower()
     for forbidden in ('"buy"', '"sell"', '"execute"', '"trade now"', '"order"'):
         assert forbidden not in raw, (
             f"Symbol Lab response leaks execution concept {forbidden!r}"
@@ -169,6 +181,7 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
 
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
     reset_settings_cache()
 
     try:
@@ -200,6 +213,7 @@ def test_symbol_lab_live_db_missing_ticker_is_explicit(
     Base.metadata.create_all(engine)
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
     reset_settings_cache()
 
     try:
@@ -207,6 +221,7 @@ def test_symbol_lab_live_db_missing_ticker_is_explicit(
 
         assert body["source"] == "live"
         assert body["header"]["dataStatus"] == "MISSING"
+        assert body["subscription"]["isSubscribed"] is False
         assert body["recentBars"] == []
         assert "no stored bar series" in body["interpretation"].lower()
         assert body["setupHint"] is not None
@@ -259,6 +274,7 @@ def test_symbol_lab_live_db_attaches_position_context(
 
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
     reset_settings_cache()
 
     try:
@@ -313,6 +329,7 @@ def test_symbol_lab_ignores_future_stored_bars(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
     reset_settings_cache()
 
     try:
@@ -321,6 +338,46 @@ def test_symbol_lab_ignores_future_stored_bars(monkeypatch, tmp_path) -> None:
         assert body["source"] == "live"
         assert body["header"]["latestClose"] == "100.000000"
         assert len(body["recentBars"]) == 1
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_symbol_lab_subscribe_toggles_active_without_deleting_history(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_SUBSCRIBE_ADAPTER", "mock")
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+
+    try:
+        client = _client()
+        subscribed = client.post("/api/symbol-lab/ADBE/subscribe").json()
+        assert subscribed["source"] == "live"
+        assert subscribed["subscription"]["isSubscribed"] is True
+        assert subscribed["header"]["dataStatus"] == "OK"
+
+        unsubscribed = client.post("/api/symbol-lab/ADBE/unsubscribe").json()
+        assert unsubscribed["subscription"]["isSubscribed"] is False
+        assert unsubscribed["header"]["dataStatus"] == "OK"
+
+        resubscribed = client.post("/api/symbol-lab/ADBE/subscribe").json()
+        assert resubscribed["subscription"]["isSubscribed"] is True
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            row = SymbolSubscriptionRepository(session).get("ADBE")
+            assert row is not None
+            assert row.active is True
+            assert MarketDataService(session).get_bars("ADBE")
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
