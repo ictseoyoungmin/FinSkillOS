@@ -15,9 +15,14 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
+from finskillos.config import reset_settings_cache
+from finskillos.db.base import Base
+from finskillos.db.seed import seed_default_account
 
 
 def _client() -> TestClient:
@@ -90,3 +95,53 @@ def test_use_fixture_header_is_accepted_on_risk_firewall() -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "fixture"
+
+
+def test_risk_firewall_can_return_live_db_read_model(monkeypatch, tmp_path) -> None:
+    db_url = f"sqlite+pysqlite:///{tmp_path / 'risk_firewall.db'}"
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", db_url)
+    reset_settings_cache()
+
+    engine = create_engine(db_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        seed_default_account(session)
+        session.commit()
+
+    try:
+        response = TestClient(create_app()).get("/api/risk-firewall")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["source"] == "live"
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert body["systemStatus"]["mode"] == "READ_MODE"
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert len(body["guards"]) >= 6
+    finally:
+        reset_settings_cache()
+        engine.dispose()
+
+
+def test_risk_firewall_falls_back_to_fixture_when_live_db_has_no_account(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    db_url = f"sqlite+pysqlite:///{tmp_path / 'empty_risk_firewall.db'}"
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", db_url)
+    reset_settings_cache()
+
+    engine = create_engine(db_url, future=True)
+    Base.metadata.create_all(engine)
+
+    try:
+        response = TestClient(create_app()).get("/api/risk-firewall")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["source"] == "fixture"
+        assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    finally:
+        reset_settings_cache()
+        engine.dispose()

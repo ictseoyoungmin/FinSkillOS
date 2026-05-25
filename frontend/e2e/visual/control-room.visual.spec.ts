@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { gotoControlRoom } from "../_helpers";
+import { forceFixtureSnapshotApis, gotoControlRoom } from "../_helpers";
 
 /**
  * Structural visual baseline. The screenshot is intentionally
@@ -14,6 +14,7 @@ import { gotoControlRoom } from "../_helpers";
  * structural runs (13.6 cleanup §5).
  */
 test("control room visual baseline @visual", async ({ page }) => {
+  await forceFixtureSnapshotApis(page);
   await gotoControlRoom(page);
   // Wait for the three columns + the new chart panel to render before
   // the snapshot.

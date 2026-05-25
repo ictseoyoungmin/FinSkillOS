@@ -101,6 +101,8 @@ not the current implementation target.
 28. `17_Safety_Copy_Polish.md`
 29. `18_Scheduler_Refresh_Policy.md`
 30. `19_Restore_And_Status_Hardening.md`
+31. `20_Live_Adapter_Boundary_Hardening.md`
+32. `21_Risk_Firewall_DB_Read_Model.md`
 
 ## Definition of done for this workplan
 

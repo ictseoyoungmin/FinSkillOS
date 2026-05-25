@@ -33,6 +33,8 @@ Deployment and operations:
 - `11_Scheduler_Refresh_Policy.md`
   - Current manual-first, cron-compatible refresh policy for market bars,
     indicators, regime scans, risk guards, news/events, and visual QA.
+- `12_Live_Adapter_Boundary.md`
+  - Current fixture/live promotion boundary for v4.2 endpoints.
 - `.devmd/14_Deployment_Operations.md`
   - Current deployment slice target. Treat this as the live operations workplan
     before editing the older design document.

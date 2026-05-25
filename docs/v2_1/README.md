@@ -7,3 +7,4 @@ Start with `CONTEXT_INDEX.md`, then open only the documents needed for the imple
 Current operations addenda:
 
 - `11_Scheduler_Refresh_Policy.md` — manual-first, cron-compatible refresh policy.
+- `12_Live_Adapter_Boundary.md` — fixture/live promotion boundary.

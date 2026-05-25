@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FORBIDDEN_EXECUTION_LABELS } from "../_helpers";
+import {
+  forceFixtureSnapshotApis,
+  FORBIDDEN_EXECUTION_LABELS,
+} from "../_helpers";
 
 interface RouteSpec {
   readonly label: string;
@@ -216,6 +219,7 @@ const ROUTES: readonly RouteSpec[] = [
 ];
 
 async function gotoRoute(page: Page, route: RouteSpec): Promise<void> {
+  await forceFixtureSnapshotApis(page);
   await page.goto(route.path);
   await page.waitForSelector(`[data-testid="${route.requiredTestIds[0]}"]`);
   await page.waitForSelector('[data-testid="ticker-strip"]');

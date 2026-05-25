@@ -39,6 +39,11 @@ _V42_ENDPOINTS = (
     ("/api/system-ops", "SYSTEM TRUST JUDGMENT", "Operational protocols only"),
 )
 
+_V42_FIXTURE_FIRST_ENDPOINTS = tuple(
+    path for path, _, _ in _V42_ENDPOINTS if path != "/api/risk-firewall"
+)
+_V42_LIVE_CAPABLE_ENDPOINTS = ("/api/risk-firewall",)
+
 
 def test_all_v42_tabs_expose_core_read_model_contract() -> None:
     client = _client()
@@ -98,6 +103,33 @@ def test_all_v42_tabs_use_camelcase_public_fields() -> None:
         assert "generated_at" not in body
         assert "safety_caption" not in body
         assert "system_status" not in body
+
+
+def test_all_v42_tabs_remain_fixture_first_until_promoted() -> None:
+    client = _client()
+
+    for path in _V42_FIXTURE_FIRST_ENDPOINTS:
+        body = client.get(path).json()
+        assert body["source"] == "fixture", path
+        assert "dataCompleteness" not in body, path
+
+
+def test_promoted_v42_tabs_keep_fixture_override() -> None:
+    client = _client()
+
+    for path in _V42_LIVE_CAPABLE_ENDPOINTS:
+        body = client.get(path, headers={"X-FSO-Use-Fixture": "1"}).json()
+        assert body["source"] == "fixture", path
+        assert "dataCompleteness" not in body, path
+
+
+def test_system_status_owns_data_completeness_contract() -> None:
+    client = _client()
+    body = client.get("/api/system-status").json()
+
+    assert body["source"] in {"fixture", "live"}
+    assert body["dataCompleteness"] in {"complete", "partial", "missing"}
+    assert "staleFlags" in body
 
 
 def test_all_v42_tabs_avoid_soft_action_instruction_copy() -> None:

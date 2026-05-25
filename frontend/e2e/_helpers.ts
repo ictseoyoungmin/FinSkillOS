@@ -26,6 +26,38 @@ export const FORBIDDEN_EXECUTION_LABELS = [
   "매도 버튼",
 ] as const;
 
+const FIXTURE_SNAPSHOT_PATHS = new Set([
+  "/api/control-room",
+  "/api/market-kernel",
+  "/api/analysis-workspace",
+  "/api/symbol-lab",
+  "/api/risk-firewall",
+  "/api/mission-control",
+  "/api/news-intelligence",
+  "/api/event-radar",
+  "/api/trade-memory",
+  "/api/system-ops",
+]);
+
+export async function forceFixtureSnapshotApis(page: Page): Promise<void> {
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (request.method() === "GET" && FIXTURE_SNAPSHOT_PATHS.has(url.pathname)) {
+      await route.continue({
+        headers: {
+          ...request.headers(),
+          "X-FSO-Use-Fixture": "1",
+        },
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+}
+
 export async function gotoControlRoom(page: Page): Promise<void> {
   await page.goto("/");
   await page.waitForSelector('[data-testid="control-room-grid"]');

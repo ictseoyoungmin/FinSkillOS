@@ -57,6 +57,8 @@ operational protocols.
 17     Safety Copy Polish
 18     Scheduler / Refresh Policy
 19     Restore and System Status Hardening
+20     Live Adapter Boundary Hardening
+21     Risk Firewall DB Read Model
 ```
 
 Slice 14 is complete:
@@ -77,6 +79,10 @@ Slice 14 is complete:
   bars, indicators, and regime scans; worker infrastructure remains deferred.
 - Postgres restore uses confirmed clean restore semantics, and
   `/api/system-status` separates DB source from data completeness.
+- Live DB reachability is separated from fixture-first product tab snapshots;
+  `docs/v2_1/12_Live_Adapter_Boundary.md` defines promotion order.
+- `/api/risk-firewall` is the first DB-backed product read model when a DB
+  session and account exist; fixture fallback remains explicit.
 ```
 
 ## Validation Baseline
@@ -107,10 +113,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Durable System Ops DB audit table
+1. External provider adapters
+   - Implement a real market adapter (for example yfinance) behind the
+     existing adapter interface.
+   - Add a news provider adapter only after source/rate-limit rules are clear.
+
+2. Mission Control DB read model
+   - Promote portfolio/goal status after Risk Firewall live path settles.
+
+3. Durable System Ops DB audit table
    - Optional future replacement for local JSONL if multi-host operations
      become necessary.
-
-2. Live adapter boundary hardening
-   - Decide which screens can consume DB-backed live snapshots first.
-   - Keep fixture fallback visibly labeled.

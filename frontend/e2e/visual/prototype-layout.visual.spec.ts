@@ -1,6 +1,7 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { forceFixtureSnapshotApis } from "../_helpers";
 
 interface RouteLayoutSpec {
   readonly label: string;
@@ -193,6 +194,7 @@ async function getReactLayout(
   page: Page,
   route: RouteLayoutSpec,
 ): Promise<LayoutSnapshot> {
+  await forceFixtureSnapshotApis(page);
   await page.goto(route.path);
   await page.getByTestId("judgment-header").waitFor();
 
