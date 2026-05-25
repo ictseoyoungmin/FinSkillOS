@@ -223,6 +223,18 @@ FastAPI는 fixture-first v4.2 Evidence-to-Judgment snapshots를 반환하고,
 `live`)를 노출합니다. DB-backed live mode는 이후 operations slice에서
 페이지별로 명확히 고정합니다.
 
+Operational status:
+
+```bash
+curl http://localhost:8000/api/health
+curl http://localhost:8000/api/system-status
+```
+
+`/api/system-status` reports `apiStatus`, `dbStatus`, freshness timestamps
+for portfolio / market / indicator / regime / news / event data,
+`staleFlags`, and System Ops protocol availability. If the DB is not
+reachable, the endpoint stays responsive and marks `dbStatus` as `MISSING`.
+
 > **Visual parity gate.** 프로토타입과의 회귀 추적은
 > `npm run test:visual`(또는 docker compose 변형)이 권위 있는 게이트입니다.
 > 자세한 baseline 재생성·diff 확인·tolerance 정책은

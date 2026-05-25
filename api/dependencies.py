@@ -12,6 +12,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from fastapi import Header
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 
 @contextmanager
@@ -35,11 +37,27 @@ def get_session_scope() -> Iterator[object]:
     """
 
     try:
-        from finskillos.db.session import session_scope as _session_scope
+        from finskillos.config import get_settings
 
-        with _session_scope() as session:
+        database_url = get_settings().database_url
+        connect_args = (
+            {"connect_timeout": 1} if database_url.startswith("postgresql") else {}
+        )
+        engine = create_engine(
+            database_url,
+            future=True,
+            pool_pre_ping=True,
+            connect_args=connect_args,
+        )
+        session_factory = sessionmaker(
+            bind=engine,
+            autoflush=False,
+            expire_on_commit=False,
+        )
+        with session_factory() as session:
+            session.execute(text("SELECT 1"))
             yield session
-            return
+            session.commit()
     except Exception:
         yield None
 

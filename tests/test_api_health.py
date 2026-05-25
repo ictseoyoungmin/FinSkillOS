@@ -25,3 +25,51 @@ def test_health_endpoint_emits_camelcase_field_names() -> None:
     body = client.get("/api/health").json()
     assert "generatedAt" in body
     assert "generated_at" not in body
+
+
+def test_system_status_endpoint_returns_operations_contract() -> None:
+    client = TestClient(create_app())
+    response = client.get("/api/system-status")
+    assert response.status_code == 200
+    body = response.json()
+
+    expected = {
+        "generatedAt",
+        "mode",
+        "apiStatus",
+        "dbStatus",
+        "source",
+        "latestPortfolioSnapshotAt",
+        "latestMarketBarAt",
+        "latestIndicatorAt",
+        "latestRegimeAt",
+        "latestNewsAt",
+        "latestEventAt",
+        "staleFlags",
+        "protocolAvailability",
+    }
+    assert expected.issubset(body.keys())
+    assert body["mode"] == "READ_MODE"
+    assert body["apiStatus"] == "LIVE"
+    assert body["dbStatus"] in {"LIVE", "MISSING"}
+    assert body["source"] in {"fixture", "live"}
+    assert isinstance(body["staleFlags"], list)
+    assert {item["key"] for item in body["protocolAvailability"]} == {
+        "seed_sample_account",
+        "seed_sample_events",
+        "recompute_regime",
+        "run_risk_guards",
+    }
+
+
+def test_system_status_endpoint_emits_camelcase_field_names() -> None:
+    client = TestClient(create_app())
+    body = client.get("/api/system-status").json()
+
+    assert "generatedAt" in body
+    assert "dbStatus" in body
+    assert "latestMarketBarAt" in body
+    assert "protocolAvailability" in body
+    assert "generated_at" not in body
+    assert "db_status" not in body
+    assert "latest_market_bar_at" not in body

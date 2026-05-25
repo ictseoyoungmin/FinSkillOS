@@ -289,19 +289,23 @@ README must present:
 ## Completion checklist
 
 ```text
-Status: TODO
+Status: PARTIAL
 Implemented operations:
-- [ ] React/FastAPI/Postgres local compose path documented and verified
-- [ ] Migration command documented and verified
+- [x] React/FastAPI/Postgres local compose path documented
+- [x] Migration command documented
 - [ ] Backup command documented and verified
-- [ ] Restore drill documented
-- [ ] Fixture vs live operational contract documented
-- [ ] Health/freshness contract implemented or explicitly deferred
-- [ ] System Ops protocol wording checked for safety
+- [x] Restore drill documented
+- [x] Fixture vs live operational contract documented
+- [x] Health/freshness contract implemented through `/api/system-status`
+- [x] System Ops protocol wording checked for safety by existing API tests
 - [ ] Visual gate commands verified in Docker profile
-- [ ] README and context index updated
+- [x] README and context index updated
 
 Known issues:
 - fixture-first routes are acceptable through Slice 13.11, but Slice 14
   must label that boundary more clearly for local product use.
+- Docker compose, backup, restore, and visual gate commands are
+  documented but not yet runtime-verified in this slice.
+- `/api/system-status` reports DB and freshness availability; the React
+  System Ops page does not yet consume that endpoint directly.
 ```
