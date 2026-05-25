@@ -1,7 +1,12 @@
 import { ApiError, getJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
 import { systemOpsFixture } from "@/mocks/fixtures/systemOps.fixture";
-import type { ProtocolKey, ProtocolRunResult, SystemOpsData } from "./types";
+import type {
+  ProtocolKey,
+  ProtocolRunResult,
+  SystemOpsData,
+  SystemStatusData,
+} from "./types";
 
 const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
   seed_sample_account: "/system-ops/seed-sample-account",
@@ -25,6 +30,19 @@ export async function fetchSystemOps(
       throw error;
     }
     return systemOpsFixture;
+  }
+}
+
+export async function fetchSystemStatus(
+  signal?: AbortSignal,
+): Promise<SystemStatusData> {
+  try {
+    return await getJson<SystemStatusData>(apiEndpoints.systemStatus, { signal });
+  } catch (error) {
+    if (error instanceof ApiError && error.status >= 500) {
+      throw error;
+    }
+    return systemStatusFallback();
   }
 }
 
@@ -52,4 +70,26 @@ export async function runSystemOpsProtocol(
     );
   }
   return (await response.json()) as ProtocolRunResult;
+}
+
+function systemStatusFallback(): SystemStatusData {
+  return {
+    generatedAt: systemOpsFixture.generatedAt,
+    mode: "READ_MODE",
+    apiStatus: "LIVE",
+    dbStatus: "MISSING",
+    source: "fixture",
+    latestPortfolioSnapshotAt: null,
+    latestMarketBarAt: null,
+    latestIndicatorAt: null,
+    latestRegimeAt: null,
+    latestNewsAt: null,
+    latestEventAt: null,
+    staleFlags: ["system_status_unavailable"],
+    protocolAvailability: systemOpsFixture.protocols.map((protocol) => ({
+      key: protocol.key,
+      status: "UNAVAILABLE",
+      detail: "System status endpoint is unavailable; fixture fallback is shown.",
+    })),
+  };
 }

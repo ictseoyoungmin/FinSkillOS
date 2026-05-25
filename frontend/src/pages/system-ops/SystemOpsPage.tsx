@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchSystemOps, runSystemOpsProtocol } from "@/features/system-ops/api";
+import {
+  fetchSystemOps,
+  fetchSystemStatus,
+  runSystemOpsProtocol,
+} from "@/features/system-ops/api";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
 import { systemOpsFixture } from "@/mocks/fixtures/systemOps.fixture";
@@ -22,6 +26,10 @@ export function SystemOpsPage() {
     queryFn: ({ signal }) => fetchSystemOps(signal),
     placeholderData: systemOpsFixture,
   });
+  const { data: statusData } = useQuery({
+    queryKey: ["system-status"],
+    queryFn: ({ signal }) => fetchSystemStatus(signal),
+  });
 
   if (error && !data) {
     return (
@@ -37,6 +45,17 @@ export function SystemOpsPage() {
   }
 
   const payload = data ?? systemOpsFixture;
+  const dbBadgeTone = statusData?.dbStatus === "LIVE" ? "success" : "danger";
+  const staleSummary = statusData
+    ? summarizeStaleFlags(statusData.staleFlags)
+    : {
+        badge: "loading",
+        tone: "info" as const,
+        text: "Status endpoint loading.",
+      };
+  const latestSummary = statusData
+    ? summarizeLatest(statusData)
+    : "Freshness timestamps pending.";
 
   return (
     <div className="fso-system-ops" data-testid="system-ops-page">
@@ -60,19 +79,24 @@ export function SystemOpsPage() {
       <div className="fso-system-ops-evidence-row">
         <Panel
           title="System Health"
-          badge={payload.systemStatus.db}
-          badgeTone="success"
+          badge={statusData?.dbStatus ?? payload.systemStatus.db}
+          badgeTone={dbBadgeTone}
           testId="system-health"
         >
-          <p>API mode: {payload.systemStatus.mode}</p>
+          <p>API mode: {statusData?.mode ?? payload.systemStatus.mode}</p>
+          <p data-testid="system-status-summary">
+            API {statusData?.apiStatus ?? "LIVE"} · source{" "}
+            {(statusData?.source ?? payload.source).toUpperCase()}
+          </p>
         </Panel>
         <Panel
-          title="Migration Status"
-          badge={payload.source}
-          badgeTone="info"
+          title="Freshness Status"
+          badge={staleSummary.badge}
+          badgeTone={staleSummary.tone}
           testId="migration-status"
         >
-          <p>Fixture-first React cockpit through Slice 13.11.</p>
+          <p data-testid="system-freshness-status">{staleSummary.text}</p>
+          <p>{latestSummary}</p>
         </Panel>
       </div>
       <div data-testid="system-ops-data-sources">
@@ -118,4 +142,39 @@ export function SystemOpsPage() {
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
+}
+
+function summarizeStaleFlags(flags: string[]): {
+  badge: string;
+  tone: "info" | "success" | "warning";
+  text: string;
+} {
+  if (flags.length === 0) {
+    return {
+      badge: "fresh",
+      tone: "success",
+      text: "No stale data flags reported by the operations contract.",
+    };
+  }
+  return {
+    badge: `${flags.length} stale`,
+    tone: "warning",
+    text: `Stale flags: ${flags.slice(0, 3).join(", ")}${
+      flags.length > 3 ? " ..." : ""
+    }`,
+  };
+}
+
+function summarizeLatest(status: {
+  latestPortfolioSnapshotAt: string | null;
+  latestMarketBarAt: string | null;
+  latestIndicatorAt: string | null;
+  latestRegimeAt: string | null;
+}): string {
+  return [
+    `portfolio ${status.latestPortfolioSnapshotAt ?? "missing"}`,
+    `market ${status.latestMarketBarAt ?? "missing"}`,
+    `indicator ${status.latestIndicatorAt ?? "missing"}`,
+    `regime ${status.latestRegimeAt ?? "missing"}`,
+  ].join(" · ");
 }

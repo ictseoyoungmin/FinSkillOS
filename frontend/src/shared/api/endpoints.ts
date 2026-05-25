@@ -1,5 +1,6 @@
 export const apiEndpoints = {
   health: "/health",
+  systemStatus: "/system-status",
   controlRoom: "/control-room",
   controlRoomMock: "/mock/control-room",
   marketKernel: "/market-kernel",

@@ -15,6 +15,10 @@ export type ProtocolKey =
 export type ProtocolStatus = "OK" | "NOOP" | "ERROR";
 export type ProtocolTone = "info" | "warning" | "neutral" | "success";
 export type DataSourceStatus = "LIVE" | "FIXTURE" | "MISSING";
+export type ApiStatus = "LIVE";
+export type DbStatus = "LIVE" | "MISSING";
+export type SystemStatusSource = "fixture" | "live";
+export type ProtocolAvailabilityStatus = "AVAILABLE" | "NOOP" | "UNAVAILABLE";
 
 export interface ProtocolCard {
   key: ProtocolKey;
@@ -59,4 +63,26 @@ export interface ProtocolRunResult {
   message: string;
   detail: string;
   ranAt: string;
+}
+
+export interface ProtocolAvailability {
+  key: ProtocolKey;
+  status: ProtocolAvailabilityStatus;
+  detail: string;
+}
+
+export interface SystemStatusData {
+  generatedAt: string;
+  mode: "READ_MODE";
+  apiStatus: ApiStatus;
+  dbStatus: DbStatus;
+  source: SystemStatusSource;
+  latestPortfolioSnapshotAt: string | null;
+  latestMarketBarAt: string | null;
+  latestIndicatorAt: string | null;
+  latestRegimeAt: string | null;
+  latestNewsAt: string | null;
+  latestEventAt: string | null;
+  staleFlags: string[];
+  protocolAvailability: ProtocolAvailability[];
 }

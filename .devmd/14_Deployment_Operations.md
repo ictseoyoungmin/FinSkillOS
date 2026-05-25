@@ -168,16 +168,15 @@ Stale policy:
 Postgres backup:
 
 ```bash
-mkdir -p backups
-docker compose exec postgres pg_dump -U finskillos -d finskillos > backups/finskillos_YYYYMMDD.sql
+bash scripts/backup_postgres.sh
+# or choose an explicit output path
+bash scripts/backup_postgres.sh backups/finskillos_YYYYMMDD_HHMMSS.sql
 ```
 
 Postgres restore drill:
 
 ```bash
-docker compose stop api web app
-docker compose exec -T postgres psql -U finskillos -d finskillos < backups/finskillos_YYYYMMDD.sql
-docker compose start api web
+bash scripts/restore_postgres.sh backups/finskillos_YYYYMMDD_HHMMSS.sql --confirm-restore
 ```
 
 Local runtime data to preserve:
@@ -289,23 +288,27 @@ README must present:
 ## Completion checklist
 
 ```text
-Status: PARTIAL
+Status: DONE
 Implemented operations:
-- [x] React/FastAPI/Postgres local compose path documented
+- [x] React/FastAPI/Postgres local compose path documented and compose-config verified
 - [x] Migration command documented
-- [ ] Backup command documented and verified
-- [x] Restore drill documented
+- [x] Backup command documented and verified against live compose Postgres
+- [x] Restore drill documented and verified against a temporary compose DB
 - [x] Fixture vs live operational contract documented
 - [x] Health/freshness contract implemented through `/api/system-status`
 - [x] System Ops protocol wording checked for safety by existing API tests
-- [ ] Visual gate commands verified in Docker profile
+- [x] Visual gate commands verified in Docker profile
 - [x] README and context index updated
 
-Known issues:
-- fixture-first routes are acceptable through Slice 13.11, but Slice 14
-  must label that boundary more clearly for local product use.
-- Docker compose, backup, restore, and visual gate commands are
-  documented but not yet runtime-verified in this slice.
-- `/api/system-status` reports DB and freshness availability; the React
-  System Ops page does not yet consume that endpoint directly.
+Runtime verification:
+- `bash scripts/backup_postgres.sh backups/finskillos_live_drill.sql`
+  completed against `finskillos-postgres`.
+- Restored that SQL into temporary DB `finskillos_restore_drill`,
+  verified 13 public tables and 1 account row, then dropped the temp DB.
+- Rebuilt `api` / `web`, verified `/api/system-status` returns
+  `dbStatus=LIVE` with stale flags for missing data families.
+- React System Ops consumes `/api/system-status` in the System Health /
+  Freshness Status panels.
+- `docker compose --profile e2e run --rm e2e npm run test:visual`
+  passed: 31 Playwright visual/layout tests.
 ```

@@ -26,5 +26,8 @@ data/uploads/*.csv
 data/local/*.csv
 data/raw/*.csv
 
+backups/*.sql
+backups/*.dump
+
 .devmd/workflow_and_memory/
 prototypes/ui/reference_assets/

@@ -114,7 +114,23 @@ docker compose --profile app up --build app
 # http://localhost:8501
 ```
 
-## 7. 보조 스크립트 (선택)
+## 7. Backup / Restore
+
+Postgres backup files live under `backups/` and are ignored by git except
+for `backups/.gitkeep`.
+
+```bash
+# Create backups/finskillos_YYYYMMDD_HHMMSS.sql
+bash scripts/backup_postgres.sh
+
+# Restore requires explicit confirmation because it changes the target DB
+bash scripts/restore_postgres.sh backups/finskillos_YYYYMMDD_HHMMSS.sql --confirm-restore
+```
+
+Use restore only after confirming the target compose Postgres database is
+the intended one.
+
+## 8. 보조 스크립트 (선택)
 
 데이터 적재 / 점검 — 모두 `DATABASE_URL`을 읽고 idempotent하게 동작합니다.
 
@@ -163,7 +179,7 @@ docker compose run --rm app python scripts/run_regime_scan.py
 > 디렉터리(`/app`)는 넣지 않습니다. Streamlit / alembic 은 자체 진입점이
 > 별도로 `/app` 을 잡기 때문에 영향이 없습니다.
 
-## 8. 테스트 / 품질 게이트
+## 9. 테스트 / 품질 게이트
 
 전체 스위트와 acceptance 게이트는 Slice 13에서 정리된 명령어로 묶여 있습니다.
 
@@ -206,14 +222,14 @@ docker compose --profile e2e run --rm e2e npm run test:visual
 python3 -m pytest tests -q -m "not performance"
 ```
 
-## 9. 안전 / 해석-우선 원칙
+## 10. 안전 / 해석-우선 원칙
 
 FinSkillOS는 직접 매수 / 매도 / 실행 명령을 출력하지 않습니다. 모든 출력은
 *market state / risk interpretation / portfolio constraints / watchpoints /
 reflection support* 범주 안에서 작성되며, `finskillos.guards.base.assert_no_forbidden_wording`
 이 view-model / journal 시점에 직접-지시 어휘를 차단합니다.
 
-## 10. v4.2 Product Cockpit — FastAPI + React/Vite
+## 11. v4.2 Product Cockpit — FastAPI + React/Vite
 
 Streamlit 앱은 디버그/관리용으로 유지되고, 새 제품 UI는 FastAPI(`api/`) +
 Vite React(`frontend/`) 조합으로 동작합니다.
