@@ -17,7 +17,7 @@ export const systemOpsFixture: SystemOpsData = {
     confidence: 69,
   },
   drivers: [
-    { score: "5", title: "Protocols", note: "Operational cards are available for deterministic local workflows." },
+    { score: "6", title: "Protocols", note: "Operational cards are available for deterministic local workflows." },
     { score: "Fixture", title: "Data layer", note: "Market, event, and news stores remain fixture-first." },
     { score: "Read", title: "Mode", note: "The system exposes operational protocols only." },
   ],
@@ -60,6 +60,18 @@ export const systemOpsFixture: SystemOpsData = {
       buttonLabel: "Refresh stored bars",
       confirmLabel: "Refresh stored bars",
       tone: "success",
+      lastRunAt: null,
+    },
+    {
+      key: "calculate_indicators",
+      title: "Calculate indicators",
+      description:
+        "Computes descriptive technical snapshots from stored bars. No provider request is made during this protocol.",
+      idempotencyNote:
+        "Idempotent · latest snapshots are upserted by ticker, timeframe, and snapshot time.",
+      buttonLabel: "Calculate indicators",
+      confirmLabel: "Calculate indicators",
+      tone: "info",
       lastRunAt: null,
     },
     {
@@ -107,9 +119,9 @@ export const systemOpsFixture: SystemOpsData = {
       detail: "Fixture-first in Slice 13.8 · live DB optional.",
     },
     {
-      label: "Market Bars",
+      label: "Market / Indicators",
       status: "FIXTURE",
-      detail: "Stored data refresh is available through System Ops.",
+      detail: "Stored bar refresh and indicator calculation are available.",
     },
     {
       label: "News / Event Stores",

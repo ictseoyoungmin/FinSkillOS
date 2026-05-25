@@ -170,6 +170,7 @@ def _protocol_availability(
         for key in (
             "seed_sample_account",
             "refresh_market_data",
+            "calculate_indicators",
             "seed_sample_events",
             "recompute_regime",
             "run_risk_guards",

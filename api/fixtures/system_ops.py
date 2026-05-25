@@ -35,7 +35,7 @@ def system_ops_fixture() -> SystemOpsResponse:
         ),
         drivers=drivers(
             (
-                "5",
+                "6",
                 "Protocols",
                 "Operational cards are available for deterministic local workflows.",
             ),
@@ -95,6 +95,22 @@ def system_ops_fixture() -> SystemOpsResponse:
                 last_run_at=None,
             ),
             ProtocolCard(
+                key="calculate_indicators",
+                title="Calculate indicators",
+                description=(
+                    "Computes descriptive technical snapshots from stored bars. "
+                    "No provider request is made during this protocol."
+                ),
+                idempotency_note=(
+                    "Idempotent · latest snapshots are upserted by ticker, "
+                    "timeframe, and snapshot time."
+                ),
+                button_label="Calculate indicators",
+                confirm_label="Calculate indicators",
+                tone="info",
+                last_run_at=None,
+            ),
+            ProtocolCard(
                 key="recompute_regime",
                 title="Recompute market regime",
                 description=(
@@ -151,9 +167,9 @@ def system_ops_fixture() -> SystemOpsResponse:
                 detail="Fixture-first in Slice 13.8 · live DB optional.",
             ),
             DataSourcePill(
-                label="Market Bars",
+                label="Market / Indicators",
                 status="FIXTURE",
-                detail="Stored data refresh is available through System Ops.",
+                detail="Stored bar refresh and indicator calculation are available.",
             ),
             DataSourcePill(
                 label="News / Event Stores",

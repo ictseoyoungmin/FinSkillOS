@@ -21,12 +21,15 @@ from sqlalchemy.orm import sessionmaker
 from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
 from finskillos.config import reset_settings_cache
+from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
-from finskillos.db.repositories import MarketRepository
+from finskillos.db.repositories import IndicatorRepository, MarketRepository
+from finskillos.services.market_data_service import MarketDataService
 
 _PROTOCOL_KEYS = {
     "seed_sample_account",
     "refresh_market_data",
+    "calculate_indicators",
     "recompute_regime",
     "run_risk_guards",
     "seed_sample_events",
@@ -35,6 +38,7 @@ _PROTOCOL_KEYS = {
 _POST_ENDPOINTS = (
     ("/api/system-ops/seed-sample-account", "seed_sample_account"),
     ("/api/system-ops/refresh-market-data", "refresh_market_data"),
+    ("/api/system-ops/calculate-indicators", "calculate_indicators"),
     ("/api/system-ops/recompute-regime", "recompute_regime"),
     ("/api/system-ops/run-risk-guards", "run_risk_guards"),
     ("/api/system-ops/seed-sample-events", "seed_sample_events"),
@@ -224,6 +228,70 @@ def test_refresh_market_data_protocol_rejects_unknown_adapter(
         assert body["protocol"] == "refresh_market_data"
         assert body["status"] == "ERROR"
         assert "Unsupported adapter" in body["message"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_calculate_indicators_protocol_writes_latest_snapshots(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        MarketDataService(
+            session,
+            adapter=MockMarketDataAdapter(default_bars=40),
+            universe=["SPY", "QQQ"],
+        ).refresh_bars(["SPY", "QQQ"])
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_INDICATOR_REFRESH_TICKERS", "SPY,QQQ")
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/calculate-indicators").json()
+
+        assert body["protocol"] == "calculate_indicators"
+        assert body["status"] == "OK"
+        assert "2 symbols available" in body["message"]
+        assert "snapshots=2" in body["detail"]
+
+        with factory() as session:
+            repo = IndicatorRepository(session)
+            assert repo.latest_for("SPY", "1d") is not None
+            assert repo.latest_for("QQQ", "1d") is not None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_calculate_indicators_protocol_noops_without_bars(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_INDICATOR_REFRESH_TICKERS", "SPY")
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/calculate-indicators").json()
+
+        assert body["protocol"] == "calculate_indicators"
+        assert body["status"] == "NOOP"
+        assert "failed=1" in body["detail"]
+        assert "failedSymbols=SPY" in body["detail"]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

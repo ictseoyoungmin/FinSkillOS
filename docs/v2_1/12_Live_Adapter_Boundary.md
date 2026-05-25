@@ -69,6 +69,10 @@ not make `/api/market-kernel` or `/api/symbol-lab` live by themselves. Those
 product tabs still need promoted DB-backed read models and missing-data labels
 before they should stop returning fixture snapshots.
 
+System Ops also exposes `POST /api/system-ops/calculate-indicators`, surfaced
+as a protocol card in the React UI. It computes descriptive indicator snapshots
+from stored bars only. No provider call or worker queue is involved.
+
 News remains manual/sample only. A live news adapter requires source,
 attribution, rate-limit, and safety-copy rules before promotion.
 

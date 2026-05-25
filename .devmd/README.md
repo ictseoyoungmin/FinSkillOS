@@ -106,6 +106,7 @@ not the current implementation target.
 33. `22_Market_Provider_Adapter.md`
 34. `23_System_Ops_Market_Refresh_Protocol.md`
 35. `24_Market_Kernel_DB_Read_Model.md`
+36. `25_System_Ops_Indicator_Calculate_Protocol.md`
 
 ## Definition of done for this workplan
 

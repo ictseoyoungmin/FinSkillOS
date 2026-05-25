@@ -29,6 +29,7 @@ from api.schemas.common import (
 ProtocolKey = Literal[
     "seed_sample_account",
     "refresh_market_data",
+    "calculate_indicators",
     "recompute_regime",
     "run_risk_guards",
     "seed_sample_events",

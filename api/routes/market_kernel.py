@@ -49,10 +49,21 @@ def market_kernel(
             return market_kernel_fixture(ticker)
 
         resolved_ticker = _normalize_ticker(ticker)
-        bars = MarketRepository(session).list_bars(resolved_ticker, DEFAULT_TIMEFRAME)
-        latest_indicator = IndicatorRepository(session).latest_for(
+        now = datetime.now(tz=UTC)
+        bars = [
+            bar
+            for bar in MarketRepository(session).list_bars(
+                resolved_ticker, DEFAULT_TIMEFRAME
+            )
+            if _as_utc(bar.bar_time) <= now
+        ]
+        indicator_rows = IndicatorRepository(session).list_for(
             resolved_ticker, DEFAULT_TIMEFRAME
         )
+        usable_indicators = [
+            row for row in indicator_rows if _as_utc(row.snapshot_time) <= now
+        ]
+        latest_indicator = usable_indicators[-1] if usable_indicators else None
         return _live_response(
             ticker=resolved_ticker,
             bars=bars,
@@ -215,6 +226,12 @@ def _iso(value) -> str:
             return value.replace(tzinfo=UTC).isoformat()
         return value.isoformat()
     return str(value)
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _indicator_status(latest_indicator) -> str:

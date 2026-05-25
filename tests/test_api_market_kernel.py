@@ -15,6 +15,8 @@ Verifies the shape the React Market Kernel page relies on:
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -28,6 +30,7 @@ from api.fixtures import (
 from api.main import create_app
 from finskillos.config import reset_settings_cache
 from finskillos.data_sources import MockMarketDataAdapter
+from finskillos.data_sources.dto import MarketBarDTO
 from finskillos.db.base import Base
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
@@ -188,6 +191,58 @@ def test_market_kernel_live_db_missing_ticker_is_explicit(
         assert body["bars"] == []
         assert "no stored bar series" in body["interpretation"].lower()
         assert body["setupHint"] is not None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_market_kernel_ignores_future_stored_bars(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime.now(tz=timezone.utc)
+    with factory() as session:
+        MarketDataService(session).import_bars(
+            [
+                MarketBarDTO(
+                    ticker="SPY",
+                    timeframe="1d",
+                    bar_time=now - timedelta(days=1),
+                    open=Decimal("100"),
+                    high=Decimal("101"),
+                    low=Decimal("99"),
+                    close=Decimal("100"),
+                    volume=Decimal("1000000"),
+                    source="test",
+                ),
+                MarketBarDTO(
+                    ticker="SPY",
+                    timeframe="1d",
+                    bar_time=now + timedelta(days=1),
+                    open=Decimal("200"),
+                    high=Decimal("201"),
+                    low=Decimal("199"),
+                    close=Decimal("200"),
+                    volume=Decimal("1000000"),
+                    source="test",
+                ),
+            ]
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/market-kernel?ticker=SPY").json()
+
+        assert body["source"] == "live"
+        assert body["header"]["latestClose"] == "100.000000"
+        assert len(body["bars"]) == 1
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

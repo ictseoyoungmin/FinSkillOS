@@ -89,6 +89,22 @@ def run_refresh_market_data() -> ProtocolRunResult:
 
 
 @router.post(
+    "/system-ops/calculate-indicators",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: calculate descriptive indicators from stored bars.",
+)
+def run_calculate_indicators() -> ProtocolRunResult:
+    return _run_protocol(
+        key="calculate_indicators",
+        fixture_message=(
+            "Indicator calculation acknowledged. Fixture-first shell did "
+            "not touch the database."
+        ),
+        runner=_invoke_calculate_indicators,
+    )
+
+
+@router.post(
     "/system-ops/recompute-regime",
     response_model=ProtocolRunResult,
     summary="Recompute the descriptive market regime over stored snapshots.",
@@ -310,6 +326,30 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
     return (status, message, detail)
 
 
+def _invoke_calculate_indicators(session) -> tuple[str, str, str]:
+    from finskillos.services.signal_service import SignalService
+
+    tickers = _indicator_refresh_tickers()
+    service = SignalService(session)
+    results = service.compute_for_universe(tickers)
+    succeeded = [item for item in results if item.ok]
+    failed = [item for item in results if not item.ok]
+    snapshots_written = sum(item.snapshots_written for item in results)
+    status = "OK" if succeeded else "NOOP"
+    message = (
+        f"Indicator snapshots calculated · {len(succeeded)} symbols available · "
+        f"{snapshots_written} snapshots written."
+    )
+    detail = (
+        f"tickers={len(tickers)},succeeded={len(succeeded)},"
+        f"failed={len(failed)},snapshots={snapshots_written}"
+    )
+    if failed:
+        failed_symbols = ",".join(item.ticker for item in failed[:5])
+        detail = f"{detail},failedSymbols={failed_symbols}"
+    return (status, message, detail)
+
+
 def _invoke_recompute_regime(session) -> tuple[str, str, str]:
     from finskillos.services.regime_service import RegimeService
 
@@ -368,7 +408,18 @@ def _invoke_seed_sample_events(session) -> tuple[str, str, str]:
 
 
 def _market_refresh_tickers() -> tuple[str, ...]:
-    raw = os.environ.get("FINSKILLOS_MARKET_REFRESH_TICKERS", "")
+    return _ticker_env("FINSKILLOS_MARKET_REFRESH_TICKERS")
+
+
+def _indicator_refresh_tickers() -> tuple[str, ...]:
+    return _ticker_env(
+        "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
+        fallback=os.environ.get("FINSKILLOS_MARKET_REFRESH_TICKERS", ""),
+    )
+
+
+def _ticker_env(name: str, *, fallback: str = "") -> tuple[str, ...]:
+    raw = os.environ.get(name, fallback)
     if not raw.strip():
         return DEFAULT_US_TICKER_UNIVERSE
     tickers = tuple(

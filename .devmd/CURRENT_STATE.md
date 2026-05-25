@@ -62,6 +62,7 @@ operational protocols.
 22     Market Provider Adapter
 23     System Ops Market Refresh Protocol
 24     Market Kernel DB Read Model
+25     System Ops Indicator Calculate Protocol
 ```
 
 Slice 14 is complete:
@@ -94,6 +95,9 @@ Slice 14 is complete:
   configuration.
 - `/api/market-kernel` can read stored DB bars and latest indicator snapshots
   without calling a provider during page rendering.
+- System Ops exposes a `calculate_indicators` protocol card. It computes
+  descriptive snapshots from stored bars and keeps worker infrastructure
+  deferred.
 ```
 
 ## Validation Baseline

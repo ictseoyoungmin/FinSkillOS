@@ -59,6 +59,7 @@ def test_system_status_endpoint_returns_operations_contract() -> None:
     assert {item["key"] for item in body["protocolAvailability"]} == {
         "seed_sample_account",
         "refresh_market_data",
+        "calculate_indicators",
         "seed_sample_events",
         "recompute_regime",
         "run_risk_guards",

@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -29,6 +29,7 @@ from finskillos.db.repositories import IndicatorRepository, MarketRepository
 from finskillos.signals import technical
 
 log = logging.getLogger(__name__)
+UTC = timezone.utc
 
 MIN_BARS_FOR_INDICATORS = 15  # RSI14 needs >14 bars; below this we skip.
 
@@ -67,7 +68,12 @@ class SignalService:
         for chart pages / back-tests.
         """
 
-        bars = self.market_repo.list_bars(ticker, timeframe)
+        now = datetime.now(tz=UTC)
+        bars = [
+            bar
+            for bar in self.market_repo.list_bars(ticker, timeframe)
+            if _as_utc(bar.bar_time) <= now
+        ]
         if len(bars) < MIN_BARS_FOR_INDICATORS:
             return IndicatorComputeResult(
                 ticker=ticker.upper(),
@@ -165,3 +171,9 @@ class SignalService:
                 )
             )
         return dtos
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
