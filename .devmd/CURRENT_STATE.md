@@ -55,6 +55,8 @@ operational protocols.
 15     System Ops Audit / History Evidence
 16     Fixture / Live / Data-Unavailable Labeling
 17     Safety Copy Polish
+18     Scheduler / Refresh Policy
+19     Restore and System Status Hardening
 ```
 
 Slice 14 is complete:
@@ -71,6 +73,10 @@ Slice 14 is complete:
   stale-count state, read-only mode, and snapshot timestamp on every tab.
 - Regime and risk guard copy uses constraint/review language instead of
   action-like reduction, entry, or cash-increase instructions.
+- Refresh is manual-first and cron-compatible through scripts for market
+  bars, indicators, and regime scans; worker infrastructure remains deferred.
+- Postgres restore uses confirmed clean restore semantics, and
+  `/api/system-status` separates DB source from data completeness.
 ```
 
 ## Validation Baseline
@@ -101,11 +107,10 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Scheduler/refresh policy
-   - Document manual vs script-driven refresh for market data, indicators,
-     regimes, news/events, and risk guards.
-   - Do not add Celery/Redis until a concrete runtime need exists.
-
-2. Durable System Ops DB audit table
+1. Durable System Ops DB audit table
    - Optional future replacement for local JSONL if multi-host operations
      become necessary.
+
+2. Live adapter boundary hardening
+   - Decide which screens can consume DB-backed live snapshots first.
+   - Keep fixture fallback visibly labeled.

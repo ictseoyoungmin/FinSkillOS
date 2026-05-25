@@ -4,6 +4,7 @@ import "./os-status-bar.css";
 export interface OsStatusBarProps {
   source: "fixture" | "live";
   dbStatus?: "LIVE" | "MISSING";
+  dataCompleteness?: "complete" | "partial" | "missing";
   generatedAt: string;
   staleFlags?: string[];
 }
@@ -11,6 +12,7 @@ export interface OsStatusBarProps {
 export function OsStatusBar({
   source,
   dbStatus = "MISSING",
+  dataCompleteness = "missing",
   generatedAt,
   staleFlags = [],
 }: OsStatusBarProps) {
@@ -36,6 +38,12 @@ export function OsStatusBar({
         <span className="fso-status-key">Freshness</span>{" "}
         <span className="fso-status-value" data-testid="freshness-status">
           {freshnessLabel}
+        </span>
+      </span>
+      <span>
+        <span className="fso-status-key">Completeness</span>{" "}
+        <span className="fso-status-value" data-testid="completeness-status">
+          {dataCompleteness.toUpperCase()}
         </span>
       </span>
       <span>

@@ -79,6 +79,7 @@ function systemStatusFallback(): SystemStatusData {
     apiStatus: "LIVE",
     dbStatus: "MISSING",
     source: "fixture",
+    dataCompleteness: "missing",
     latestPortfolioSnapshotAt: null,
     latestMarketBarAt: null,
     latestIndicatorAt: null,

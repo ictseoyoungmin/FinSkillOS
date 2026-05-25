@@ -35,6 +35,7 @@ class SystemStatusResponse(CamelModel):
     api_status: Literal["LIVE"]
     db_status: Literal["LIVE", "MISSING"]
     source: Literal["fixture", "live"]
+    data_completeness: Literal["complete", "partial", "missing"]
     latest_portfolio_snapshot_at: str | None = None
     latest_market_bar_at: str | None = None
     latest_indicator_at: str | None = None
@@ -98,6 +99,7 @@ def system_status() -> SystemStatusResponse:
             api_status="LIVE",
             db_status="MISSING",
             source="fixture",
+            data_completeness="missing",
             stale_flags=["db_unavailable", "live_snapshots_unavailable"],
             protocol_availability=unavailable_protocols,
         )
@@ -121,7 +123,8 @@ def system_status() -> SystemStatusResponse:
         mode="READ_MODE",
         api_status="LIVE",
         db_status="LIVE",
-        source="live" if not stale_flags else "fixture",
+        source="live",
+        data_completeness="complete" if not stale_flags else "partial",
         latest_portfolio_snapshot_at=latest_portfolio,
         latest_market_bar_at=latest_market,
         latest_indicator_at=latest_indicator,

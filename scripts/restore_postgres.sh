@@ -22,11 +22,19 @@ if [ "${confirm}" != "--confirm-restore" ] && [ "${FINSKILLOS_CONFIRM_RESTORE:-}
   exit 2
 fi
 
-echo "Stopping API/web/debug-admin services before restore."
+echo "Stopping API/web/debug-admin services before clean restore."
 docker compose stop api web app
+
+echo "Dropping and recreating public schema in ${postgres_db}."
+docker compose exec -T postgres psql \
+  -v ON_ERROR_STOP=1 \
+  -U "${postgres_user}" \
+  -d "${postgres_db}" \
+  -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO ${postgres_user}; GRANT ALL ON SCHEMA public TO public;"
 
 echo "Restoring ${backup_path} into ${postgres_db}."
 docker compose exec -T postgres psql \
+  -v ON_ERROR_STOP=1 \
   -U "${postgres_user}" \
   -d "${postgres_db}" \
   < "${backup_path}"

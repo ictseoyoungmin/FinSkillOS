@@ -99,6 +99,8 @@ not the current implementation target.
 26. `15_System_Ops_Audit_History.md`
 27. `16_Fixture_Live_Data_Unavailable_Labeling.md`
 28. `17_Safety_Copy_Polish.md`
+29. `18_Scheduler_Refresh_Policy.md`
+30. `19_Restore_And_Status_Hardening.md`
 
 ## Definition of done for this workplan
 

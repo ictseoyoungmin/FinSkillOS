@@ -86,7 +86,8 @@ export function SystemOpsPage() {
           <p>API mode: {statusData?.mode ?? payload.systemStatus.mode}</p>
           <p data-testid="system-status-summary">
             API {statusData?.apiStatus ?? "LIVE"} · source{" "}
-            {(statusData?.source ?? payload.source).toUpperCase()}
+            {(statusData?.source ?? payload.source).toUpperCase()} · completeness{" "}
+            {(statusData?.dataCompleteness ?? "missing").toUpperCase()}
           </p>
         </Panel>
         <Panel

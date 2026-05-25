@@ -73,8 +73,9 @@ export function OsShell({ children }: OsShellProps) {
         {children}
       </main>
       <OsStatusBar
-        source={data?.source ?? "fixture"}
+        source={systemStatus?.source ?? data?.source ?? "fixture"}
         dbStatus={systemStatus?.dbStatus ?? "MISSING"}
+        dataCompleteness={systemStatus?.dataCompleteness ?? "missing"}
         generatedAt={data?.generatedAt ?? ""}
         staleFlags={systemStatus?.staleFlags ?? ["system_status_pending"]}
       />

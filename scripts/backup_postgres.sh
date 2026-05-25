@@ -11,6 +11,8 @@ mkdir -p "$(dirname "${output_path}")"
 
 echo "Creating Postgres backup: ${output_path}"
 docker compose exec -T postgres pg_dump \
+  --clean \
+  --if-exists \
   -U "${postgres_user}" \
   -d "${postgres_db}" \
   > "${output_path}"

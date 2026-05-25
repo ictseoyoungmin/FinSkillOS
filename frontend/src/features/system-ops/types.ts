@@ -18,6 +18,7 @@ export type DataSourceStatus = "LIVE" | "FIXTURE" | "MISSING";
 export type ApiStatus = "LIVE";
 export type DbStatus = "LIVE" | "MISSING";
 export type SystemStatusSource = "fixture" | "live";
+export type DataCompleteness = "complete" | "partial" | "missing";
 export type ProtocolAvailabilityStatus = "AVAILABLE" | "NOOP" | "UNAVAILABLE";
 
 export interface ProtocolCard {
@@ -83,6 +84,7 @@ export interface SystemStatusData {
   apiStatus: ApiStatus;
   dbStatus: DbStatus;
   source: SystemStatusSource;
+  dataCompleteness: DataCompleteness;
   latestPortfolioSnapshotAt: string | null;
   latestMarketBarAt: string | null;
   latestIndicatorAt: string | null;

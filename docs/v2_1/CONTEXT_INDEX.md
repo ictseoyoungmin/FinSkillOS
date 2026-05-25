@@ -30,6 +30,9 @@ Regime and Risk Guard:
 Deployment and operations:
 
 - `10_Deployment_Operations.md`
+- `11_Scheduler_Refresh_Policy.md`
+  - Current manual-first, cron-compatible refresh policy for market bars,
+    indicators, regime scans, risk guards, news/events, and visual QA.
 - `.devmd/14_Deployment_Operations.md`
   - Current deployment slice target. Treat this as the live operations workplan
     before editing the older design document.

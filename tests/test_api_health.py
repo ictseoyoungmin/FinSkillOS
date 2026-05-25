@@ -39,6 +39,7 @@ def test_system_status_endpoint_returns_operations_contract() -> None:
         "apiStatus",
         "dbStatus",
         "source",
+        "dataCompleteness",
         "latestPortfolioSnapshotAt",
         "latestMarketBarAt",
         "latestIndicatorAt",
@@ -53,6 +54,7 @@ def test_system_status_endpoint_returns_operations_contract() -> None:
     assert body["apiStatus"] == "LIVE"
     assert body["dbStatus"] in {"LIVE", "MISSING"}
     assert body["source"] in {"fixture", "live"}
+    assert body["dataCompleteness"] in {"complete", "partial", "missing"}
     assert isinstance(body["staleFlags"], list)
     assert {item["key"] for item in body["protocolAvailability"]} == {
         "seed_sample_account",
@@ -68,8 +70,10 @@ def test_system_status_endpoint_emits_camelcase_field_names() -> None:
 
     assert "generatedAt" in body
     assert "dbStatus" in body
+    assert "dataCompleteness" in body
     assert "latestMarketBarAt" in body
     assert "protocolAvailability" in body
     assert "generated_at" not in body
     assert "db_status" not in body
+    assert "data_completeness" not in body
     assert "latest_market_bar_at" not in body

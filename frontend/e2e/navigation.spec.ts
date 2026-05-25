@@ -79,6 +79,9 @@ test.describe("OS shell navigation", () => {
     await expect(page.getByTestId("freshness-status")).toContainText(
       /OK|stale/,
     );
+    await expect(page.getByTestId("completeness-status")).toContainText(
+      /COMPLETE|PARTIAL|MISSING/,
+    );
     await expect(statusBar).toContainText("No execution controls");
   });
 
