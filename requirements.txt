@@ -9,3 +9,4 @@ ruff>=0.5
 sqlalchemy>=2.0
 streamlit>=1.35
 uvicorn[standard]>=0.27
+yfinance>=0.2.40

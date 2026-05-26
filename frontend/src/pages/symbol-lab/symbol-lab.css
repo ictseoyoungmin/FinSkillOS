@@ -39,6 +39,191 @@
   gap: 14px;
 }
 
+.fso-symbol-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+
+.fso-symbol-chart-header > div {
+  min-width: 0;
+}
+
+.fso-symbol-chart-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--fso-text-muted);
+  font-size: 0.78rem;
+}
+
+.fso-symbol-chart-latest {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fso-text-strong);
+  font-size: 0.88rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.fso-symbol-chart-toolbar {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fso-symbol-timeframes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fso-symbol-chip {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--fso-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.fso-symbol-chip--active {
+  border-color: rgba(37, 99, 235, 0.44);
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.fso-symbol-overlay-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.fso-symbol-overlay-popover {
+  position: absolute;
+  z-index: 4;
+  top: 34px;
+  right: 0;
+  width: min(260px, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: var(--fso-bg-2);
+  box-shadow: var(--fso-shadow-lg);
+}
+
+.fso-symbol-overlay-option {
+  display: grid;
+  grid-template-columns: 16px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+  color: var(--fso-text);
+  font-size: 0.78rem;
+}
+
+.fso-symbol-overlay-option > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--fso-text-muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.fso-candlechart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fso-candlechart svg {
+  width: 100%;
+  height: 330px;
+  display: block;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fso-bg-3) 35%, transparent),
+    transparent
+  );
+  border-radius: var(--fso-radius-sm);
+}
+
+.fso-candle-axis {
+  stroke: var(--fso-line);
+  stroke-width: 1;
+}
+
+.fso-candle-axis-soft {
+  stroke: var(--fso-line-soft);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.fso-candle-body--up,
+.fso-candle-wick--up {
+  fill: rgba(20, 184, 166, 0.7);
+  stroke: rgba(13, 148, 136, 0.9);
+}
+
+.fso-candle-body--down,
+.fso-candle-wick--down {
+  fill: rgba(239, 68, 68, 0.62);
+  stroke: rgba(220, 38, 38, 0.9);
+}
+
+.fso-candle-volume {
+  opacity: 0.28;
+}
+
+.fso-candle-volume--up {
+  fill: rgba(20, 184, 166, 0.72);
+}
+
+.fso-candle-volume--down {
+  fill: rgba(239, 68, 68, 0.68);
+}
+
+.fso-candle-overlay {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fso-candle-overlay--ema20 {
+  stroke: #2563eb;
+}
+
+.fso-candle-overlay--ema60 {
+  stroke: #7c3aed;
+}
+
+.fso-candle-overlay--ema120 {
+  stroke: #0f766e;
+}
+
+.fso-candle-overlay--band {
+  stroke: rgba(245, 158, 11, 0.72);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
 .fso-symbol-identity {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;

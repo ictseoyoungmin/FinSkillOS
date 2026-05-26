@@ -1,9 +1,9 @@
-"""GET /api/symbol-lab — Slice 13.7 / 27.
+"""GET /api/symbol-lab — Slice 13.7 / 27 / 29.
 
 Fixture fallback wrapper around the Symbol Lab read model. Slice 27
 promotes the endpoint to DB-backed mode when stored market bars are
-available. The route never calls an external provider during page
-rendering; provider refresh is handled by System Ops / scripts / worker.
+available. Slice 29 also allows an explicit provider preview for
+arbitrary searched symbols when the local DB has no stored bars.
 """
 
 from __future__ import annotations
@@ -48,6 +48,8 @@ from finskillos.services.signal_service import SignalService
 router = APIRouter(tags=["symbol-lab"])
 UTC = timezone.utc
 SINGLE_POSITION_REVIEW_THRESHOLD = Decimal("10000000")
+SUPPORTED_SYMBOL_TIMEFRAMES = {"5m", "15m", "1h", "1d", "1wk", "1mo", "1y"}
+TIMEFRAME_ALIASES = {"1w": "1wk", "1mon": "1mo"}
 
 
 @router.get(
@@ -64,29 +66,38 @@ def symbol_lab(
             "payload with a setup hint."
         ),
     ),
+    timeframe: str = Query(
+        default=DEFAULT_TIMEFRAME,
+        description="Chart timeframe: 5m, 15m, 1h, 1d, 1wk, 1mo, or 1y.",
+    ),
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> SymbolLabResponse:
     if use_fixture:
         return symbol_lab_fixture(ticker)
-    return _read_symbol_lab(ticker)
+    return _read_symbol_lab(ticker, timeframe=timeframe)
 
 
-def _read_symbol_lab(ticker: str | None) -> SymbolLabResponse:
+def _read_symbol_lab(
+    ticker: str | None,
+    *,
+    timeframe: str = DEFAULT_TIMEFRAME,
+) -> SymbolLabResponse:
     with get_session_scope() as session:
         if session is None:
             return symbol_lab_fixture(ticker)
 
         resolved_ticker = _normalize_ticker(ticker)
+        resolved_timeframe = _normalize_timeframe(timeframe)
         now = datetime.now(tz=UTC)
         bars = [
             bar
             for bar in MarketRepository(session).list_bars(
-                resolved_ticker, DEFAULT_TIMEFRAME
+                resolved_ticker, resolved_timeframe
             )
             if _as_utc(bar.bar_time) <= now
         ]
         indicator_rows = IndicatorRepository(session).list_for(
-            resolved_ticker, DEFAULT_TIMEFRAME
+            resolved_ticker, resolved_timeframe
         )
         usable_indicators = [
             row for row in indicator_rows if _as_utc(row.snapshot_time) <= now
@@ -104,24 +115,32 @@ def _read_symbol_lab(ticker: str | None) -> SymbolLabResponse:
         )
         alerts = AlertRepository(session).list_active(account.id) if account else []
         subscription = _get_subscription_safe(session, resolved_ticker)
+        provider_note = None
+        provider_preview_used = False
         if not bars and _symbol_preview_enabled():
             try:
                 preview_bars = YahooChartMarketDataAdapter().fetch_bars(
                     resolved_ticker,
-                    timeframe=DEFAULT_TIMEFRAME,
+                    timeframe=resolved_timeframe,
                     end=datetime.now(tz=UTC),
                 )
                 bars = [bar for bar in preview_bars if _as_utc(bar.bar_time) <= now]
-            except MarketDataFetchError:
+                provider_preview_used = bool(bars)
+            except MarketDataFetchError as exc:
+                provider_note = _provider_note(exc)
                 bars = []
         return _live_response(
             ticker=resolved_ticker,
+            timeframe=resolved_timeframe,
             bars=bars,
+            indicators=usable_indicators,
             latest_indicator=latest_indicator,
             position=position,
             positions=positions,
             alerts=alerts,
             subscription=subscription,
+            provider_preview_used=provider_preview_used,
+            provider_note=provider_note,
         )
 
 
@@ -130,7 +149,13 @@ def _read_symbol_lab(ticker: str | None) -> SymbolLabResponse:
     response_model=SymbolLabResponse,
     summary="Subscribe a ticker to the local refresh universe.",
 )
-def subscribe_symbol(ticker: str) -> SymbolLabResponse:
+def subscribe_symbol(
+    ticker: str,
+    timeframe: str = Query(
+        default=DEFAULT_TIMEFRAME,
+        description="Response timeframe: 5m, 15m, 1h, 1d, 1wk, 1mo, or 1y.",
+    ),
+) -> SymbolLabResponse:
     resolved_ticker = _normalize_ticker(ticker)
     with get_session_scope() as session:
         if session is None:
@@ -143,7 +168,7 @@ def subscribe_symbol(ticker: str) -> SymbolLabResponse:
         )
         _refresh_subscribed_symbol(session, resolved_ticker)
 
-    return _read_symbol_lab(resolved_ticker)
+    return _read_symbol_lab(resolved_ticker, timeframe=timeframe)
 
 
 @router.post(
@@ -151,25 +176,35 @@ def subscribe_symbol(ticker: str) -> SymbolLabResponse:
     response_model=SymbolLabResponse,
     summary="Deactivate a ticker subscription without deleting historical data.",
 )
-def unsubscribe_symbol(ticker: str) -> SymbolLabResponse:
+def unsubscribe_symbol(
+    ticker: str,
+    timeframe: str = Query(
+        default=DEFAULT_TIMEFRAME,
+        description="Response timeframe: 5m, 15m, 1h, 1d, 1wk, 1mo, or 1y.",
+    ),
+) -> SymbolLabResponse:
     resolved_ticker = _normalize_ticker(ticker)
     with get_session_scope() as session:
         if session is None:
             return symbol_lab_fixture(resolved_ticker)
         SymbolSubscriptionRepository(session).unsubscribe(resolved_ticker)
 
-    return _read_symbol_lab(resolved_ticker)
+    return _read_symbol_lab(resolved_ticker, timeframe=timeframe)
 
 
 def _live_response(
     *,
     ticker: str,
+    timeframe: str,
     bars: list,
+    indicators: list,
     latest_indicator,
     position,
     positions: list,
     alerts: list,
     subscription,
+    provider_preview_used: bool = False,
+    provider_note: str | None = None,
 ) -> SymbolLabResponse:
     generated_at = datetime.now(tz=UTC).isoformat()
     payload = symbol_lab_fixture(ticker)
@@ -220,13 +255,21 @@ def _live_response(
             "The route avoids filling DB gaps with fixture bars once live mode is active.",
             "Run the System Ops market-bar refresh protocol or select a stored symbol.",
         )
-        payload.review_watchpoints = watchpoints(
+        missing_watchpoints = [
             ("Stored bars", "Refresh market bars before using this ticker context."),
             ("Symbol image", "Logo/avatar retrieval is deferred to a provider cache slice."),
-        )
+        ]
+        if provider_note:
+            missing_watchpoints.append(
+                (
+                    "Provider preview",
+                    f"yfinance preview did not return usable bars: {provider_note}",
+                )
+            )
+        payload.review_watchpoints = watchpoints(*missing_watchpoints)
         payload.header = SymbolLabHeader(
             ticker=ticker,
-            timeframe=DEFAULT_TIMEFRAME,
+            timeframe=timeframe,
             latest_close=None,
             latest_time=None,
             data_status="MISSING",
@@ -238,27 +281,40 @@ def _live_response(
             "Use System Ops market refresh before expecting live symbol context.",
             "Symbol images are not fetched during page render.",
         ]
+        if provider_note:
+            payload.watchpoints.append(
+                f"Provider preview did not return usable bars: {provider_note}"
+            )
         payload.interpretation = (
             f"{ticker} has no stored bar series in the local database. "
             "Symbol Lab is live-aware but will not invent chart evidence."
         )
-        payload.setup_hint = (
-            f"Run System Ops -> Refresh market bars with {ticker} in "
-            "FINSKILLOS_MARKET_REFRESH_TICKERS."
-        )
+        payload.setup_hint = _missing_symbol_setup_hint(ticker, provider_note)
         return payload
 
     visible_bars = bars[-120:]
     latest_bar = visible_bars[-1]
+    indicators_by_time = {_iso(row.snapshot_time): row for row in indicators}
+    evidence_label = "provider preview bars" if provider_preview_used else "stored bars"
+    evidence_detail = (
+        "yfinance preview rows are available but not yet persisted."
+        if provider_preview_used
+        else "DB-backed OHLCV rows are available."
+    )
+    freshness_note = (
+        "Subscribe the symbol or run System Ops market refresh to persist it."
+        if provider_preview_used
+        else "Freshness depends on the latest System Ops refresh and indicator calculation."
+    )
     payload.judgment = judgment(
         f"SYMBOL JUDGMENT · {ticker}",
         _trend_title(latest_indicator),
-        "from Stored Symbol Evidence",
-        f"{ticker} has {len(bars)} stored {DEFAULT_TIMEFRAME} bars in the local DB.",
+        "from Symbol Evidence",
+        f"{ticker} has {len(bars)} {timeframe} {evidence_label}.",
         76 if latest_indicator is not None else 58,
     )
     payload.drivers = drivers(
-        (str(len(bars)), "Stored bars", "DB-backed OHLCV rows are available."),
+        (str(len(bars)), evidence_label.title(), evidence_detail),
         (
             _indicator_status(latest_indicator),
             "Indicator snapshot",
@@ -272,8 +328,8 @@ def _live_response(
     )
     payload.conflicts = conflicts(
         (
-            "Stored bars vs live feed",
-            "The chart reflects the latest local refresh, not a streaming quote feed.",
+            "Symbol bars vs streaming feed",
+            "The chart reflects a stored or previewed snapshot, not a streaming quote feed.",
         ),
         (
             "Symbol context vs portfolio context",
@@ -281,9 +337,16 @@ def _live_response(
         ),
     )
     payload.integrated_interpretation = interpretation(
-        "Symbol Lab is reading stored symbol evidence from the local DB.",
-        "Stored bars and indicators make the ticker inspectable without page-load provider risk.",
-        "Freshness depends on the latest System Ops refresh and indicator calculation.",
+        "Symbol Lab is reading symbol evidence without exposing execution controls.",
+        (
+            "Stored bars and indicators make the ticker inspectable from the local DB."
+            if not provider_preview_used
+            else (
+                "Provider preview makes an arbitrary searched ticker inspectable "
+                "before subscription."
+            )
+        ),
+        freshness_note,
     )
     payload.review_watchpoints = watchpoints(
         ("Refresh timestamp", "Check /api/system-status for latest market bar time."),
@@ -292,7 +355,7 @@ def _live_response(
     )
     payload.header = SymbolLabHeader(
         ticker=ticker,
-        timeframe=DEFAULT_TIMEFRAME,
+        timeframe=timeframe,
         latest_close=latest_bar.close,
         latest_time=_iso(latest_bar.bar_time),
         data_status="OK" if latest_indicator is not None else "PARTIAL",
@@ -315,20 +378,36 @@ def _live_response(
             low=bar.low,
             close=bar.close,
             volume=bar.volume,
+            ema_20=getattr(indicators_by_time.get(_iso(bar.bar_time)), "ema_20", None),
+            ema_60=getattr(indicators_by_time.get(_iso(bar.bar_time)), "ema_60", None),
+            ema_120=getattr(
+                indicators_by_time.get(_iso(bar.bar_time)), "ema_120", None
+            ),
+            bb_mid=getattr(indicators_by_time.get(_iso(bar.bar_time)), "bb_mid", None),
+            bb_upper=getattr(
+                indicators_by_time.get(_iso(bar.bar_time)), "bb_upper", None
+            ),
+            bb_lower=getattr(
+                indicators_by_time.get(_iso(bar.bar_time)), "bb_lower", None
+            ),
         )
         for bar in visible_bars
     ]
     payload.watchpoints = [
-        "Stored bars are local snapshots, not a streaming quote feed.",
+        "Symbol bars are snapshots, not a streaming quote feed.",
         "Recompute indicators after refreshing market bars for full context.",
         "Symbol images are not fetched during page render.",
     ]
+    if provider_preview_used:
+        payload.watchpoints.append(
+            "Subscribe the ticker to include it in the local refresh universe."
+        )
     if position is not None and position.market_value > SINGLE_POSITION_REVIEW_THRESHOLD:
         payload.watchpoints.append(
             "Position value is above the configured single-position review threshold."
         )
     payload.interpretation = (
-        f"{ticker} symbol context is based on {len(bars)} stored bars. "
+        f"{ticker} symbol context is based on {len(bars)} {evidence_label}. "
         "Use this as evidence context, not an entry or exit instruction."
     )
     payload.setup_hint = None
@@ -454,6 +533,24 @@ def _symbol_preview_enabled() -> bool:
     return os.environ.get("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "yahoo").lower() != "off"
 
 
+def _provider_note(exc: MarketDataFetchError) -> str:
+    text = str(exc).strip() or exc.__class__.__name__
+    return text[:160]
+
+
+def _missing_symbol_setup_hint(ticker: str, provider_note: str | None) -> str:
+    base = (
+        f"Run System Ops -> Refresh market bars with {ticker} in "
+        "FINSKILLOS_MARKET_REFRESH_TICKERS, or subscribe the symbol to add it "
+        "to the local refresh universe."
+    )
+    if not provider_note:
+        return base
+    return (
+        f"{base} yfinance preview also failed for this request: {provider_note}."
+    )
+
+
 def _symbol_label(symbol: str) -> str:
     labels = {
         "NVDA": "NVIDIA",
@@ -475,6 +572,14 @@ def _symbol_label(symbol: str) -> str:
 def _normalize_ticker(ticker: str | None) -> str:
     normalized = (ticker or "TSLA").strip().upper()
     return normalized or "TSLA"
+
+
+def _normalize_timeframe(timeframe: str | None) -> str:
+    normalized = (timeframe or DEFAULT_TIMEFRAME).strip().lower()
+    normalized = TIMEFRAME_ALIASES.get(normalized, normalized)
+    if normalized not in SUPPORTED_SYMBOL_TIMEFRAMES:
+        return DEFAULT_TIMEFRAME
+    return normalized
 
 
 def _iso(value) -> str:

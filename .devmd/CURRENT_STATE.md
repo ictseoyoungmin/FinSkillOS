@@ -67,6 +67,8 @@ operational protocols.
 27     Symbol Lab DB Read Model
 28     Symbol Identity / Logo Fallback
 29     Symbol Subscription and Live Preview
+30     Yahoo Provider Diagnostics and Symbol Chart
+31     Symbol Candles / Overlays / yfinance Adapter
 ```
 
 Slice 14 is complete:
@@ -114,6 +116,11 @@ Slice 14 is complete:
 - Symbol Lab supports arbitrary ticker subscription toggles. Active
   `symbol_subscriptions` are included in System Ops and worker refresh
   universes; unsubscribe keeps historical bars/indicators intact.
+- Symbol Lab renders a close-line chart from API bars, displays recent bars
+  newest-first, and reports Yahoo preview failures in missing-data guidance.
+- Symbol Lab renders OHLC candles with volume and selectable EMA/Bollinger
+  overlays, exposes a timeframe query, and uses `yfinance` at the market
+  provider boundary.
 ```
 
 ## Validation Baseline
@@ -153,13 +160,14 @@ e2e image for frontend build and visual checks.
    - Promote `identity.logoUrl` to `provider_cache` only after provider,
      attribution, cache, and fallback rules are clear.
 
-3. Provider reliability / attribution hardening
-   - Yahoo preview can fail in restricted networks. Add provider diagnostics,
-     attribution, and fallback cache before relying on arbitrary live previews.
+3. Foldered symbol subscriptions
+   - Add durable watchlist/folder rows, folder membership mutations, and
+     Symbol Lab filtering so subscribed symbols can be grouped like Toss-style
+     interest lists.
 
 4. Mission Control DB read model
    - Promote portfolio/goal status after Risk Firewall live path settles.
 
-4. Durable System Ops DB audit table
+5. Durable System Ops DB audit table
    - Optional future replacement for local JSONL if multi-host operations
      become necessary.

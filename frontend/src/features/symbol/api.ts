@@ -9,10 +9,15 @@ import type { SymbolLabData } from "./types";
  */
 export async function fetchSymbolLab(
   ticker: string,
+  timeframe = "1d",
   signal?: AbortSignal,
 ): Promise<SymbolLabData> {
   try {
-    const path = `${apiEndpoints.symbolLab}?ticker=${encodeURIComponent(ticker)}`;
+    const params = new URLSearchParams({
+      ticker,
+      timeframe,
+    });
+    const path = `${apiEndpoints.symbolLab}?${params.toString()}`;
     return await getJson<SymbolLabData>(path, { signal });
   } catch (error) {
     if (error instanceof ApiError && error.status >= 500) {
@@ -25,10 +30,14 @@ export async function fetchSymbolLab(
 export async function setSymbolSubscription(
   ticker: string,
   subscribed: boolean,
+  timeframe = "1d",
   signal?: AbortSignal,
 ): Promise<SymbolLabData> {
   const action = subscribed ? "subscribe" : "unsubscribe";
-  const path = `${apiEndpoints.symbolLab}/${encodeURIComponent(ticker)}/${action}`;
+  const params = new URLSearchParams({ timeframe });
+  const path = `${apiEndpoints.symbolLab}/${encodeURIComponent(
+    ticker,
+  )}/${action}?${params.toString()}`;
   return await getJson<SymbolLabData>(path, {
     method: "POST",
     signal,

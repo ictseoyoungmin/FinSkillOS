@@ -34,6 +34,12 @@ export interface SymbolRecentBar {
   low: Numeric | null;
   close: Numeric;
   volume: Numeric | null;
+  ema20?: Numeric | null;
+  ema60?: Numeric | null;
+  ema120?: Numeric | null;
+  bbMid?: Numeric | null;
+  bbUpper?: Numeric | null;
+  bbLower?: Numeric | null;
 }
 
 export interface SymbolAlert {

@@ -14,6 +14,8 @@ function fmt(value: Numeric | null, fraction = 2): string {
 }
 
 export function SymbolRecentBarsTable({ bars }: SymbolRecentBarsTableProps) {
+  const newestFirst = [...bars].sort((a, b) => b.barTime.localeCompare(a.barTime));
+
   return (
     <Panel
       title="Recent Bars"
@@ -34,7 +36,7 @@ export function SymbolRecentBarsTable({ bars }: SymbolRecentBarsTableProps) {
             </tr>
           </thead>
           <tbody>
-            {bars.map((bar) => (
+            {newestFirst.map((bar) => (
               <tr key={bar.barTime}>
                 <td>{bar.barTime.slice(0, 10)}</td>
                 <td>{fmt(bar.open)}</td>

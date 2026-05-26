@@ -47,6 +47,12 @@ class SymbolRecentBar(CamelModel):
     low: Decimal | None = None
     close: Decimal
     volume: Decimal | None = None
+    ema_20: Decimal | None = None
+    ema_60: Decimal | None = None
+    ema_120: Decimal | None = None
+    bb_mid: Decimal | None = None
+    bb_upper: Decimal | None = None
+    bb_lower: Decimal | None = None
 
 
 class SymbolAlert(CamelModel):

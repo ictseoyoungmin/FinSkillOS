@@ -4,6 +4,7 @@ import { fetchSymbolLab, setSymbolSubscription } from "@/features/symbol/api";
 import { SymbolAlertsPanel } from "@/features/symbol/components/SymbolAlertsPanel";
 import { SymbolNewsPanel } from "@/features/symbol/components/SymbolNewsPanel";
 import { SymbolPositionContext } from "@/features/symbol/components/SymbolPositionContext";
+import { SymbolCandlestickChart } from "@/features/symbol/components/SymbolCandlestickChart";
 import { SymbolRecentBarsTable } from "@/features/symbol/components/SymbolRecentBarsTable";
 import { SymbolSearchPanel } from "@/features/symbol/components/SymbolSearchPanel";
 import { SymbolTechnicalSnapshot } from "@/features/symbol/components/SymbolTechnicalSnapshot";
@@ -24,15 +25,17 @@ import "@/pages/market-kernel/market-kernel.css";
 import "./symbol-lab.css";
 
 const DEFAULT_TICKER = "TSLA";
+const DEFAULT_TIMEFRAME = "1d";
 
 export function SymbolLabPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const ticker = (searchParams.get("ticker") ?? DEFAULT_TICKER).toUpperCase();
+  const timeframe = searchParams.get("timeframe") ?? DEFAULT_TIMEFRAME;
 
   const { data, error } = useQuery({
-    queryKey: ["symbol-lab", ticker],
-    queryFn: ({ signal }) => fetchSymbolLab(ticker, signal),
+    queryKey: ["symbol-lab", ticker, timeframe],
+    queryFn: ({ signal }) => fetchSymbolLab(ticker, timeframe, signal),
     placeholderData: symbolLabFixture(ticker),
   });
 
@@ -42,11 +45,19 @@ export function SymbolLabPage() {
     setSearchParams(params, { replace: false });
   };
 
+  const selectTimeframe = (next: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("ticker", ticker);
+    params.set("timeframe", next);
+    setSearchParams(params, { replace: false });
+  };
+
   const subscriptionMutation = useMutation({
     mutationFn: (nextSubscribed: boolean) =>
-      setSymbolSubscription(ticker, nextSubscribed),
+      setSymbolSubscription(ticker, nextSubscribed, timeframe),
     onSuccess: (nextPayload) => {
       queryClient.setQueryData(["symbol-lab", ticker], nextPayload);
+      queryClient.setQueryData(["symbol-lab", ticker, timeframe], nextPayload);
       queryClient.invalidateQueries({ queryKey: ["symbol-lab", ticker] });
       queryClient.invalidateQueries({ queryKey: ["system-status"] });
     },
@@ -112,6 +123,12 @@ export function SymbolLabPage() {
               }
             />
           </div>
+          <SymbolCandlestickChart
+            header={payload.header}
+            bars={payload.recentBars}
+            selectedTimeframe={timeframe}
+            onTimeframeChange={selectTimeframe}
+          />
           <SymbolRecentBarsTable bars={payload.recentBars} />
           <SymbolWatchpoints
             watchpoints={payload.watchpoints}
