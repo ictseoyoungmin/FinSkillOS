@@ -169,6 +169,7 @@ def _protocol_availability(
         ProtocolAvailability(key=key, status=status, detail=detail)
         for key in (
             "seed_sample_account",
+            "refresh_news",
             "refresh_market_data",
             "calculate_indicators",
             "seed_sample_events",

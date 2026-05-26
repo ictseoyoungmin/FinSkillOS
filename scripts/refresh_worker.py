@@ -33,6 +33,7 @@ from finskillos.data_sources import (
 from finskillos.db.session import session_scope
 from finskillos.logging_config import setup_logging
 from finskillos.services.market_data_service import MarketDataService
+from finskillos.services.news_feed_policy import NewsFeedPolicy, build_news_feed_policy
 from finskillos.services.signal_service import SignalService
 
 logger = logging.getLogger("finskillos.scripts.refresh_worker")
@@ -48,9 +49,7 @@ class WorkerConfig:
     indicator_enabled: bool
     market_adapter: str
     news_adapter: str
-    news_feeds: tuple[str, ...]
-    news_source: str | None
-    news_language: str | None
+    news_policy: NewsFeedPolicy
     market_tickers: tuple[str, ...]
     indicator_tickers: tuple[str, ...]
     timeframe: str
@@ -85,13 +84,6 @@ def _tickers_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return tickers or default
 
 
-def _csv_env(name: str) -> tuple[str, ...]:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return ()
-    return tuple(part.strip() for part in raw.replace(";", ",").split(",") if part.strip())
-
-
 def load_config(args: argparse.Namespace) -> WorkerConfig:
     market_tickers = _tickers_env(
         "FINSKILLOS_MARKET_REFRESH_TICKERS", DEFAULT_US_TICKER_UNIVERSE
@@ -113,9 +105,7 @@ def load_config(args: argparse.Namespace) -> WorkerConfig:
         news_adapter=os.getenv("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss")
         .strip()
         .lower(),
-        news_feeds=_csv_env("FINSKILLOS_NEWS_RSS_FEEDS"),
-        news_source=os.getenv("FINSKILLOS_NEWS_RSS_SOURCE") or None,
-        news_language=os.getenv("FINSKILLOS_NEWS_RSS_LANGUAGE") or None,
+        news_policy=build_news_feed_policy(),
         market_tickers=market_tickers,
         indicator_tickers=indicator_tickers,
         timeframe=os.getenv("FINSKILLOS_MARKET_REFRESH_TIMEFRAME", DEFAULT_TIMEFRAME),
@@ -144,10 +134,10 @@ def _build_news_adapter(config: WorkerConfig):
         tuple(
             RssFeed(
                 url=url,
-                source=config.news_source,
-                language=config.news_language,
+                source=config.news_policy.source,
+                language=config.news_policy.language,
             )
-            for url in config.news_feeds
+            for url in config.news_policy.feeds
         )
     )
 
@@ -167,6 +157,10 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     with session_scope() as session:
         market_tickers = _with_subscribed_tickers(session, config.market_tickers)
         indicator_tickers = _with_subscribed_tickers(session, config.indicator_tickers)
+        news_policy = build_news_feed_policy(
+            subscribed_tickers=_active_subscription_tickers(session)
+        )
+        config = _with_news_policy(config, news_policy)
         if config.market_enabled:
             adapter = _build_market_adapter(config.market_adapter)
             market_service = MarketDataService(
@@ -188,12 +182,14 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
             }
 
         if config.news_enabled:
-            if not config.news_feeds:
+            if not config.news_policy.feeds:
                 summary["news"] = {
                     "enabled": True,
                     "status": "NOOP",
                     "adapter": config.news_adapter,
                     "feeds": 0,
+                    "tickers": 0,
+                    "generated": config.news_policy.generated,
                     "articlesIngested": 0,
                 }
             else:
@@ -208,7 +204,9 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                     "enabled": True,
                     "status": "OK" if articles else "NOOP",
                     "adapter": config.news_adapter,
-                    "feeds": len(config.news_feeds),
+                    "feeds": len(config.news_policy.feeds),
+                    "tickers": len(config.news_policy.tickers),
+                    "generated": config.news_policy.generated,
                     "articlesIngested": len(articles),
                 }
 
@@ -235,21 +233,42 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
 
 
 def _with_subscribed_tickers(session, tickers: tuple[str, ...]) -> tuple[str, ...]:
+    subscribed = _active_subscription_tickers(session)
+    return tuple(dict.fromkeys((*tickers, *subscribed)))
+
+
+def _active_subscription_tickers(session) -> tuple[str, ...]:
     from finskillos.db.repositories import SymbolSubscriptionRepository
 
     try:
-        subscribed = SymbolSubscriptionRepository(session).active_tickers()
+        return SymbolSubscriptionRepository(session).active_tickers()
     except Exception:
         session.rollback()
-        subscribed = ()
-    return tuple(dict.fromkeys((*tickers, *subscribed)))
+        return ()
+
+
+def _with_news_policy(config: WorkerConfig, policy: NewsFeedPolicy) -> WorkerConfig:
+    return WorkerConfig(
+        interval_seconds=config.interval_seconds,
+        run_on_start=config.run_on_start,
+        market_enabled=config.market_enabled,
+        news_enabled=config.news_enabled,
+        indicator_enabled=config.indicator_enabled,
+        market_adapter=config.market_adapter,
+        news_adapter=config.news_adapter,
+        news_policy=policy,
+        market_tickers=config.market_tickers,
+        indicator_tickers=config.indicator_tickers,
+        timeframe=config.timeframe,
+        persist_indicator_history=config.persist_indicator_history,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Run the local FinSkillOS refresh worker. The worker refreshes "
-            "market bars and descriptive indicators only."
+            "market bars, news metadata, and descriptive indicators."
         )
     )
     parser.add_argument(

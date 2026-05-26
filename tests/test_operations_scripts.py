@@ -174,12 +174,14 @@ def test_refresh_worker_contract_includes_news_refresh() -> None:
     assert "FINSKILLOS_WORKER_INDICATOR_ENABLED" in body
     assert "MarketDataService" in body
     assert "NewsService" in body
+    assert "build_news_feed_policy" in body
     assert "SignalService" in body
     assert "Celery" in body
     assert "redis://" not in body.lower()
     assert 'profiles: ["worker"]' in compose
     assert "FINSKILLOS_WORKER_NEWS_ENABLED" in compose
     assert "FINSKILLOS_NEWS_RSS_FEEDS" in compose
+    assert "FINSKILLOS_NEWS_RSS_TICKERS" in compose
     assert 'command: ["python", "scripts/refresh_worker.py"]' in compose
 
 

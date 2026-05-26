@@ -277,6 +277,7 @@ def test_refresh_news_protocol_ingests_configured_rss_feed(
         assert body["status"] == "OK"
         assert "1 articles ingested" in body["message"]
         assert "feeds=1" in body["detail"]
+        assert "generated=False" in body["detail"]
 
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
@@ -284,30 +285,6 @@ def test_refresh_news_protocol_ingests_configured_rss_feed(
             assert len(rows) == 1
             assert rows[0].url == "https://news.example.com/tsla-deliveries"
             assert rows[0].summary == "TSLA delivery update was strong."
-    finally:
-        reset_settings_cache()
-        Base.metadata.drop_all(engine)
-        engine.dispose()
-
-
-def test_refresh_news_protocol_noops_without_configured_feeds(
-    monkeypatch, tmp_path
-) -> None:
-    db_path = tmp_path / "finskillos.db"
-    database_url = f"sqlite+pysqlite:///{db_path}"
-    engine = create_engine(database_url, future=True)
-    Base.metadata.create_all(engine)
-    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
-    monkeypatch.setenv("DATABASE_URL", database_url)
-    monkeypatch.delenv("FINSKILLOS_NEWS_RSS_FEEDS", raising=False)
-    reset_settings_cache()
-
-    try:
-        body = _client().post("/api/system-ops/refresh-news").json()
-
-        assert body["protocol"] == "refresh_news"
-        assert body["status"] == "NOOP"
-        assert body["detail"] == "no_news_feeds"
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

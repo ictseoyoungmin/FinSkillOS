@@ -183,11 +183,15 @@ function summarizeLatest(status: {
   latestMarketBarAt: string | null;
   latestIndicatorAt: string | null;
   latestRegimeAt: string | null;
+  latestNewsAt: string | null;
+  latestEventAt: string | null;
 }): string {
   return [
     `portfolio ${status.latestPortfolioSnapshotAt ?? "missing"}`,
     `market ${status.latestMarketBarAt ?? "missing"}`,
     `indicator ${status.latestIndicatorAt ?? "missing"}`,
     `regime ${status.latestRegimeAt ?? "missing"}`,
+    `news ${status.latestNewsAt ?? "missing"}`,
+    `event ${status.latestEventAt ?? "missing"}`,
   ].join(" · ");
 }

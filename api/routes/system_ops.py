@@ -344,6 +344,8 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
 
 def _invoke_refresh_news(session) -> tuple[str, str, str]:
     from finskillos.data_sources.adapters.rss_news_adapter import RssFeed, RssNewsAdapter
+    from finskillos.db.repositories import SymbolSubscriptionRepository
+    from finskillos.services.news_feed_policy import build_news_feed_policy
     from finskillos.services.news_service import NewsService
 
     adapter_name = os.environ.get("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss").lower()
@@ -354,18 +356,24 @@ def _invoke_refresh_news(session) -> tuple[str, str, str]:
             f"unsupported_adapter:{adapter_name}",
         )
 
-    feeds = _news_feed_env()
-    if not feeds:
+    try:
+        subscribed = SymbolSubscriptionRepository(session).active_tickers()
+    except Exception:
+        session.rollback()
+        subscribed = ()
+    policy = build_news_feed_policy(subscribed_tickers=subscribed)
+    if not policy.feeds:
         return (
             "NOOP",
-            "No news feeds are configured. Set FINSKILLOS_NEWS_RSS_FEEDS first.",
+            "No news feeds are available. Configure RSS feeds or ticker policy first.",
             "no_news_feeds",
         )
 
-    source = os.environ.get("FINSKILLOS_NEWS_RSS_SOURCE") or None
-    language = os.environ.get("FINSKILLOS_NEWS_RSS_LANGUAGE") or None
     adapter = RssNewsAdapter(
-        tuple(RssFeed(url=url, source=source, language=language) for url in feeds)
+        tuple(
+            RssFeed(url=url, source=policy.source, language=policy.language)
+            for url in policy.feeds
+        )
     )
     articles = tuple(adapter.fetch_latest())
     service = NewsService(session)
@@ -377,7 +385,11 @@ def _invoke_refresh_news(session) -> tuple[str, str, str]:
         f"News refreshed · adapter {adapter_name} · "
         f"{len(articles)} articles ingested."
     )
-    detail = f"adapter={adapter_name},feeds={len(feeds)},articles={len(articles)}"
+    detail = (
+        f"adapter={adapter_name},feeds={len(policy.feeds)},"
+        f"tickers={len(policy.tickers)},generated={policy.generated},"
+        f"articles={len(articles)}"
+    )
     return (status, message, detail)
 
 
@@ -471,11 +483,6 @@ def _indicator_refresh_tickers() -> tuple[str, ...]:
         "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
         fallback=os.environ.get("FINSKILLOS_MARKET_REFRESH_TICKERS", ""),
     )
-
-
-def _news_feed_env() -> tuple[str, ...]:
-    raw = os.environ.get("FINSKILLOS_NEWS_RSS_FEEDS", "")
-    return tuple(item.strip() for item in raw.replace(";", ",").split(",") if item.strip())
 
 
 def _ticker_env(name: str, *, fallback: str = "") -> tuple[str, ...]:
