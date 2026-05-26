@@ -23,6 +23,8 @@ Implemented:
 - Local `--feed-file` mode for offline refresh/test runs.
 - System Ops `refresh_news` protocol backed by `FINSKILLOS_NEWS_RSS_FEEDS`.
 - React System Ops protocol types/path/fixture entry.
+- `scripts/refresh_worker.py` now runs news metadata refresh during each cycle
+  when `FINSKILLOS_WORKER_NEWS_ENABLED=1`.
 - Unit tests using static RSS/Atom XML strings only.
 
 Out of scope:
@@ -31,7 +33,7 @@ Out of scope:
 - scheduled crawling;
 - paid/vendor APIs;
 - full article crawling or body persistence;
-- worker scheduler wiring.
+- bundled feed provider policy.
 
 ## Files
 
@@ -39,6 +41,10 @@ Out of scope:
 - `finskillos/data_sources/adapters/rss_news_adapter.py`
 - `finskillos/data_sources/__init__.py`
 - `scripts/refresh_news.py`
+- `scripts/refresh_worker.py`
+- `docker-compose.yml`
+- `.env.example`
+- `docs/v2_1/11_Scheduler_Refresh_Policy.md`
 - `api/routes/system_ops.py`
 - `api/schemas/system_ops.py`
 - `api/fixtures/system_ops.py`
@@ -55,6 +61,7 @@ Out of scope:
 python3 -m pytest tests/test_news_rss_adapter.py tests/test_news_intelligence.py -q
 python3 -m pytest tests/test_operations_scripts.py -q
 timeout 60 python3 -m pytest tests/test_api_system_ops.py -q
+timeout 60 python3 -m pytest tests/test_operations_scripts.py tests/test_api_system_ops.py tests/test_news_rss_adapter.py tests/test_news_intelligence.py -q
 python3 -m ruff check finskillos/data_sources/news_adapter.py finskillos/data_sources/adapters/rss_news_adapter.py finskillos/data_sources/__init__.py tests/test_news_rss_adapter.py
 docker compose exec -T web npm run lint -- --quiet
 docker compose exec -T web npm run build
@@ -71,6 +78,8 @@ docker compose exec -T web npm run build
 - `refresh_news.py --feed-file` exists so provider parsing and DB ingestion can
   be exercised without internet access.
 - System Ops returns `NOOP` until `FINSKILLOS_NEWS_RSS_FEEDS` is configured.
+- Worker behavior matches System Ops: with no RSS feeds configured, news is a
+  `NOOP`; with feed URLs configured, the worker ingests metadata automatically.
 - RSS adapter is intentionally imported from
   `finskillos.data_sources.adapters.rss_news_adapter` instead of re-exported
   through `finskillos.data_sources.__init__`; the news service depends on DB

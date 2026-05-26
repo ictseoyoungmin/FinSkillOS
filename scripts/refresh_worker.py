@@ -1,7 +1,7 @@
 """Run a lightweight refresh loop for local FinSkillOS operations.
 
 The worker is intentionally simple: no Celery, no Redis, no queue. It prepares
-read-model evidence by refreshing market bars and calculating descriptive
+read-model evidence by refreshing market bars, news metadata, and descriptive
 indicators on a fixed interval. It never places orders or emits trade actions.
 """
 
@@ -44,8 +44,13 @@ class WorkerConfig:
     interval_seconds: int
     run_on_start: bool
     market_enabled: bool
+    news_enabled: bool
     indicator_enabled: bool
     market_adapter: str
+    news_adapter: str
+    news_feeds: tuple[str, ...]
+    news_source: str | None
+    news_language: str | None
     market_tickers: tuple[str, ...]
     indicator_tickers: tuple[str, ...]
     timeframe: str
@@ -80,6 +85,13 @@ def _tickers_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return tickers or default
 
 
+def _csv_env(name: str) -> tuple[str, ...]:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return ()
+    return tuple(part.strip() for part in raw.replace(";", ",").split(",") if part.strip())
+
+
 def load_config(args: argparse.Namespace) -> WorkerConfig:
     market_tickers = _tickers_env(
         "FINSKILLOS_MARKET_REFRESH_TICKERS", DEFAULT_US_TICKER_UNIVERSE
@@ -93,10 +105,17 @@ def load_config(args: argparse.Namespace) -> WorkerConfig:
         run_on_start=not args.no_run_on_start
         and _bool_env("FINSKILLOS_WORKER_RUN_ON_START", True),
         market_enabled=_bool_env("FINSKILLOS_WORKER_MARKET_ENABLED", True),
+        news_enabled=_bool_env("FINSKILLOS_WORKER_NEWS_ENABLED", True),
         indicator_enabled=_bool_env("FINSKILLOS_WORKER_INDICATOR_ENABLED", True),
         market_adapter=os.getenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
         .strip()
         .lower(),
+        news_adapter=os.getenv("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss")
+        .strip()
+        .lower(),
+        news_feeds=_csv_env("FINSKILLOS_NEWS_RSS_FEEDS"),
+        news_source=os.getenv("FINSKILLOS_NEWS_RSS_SOURCE") or None,
+        news_language=os.getenv("FINSKILLOS_NEWS_RSS_LANGUAGE") or None,
         market_tickers=market_tickers,
         indicator_tickers=indicator_tickers,
         timeframe=os.getenv("FINSKILLOS_MARKET_REFRESH_TIMEFRAME", DEFAULT_TIMEFRAME),
@@ -116,6 +135,23 @@ def _build_market_adapter(adapter_name: str):
     )
 
 
+def _build_news_adapter(config: WorkerConfig):
+    if config.news_adapter != "rss":
+        raise ValueError("FINSKILLOS_NEWS_REFRESH_ADAPTER must be one of: rss")
+    from finskillos.data_sources.adapters.rss_news_adapter import RssFeed, RssNewsAdapter
+
+    return RssNewsAdapter(
+        tuple(
+            RssFeed(
+                url=url,
+                source=config.news_source,
+                language=config.news_language,
+            )
+            for url in config.news_feeds
+        )
+    )
+
+
 def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     """Run one refresh cycle and return a structured summary."""
 
@@ -124,6 +160,7 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
         "startedAt": started_at.isoformat(),
         "timeframe": config.timeframe,
         "market": {"enabled": config.market_enabled, "status": "SKIPPED"},
+        "news": {"enabled": config.news_enabled, "status": "SKIPPED"},
         "indicators": {"enabled": config.indicator_enabled, "status": "SKIPPED"},
     }
 
@@ -149,6 +186,31 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                 "failed": len(report.failed),
                 "barsWritten": report.total_bars_written,
             }
+
+        if config.news_enabled:
+            if not config.news_feeds:
+                summary["news"] = {
+                    "enabled": True,
+                    "status": "NOOP",
+                    "adapter": config.news_adapter,
+                    "feeds": 0,
+                    "articlesIngested": 0,
+                }
+            else:
+                from finskillos.services.news_service import NewsService
+
+                adapter = _build_news_adapter(config)
+                articles = tuple(adapter.fetch_latest())
+                news_service = NewsService(session)
+                for article in articles:
+                    news_service.ingest_article(article)
+                summary["news"] = {
+                    "enabled": True,
+                    "status": "OK" if articles else "NOOP",
+                    "adapter": config.news_adapter,
+                    "feeds": len(config.news_feeds),
+                    "articlesIngested": len(articles),
+                }
 
         if config.indicator_enabled:
             signal_service = SignalService(session)
@@ -216,10 +278,14 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config(args)
 
     logger.info(
-        "Starting refresh worker interval=%ss run_on_start=%s market=%s indicators=%s",
+        (
+            "Starting refresh worker interval=%ss run_on_start=%s "
+            "market=%s news=%s indicators=%s"
+        ),
         config.interval_seconds,
         config.run_on_start,
         config.market_enabled,
+        config.news_enabled,
         config.indicator_enabled,
     )
 

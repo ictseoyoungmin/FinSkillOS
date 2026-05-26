@@ -3,7 +3,7 @@
 > Current status: v2.1 / v4.2 local operations policy.
 > This document defines the refresh contract. The default remains
 > manual-first, with an optional lightweight Docker worker for local
-> continuous market/indicator refresh. Celery and Redis remain out of scope.
+> continuous market/news/indicator refresh. Celery and Redis remain out of scope.
 
 ## 1. Operating Stance
 
@@ -31,7 +31,7 @@ status-endpoint observable
 | Indicators | `scripts/calculate_indicators.py` / `scripts/refresh_worker.py` | after market bars | Computes descriptive snapshots only. |
 | Market regime | `scripts/run_regime_scan.py` | after indicators | Persists read-only regime interpretation. |
 | Risk guards | System Ops protocol | after portfolio/regime changes | Refreshes guard ladder / active alerts. |
-| News | manual entry / news service | manual | Live news polling is deferred. |
+| News | `scripts/refresh_news.py` / `scripts/refresh_worker.py` | manual, cron, or worker interval | RSS/Atom metadata only; no article body crawling/storage. |
 | Events | manual entry / seed protocol | manual | Uncertain dates remain tentative/window/speculative. |
 | Visual QA | Docker Playwright gate | before UI completion claims | Confirms product cockpit still renders correctly. |
 
@@ -58,19 +58,21 @@ The worker runs this bounded sequence:
 
 ```text
 refresh market bars
+refresh news metadata when FINSKILLOS_NEWS_RSS_FEEDS is configured
 calculate descriptive indicators
 sleep FINSKILLOS_WORKER_INTERVAL_SECONDS
 ```
 
-It does not refresh news yet. Reference projects only showed a Naver Search
-API implementation; non-Naver news/crawling policy is deferred until source,
-attribution, rate-limit, and safety rules are explicit.
+News refresh is RSS/Atom only at this stage. Feed URLs are supplied through
+`FINSKILLOS_NEWS_RSS_FEEDS`; no bundled provider list, paid API adapter, or
+linked article crawler is enabled by default.
 
 For a cron-style local schedule, run the same commands in order and preserve
 logs. Example timing is deliberately local and conservative:
 
 ```text
 18:30 local market-data refresh
+18:34 news metadata refresh
 18:35 indicator compute
 18:40 regime scan
 manual guard refresh after portfolio review

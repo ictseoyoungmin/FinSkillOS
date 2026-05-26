@@ -164,16 +164,78 @@ def test_refresh_policy_document_tracks_script_order() -> None:
     assert "Do not add Celery" in body
 
 
-def test_refresh_worker_contract_is_lightweight_and_news_deferred() -> None:
+def test_refresh_worker_contract_includes_news_refresh() -> None:
     body = (ROOT / "scripts" / "refresh_worker.py").read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
     assert "FINSKILLOS_WORKER_INTERVAL_SECONDS" in body
     assert "FINSKILLOS_WORKER_MARKET_ENABLED" in body
+    assert "FINSKILLOS_WORKER_NEWS_ENABLED" in body
     assert "FINSKILLOS_WORKER_INDICATOR_ENABLED" in body
     assert "MarketDataService" in body
+    assert "NewsService" in body
     assert "SignalService" in body
     assert "Celery" in body
     assert "redis://" not in body.lower()
     assert 'profiles: ["worker"]' in compose
+    assert "FINSKILLOS_WORKER_NEWS_ENABLED" in compose
+    assert "FINSKILLOS_NEWS_RSS_FEEDS" in compose
     assert 'command: ["python", "scripts/refresh_worker.py"]' in compose
+
+
+def test_refresh_worker_once_ingests_configured_news_feed(tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    feed_path = tmp_path / "feed.xml"
+    feed_path.write_text(
+        """\
+<rss version="2.0">
+  <channel>
+    <title>Market Desk</title>
+    <item>
+      <title>MSFT AI data center update</title>
+      <link>https://news.example.com/msft-ai</link>
+      <pubDate>Tue, 26 May 2026 12:30:00 GMT</pubDate>
+      <description>Microsoft data center spending remained in focus.</description>
+    </item>
+  </channel>
+</rss>
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        result = subprocess.run(
+            [
+                "python3",
+                str(ROOT / "scripts" / "refresh_worker.py"),
+                "--once",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "DATABASE_URL": database_url,
+                "FINSKILLOS_SKIP_DOTENV": "1",
+                "FINSKILLOS_WORKER_MARKET_ENABLED": "0",
+                "FINSKILLOS_WORKER_NEWS_ENABLED": "1",
+                "FINSKILLOS_WORKER_INDICATOR_ENABLED": "0",
+                "FINSKILLOS_NEWS_RSS_FEEDS": feed_path.resolve().as_uri(),
+            },
+        )
+
+        assert result.returncode == 0, result.stderr
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            rows = NewsArticleRepository(session).latest()
+            assert len(rows) == 1
+            assert rows[0].url == "https://news.example.com/msft-ai"
+            assert rows[0].summary == "Microsoft data center spending remained in focus."
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
