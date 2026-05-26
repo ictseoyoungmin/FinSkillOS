@@ -10,6 +10,7 @@ import type {
 
 const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
   seed_sample_account: "/system-ops/seed-sample-account",
+  refresh_news: "/system-ops/refresh-news",
   refresh_market_data: "/system-ops/refresh-market-data",
   calculate_indicators: "/system-ops/calculate-indicators",
   recompute_regime: "/system-ops/recompute-regime",

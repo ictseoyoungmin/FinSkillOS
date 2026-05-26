@@ -1,4 +1,4 @@
-import { Badge, EmptyState, Panel } from "@/shared/ui";
+import { Badge, Panel } from "@/shared/ui";
 import type { SymbolAlert } from "../types";
 import "./symbol-alerts-panel.css";
 
@@ -22,10 +22,10 @@ export function SymbolAlertsPanel({ alerts }: SymbolAlertsPanelProps) {
       testId="symbol-alerts-panel"
     >
       {alerts.length === 0 ? (
-        <EmptyState
-          title="No active alerts"
-          message="No risk-guard alerts mention this ticker in the stored data."
-        />
+        <div className="fso-symbol-context-compact">
+          <strong>No active alerts</strong>
+          <span>No stored risk-guard alert mentions this ticker.</span>
+        </div>
       ) : (
         <ul className="fso-symbol-alerts">
           {alerts.map((alert) => (

@@ -8,6 +8,7 @@ import type {
 
 export type ProtocolKey =
   | "seed_sample_account"
+  | "refresh_news"
   | "refresh_market_data"
   | "calculate_indicators"
   | "recompute_regime"

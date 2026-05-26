@@ -14,9 +14,13 @@ from typing import Protocol, runtime_checkable
 from finskillos.services.news_service import NewsArticleInput
 
 
+class NewsDataFetchError(RuntimeError):
+    """Raised when a news adapter cannot fetch or parse provider data."""
+
+
 @runtime_checkable
 class BaseNewsAdapter(Protocol):
     def fetch_latest(self) -> Sequence[NewsArticleInput]: ...
 
 
-__all__ = ["BaseNewsAdapter"]
+__all__ = ["BaseNewsAdapter", "NewsDataFetchError"]

@@ -12,6 +12,26 @@
   line-height: 1.55;
 }
 
+.fso-regime-details {
+  margin-top: 8px;
+}
+
+.fso-regime-details summary {
+  width: fit-content;
+  padding: 6px 9px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  color: var(--fso-text-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fso-regime-details summary:hover {
+  border-color: rgba(56, 189, 248, 0.38);
+  color: var(--fso-text);
+}
+
 .fso-regime-block {
   margin-top: 12px;
   display: flex;

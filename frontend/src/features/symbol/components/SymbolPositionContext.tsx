@@ -1,4 +1,4 @@
-import { Badge, EmptyState, Metric, Panel } from "@/shared/ui";
+import { Badge, Metric, Panel } from "@/shared/ui";
 import { formatKrw, formatPct, toNumber, type Numeric } from "@/shared/lib/format";
 import type { SymbolPosition } from "../types";
 import "./symbol-position-context.css";
@@ -25,10 +25,10 @@ export function SymbolPositionContext({
         badgeTone="neutral"
         testId="position-context"
       >
-        <EmptyState
-          title="No current holding"
-          message={`No position is recorded for ${ticker} in the stored data.`}
-        />
+        <div className="fso-symbol-context-compact">
+          <strong>No current holding</strong>
+          <span>{ticker} has no stored position row.</span>
+        </div>
       </Panel>
     );
   }

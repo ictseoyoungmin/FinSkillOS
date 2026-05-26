@@ -1,4 +1,4 @@
-import { Badge, EmptyState, Panel } from "@/shared/ui";
+import { Badge, Panel } from "@/shared/ui";
 import { toNumber } from "@/shared/lib/format";
 import type { SymbolNewsItem } from "../types";
 import "./symbol-news-panel.css";
@@ -24,10 +24,10 @@ export function SymbolNewsPanel({ news }: SymbolNewsPanelProps) {
       testId="ticker-news"
     >
       {news.length === 0 ? (
-        <EmptyState
-          title="No tracked news"
-          message="No news impacts are linked to this ticker in the stored data."
-        />
+        <div className="fso-symbol-context-compact">
+          <strong>No tracked news</strong>
+          <span>No stored news impact is linked to this ticker.</span>
+        </div>
       ) : (
         <ul className="fso-symbol-news">
           {news.map((item) => (

@@ -39,50 +39,53 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
         <Badge tone="neutral">{`Confidence · ${confidencePct}%`}</Badge>
       </div>
       <p className="fso-regime-summary">{regime.summary}</p>
-      {regime.whatHappened ? (
-        <div className="fso-regime-block">
-          <span className="fso-regime-block-head">What happened</span>
-          <p>{regime.whatHappened}</p>
+      <details className="fso-regime-details">
+        <summary>Context details</summary>
+        {regime.whatHappened ? (
+          <div className="fso-regime-block">
+            <span className="fso-regime-block-head">What happened</span>
+            <p>{regime.whatHappened}</p>
+          </div>
+        ) : null}
+        {regime.whatItMeans ? (
+          <div className="fso-regime-block">
+            <span className="fso-regime-block-head">What it means</span>
+            <p>{regime.whatItMeans}</p>
+          </div>
+        ) : null}
+        <div className="fso-regime-columns">
+          {regime.positiveFactors.length > 0 ? (
+            <div>
+              <span className="fso-regime-col-head">Positive factors</span>
+              <ul>
+                {regime.positiveFactors.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {regime.riskFactors.length > 0 ? (
+            <div>
+              <span className="fso-regime-col-head">Risk factors</span>
+              <ul>
+                {regime.riskFactors.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {regime.watchNext.length > 0 ? (
+            <div>
+              <span className="fso-regime-col-head">Watch next</span>
+              <ul>
+                {regime.watchNext.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {regime.whatItMeans ? (
-        <div className="fso-regime-block">
-          <span className="fso-regime-block-head">What it means</span>
-          <p>{regime.whatItMeans}</p>
-        </div>
-      ) : null}
-      <div className="fso-regime-columns">
-        {regime.positiveFactors.length > 0 ? (
-          <div>
-            <span className="fso-regime-col-head">Positive factors</span>
-            <ul>
-              {regime.positiveFactors.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {regime.riskFactors.length > 0 ? (
-          <div>
-            <span className="fso-regime-col-head">Risk factors</span>
-            <ul>
-              {regime.riskFactors.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {regime.watchNext.length > 0 ? (
-          <div>
-            <span className="fso-regime-col-head">Watch next</span>
-            <ul>
-              {regime.watchNext.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
+      </details>
     </Panel>
   );
 }

@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from finskillos.db.base import Base
+from finskillos.db.repositories import NewsArticleRepository
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKUP_SCRIPT = ROOT / "scripts" / "backup_postgres.sh"
 RESTORE_SCRIPT = ROOT / "scripts" / "restore_postgres.sh"
 PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "refresh_market_data.py",
+    ROOT / "scripts" / "refresh_news.py",
     ROOT / "scripts" / "calculate_indicators.py",
     ROOT / "scripts" / "refresh_worker.py",
     ROOT / "scripts" / "run_regime_scan.py",
@@ -47,6 +55,73 @@ def test_market_refresh_script_exposes_yahoo_adapter_option() -> None:
     assert 'choices=("mock", "csv", "yahoo")' in body
     assert "YahooChartMarketDataAdapter" in body
     assert "--adapter yahoo" in body
+
+
+def test_news_refresh_script_exposes_rss_adapter_options() -> None:
+    body = (ROOT / "scripts" / "refresh_news.py").read_text(encoding="utf-8")
+
+    assert 'choices=("rss",)' in body
+    assert "RssNewsAdapter" in body
+    assert "--feed-url" in body
+    assert "--feed-file" in body
+    assert "does not crawl article bodies" in body
+
+
+def test_news_refresh_script_ingests_local_feed_file(tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    feed_path = tmp_path / "feed.xml"
+    feed_path.write_text(
+        """\
+<rss version="2.0">
+  <channel>
+    <title>Market Desk</title>
+    <item>
+      <title>AAPL AI infrastructure update</title>
+      <link>https://news.example.com/aapl-ai</link>
+      <pubDate>Tue, 26 May 2026 12:30:00 GMT</pubDate>
+      <description>Apple data center investment remained in focus.</description>
+    </item>
+  </channel>
+</rss>
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        result = subprocess.run(
+            [
+                "python3",
+                str(ROOT / "scripts" / "refresh_news.py"),
+                "--feed-file",
+                str(feed_path),
+                "--json",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "DATABASE_URL": database_url,
+                "FINSKILLOS_SKIP_DOTENV": "1",
+            },
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert '"articlesIngested": 1' in result.stdout
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            rows = NewsArticleRepository(session).latest()
+            assert len(rows) == 1
+            assert rows[0].url == "https://news.example.com/aapl-ai"
+            assert rows[0].summary == "Apple data center investment remained in focus."
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 def test_restore_script_requires_explicit_confirmation() -> None:

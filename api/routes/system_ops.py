@@ -89,6 +89,22 @@ def run_refresh_market_data() -> ProtocolRunResult:
 
 
 @router.post(
+    "/system-ops/refresh-news",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: refresh stored news articles from configured feeds.",
+)
+def run_refresh_news() -> ProtocolRunResult:
+    return _run_protocol(
+        key="refresh_news",
+        fixture_message=(
+            "News refresh acknowledged. Fixture-first shell did not "
+            "touch the database."
+        ),
+        runner=_invoke_refresh_news,
+    )
+
+
+@router.post(
     "/system-ops/calculate-indicators",
     response_model=ProtocolRunResult,
     summary="Idempotent: calculate descriptive indicators from stored bars.",
@@ -326,6 +342,45 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
     return (status, message, detail)
 
 
+def _invoke_refresh_news(session) -> tuple[str, str, str]:
+    from finskillos.data_sources.adapters.rss_news_adapter import RssFeed, RssNewsAdapter
+    from finskillos.services.news_service import NewsService
+
+    adapter_name = os.environ.get("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss").lower()
+    if adapter_name != "rss":
+        return (
+            "ERROR",
+            "News refresh could not start. Unsupported adapter configured.",
+            f"unsupported_adapter:{adapter_name}",
+        )
+
+    feeds = _news_feed_env()
+    if not feeds:
+        return (
+            "NOOP",
+            "No news feeds are configured. Set FINSKILLOS_NEWS_RSS_FEEDS first.",
+            "no_news_feeds",
+        )
+
+    source = os.environ.get("FINSKILLOS_NEWS_RSS_SOURCE") or None
+    language = os.environ.get("FINSKILLOS_NEWS_RSS_LANGUAGE") or None
+    adapter = RssNewsAdapter(
+        tuple(RssFeed(url=url, source=source, language=language) for url in feeds)
+    )
+    articles = tuple(adapter.fetch_latest())
+    service = NewsService(session)
+    for article in articles:
+        service.ingest_article(article)
+
+    status = "OK" if articles else "NOOP"
+    message = (
+        f"News refreshed · adapter {adapter_name} · "
+        f"{len(articles)} articles ingested."
+    )
+    detail = f"adapter={adapter_name},feeds={len(feeds)},articles={len(articles)}"
+    return (status, message, detail)
+
+
 def _invoke_calculate_indicators(session) -> tuple[str, str, str]:
     from finskillos.services.signal_service import SignalService
 
@@ -416,6 +471,11 @@ def _indicator_refresh_tickers() -> tuple[str, ...]:
         "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
         fallback=os.environ.get("FINSKILLOS_MARKET_REFRESH_TICKERS", ""),
     )
+
+
+def _news_feed_env() -> tuple[str, ...]:
+    raw = os.environ.get("FINSKILLOS_NEWS_RSS_FEEDS", "")
+    return tuple(item.strip() for item in raw.replace(";", ",").split(",") if item.strip())
 
 
 def _ticker_env(name: str, *, fallback: str = "") -> tuple[str, ...]:

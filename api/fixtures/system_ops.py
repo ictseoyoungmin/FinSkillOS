@@ -95,6 +95,22 @@ def system_ops_fixture() -> SystemOpsResponse:
                 last_run_at=None,
             ),
             ProtocolCard(
+                key="refresh_news",
+                title="Refresh news feeds",
+                description=(
+                    "Reads configured RSS or Atom feeds and stores article "
+                    "metadata plus short summaries for News Intelligence."
+                ),
+                idempotency_note=(
+                    "Idempotent · existing articles are upserted by URL; "
+                    "full article bodies are not stored."
+                ),
+                button_label="Refresh news metadata",
+                confirm_label="Refresh news metadata",
+                tone="info",
+                last_run_at=None,
+            ),
+            ProtocolCard(
                 key="calculate_indicators",
                 title="Calculate indicators",
                 description=(
@@ -174,7 +190,7 @@ def system_ops_fixture() -> SystemOpsResponse:
             DataSourcePill(
                 label="News / Event Stores",
                 status="FIXTURE",
-                detail="Manual upsert and seed helpers available.",
+                detail="Manual upsert, RSS refresh, and seed helpers available.",
             ),
             DataSourcePill(
                 label="Mode",

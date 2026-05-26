@@ -23,11 +23,16 @@ from api.main import create_app
 from finskillos.config import reset_settings_cache
 from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
-from finskillos.db.repositories import IndicatorRepository, MarketRepository
+from finskillos.db.repositories import (
+    IndicatorRepository,
+    MarketRepository,
+    NewsArticleRepository,
+)
 from finskillos.services.market_data_service import MarketDataService
 
 _PROTOCOL_KEYS = {
     "seed_sample_account",
+    "refresh_news",
     "refresh_market_data",
     "calculate_indicators",
     "recompute_regime",
@@ -37,6 +42,7 @@ _PROTOCOL_KEYS = {
 
 _POST_ENDPOINTS = (
     ("/api/system-ops/seed-sample-account", "seed_sample_account"),
+    ("/api/system-ops/refresh-news", "refresh_news"),
     ("/api/system-ops/refresh-market-data", "refresh_market_data"),
     ("/api/system-ops/calculate-indicators", "calculate_indicators"),
     ("/api/system-ops/recompute-regime", "recompute_regime"),
@@ -228,6 +234,80 @@ def test_refresh_market_data_protocol_rejects_unknown_adapter(
         assert body["protocol"] == "refresh_market_data"
         assert body["status"] == "ERROR"
         assert "Unsupported adapter" in body["message"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_refresh_news_protocol_ingests_configured_rss_feed(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    feed_path = tmp_path / "feed.xml"
+    feed_path.write_text(
+        """\
+<rss version="2.0">
+  <channel>
+    <title>Market Desk</title>
+    <item>
+      <title>TSLA delivery numbers top expectations</title>
+      <link>https://news.example.com/tsla-deliveries</link>
+      <pubDate>Tue, 26 May 2026 12:30:00 GMT</pubDate>
+      <description>TSLA delivery update was strong.</description>
+    </item>
+  </channel>
+</rss>
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss")
+    monkeypatch.setenv("FINSKILLOS_NEWS_RSS_FEEDS", feed_path.resolve().as_uri())
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-news").json()
+
+        assert body["protocol"] == "refresh_news"
+        assert body["status"] == "OK"
+        assert "1 articles ingested" in body["message"]
+        assert "feeds=1" in body["detail"]
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            rows = NewsArticleRepository(session).latest()
+            assert len(rows) == 1
+            assert rows[0].url == "https://news.example.com/tsla-deliveries"
+            assert rows[0].summary == "TSLA delivery update was strong."
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_refresh_news_protocol_noops_without_configured_feeds(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.delenv("FINSKILLOS_NEWS_RSS_FEEDS", raising=False)
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-news").json()
+
+        assert body["protocol"] == "refresh_news"
+        assert body["status"] == "NOOP"
+        assert body["detail"] == "no_news_feeds"
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

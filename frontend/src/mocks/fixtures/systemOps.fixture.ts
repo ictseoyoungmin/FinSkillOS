@@ -63,6 +63,18 @@ export const systemOpsFixture: SystemOpsData = {
       lastRunAt: null,
     },
     {
+      key: "refresh_news",
+      title: "Refresh news feeds",
+      description:
+        "Reads configured RSS or Atom feeds and stores article metadata plus short summaries for News Intelligence.",
+      idempotencyNote:
+        "Idempotent · existing articles are upserted by URL; full article bodies are not stored.",
+      buttonLabel: "Refresh news metadata",
+      confirmLabel: "Refresh news metadata",
+      tone: "info",
+      lastRunAt: null,
+    },
+    {
       key: "calculate_indicators",
       title: "Calculate indicators",
       description:
@@ -126,7 +138,7 @@ export const systemOpsFixture: SystemOpsData = {
     {
       label: "News / Event Stores",
       status: "FIXTURE",
-      detail: "Manual upsert and seed helpers available.",
+      detail: "Manual upsert, RSS refresh, and seed helpers available.",
     },
     {
       label: "Mode",
