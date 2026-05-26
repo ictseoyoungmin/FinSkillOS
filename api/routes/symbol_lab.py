@@ -31,7 +31,9 @@ from api.schemas.symbol_lab import (
 from finskillos.data_sources import (
     DEFAULT_TIMEFRAME,
     DEFAULT_US_TICKER_UNIVERSE,
+    IndicatorSnapshotDTO,
     MarketDataFetchError,
+    MockMarketDataAdapter,
     YahooChartMarketDataAdapter,
 )
 from finskillos.db.repositories import (
@@ -44,6 +46,7 @@ from finskillos.db.repositories import (
 )
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
+from finskillos.signals import technical
 
 router = APIRouter(tags=["symbol-lab"])
 UTC = timezone.utc
@@ -94,6 +97,11 @@ def _read_symbol_lab(
 
         resolved_ticker = _normalize_ticker(ticker)
         resolved_timeframe = _normalize_timeframe(timeframe)
+        provider_note = _refresh_symbol_chart_data(
+            session,
+            resolved_ticker,
+            resolved_timeframe,
+        )
         now = datetime.now(tz=UTC)
         bars = [
             bar
@@ -121,7 +129,6 @@ def _read_symbol_lab(
         )
         alerts = AlertRepository(session).list_active(account.id) if account else []
         subscription = _get_subscription_safe(session, resolved_ticker)
-        provider_note = None
         provider_preview_used = False
         if not bars and _symbol_preview_enabled():
             try:
@@ -135,6 +142,13 @@ def _read_symbol_lab(
             except MarketDataFetchError as exc:
                 provider_note = _provider_note(exc)
                 bars = []
+        if bars and not usable_indicators:
+            usable_indicators = _fallback_indicators_from_bars(
+                resolved_ticker,
+                resolved_timeframe,
+                bars,
+            )
+            latest_indicator = usable_indicators[-1] if usable_indicators else None
         return _live_response(
             ticker=resolved_ticker,
             timeframe=resolved_timeframe,
@@ -470,6 +484,50 @@ def _symbol_alerts(ticker: str, alerts: list) -> list[SymbolAlert]:
     return result
 
 
+def _fallback_indicators_from_bars(
+    ticker: str,
+    timeframe: str,
+    bars: list,
+) -> list[IndicatorSnapshotDTO]:
+    closes = [bar.close for bar in bars]
+    volumes = [bar.volume if bar.volume is not None else Decimal("0") for bar in bars]
+    rsi14 = technical.rsi(closes, period=14)
+    ema20 = technical.ema(closes, period=20)
+    ema60 = technical.ema(closes, period=60)
+    ema120 = technical.ema(closes, period=120)
+    bands = technical.bollinger(closes, period=20)
+    vol_z = technical.volume_zscore(volumes, period=20)
+    momentum = technical.momentum_score(closes, period=20)
+
+    snapshots: list[IndicatorSnapshotDTO] = []
+    for index, bar in enumerate(bars):
+        bb_mid, bb_upper, bb_lower = bands[index]
+        snapshots.append(
+            IndicatorSnapshotDTO(
+                ticker=ticker,
+                timeframe=timeframe,
+                snapshot_time=bar.bar_time,
+                rsi_14=rsi14[index],
+                ema_20=ema20[index],
+                ema_60=ema60[index],
+                ema_120=ema120[index],
+                bb_mid=bb_mid,
+                bb_upper=bb_upper,
+                bb_lower=bb_lower,
+                volume_zscore=vol_z[index],
+                momentum_score=momentum[index],
+                trend_state=technical.trend_state(
+                    bar.close,
+                    ema20[index],
+                    ema60[index],
+                    ema120[index],
+                ),
+                source="chart_fallback",
+            )
+        )
+    return snapshots
+
+
 def _payload_values(value) -> list:
     if value is None:
         return []
@@ -525,14 +583,54 @@ def _refresh_subscribed_symbol(session, ticker: str) -> None:
     adapter_name = os.environ.get("FINSKILLOS_SYMBOL_SUBSCRIBE_ADAPTER", "yahoo").lower()
     if adapter_name == "off":
         return
-    adapter = YahooChartMarketDataAdapter()
-    if adapter_name == "mock":
-        from finskillos.data_sources import MockMarketDataAdapter
-
-        adapter = MockMarketDataAdapter()
+    adapter = _symbol_market_adapter(adapter_name)
     service = MarketDataService(session, adapter=adapter, universe=[ticker])
     service.refresh_bars([ticker], end=datetime.now(tz=UTC))
     SignalService(session).compute_for_universe([ticker])
+
+
+def _refresh_symbol_chart_data(session, ticker: str, timeframe: str) -> str | None:
+    adapter_name = _symbol_auto_refresh_adapter_name()
+    if adapter_name == "off":
+        return None
+    try:
+        service = MarketDataService(
+            session,
+            adapter=_symbol_market_adapter(adapter_name),
+            universe=[ticker],
+        )
+        report = service.refresh_bars(
+            [ticker],
+            timeframe=timeframe,
+            end=datetime.now(tz=UTC),
+        )
+        if report.total_bars_written:
+            SignalService(session).compute_for_universe(
+                [ticker],
+                timeframe=timeframe,
+                persist_history=True,
+            )
+        if report.failed:
+            return _provider_note_text(report.failed[0].error)
+    except Exception as exc:  # noqa: BLE001 - provider boundary should not blank UI
+        session.rollback()
+        return _provider_note_text(f"{type(exc).__name__}: {exc}")
+    return None
+
+
+def _symbol_market_adapter(adapter_name: str):
+    if adapter_name == "mock":
+        return MockMarketDataAdapter()
+    if adapter_name == "yahoo":
+        return YahooChartMarketDataAdapter()
+    raise MarketDataFetchError(f"unsupported symbol market adapter: {adapter_name}")
+
+
+def _symbol_auto_refresh_adapter_name() -> str:
+    return os.environ.get(
+        "FINSKILLOS_SYMBOL_AUTO_REFRESH_ADAPTER",
+        os.environ.get("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "yahoo"),
+    ).lower()
 
 
 def _symbol_preview_enabled() -> bool:
@@ -540,7 +638,11 @@ def _symbol_preview_enabled() -> bool:
 
 
 def _provider_note(exc: MarketDataFetchError) -> str:
-    text = str(exc).strip() or exc.__class__.__name__
+    return _provider_note_text(str(exc).strip() or exc.__class__.__name__)
+
+
+def _provider_note_text(value: str | None) -> str:
+    text = (value or "").strip() or "provider refresh failed"
     return text[:160]
 
 

@@ -220,6 +220,55 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         engine.dispose()
 
 
+def test_symbol_lab_auto_refreshes_requested_chart_before_read(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    old_time = datetime(2026, 1, 5, tzinfo=timezone.utc)
+    with factory() as session:
+        MarketDataService(session).import_bars(
+            [
+                MarketBarDTO(
+                    ticker="AAPL",
+                    timeframe="1d",
+                    bar_time=old_time,
+                    open=Decimal("100"),
+                    high=Decimal("101"),
+                    low=Decimal("99"),
+                    close=Decimal("100"),
+                    volume=Decimal("1000000"),
+                    source="seed",
+                )
+            ]
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_AUTO_REFRESH_ADAPTER", "mock")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/symbol-lab?ticker=AAPL&timeframe=1d").json()
+
+        assert body["source"] == "live"
+        assert body["header"]["ticker"] == "AAPL"
+        assert body["header"]["dataStatus"] == "OK"
+        assert body["header"]["latestTime"] > old_time.isoformat()
+        assert len(body["recentBars"]) > 1
+        assert body["technical"]["rsi14"] is not None
+        assert body["recentBars"][-1]["ema20"] is not None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_symbol_lab_live_db_missing_ticker_is_explicit(
     monkeypatch, tmp_path
 ) -> None:
@@ -301,6 +350,46 @@ def test_symbol_lab_live_db_attaches_position_context(
         assert body["position"]["overSinglePositionLimit"] is True
         assert body["alerts"][0]["guardName"] == "SINGLE_POSITION_LIMIT_GUARD"
         assert body["systemStatus"]["guardCount"] == 1
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_symbol_lab_computes_chart_indicator_fallback_when_snapshots_missing(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        MarketDataService(
+            session,
+            adapter=MockMarketDataAdapter(default_bars=130),
+            universe=["RGT"],
+        ).refresh_bars(["RGT"])
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/symbol-lab?ticker=RGT").json()
+
+        assert body["source"] == "live"
+        assert body["header"]["ticker"] == "RGT"
+        assert body["header"]["dataStatus"] == "OK"
+        assert body["technical"]["rsi14"] is not None
+        assert body["technical"]["ema20"] is not None
+        assert body["technical"]["ema60"] is not None
+        assert body["technical"]["ema120"] is not None
+        assert body["technical"]["trendState"] is not None
+        assert body["recentBars"][-1]["ema20"] is not None
+        assert body["recentBars"][-1]["bbUpper"] is not None
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

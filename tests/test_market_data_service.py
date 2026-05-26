@@ -135,14 +135,14 @@ def test_yahoo_chart_adapter_normalizes_provider_payload() -> None:
 
 
 def test_yahoo_chart_adapter_supports_symbol_lab_timeframes() -> None:
-    for timeframe, interval, canonical in (
-        ("5m", "5m", "5m"),
-        ("15m", "15m", "15m"),
-        ("1h", "1h", "1h"),
-        ("1d", "1d", "1d"),
-        ("1w", "1wk", "1wk"),
-        ("1mon", "1mo", "1mo"),
-        ("1y", "1mo", "1y"),
+    for timeframe, interval, canonical, period in (
+        ("5m", "5m", "5m", "5d"),
+        ("15m", "15m", "15m", "1mo"),
+        ("1h", "1h", "1h", "60d"),
+        ("1d", "1d", "1d", "1y"),
+        ("1w", "1wk", "1wk", "5y"),
+        ("1mon", "1d", "1mo", "1mo"),
+        ("1y", "1mo", "1y", "10y"),
     ):
         client = _FakeYahooClient(
             [
@@ -163,7 +163,72 @@ def test_yahoo_chart_adapter_supports_symbol_lab_timeframes() -> None:
         bars = adapter.fetch_bars("TSLA", timeframe=timeframe)
 
         assert client.calls[0][1]["interval"] == interval
+        assert client.calls[0][1]["period"] == period
         assert bars[0].timeframe == canonical
+
+
+def test_yahoo_chart_adapter_keeps_one_year_monthly_rows_for_indicators() -> None:
+    client = _FakeYahooClient(
+        [
+            (
+                datetime(2025, 12, 1, tzinfo=UTC),
+                {
+                    "Open": 90.0,
+                    "High": 110.0,
+                    "Low": 85.0,
+                    "Close": 100.0,
+                    "Volume": 1000,
+                    "Adj Close": 99.0,
+                },
+            ),
+            (
+                datetime(2026, 1, 1, tzinfo=UTC),
+                {
+                    "Open": 100.0,
+                    "High": 125.0,
+                    "Low": 95.0,
+                    "Close": 120.0,
+                    "Volume": 2000,
+                    "Adj Close": 119.0,
+                },
+            ),
+            (
+                datetime(2026, 2, 1, tzinfo=UTC),
+                {
+                    "Open": 120.0,
+                    "High": 130.0,
+                    "Low": 90.0,
+                    "Close": 115.0,
+                    "Volume": 3000,
+                    "Adj Close": 114.0,
+                },
+            ),
+        ]
+    )
+    adapter = YahooChartMarketDataAdapter(client=client)
+
+    bars = adapter.fetch_bars("TSLA", timeframe="1y")
+
+    assert client.calls[0][1]["interval"] == "1mo"
+    assert client.calls[0][1]["period"] == "10y"
+    assert [bar.bar_time.year for bar in bars] == [2025, 2026, 2026]
+    assert [bar.timeframe for bar in bars] == ["1y", "1y", "1y"]
+    assert bars[0].open == Decimal("90.0")
+    assert bars[0].high == Decimal("110.0")
+    assert bars[0].low == Decimal("85.0")
+    assert bars[0].close == Decimal("100.0")
+    assert bars[0].volume == Decimal("1000")
+    assert bars[1].open == Decimal("100.0")
+    assert bars[1].high == Decimal("125.0")
+    assert bars[1].low == Decimal("95.0")
+    assert bars[1].close == Decimal("120.0")
+    assert bars[1].volume == Decimal("2000")
+    assert bars[2].open == Decimal("120.0")
+    assert bars[2].high == Decimal("130.0")
+    assert bars[2].low == Decimal("90.0")
+    assert bars[2].close == Decimal("115.0")
+    assert bars[2].volume == Decimal("3000")
+    assert bars[2].adj_close == Decimal("114.0")
 
 
 def test_yahoo_chart_adapter_maps_common_macro_symbols() -> None:

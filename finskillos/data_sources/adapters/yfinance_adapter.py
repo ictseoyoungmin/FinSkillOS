@@ -34,18 +34,21 @@ TIMEFRAME_TO_YFINANCE_INTERVAL: Mapping[str, str] = {
     "1d": "1d",
     "1wk": "1wk",
     "1w": "1wk",
-    "1mo": "1mo",
-    "1mon": "1mo",
+    "1mo": "1d",
+    "1mon": "1d",
     "1y": "1mo",
 }
 
-DEFAULT_PERIOD_BY_INTERVAL: Mapping[str, str] = {
+DEFAULT_PERIOD_BY_TIMEFRAME: Mapping[str, str] = {
     "5m": "5d",
     "15m": "1mo",
     "1h": "60d",
     "1d": "1y",
     "1wk": "5y",
-    "1mo": "10y",
+    "1w": "5y",
+    "1mo": "1mo",
+    "1mon": "1mo",
+    "1y": "10y",
 }
 
 
@@ -74,6 +77,7 @@ class YahooChartMarketDataAdapter(BaseMarketDataAdapter):
         start: date | datetime | None = None,
         end: date | datetime | None = None,
     ) -> list[MarketBarDTO]:
+        normalized_timeframe = _canonical_timeframe(timeframe)
         interval = _normalize_interval(timeframe)
         if interval is None:
             raise MarketDataFetchError(
@@ -86,6 +90,7 @@ class YahooChartMarketDataAdapter(BaseMarketDataAdapter):
             history = self._history(
                 yahoo_symbol,
                 interval=interval,
+                period=_default_period(timeframe),
                 start=start,
                 end=end,
             )
@@ -94,17 +99,19 @@ class YahooChartMarketDataAdapter(BaseMarketDataAdapter):
                 f"yfinance fetch failed for {ticker_upper}: {exc}"
             ) from exc
 
-        return self._parse_history(
+        bars = self._parse_history(
             ticker=ticker_upper,
-            timeframe=_canonical_timeframe(timeframe),
+            timeframe=normalized_timeframe,
             history=history,
         )
+        return bars
 
     def _history(
         self,
         yahoo_symbol: str,
         *,
         interval: str,
+        period: str,
         start: date | datetime | None,
         end: date | datetime | None,
     ) -> Any:
@@ -115,7 +122,7 @@ class YahooChartMarketDataAdapter(BaseMarketDataAdapter):
             "actions": False,
         }
         if start is None:
-            kwargs["period"] = DEFAULT_PERIOD_BY_INTERVAL[interval]
+            kwargs["period"] = period
         else:
             kwargs["start"] = start
             if end is not None:
@@ -178,6 +185,10 @@ class YahooChartMarketDataAdapter(BaseMarketDataAdapter):
 
 def _normalize_interval(timeframe: str) -> str | None:
     return TIMEFRAME_TO_YFINANCE_INTERVAL.get(timeframe.lower())
+
+
+def _default_period(timeframe: str) -> str:
+    return DEFAULT_PERIOD_BY_TIMEFRAME[_canonical_timeframe(timeframe)]
 
 
 def _canonical_timeframe(timeframe: str) -> str:

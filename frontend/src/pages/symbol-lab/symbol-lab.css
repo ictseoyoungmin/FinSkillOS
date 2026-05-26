@@ -176,6 +176,22 @@
   gap: 6px;
 }
 
+.fso-symbol-chart-tools {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.fso-symbol-currency-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.18);
+}
+
 .fso-symbol-chip {
   height: 28px;
   padding: 0 9px;
@@ -242,18 +258,33 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
 }
 
-.fso-candlechart svg {
-  width: 100%;
-  height: 330px;
-  display: block;
+.fso-candle-stage {
+  position: relative;
+  padding-right: 98px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--fso-bg-3) 35%, transparent),
     transparent
   );
   border-radius: var(--fso-radius-sm);
+}
+
+.fso-candle-stage svg {
+  width: 100%;
+  height: 330px;
+  display: block;
+}
+
+.fso-candle-svg {
+  cursor: grab;
+  touch-action: none;
+}
+
+.fso-candle-svg--dragging {
+  cursor: grabbing;
 }
 
 .fso-candle-axis {
@@ -314,6 +345,181 @@
   stroke: rgba(245, 158, 11, 0.72);
   stroke-width: 1.5;
   stroke-dasharray: 5 4;
+}
+
+.fso-candle-crosshair {
+  stroke: rgba(125, 211, 252, 0.52);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  pointer-events: none;
+}
+
+.fso-candle-crosshair-dot {
+  fill: var(--fso-accent);
+  stroke: rgba(226, 232, 240, 0.9);
+  stroke-width: 1.2;
+  pointer-events: none;
+}
+
+.fso-candle-tooltip {
+  position: absolute;
+  z-index: 3;
+  min-width: 248px;
+  max-width: min(340px, 78vw);
+  padding: 14px 16px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: rgba(6, 13, 24, 0.82);
+  box-shadow: var(--fso-shadow-soft);
+  color: var(--fso-text);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  backdrop-filter: blur(8px);
+}
+
+.fso-candle-tooltip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fso-candle-tooltip-head strong {
+  font-size: 0.95rem;
+}
+
+.fso-candle-tooltip-head span {
+  color: var(--fso-accent);
+  font-family: var(--fso-font-mono);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.fso-candle-tooltip dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 18px;
+  margin: 0;
+}
+
+.fso-candle-tooltip dl > div {
+  min-width: 0;
+}
+
+.fso-candle-tooltip dt {
+  color: var(--fso-text-muted);
+  font-family: var(--fso-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.fso-candle-tooltip dd {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--fso-text);
+  font-family: var(--fso-font-mono);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fso-candle-tooltip--up dd {
+  color: rgba(45, 212, 191, 0.95);
+}
+
+.fso-candle-tooltip--down dd {
+  color: rgba(248, 113, 113, 0.95);
+}
+
+.fso-candle-tooltip dd:nth-of-type(5) {
+  color: var(--fso-text);
+}
+
+.fso-candle-right-axis {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  bottom: 0;
+  width: 82px;
+  pointer-events: none;
+}
+
+.fso-candle-right-axis-label {
+  position: absolute;
+  right: 0;
+  max-width: 82px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  transform: translateY(-50%);
+  background: rgba(6, 13, 24, 0.48);
+  color: var(--fso-text-strong);
+  font-family: var(--fso-font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  opacity: 0.88;
+}
+
+.fso-candle-right-axis-label--price {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.fso-candle-right-axis-label--volume {
+  color: rgba(191, 219, 254, 0.76);
+  font-size: 0.66rem;
+}
+
+.fso-candle-right-axis-label--last,
+.fso-candle-right-axis-label--pointer {
+  z-index: 2;
+  padding: 4px 7px;
+  border-radius: 0;
+  opacity: 0.96;
+}
+
+.fso-candle-right-axis-label--last-up {
+  background: rgba(20, 184, 166, 0.88);
+  color: #ecfeff;
+}
+
+.fso-candle-right-axis-label--last-down {
+  background: rgba(239, 68, 68, 0.88);
+  color: #fff1f2;
+}
+
+.fso-candle-right-axis-label--pointer {
+  background: rgba(59, 130, 246, 0.88);
+  color: #eff6ff;
+}
+
+.fso-candlechart .fso-linechart-axislabels {
+  position: relative;
+  display: block;
+  height: 18px;
+  padding: 0 98px 0 0;
+  letter-spacing: 0;
+}
+
+.fso-candlechart .fso-linechart-axislabel {
+  position: absolute;
+  top: 0;
+  max-width: 72px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  transform: translateX(-50%);
+  background: rgba(6, 13, 24, 0.36);
+  color: rgba(147, 197, 253, 0.72);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: none;
+  backdrop-filter: blur(4px);
+  opacity: 0.88;
 }
 
 .fso-symbol-identity {
