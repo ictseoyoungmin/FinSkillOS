@@ -162,13 +162,17 @@ _NEWS: dict[str, tuple[SymbolNewsItem, ...]] = {
 }
 
 
-def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
+def symbol_lab_fixture(
+    ticker: str | None = None,
+    *,
+    timeframe: str = "1d",
+) -> SymbolLabResponse:
     """Build the Symbol Lab response for ``ticker`` (uppercased)."""
 
     resolved, focus = _resolve_focus(ticker)
 
     if focus is None:
-        return _missing_payload(resolved)
+        return _missing_payload(resolved, timeframe=timeframe)
 
     position = _POSITIONS.get(resolved)
     alerts = _ALERTS.get(resolved, ())
@@ -233,7 +237,7 @@ def symbol_lab_fixture(ticker: str | None = None) -> SymbolLabResponse:
         ),
         header=SymbolLabHeader(
             ticker=focus.symbol,
-            timeframe="1d",
+            timeframe=timeframe,
             latest_close=focus.bars[-1].close,
             latest_time=focus.bars[-1].bar_time,
             data_status="OK",
@@ -279,7 +283,7 @@ def _resolve_focus(ticker: str | None) -> tuple[str, FocusTicker | None]:
     return normalised, FOCUS_TICKERS.get(normalised)
 
 
-def _missing_payload(ticker: str) -> SymbolLabResponse:
+def _missing_payload(ticker: str, *, timeframe: str = "1d") -> SymbolLabResponse:
     return SymbolLabResponse(
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
@@ -315,7 +319,7 @@ def _missing_payload(ticker: str) -> SymbolLabResponse:
         subscription=SymbolSubscriptionState(is_subscribed=False),
         header=SymbolLabHeader(
             ticker=ticker,
-            timeframe="1d",
+            timeframe=timeframe,
             latest_close=None,
             latest_time=None,
             data_status="MISSING",

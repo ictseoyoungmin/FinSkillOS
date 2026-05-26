@@ -1,30 +1,21 @@
-import { ApiError, getJson } from "@/shared/api/client";
+import { getJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
-import { symbolLabFixture } from "@/mocks/fixtures/symbolLab.fixture";
 import type { SymbolLabData } from "./types";
 
 /**
- * Read the Symbol Lab snapshot for a single ticker. Same fixture
- * fallback contract as Market Kernel + Control Room.
+ * Read the Symbol Lab snapshot for a single ticker.
  */
 export async function fetchSymbolLab(
   ticker: string,
   timeframe = "1d",
   signal?: AbortSignal,
 ): Promise<SymbolLabData> {
-  try {
-    const params = new URLSearchParams({
-      ticker,
-      timeframe,
-    });
-    const path = `${apiEndpoints.symbolLab}?${params.toString()}`;
-    return await getJson<SymbolLabData>(path, { signal });
-  } catch (error) {
-    if (error instanceof ApiError && error.status >= 500) {
-      throw error;
-    }
-    return symbolLabFixture(ticker);
-  }
+  const params = new URLSearchParams({
+    ticker,
+    timeframe,
+  });
+  const path = `${apiEndpoints.symbolLab}?${params.toString()}`;
+  return await getJson<SymbolLabData>(path, { signal });
 }
 
 export async function setSymbolSubscription(

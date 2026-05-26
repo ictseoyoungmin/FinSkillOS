@@ -73,7 +73,10 @@ def symbol_lab(
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> SymbolLabResponse:
     if use_fixture:
-        return symbol_lab_fixture(ticker)
+        return symbol_lab_fixture(
+            ticker,
+            timeframe=_normalize_timeframe(timeframe),
+        )
     return _read_symbol_lab(ticker, timeframe=timeframe)
 
 
@@ -84,7 +87,10 @@ def _read_symbol_lab(
 ) -> SymbolLabResponse:
     with get_session_scope() as session:
         if session is None:
-            return symbol_lab_fixture(ticker)
+            return symbol_lab_fixture(
+                ticker,
+                timeframe=_normalize_timeframe(timeframe),
+            )
 
         resolved_ticker = _normalize_ticker(ticker)
         resolved_timeframe = _normalize_timeframe(timeframe)

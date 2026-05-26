@@ -134,6 +134,38 @@ def test_yahoo_chart_adapter_normalizes_provider_payload() -> None:
     assert client.calls[0][1]["interval"] == "1d"
 
 
+def test_yahoo_chart_adapter_supports_symbol_lab_timeframes() -> None:
+    for timeframe, interval, canonical in (
+        ("5m", "5m", "5m"),
+        ("15m", "15m", "15m"),
+        ("1h", "1h", "1h"),
+        ("1d", "1d", "1d"),
+        ("1w", "1wk", "1wk"),
+        ("1mon", "1mo", "1mo"),
+        ("1y", "1mo", "1y"),
+    ):
+        client = _FakeYahooClient(
+            [
+                (
+                    datetime(2026, 5, 1, tzinfo=UTC),
+                    {
+                        "Open": 100.0,
+                        "High": 103.0,
+                        "Low": 99.0,
+                        "Close": 102.25,
+                        "Volume": 1000000,
+                    },
+                ),
+            ]
+        )
+        adapter = YahooChartMarketDataAdapter(client=client)
+
+        bars = adapter.fetch_bars("TSLA", timeframe=timeframe)
+
+        assert client.calls[0][1]["interval"] == interval
+        assert bars[0].timeframe == canonical
+
+
 def test_yahoo_chart_adapter_maps_common_macro_symbols() -> None:
     client = _FakeYahooClient(
         [

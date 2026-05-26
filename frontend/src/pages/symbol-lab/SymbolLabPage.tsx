@@ -1,6 +1,12 @@
 import { useSearchParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { fetchSymbolLab, setSymbolSubscription } from "@/features/symbol/api";
+import type { SymbolLabData } from "@/features/symbol/types";
 import { SymbolAlertsPanel } from "@/features/symbol/components/SymbolAlertsPanel";
 import { SymbolNewsPanel } from "@/features/symbol/components/SymbolNewsPanel";
 import { SymbolPositionContext } from "@/features/symbol/components/SymbolPositionContext";
@@ -10,13 +16,12 @@ import { SymbolSearchPanel } from "@/features/symbol/components/SymbolSearchPane
 import { SymbolTechnicalSnapshot } from "@/features/symbol/components/SymbolTechnicalSnapshot";
 import { SymbolWatchpoints } from "@/features/symbol/components/SymbolWatchpoints";
 import { RegimeContextPanel } from "@/features/analysis/components/RegimeContextPanel";
-import { symbolLabFixture } from "@/mocks/fixtures/symbolLab.fixture";
 import {
   ConflictsPanel,
   DriversPanel,
-  EmptyState,
   InterpretationPanel,
   JudgmentHeader,
+  Panel,
   SafetyCaption,
   SectionHeader,
   WatchpointsPanel,
@@ -27,16 +32,97 @@ import "./symbol-lab.css";
 const DEFAULT_TICKER = "TSLA";
 const DEFAULT_TIMEFRAME = "1d";
 
+function pendingSymbolLabData(ticker: string, timeframe: string): SymbolLabData {
+  return {
+    generatedAt: "",
+    source: "live",
+    systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 0 },
+    judgment: {
+      eyebrow: `SYMBOL JUDGMENT · ${ticker}`,
+      title: "Loading",
+      accent: "Evidence",
+      summary: `${ticker} evidence is being loaded from the API.`,
+      confidence: 0,
+    },
+    drivers: [
+      {
+        score: "—",
+        title: "Stored bars",
+        note: "Waiting for chart evidence.",
+      },
+    ],
+    conflicts: [
+      {
+        title: "Loading state",
+        note: "No fallback chart evidence is rendered while the request is pending.",
+      },
+    ],
+    integratedInterpretation: {
+      verdict: "Symbol evidence is loading.",
+      whyItMatters: "The chart will render only after live data arrives.",
+      whatRemainsUncertain: "API response freshness is still pending.",
+    },
+    reviewWatchpoints: [
+      {
+        title: "Chart evidence",
+        note: "Candles are hidden until the requested symbol/timeframe resolves.",
+      },
+    ],
+    symbolUniverse: [{ symbol: ticker, label: ticker, kind: "FOCUS" }],
+    identity: {
+      ticker,
+      name: ticker,
+      logoUrl: null,
+      logoSource: "local_fallback",
+      avatarText: ticker.replace(/[^A-Z]/g, "").slice(0, 2) || ticker.slice(0, 2),
+      brandColor: "#475569",
+    },
+    subscription: {
+      isSubscribed: false,
+      canSubscribe: false,
+      updateUniverseMember: false,
+      lastAction: "none",
+    },
+    header: {
+      ticker,
+      timeframe,
+      latestClose: null,
+      latestTime: null,
+      dataStatus: "MISSING",
+    },
+    technical: {
+      rsi14: null,
+      ema20: null,
+      ema60: null,
+      ema120: null,
+      bbPosition: null,
+      volumeZScore: null,
+      momentumScore: null,
+      trendState: null,
+    },
+    recentBars: [],
+    position: null,
+    alerts: [],
+    news: [],
+    regime: null,
+    watchpoints: ["Waiting for live Symbol Lab evidence."],
+    interpretation: "Symbol Lab is waiting for the requested chart evidence.",
+    setupHint: null,
+    safetyCaption:
+      "Symbol interpretation (not trade signal). Stored data only · not prediction.",
+  };
+}
+
 export function SymbolLabPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const ticker = (searchParams.get("ticker") ?? DEFAULT_TICKER).toUpperCase();
   const timeframe = searchParams.get("timeframe") ?? DEFAULT_TIMEFRAME;
 
-  const { data, error } = useQuery({
+  const { data, error, isFetching, isPending, isPlaceholderData, refetch } = useQuery({
     queryKey: ["symbol-lab", ticker, timeframe],
     queryFn: ({ signal }) => fetchSymbolLab(ticker, timeframe, signal),
-    placeholderData: symbolLabFixture(ticker),
+    placeholderData: keepPreviousData,
   });
 
   const selectTicker = (next: string) => {
@@ -63,20 +149,15 @@ export function SymbolLabPage() {
     },
   });
 
-  if (error && !data) {
-    return (
-      <EmptyState
-        testId="symbol-lab-error"
-        title="Symbol Lab is unavailable"
-        message={
-          "The API is unreachable and no fixture is cached. " +
-          "Check the FastAPI container and reload."
-        }
-      />
-    );
-  }
-
-  const payload = data ?? symbolLabFixture(ticker);
+  const payload = data ?? pendingSymbolLabData(ticker, timeframe);
+  const initialRequestPending = !data && isPending;
+  const initialRequestError = !data && Boolean(error);
+  const chartRequestPending =
+    initialRequestPending ||
+    isPlaceholderData ||
+    (isFetching &&
+      (payload.header.ticker !== ticker || payload.header.timeframe !== timeframe));
+  const chartRequestError = initialRequestError || Boolean(error && data);
 
   return (
     <div className="fso-symbol-lab" data-testid="symbol-lab-page">
@@ -98,16 +179,15 @@ export function SymbolLabPage() {
         />
       </div>
       <SymbolSearchPanel
-        currentTicker={payload.header.ticker}
+        currentTicker={ticker}
         universe={payload.symbolUniverse}
         onSelect={selectTicker}
       />
       {payload.setupHint ? (
-        <EmptyState
-          testId="symbol-lab-setup-hint"
-          title="Limited data available"
-          message={payload.setupHint}
-        />
+        <div className="fso-symbol-inline-state" data-testid="symbol-lab-setup-hint">
+          <strong>Limited data available</strong>
+          <span>{payload.setupHint}</span>
+        </div>
       ) : null}
       <div className="fso-symbol-lab-grid">
         <div className="fso-symbol-lab-main">
@@ -123,12 +203,32 @@ export function SymbolLabPage() {
               }
             />
           </div>
-          <SymbolCandlestickChart
-            header={payload.header}
-            bars={payload.recentBars}
-            selectedTimeframe={timeframe}
-            onTimeframeChange={selectTimeframe}
-          />
+          {chartRequestPending ? (
+            <SymbolLabChartRequestPanel
+              ticker={ticker}
+              timeframe={timeframe}
+              status="loading"
+            />
+          ) : chartRequestError ? (
+            <SymbolLabChartRequestPanel
+              ticker={ticker}
+              timeframe={timeframe}
+              status="error"
+              message={
+                error instanceof Error
+                  ? error.message
+                  : "Symbol Lab chart data could not be loaded."
+              }
+              onRetry={() => void refetch()}
+            />
+          ) : (
+            <SymbolCandlestickChart
+              header={payload.header}
+              bars={payload.recentBars}
+              selectedTimeframe={timeframe}
+              onTimeframeChange={selectTimeframe}
+            />
+          )}
           <SymbolRecentBarsTable bars={payload.recentBars} />
           <SymbolWatchpoints
             watchpoints={payload.watchpoints}
@@ -163,5 +263,60 @@ export function SymbolLabPage() {
       />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
+  );
+}
+
+interface SymbolLabChartRequestPanelProps {
+  ticker: string;
+  timeframe: string;
+  status: "loading" | "error";
+  message?: string;
+  onRetry?: () => void;
+}
+
+function SymbolLabChartRequestPanel({
+  ticker,
+  timeframe,
+  status,
+  message,
+  onRetry,
+}: SymbolLabChartRequestPanelProps) {
+  const isLoading = status === "loading";
+
+  return (
+    <Panel
+      title={`Candles · ${ticker}`}
+      badge={timeframe.toUpperCase()}
+      badgeTone={isLoading ? "info" : "danger"}
+      className="fso-symbol-chart-request-panel"
+      testId={isLoading ? "symbol-lab-loading" : "symbol-lab-error"}
+    >
+      <div
+        className="fso-symbol-request-state"
+        role={isLoading ? "status" : "alert"}
+        aria-live="polite"
+      >
+        <div className={isLoading ? "fso-symbol-loader" : "fso-symbol-loader--error"}>
+          {isLoading ? <span aria-hidden /> : "!"}
+        </div>
+        <div>
+          <strong>
+            {isLoading
+              ? `Loading ${ticker} ${timeframe} chart`
+              : `Could not load ${ticker} ${timeframe} chart`}
+          </strong>
+          <span>
+            {isLoading
+              ? "Fetching live Symbol Lab evidence before rendering the chart."
+              : (message ?? "Check the API connection and try again.")}
+          </span>
+        </div>
+        {!isLoading && onRetry ? (
+          <button type="button" className="fso-symbol-chip" onClick={onRetry}>
+            Retry
+          </button>
+        ) : null}
+      </div>
+    </Panel>
   );
 }

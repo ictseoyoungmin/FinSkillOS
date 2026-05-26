@@ -66,6 +66,22 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
 
+def test_symbol_lab_fixture_respects_timeframe_query() -> None:
+    body = _fixture_json("/api/symbol-lab?ticker=TSLA&timeframe=1h")
+
+    assert body["source"] == "fixture"
+    assert body["header"]["ticker"] == "TSLA"
+    assert body["header"]["timeframe"] == "1h"
+
+
+def test_symbol_lab_fixture_normalizes_timeframe_aliases() -> None:
+    body = _fixture_json("/api/symbol-lab?ticker=ADBE&timeframe=1mon")
+
+    assert body["header"]["ticker"] == "ADBE"
+    assert body["header"]["dataStatus"] == "MISSING"
+    assert body["header"]["timeframe"] == "1mo"
+
+
 def test_symbol_lab_universe_exposes_all_searchable_symbols() -> None:
     body = _fixture_json()
     symbols = {row["symbol"] for row in body["symbolUniverse"]}

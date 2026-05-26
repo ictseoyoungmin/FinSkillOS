@@ -147,9 +147,12 @@ const TSLA: SymbolLabData = {
     "Symbol interpretation (not trade signal). Stored data only · not prediction.",
 };
 
-export function symbolLabFixture(ticker: string): SymbolLabData {
+export function symbolLabFixture(
+  ticker: string,
+  timeframe = TSLA.header.timeframe,
+): SymbolLabData {
   const t = ticker.toUpperCase();
-  if (t === "TSLA") return TSLA;
+  if (t === "TSLA") return { ...TSLA, header: { ...TSLA.header, timeframe } };
   return {
     ...TSLA,
     judgment: {
@@ -170,7 +173,7 @@ export function symbolLabFixture(ticker: string): SymbolLabData {
       updateUniverseMember: false,
       lastAction: "none",
     },
-    header: { ...TSLA.header, ticker: t },
+    header: { ...TSLA.header, ticker: t, timeframe },
     position: null,
     alerts: [],
     news: [],
