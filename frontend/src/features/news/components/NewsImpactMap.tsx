@@ -27,6 +27,16 @@ export function NewsImpactMap({ entries }: NewsImpactMapProps) {
       </Panel>
     );
   }
+
+  const grouped = (["ticker", "theme", "sector"] as const)
+    .map((dimension) => ({
+      dimension,
+      entries: entries
+        .filter((entry) => entry.dimension === dimension)
+        .sort((a, b) => b.articleCount - a.articleCount || a.label.localeCompare(b.label)),
+    }))
+    .filter((group) => group.entries.length > 0);
+
   return (
     <Panel
       title="News Impact Map"
@@ -34,28 +44,30 @@ export function NewsImpactMap({ entries }: NewsImpactMapProps) {
       badgeTone="info"
       testId="news-impact-map"
     >
-      <table className="fso-news-impact-table" data-testid="news-impact-map-table">
-        <thead>
-          <tr>
-            <th scope="col">Label</th>
-            <th scope="col">Dimension</th>
-            <th scope="col">Articles</th>
-            <th scope="col">Sentiment</th>
-            <th scope="col">Risk</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry) => (
-            <tr key={`${entry.dimension}-${entry.label}`}>
-              <td>{entry.label}</td>
-              <td className="fso-news-impact-dim">{entry.dimension}</td>
-              <td className="fso-news-impact-count">{entry.articleCount}</td>
-              <td>{entry.sentiment}</td>
-              <td>{entry.riskLevel}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="fso-news-impact-groups" data-testid="news-impact-map-groups">
+        {grouped.map((group) => (
+          <section className="fso-news-impact-group" key={group.dimension}>
+            <h3>{group.dimension}</h3>
+            <div className="fso-news-impact-chip-grid">
+              {group.entries.map((entry) => (
+                <div
+                  className="fso-news-impact-map-chip"
+                  data-risk={entry.riskLevel.toLowerCase()}
+                  key={`${entry.dimension}-${entry.label}`}
+                >
+                  <span className="fso-news-impact-map-label">{entry.label}</span>
+                  <span className="fso-news-impact-map-count">
+                    {entry.articleCount}
+                  </span>
+                  <span className="fso-news-impact-map-meta">
+                    {entry.sentiment} · {entry.riskLevel}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </Panel>
   );
 }

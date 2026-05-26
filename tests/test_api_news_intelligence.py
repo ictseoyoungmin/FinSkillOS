@@ -267,6 +267,12 @@ def test_news_intelligence_get_reads_stored_db_news(monkeypatch, tmp_path) -> No
         assert body["latestNews"][0]["title"] == "AAPL data center update"
         assert body["latestNews"][0]["source"] == "RSS Desk"
         assert body["latestNews"][0]["publishedAt"].startswith("2026-05-26T12:30:00")
+        assert (
+            body["judgment"]["portfolioRelevance"]
+            == "0 current-holding matches; tracked tickers have stored news"
+        )
+        assert body["drivers"][1]["label"] == "Tracked ticker mentions"
+        assert "not necessarily current holdings" in body["drivers"][1]["detail"]
         assert "streaming feed" in json.dumps(body).lower()
         assert "Reuters / Bloomberg / WSJ" not in json.dumps(body)
     finally:

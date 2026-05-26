@@ -1,6 +1,6 @@
 import { Panel } from "@/shared/ui";
 import type { NewsArticleVM } from "../types";
-import { formatNewsTimestamp } from "./formatNewsTimestamp";
+import { PaginatedNewsList } from "./PaginatedNewsList";
 import "./news-list.css";
 
 export interface EventLinkedNewsPanelProps {
@@ -33,35 +33,7 @@ export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
       badgeTone="warning"
       testId="event-linked-news"
     >
-      <ul className="fso-news-list">
-        {articles.map((article) => {
-          const eventKeys = article.impacts
-            .map((impact) => impact.eventKey)
-            .filter((key): key is string => Boolean(key));
-          return (
-            <li className="fso-news-row" key={article.id}>
-              <div className="fso-news-row-head">
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="fso-news-title"
-                >
-                  {article.title}
-                </a>
-                <span className="fso-news-meta">
-                  <strong>{formatNewsTimestamp(article.publishedAt)}</strong>
-                  <span>{article.source}</span>
-                  {eventKeys.length > 0
-                    ? ` · ${Array.from(new Set(eventKeys)).join(", ")}`
-                    : ""}
-                </span>
-              </div>
-              <p className="fso-news-summary">{article.summary}</p>
-            </li>
-          );
-        })}
-      </ul>
+      <PaginatedNewsList articles={articles} pageSize={5} showEventKeys />
     </Panel>
   );
 }

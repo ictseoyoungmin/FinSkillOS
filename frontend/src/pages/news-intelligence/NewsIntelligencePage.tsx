@@ -3,14 +3,13 @@ import { fetchNewsIntelligence } from "@/features/news/api";
 import { EventLinkedNewsPanel } from "@/features/news/components/EventLinkedNewsPanel";
 import { HoldingsRelevantNews } from "@/features/news/components/HoldingsRelevantNews";
 import { LatestNewsPanel } from "@/features/news/components/LatestNewsPanel";
-import { ManualArticleEntry } from "@/features/news/components/ManualArticleEntry";
+import { NewsEvidenceDetails } from "@/features/news/components/NewsEvidenceDetails";
 import { NewsImpactMap } from "@/features/news/components/NewsImpactMap";
 import { NewsJudgmentHeader } from "@/features/news/components/NewsJudgmentHeader";
+import { NewsSignalSummary } from "@/features/news/components/NewsSignalSummary";
 import { NewsWatchpointsPanel } from "@/features/news/components/NewsWatchpointsPanel";
 import { newsIntelligenceFixture } from "@/mocks/fixtures/newsIntelligence.fixture";
 import {
-  ConflictsPanel,
-  DriversPanel,
   EmptyState,
   InterpretationPanel,
   SafetyCaption,
@@ -43,28 +42,32 @@ export function NewsIntelligencePage() {
   return (
     <div className="fso-news-intel" data-testid="news-intelligence-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="News Intelligence" />
-      <div className="fso-v42-topline">
+      <div className="fso-news-intel-row fso-news-intel-summary-row">
         <NewsJudgmentHeader judgment={payload.judgment} />
-        <DriversPanel drivers={payload.drivers} />
-        <ConflictsPanel conflicts={payload.conflicts} />
+        <NewsSignalSummary
+          judgment={payload.judgment}
+          drivers={payload.drivers}
+          conflicts={payload.conflicts}
+        />
+        <InterpretationPanel
+          bullets={payload.integratedInterpretation}
+          testId="news-interpretation-panel"
+        />
       </div>
-      <div className="fso-news-intel-grid">
-        <div className="fso-news-intel-col">
-          <LatestNewsPanel articles={payload.latestNews} />
+      <div className="fso-news-intel-row fso-news-intel-main-row">
+        <LatestNewsPanel articles={payload.latestNews} />
+        <NewsImpactMap entries={payload.impactMap} />
+      </div>
+      <NewsEvidenceDetails
+        title="Secondary Evidence"
+        badge={`${payload.watchpoints.length + payload.holdingsRelevant.length + payload.eventLinked.length} rows`}
+      >
+        <div className="fso-news-evidence-grid">
+          <NewsWatchpointsPanel watchpoints={payload.watchpoints} />
           <HoldingsRelevantNews articles={payload.holdingsRelevant} />
-          <NewsImpactMap entries={payload.impactMap} />
           <EventLinkedNewsPanel articles={payload.eventLinked} />
         </div>
-        <div className="fso-news-intel-col">
-          <InterpretationPanel
-            bullets={payload.integratedInterpretation}
-          />
-          <NewsWatchpointsPanel watchpoints={payload.watchpoints} />
-          <div data-testid="news-manual-article">
-            <ManualArticleEntry rules={payload.manualEntryRules} />
-          </div>
-        </div>
-      </div>
+      </NewsEvidenceDetails>
       <div data-testid="news-intelligence-safety-caption">
         <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
       </div>

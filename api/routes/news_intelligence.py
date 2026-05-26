@@ -244,7 +244,10 @@ def _live_response_from_vm(vm) -> NewsIntelligenceResponse:
             ),
             confidence=confidence,
             dominant_theme=dominant_theme,
-            portfolio_relevance=f"{len(holdings)} holdings-relevant articles",
+            portfolio_relevance=_portfolio_relevance(
+                holdings_count=len(holdings),
+                affected_tickers=_affected_tickers(all_articles),
+            ),
             event_linkage=f"{len(event_linked)} event-linked articles",
             sentiment_tone=sentiment_tone,
             risk_tone=risk_tone,
@@ -257,9 +260,12 @@ def _live_response_from_vm(vm) -> NewsIntelligenceResponse:
                 detail="Rows persisted in the local news_articles table.",
             ),
             NewsDriver(
-                label="Affected tickers",
+                label="Tracked ticker mentions",
                 value=_join_or_dash(_affected_tickers(all_articles)),
-                detail="Derived from persisted impact rows.",
+                detail=(
+                    "Derived from persisted impact rows; these are feed/query "
+                    "matches, not necessarily current holdings."
+                ),
             ),
             NewsDriver(
                 label="Freshness window",
@@ -377,6 +383,16 @@ def _affected_tickers(articles: list[NewsArticleVM]) -> tuple[str, ...]:
         if impact.ticker
     }
     return tuple(sorted(tickers))
+
+
+def _portfolio_relevance(
+    *, holdings_count: int, affected_tickers: tuple[str, ...]
+) -> str:
+    if holdings_count:
+        return f"{holdings_count} current-holding matched articles"
+    if affected_tickers:
+        return "0 current-holding matches; tracked tickers have stored news"
+    return "0 current-holding matches"
 
 
 def _dominant_theme(impacts: list[NewsImpactVM]) -> str:

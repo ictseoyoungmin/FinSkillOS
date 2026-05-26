@@ -1,33 +1,98 @@
-.fso-news-judgment-headline {
-  margin: 0 0 12px;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--fso-text);
-}
-
-.fso-news-judgment-tags {
+.fso-news-judgment {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-md);
+  background: rgba(12, 24, 36, 0.82);
+  box-shadow: var(--fso-shadow);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: minmax(0, 1fr) 92px;
   gap: 12px;
-  margin: 0;
+  align-items: center;
 }
 
-.fso-news-judgment-tags > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.fso-news-judgment-copy {
+  min-width: 0;
 }
 
-.fso-news-judgment-tags dt {
+.fso-news-judgment-eyebrow {
+  margin: 0 0 5px;
+  color: var(--fso-text-muted-2);
   font-family: var(--fso-font-mono);
   font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--fso-text-muted-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.fso-news-judgment-tags dd {
+.fso-news-judgment h2 {
   margin: 0;
-  font-size: 12px;
   color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 18px;
+  line-height: 1.18;
+}
+
+.fso-news-judgment-tags {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fso-news-judgment-tags span {
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid rgba(82, 129, 170, 0.48);
+  border-radius: 999px;
+  color: var(--fso-text-muted);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fso-news-judgment-confidence {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--fso-line);
+  border-radius: 8px;
+  background: rgba(16, 29, 44, 0.72);
+  display: grid;
+  gap: 5px;
+}
+
+.fso-news-judgment-confidence span {
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.fso-news-judgment-confidence strong {
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 18px;
+}
+
+.fso-news-judgment-confidence i {
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--fso-line);
+}
+
+.fso-news-judgment-confidence b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fso-green);
+}
+
+@media (max-width: 720px) {
+  .fso-news-judgment {
+    grid-template-columns: 1fr;
+  }
 }
