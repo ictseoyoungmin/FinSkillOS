@@ -1,5 +1,6 @@
 import { Panel } from "@/shared/ui";
 import type { NewsArticleVM } from "../types";
+import { formatNewsTimestamp } from "./formatNewsTimestamp";
 import "./news-list.css";
 
 export interface EventLinkedNewsPanelProps {
@@ -49,7 +50,8 @@ export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
                   {article.title}
                 </a>
                 <span className="fso-news-meta">
-                  {article.source} · {article.publishedAt.slice(0, 10)}
+                  <strong>{formatNewsTimestamp(article.publishedAt)}</strong>
+                  <span>{article.source}</span>
                   {eventKeys.length > 0
                     ? ` · ${Array.from(new Set(eventKeys)).join(", ")}`
                     : ""}

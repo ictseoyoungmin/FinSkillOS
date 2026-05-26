@@ -1,8 +1,8 @@
-"""GET /api/news-intelligence + POST /api/news-intelligence/manual-article — Slice 13.9.
+"""GET /api/news-intelligence + POST /api/news-intelligence/manual-article.
 
-Fixture-first wrapper around the Slice-10 NewsService. Live DB wiring
-stays deferred per ``api/dependencies.py``; the React shell renders
-the deterministic v4.2 Evidence-to-Judgment payload either way.
+DB-first wrapper around the Slice-10 NewsService. When a database session is
+available the GET endpoint returns stored RSS/manual news rows; fixture data is
+used only when explicitly requested or when the DB is unavailable.
 
 Manual article ingestion enforces the Slice-10 safety contract before
 delegating to the service: summary length is capped, full-body input
@@ -12,6 +12,7 @@ field at the API seam.
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -19,11 +20,19 @@ from fastapi import APIRouter, Depends
 
 from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import news_intelligence_fixture
+from api.schemas.common import SystemStatus
 from api.schemas.news_intelligence import (
     MAX_SUMMARY_CHARS,
     ManualArticleInput,
     ManualArticleResult,
+    NewsArticleVM,
+    NewsConflict,
+    NewsDriver,
+    NewsImpactMapEntry,
+    NewsImpactVM,
     NewsIntelligenceResponse,
+    NewsJudgmentHeader,
+    NewsWatchpoint,
 )
 
 router = APIRouter(tags=["news-intelligence"])
@@ -39,10 +48,25 @@ UTC = timezone.utc
 def news_intelligence(
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> NewsIntelligenceResponse:
-    payload = news_intelligence_fixture()
     if use_fixture:
-        payload.source = "fixture"
-    return payload
+        return news_intelligence_fixture()
+
+    with get_session_scope() as session:
+        if session is None:
+            return news_intelligence_fixture()
+        try:
+            from finskillos.ui.view_models.news_intelligence_vm import (
+                build_news_intelligence_view_model,
+            )
+
+            vm = build_news_intelligence_view_model(
+                session,
+                generated_at=datetime.now(tz=UTC),
+            )
+            return _live_response_from_vm(vm)
+        except Exception:
+            session.rollback()
+            return news_intelligence_fixture()
 
 
 @router.post(
@@ -185,6 +209,247 @@ def _scan_inputs_for_forbidden_wording(
         except AssertionError:
             return f"forbidden_wording_in_{name}"
     return None
+
+
+def _live_response_from_vm(vm) -> NewsIntelligenceResponse:
+    latest = _safe_articles([_article_vm(article) for article in vm.latest_news])
+    holdings = _safe_articles(
+        [_article_vm(article) for article in vm.holdings_relevant]
+    )
+    event_linked = _safe_articles(
+        [_article_vm(article) for article in vm.event_linked]
+    )
+    all_articles = _dedupe_articles([*latest, *holdings, *event_linked])
+    impacts = [impact for article in all_articles for impact in article.impacts]
+    dominant_theme = _dominant_theme(impacts)
+    confidence = _confidence(len(all_articles))
+    sentiment_tone = _dominant_label(
+        [impact.sentiment_label for impact in impacts],
+        fallback="UNKNOWN",
+    )
+    risk_tone = _dominant_label(
+        [impact.risk_level for impact in impacts],
+        fallback="UNKNOWN",
+    )
+
+    return NewsIntelligenceResponse(
+        generated_at=vm.generated_at.isoformat(),
+        source="live",
+        system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        judgment=NewsJudgmentHeader(
+            headline=_headline(
+                article_count=len(all_articles),
+                dominant_theme=dominant_theme,
+                risk_tone=risk_tone,
+            ),
+            confidence=confidence,
+            dominant_theme=dominant_theme,
+            portfolio_relevance=f"{len(holdings)} holdings-relevant articles",
+            event_linkage=f"{len(event_linked)} event-linked articles",
+            sentiment_tone=sentiment_tone,
+            risk_tone=risk_tone,
+            tone="info" if risk_tone in {"GREEN", "UNKNOWN"} else "warning",
+        ),
+        drivers=[
+            NewsDriver(
+                label="Stored article count",
+                value=str(len(all_articles)),
+                detail="Rows persisted in the local news_articles table.",
+            ),
+            NewsDriver(
+                label="Affected tickers",
+                value=_join_or_dash(_affected_tickers(all_articles)),
+                detail="Derived from persisted impact rows.",
+            ),
+            NewsDriver(
+                label="Freshness window",
+                value=_freshness_value(all_articles),
+                detail="Based on stored publishedAt timestamps, not a streaming feed.",
+            ),
+        ],
+        conflicts=[
+            NewsConflict(
+                label="Stored news vs real-time feed",
+                description=(
+                    "This page shows locally stored RSS/manual metadata. "
+                    "Freshness depends on worker or System Ops refresh timing."
+                ),
+                tone="warning",
+            )
+        ],
+        holdings_relevant=holdings,
+        event_linked=event_linked,
+        latest_news=latest,
+        impact_map=_impact_map(impacts),
+        integrated_interpretation=[
+            (
+                f"{len(all_articles)} stored news articles are available for "
+                "descriptive review."
+            ),
+            (
+                "RSS/manual ingestion stores short summaries and metadata only; "
+                "full article bodies are not stored."
+            ),
+            (
+                "Dates shown on article rows come from the provider/manual "
+                "publishedAt timestamp."
+            ),
+        ],
+        watchpoints=[
+            NewsWatchpoint(
+                label="Refresh timing",
+                description=(
+                    "If article dates look stale, check worker status and "
+                    "FINSKILLOS_NEWS_RSS_FEEDS."
+                ),
+                tone="warning",
+            ),
+            NewsWatchpoint(
+                label="Source coverage",
+                description=(
+                    "RSS coverage depends on configured feeds; add providers "
+                    "explicitly instead of assuming market-wide coverage."
+                ),
+                tone="info",
+            ),
+        ],
+    )
+
+
+def _article_vm(article) -> NewsArticleVM:
+    return NewsArticleVM(
+        id=str(article.id),
+        title=article.title,
+        source=article.source,
+        url=article.url,
+        published_at=article.published_at.isoformat(),
+        summary=article.summary,
+        impacts=[
+            NewsImpactVM(
+                ticker=impact.ticker,
+                sector=impact.sector,
+                theme=impact.theme,
+                event_key=impact.event_key,
+                impact_score=impact.impact_score,
+                sentiment_label=impact.sentiment_label,
+                risk_level=impact.risk_level,
+                is_event_linked=impact.is_event_linked,
+            )
+            for impact in article.impacts
+        ],
+    )
+
+
+def _dedupe_articles(articles: list[NewsArticleVM]) -> list[NewsArticleVM]:
+    by_id: dict[str, NewsArticleVM] = {}
+    for article in articles:
+        by_id[article.id] = article
+    return list(by_id.values())
+
+
+def _safe_articles(articles: list[NewsArticleVM]) -> list[NewsArticleVM]:
+    return [article for article in articles if _article_is_safe(article)]
+
+
+def _article_is_safe(article: NewsArticleVM) -> bool:
+    from finskillos.guards.base import GuardResult, assert_no_forbidden_wording
+
+    for field_name, value in (("title", article.title), ("summary", article.summary)):
+        placeholder = GuardResult(
+            guard_name=f"NEWS_API:{article.id}:{field_name}",
+            status="INFO",
+            risk_level="GREEN",
+            title="",
+            message=value,
+        )
+        try:
+            assert_no_forbidden_wording(placeholder)
+        except AssertionError:
+            return False
+    return True
+
+
+def _affected_tickers(articles: list[NewsArticleVM]) -> tuple[str, ...]:
+    tickers = {
+        impact.ticker.upper()
+        for article in articles
+        for impact in article.impacts
+        if impact.ticker
+    }
+    return tuple(sorted(tickers))
+
+
+def _dominant_theme(impacts: list[NewsImpactVM]) -> str:
+    themes = [impact.theme for impact in impacts if impact.theme]
+    if not themes:
+        return "No Stored Theme"
+    return Counter(themes).most_common(1)[0][0]
+
+
+def _confidence(article_count: int) -> str:
+    if article_count >= 8:
+        return "HIGH"
+    if article_count >= 3:
+        return "MODERATE"
+    return "LOW"
+
+
+def _dominant_label(labels: list[str], *, fallback: str) -> str:
+    cleaned = [label for label in labels if label and label != "UNKNOWN"]
+    if not cleaned:
+        return fallback
+    return Counter(cleaned).most_common(1)[0][0]
+
+
+def _headline(*, article_count: int, dominant_theme: str, risk_tone: str) -> str:
+    if article_count == 0:
+        return "No Stored News Yet"
+    if risk_tone in {"YELLOW", "ORANGE", "RED"}:
+        return f"{dominant_theme} News Stored, Risk Context Present"
+    return f"{dominant_theme} News Stored"
+
+
+def _join_or_dash(values: tuple[str, ...]) -> str:
+    return " · ".join(values) if values else "—"
+
+
+def _freshness_value(articles: list[NewsArticleVM]) -> str:
+    if not articles:
+        return "No stored articles"
+    latest = max(article.published_at for article in articles)
+    return latest[:10]
+
+
+def _impact_map(impacts: list[NewsImpactVM]) -> list[NewsImpactMapEntry]:
+    buckets: dict[tuple[str, str], list[NewsImpactVM]] = {}
+    for impact in impacts:
+        for dimension, label in (
+            ("ticker", impact.ticker),
+            ("theme", impact.theme),
+            ("sector", impact.sector),
+        ):
+            if not label:
+                continue
+            buckets.setdefault((dimension, label), []).append(impact)
+
+    rows: list[NewsImpactMapEntry] = []
+    for (dimension, label), bucket in sorted(buckets.items()):
+        rows.append(
+            NewsImpactMapEntry(
+                label=label,
+                dimension=dimension,
+                article_count=len(bucket),
+                sentiment=_dominant_label(
+                    [item.sentiment_label for item in bucket],
+                    fallback="UNKNOWN",
+                ),
+                risk_level=_dominant_label(
+                    [item.risk_level for item in bucket],
+                    fallback="UNKNOWN",
+                ),
+            )
+        )
+    return rows
 
 
 def _parse_iso_datetime(value: str) -> datetime | None:

@@ -20,6 +20,7 @@ RSS_FEED = """\
       <link>https://news.example.com/tsla-deliveries</link>
       <pubDate>Tue, 26 May 2026 12:30:00 GMT</pubDate>
       <description><![CDATA[<p>TSLA delivery update was <b>strong</b>.</p>]]></description>
+      <source url="https://finance.example.com">Finance Wire</source>
       <dc:creator>Market Desk Team</dc:creator>
     </item>
     <item>
@@ -56,7 +57,7 @@ def test_rss_adapter_normalizes_entries_without_article_bodies() -> None:
     assert len(rows) == 1
     row = rows[0]
     assert row.title == "TSLA delivery numbers top expectations"
-    assert row.source == "Market Desk"
+    assert row.source == "Finance Wire"
     assert row.url == "https://news.example.com/tsla-deliveries"
     assert row.published_at.tzinfo == timezone.utc
     assert row.published_at.isoformat() == "2026-05-26T12:30:00+00:00"

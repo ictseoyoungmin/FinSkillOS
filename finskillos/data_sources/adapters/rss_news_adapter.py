@@ -100,7 +100,7 @@ def _parse_feed(xml_text: str | bytes, *, feed: RssFeed) -> tuple[NewsArticleInp
 
 def _parse_rss(root: ElementTree.Element, *, feed: RssFeed) -> tuple[NewsArticleInput, ...]:
     channel = root.find("channel") or root
-    source = feed.source or _text(channel, "title") or _source_from_url(feed.url)
+    channel_source = feed.source or _text(channel, "title") or _source_from_url(feed.url)
     language = feed.language or _text(channel, "language")
 
     articles: list[NewsArticleInput] = []
@@ -112,7 +112,7 @@ def _parse_rss(root: ElementTree.Element, *, feed: RssFeed) -> tuple[NewsArticle
         articles.append(
             NewsArticleInput(
                 title=_clip(title, MAX_TITLE_CHARS),
-                source=source,
+                source=_clean_text(_text(item, "source")) or channel_source,
                 url=url,
                 published_at=_parse_datetime(
                     _text(item, "pubDate") or _text(item, "published")

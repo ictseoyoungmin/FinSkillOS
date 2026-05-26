@@ -11,7 +11,7 @@ Covers SIG-AC-001 through SIG-AC-004 from docs/v2_1/09:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -188,7 +188,10 @@ def test_signal_service_persists_latest_snapshot(db_session: Session) -> None:
 
 
 def test_signal_service_persists_history_when_requested(db_session: Session) -> None:
-    adapter = MockMarketDataAdapter(default_bars=150)
+    adapter = MockMarketDataAdapter(
+        default_start=date(2025, 1, 5),
+        default_bars=150,
+    )
     service = MarketDataService(db_session, adapter=adapter, universe=["TSLA"])
     service.refresh_bars(["TSLA"])
 

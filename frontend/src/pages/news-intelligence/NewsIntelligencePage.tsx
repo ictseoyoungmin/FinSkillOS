@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchNewsIntelligence } from "@/features/news/api";
 import { EventLinkedNewsPanel } from "@/features/news/components/EventLinkedNewsPanel";
 import { HoldingsRelevantNews } from "@/features/news/components/HoldingsRelevantNews";
+import { LatestNewsPanel } from "@/features/news/components/LatestNewsPanel";
 import { ManualArticleEntry } from "@/features/news/components/ManualArticleEntry";
 import { NewsImpactMap } from "@/features/news/components/NewsImpactMap";
 import { NewsJudgmentHeader } from "@/features/news/components/NewsJudgmentHeader";
@@ -49,6 +50,7 @@ export function NewsIntelligencePage() {
       </div>
       <div className="fso-news-intel-grid">
         <div className="fso-news-intel-col">
+          <LatestNewsPanel articles={payload.latestNews} />
           <HoldingsRelevantNews articles={payload.holdingsRelevant} />
           <NewsImpactMap entries={payload.impactMap} />
           <EventLinkedNewsPanel articles={payload.eventLinked} />

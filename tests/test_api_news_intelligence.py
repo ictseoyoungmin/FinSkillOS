@@ -17,9 +17,14 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
+from finskillos.config import reset_settings_cache
+from finskillos.db.base import Base
+from finskillos.services.news_service import NewsArticleInput, NewsService
 
 _FORBIDDEN_WORDS = (
     "buy",
@@ -229,3 +234,48 @@ def test_use_fixture_header_is_accepted_on_news_intelligence() -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "fixture"
+
+
+def test_news_intelligence_get_reads_stored_db_news(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        NewsService(session).ingest_article(
+            NewsArticleInput(
+                title="AAPL data center update",
+                source="RSS Desk",
+                url="https://news.example.com/aapl-data-center",
+                published_at=_dt("2026-05-26T12:30:00+00:00"),
+                summary="Apple data center investment remained in focus.",
+            )
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        response = _client().get("/api/news-intelligence")
+        assert response.status_code == 200
+        body = response.json()
+
+        assert body["source"] == "live"
+        assert body["latestNews"][0]["title"] == "AAPL data center update"
+        assert body["latestNews"][0]["source"] == "RSS Desk"
+        assert body["latestNews"][0]["publishedAt"].startswith("2026-05-26T12:30:00")
+        assert "streaming feed" in json.dumps(body).lower()
+        assert "Reuters / Bloomberg / WSJ" not in json.dumps(body)
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def _dt(value: str):
+    from datetime import datetime
+
+    return datetime.fromisoformat(value)

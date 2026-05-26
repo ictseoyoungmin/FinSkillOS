@@ -25,6 +25,10 @@ Implemented:
 - React System Ops protocol types/path/fixture entry.
 - `scripts/refresh_worker.py` now runs news metadata refresh during each cycle
   when `FINSKILLOS_WORKER_NEWS_ENABLED=1`.
+- `/api/news-intelligence` now reads stored DB news first when a DB session is
+  available; fixture data is only used when explicitly requested or unavailable.
+- News Intelligence article rows display provider/manual `publishedAt` with
+  date and time.
 - Unit tests using static RSS/Atom XML strings only.
 
 Out of scope:
@@ -46,8 +50,15 @@ Out of scope:
 - `.env.example`
 - `docs/v2_1/11_Scheduler_Refresh_Policy.md`
 - `api/routes/system_ops.py`
+- `api/routes/news_intelligence.py`
 - `api/schemas/system_ops.py`
 - `api/fixtures/system_ops.py`
+- `frontend/src/pages/news-intelligence/NewsIntelligencePage.tsx`
+- `frontend/src/features/news/components/LatestNewsPanel.tsx`
+- `frontend/src/features/news/components/formatNewsTimestamp.ts`
+- `frontend/src/features/news/components/HoldingsRelevantNews.tsx`
+- `frontend/src/features/news/components/EventLinkedNewsPanel.tsx`
+- `frontend/src/features/news/components/news-list.css`
 - `frontend/src/features/system-ops/api.ts`
 - `frontend/src/features/system-ops/types.ts`
 - `frontend/src/mocks/fixtures/systemOps.fixture.ts`
@@ -62,6 +73,7 @@ python3 -m pytest tests/test_news_rss_adapter.py tests/test_news_intelligence.py
 python3 -m pytest tests/test_operations_scripts.py -q
 timeout 60 python3 -m pytest tests/test_api_system_ops.py -q
 timeout 60 python3 -m pytest tests/test_operations_scripts.py tests/test_api_system_ops.py tests/test_news_rss_adapter.py tests/test_news_intelligence.py -q
+timeout 60 python3 -m pytest tests/test_api_news_intelligence.py tests/test_news_rss_adapter.py tests/test_operations_scripts.py -q
 python3 -m ruff check finskillos/data_sources/news_adapter.py finskillos/data_sources/adapters/rss_news_adapter.py finskillos/data_sources/__init__.py tests/test_news_rss_adapter.py
 docker compose exec -T web npm run lint -- --quiet
 docker compose exec -T web npm run build
@@ -80,6 +92,11 @@ docker compose exec -T web npm run build
 - System Ops returns `NOOP` until `FINSKILLOS_NEWS_RSS_FEEDS` is configured.
 - Worker behavior matches System Ops: with no RSS feeds configured, news is a
   `NOOP`; with feed URLs configured, the worker ingests metadata automatically.
+- Stored rows are persisted in `news_articles`; impact rows are persisted in
+  `news_impacts` through `NewsService.ingest_article`.
+- The News Intelligence page is not a streaming/live-tape view. It is a DB read
+  model over the latest stored RSS/manual metadata, and freshness depends on the
+  worker/System Ops refresh cadence.
 - RSS adapter is intentionally imported from
   `finskillos.data_sources.adapters.rss_news_adapter` instead of re-exported
   through `finskillos.data_sources.__init__`; the news service depends on DB

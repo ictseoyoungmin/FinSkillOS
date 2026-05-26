@@ -39,9 +39,18 @@
 
 .fso-news-meta {
   font-family: var(--fso-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
   color: var(--fso-text-muted-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.fso-news-meta strong {
+  color: var(--fso-cyan);
+  font-weight: 700;
 }
 
 .fso-news-summary {

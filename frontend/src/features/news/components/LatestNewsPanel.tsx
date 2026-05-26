@@ -3,36 +3,30 @@ import type { NewsArticleVM } from "../types";
 import { formatNewsTimestamp } from "./formatNewsTimestamp";
 import "./news-list.css";
 
-export interface HoldingsRelevantNewsProps {
+export interface LatestNewsPanelProps {
   articles: NewsArticleVM[];
 }
 
-/**
- * Evidence panel listing news articles whose impact rows overlap one
- * of the user's current holdings. Renders the article title, source,
- * timestamp, and the short summary — never a full article body.
- */
-export function HoldingsRelevantNews({ articles }: HoldingsRelevantNewsProps) {
+export function LatestNewsPanel({ articles }: LatestNewsPanelProps) {
   if (articles.length === 0) {
     return (
       <Panel
-        title="Holdings-Relevant News"
+        title="Latest Stored News"
         badge="0"
         badgeTone="info"
-        testId="holdings-relevant-news"
+        testId="latest-stored-news"
       >
-        <p className="fso-news-empty">
-          No stored articles map to current holdings.
-        </p>
+        <p className="fso-news-empty">No stored news articles yet.</p>
       </Panel>
     );
   }
+
   return (
     <Panel
-      title="Holdings-Relevant News"
+      title="Latest Stored News"
       badge={String(articles.length)}
       badgeTone="info"
-      testId="holdings-relevant-news"
+      testId="latest-stored-news"
     >
       <ul className="fso-news-list">
         {articles.map((article) => (
@@ -52,19 +46,6 @@ export function HoldingsRelevantNews({ articles }: HoldingsRelevantNewsProps) {
               </span>
             </div>
             <p className="fso-news-summary">{article.summary}</p>
-            {article.impacts.length > 0 ? (
-              <ul className="fso-news-impact-chips">
-                {article.impacts.map((impact, idx) => (
-                  <li
-                    className="fso-news-impact-chip"
-                    key={`${article.id}-${idx}`}
-                  >
-                    {impact.ticker ?? impact.theme ?? impact.sector ?? "—"} ·{" "}
-                    {impact.sentimentLabel}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
           </li>
         ))}
       </ul>
