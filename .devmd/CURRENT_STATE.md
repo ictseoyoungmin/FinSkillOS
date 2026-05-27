@@ -78,6 +78,7 @@ operational protocols.
 38     System Ops DB Audit Table
 39     Mission Control Live UI Layout
 40     News Impact Sentiment / Risk Scoring
+41     Watchlist Folder Driven Refresh Controls
 ```
 
 Slice 14 is complete:
@@ -159,6 +160,11 @@ Slice 14 is complete:
 - News ingestion now enriches `news_impacts` with deterministic metadata-only
   sentiment/risk labels. News Intelligence and Symbol Lab also apply the same
   read-time fallback for older rows that still contain `UNKNOWN`.
+- System Ops and the lightweight worker now share a folder-aware watchlist
+  refresh policy. By default refreshes still include all active subscriptions;
+  setting `FINSKILLOS_REFRESH_FOLDER_NAMES` scopes subscription-derived refresh
+  tickers to active members of named folders while preserving explicit/default
+  baseline tickers.
 ```
 
 ## Validation Baseline
@@ -189,12 +195,12 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Watchlist-folder driven refresh controls
-   - Let folder organization guide user-facing refresh/filter controls while
-     keeping the worker's active subscription universe predictable.
-
-2. Worker status dashboard
+1. Worker status dashboard
    - Summarize worker cycles and protocol freshness using DB audit rows.
+
+2. User-facing folder refresh controls
+   - Surface folder-scoped refresh intent in System Ops UI and add explicit
+     controls after the backend policy has settled.
 
 3. News source confidence / provider coverage
    - Add source-quality metadata and coverage grouping once the deterministic

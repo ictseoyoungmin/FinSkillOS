@@ -35,6 +35,7 @@ from finskillos.logging_config import setup_logging
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.news_feed_policy import NewsFeedPolicy, build_news_feed_policy
 from finskillos.services.signal_service import SignalService
+from finskillos.services.watchlist_refresh_policy import build_watchlist_refresh_policy
 
 logger = logging.getLogger("finskillos.scripts.refresh_worker")
 UTC = timezone.utc
@@ -155,10 +156,17 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     }
 
     with session_scope() as session:
-        market_tickers = _with_subscribed_tickers(session, config.market_tickers)
-        indicator_tickers = _with_subscribed_tickers(session, config.indicator_tickers)
+        market_policy = build_watchlist_refresh_policy(
+            session, base_tickers=config.market_tickers
+        )
+        indicator_policy = build_watchlist_refresh_policy(
+            session, base_tickers=config.indicator_tickers
+        )
+        market_tickers = market_policy.tickers
+        indicator_tickers = indicator_policy.tickers
+        news_watchlist_policy = build_watchlist_refresh_policy(session)
         news_policy = build_news_feed_policy(
-            subscribed_tickers=_active_subscription_tickers(session)
+            subscribed_tickers=news_watchlist_policy.tickers
         )
         config = _with_news_policy(config, news_policy)
         if config.market_enabled:
@@ -179,6 +187,8 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                 "succeeded": len(report.succeeded),
                 "failed": len(report.failed),
                 "barsWritten": report.total_bars_written,
+                "scope": market_policy.scope,
+                "folders": market_policy.folder_names,
             }
 
         if config.news_enabled:
@@ -191,6 +201,8 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                     "tickers": 0,
                     "generated": config.news_policy.generated,
                     "articlesIngested": 0,
+                    "scope": news_watchlist_policy.scope,
+                    "folders": news_watchlist_policy.folder_names,
                 }
             else:
                 from finskillos.services.news_service import NewsService
@@ -208,6 +220,8 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                     "tickers": len(config.news_policy.tickers),
                     "generated": config.news_policy.generated,
                     "articlesIngested": len(articles),
+                    "scope": news_watchlist_policy.scope,
+                    "folders": news_watchlist_policy.folder_names,
                 }
 
         if config.indicator_enabled:
@@ -226,25 +240,12 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                 "succeeded": len(succeeded),
                 "failed": len(failed),
                 "snapshotsWritten": sum(item.snapshots_written for item in results),
+                "scope": indicator_policy.scope,
+                "folders": indicator_policy.folder_names,
             }
 
     summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
     return summary
-
-
-def _with_subscribed_tickers(session, tickers: tuple[str, ...]) -> tuple[str, ...]:
-    subscribed = _active_subscription_tickers(session)
-    return tuple(dict.fromkeys((*tickers, *subscribed)))
-
-
-def _active_subscription_tickers(session) -> tuple[str, ...]:
-    from finskillos.db.repositories import SymbolSubscriptionRepository
-
-    try:
-        return SymbolSubscriptionRepository(session).active_tickers()
-    except Exception:
-        session.rollback()
-        return ()
 
 
 def _with_news_policy(config: WorkerConfig, policy: NewsFeedPolicy) -> WorkerConfig:

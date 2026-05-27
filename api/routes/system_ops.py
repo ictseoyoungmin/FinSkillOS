@@ -385,9 +385,15 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
         YahooChartMarketDataAdapter,
     )
     from finskillos.services.market_data_service import MarketDataService
+    from finskillos.services.watchlist_refresh_policy import (
+        build_watchlist_refresh_policy,
+    )
 
     adapter_name = os.environ.get("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock").lower()
-    tickers = _with_subscribed_tickers(session, _market_refresh_tickers())
+    policy = build_watchlist_refresh_policy(
+        session, base_tickers=_market_refresh_tickers()
+    )
+    tickers = policy.tickers
     if adapter_name == "yahoo":
         adapter = YahooChartMarketDataAdapter()
     elif adapter_name == "mock":
@@ -410,7 +416,8 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
     )
     detail = (
         f"adapter={adapter_name},tickers={len(tickers)},"
-        f"succeeded={succeeded},failed={failed},bars={report.total_bars_written}"
+        f"succeeded={succeeded},failed={failed},bars={report.total_bars_written},"
+        f"{policy.detail}"
     )
     if failed:
         failed_symbols = ",".join(item.ticker for item in report.failed[:5])
@@ -420,9 +427,11 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
 
 def _invoke_refresh_news(session) -> tuple[str, str, str]:
     from finskillos.data_sources.adapters.rss_news_adapter import RssFeed, RssNewsAdapter
-    from finskillos.db.repositories import SymbolSubscriptionRepository
     from finskillos.services.news_feed_policy import build_news_feed_policy
     from finskillos.services.news_service import NewsService
+    from finskillos.services.watchlist_refresh_policy import (
+        build_watchlist_refresh_policy,
+    )
 
     adapter_name = os.environ.get("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss").lower()
     if adapter_name != "rss":
@@ -432,12 +441,8 @@ def _invoke_refresh_news(session) -> tuple[str, str, str]:
             f"unsupported_adapter:{adapter_name}",
         )
 
-    try:
-        subscribed = SymbolSubscriptionRepository(session).active_tickers()
-    except Exception:
-        session.rollback()
-        subscribed = ()
-    policy = build_news_feed_policy(subscribed_tickers=subscribed)
+    watchlist_policy = build_watchlist_refresh_policy(session)
+    policy = build_news_feed_policy(subscribed_tickers=watchlist_policy.tickers)
     if not policy.feeds:
         return (
             "NOOP",
@@ -464,15 +469,21 @@ def _invoke_refresh_news(session) -> tuple[str, str, str]:
     detail = (
         f"adapter={adapter_name},feeds={len(policy.feeds)},"
         f"tickers={len(policy.tickers)},generated={policy.generated},"
-        f"articles={len(articles)}"
+        f"articles={len(articles)},{watchlist_policy.detail}"
     )
     return (status, message, detail)
 
 
 def _invoke_calculate_indicators(session) -> tuple[str, str, str]:
     from finskillos.services.signal_service import SignalService
+    from finskillos.services.watchlist_refresh_policy import (
+        build_watchlist_refresh_policy,
+    )
 
-    tickers = _with_subscribed_tickers(session, _indicator_refresh_tickers())
+    policy = build_watchlist_refresh_policy(
+        session, base_tickers=_indicator_refresh_tickers()
+    )
+    tickers = policy.tickers
     service = SignalService(session)
     results = service.compute_for_universe(tickers)
     succeeded = [item for item in results if item.ok]
@@ -485,7 +496,7 @@ def _invoke_calculate_indicators(session) -> tuple[str, str, str]:
     )
     detail = (
         f"tickers={len(tickers)},succeeded={len(succeeded)},"
-        f"failed={len(failed)},snapshots={snapshots_written}"
+        f"failed={len(failed)},snapshots={snapshots_written},{policy.detail}"
     )
     if failed:
         failed_symbols = ",".join(item.ticker for item in failed[:5])
@@ -571,17 +582,6 @@ def _ticker_env(name: str, *, fallback: str = "") -> tuple[str, ...]:
         if item.strip()
     )
     return tickers or DEFAULT_US_TICKER_UNIVERSE
-
-
-def _with_subscribed_tickers(session, tickers: tuple[str, ...]) -> tuple[str, ...]:
-    from finskillos.db.repositories import SymbolSubscriptionRepository
-
-    try:
-        subscribed = SymbolSubscriptionRepository(session).active_tickers()
-    except Exception:
-        session.rollback()
-        subscribed = ()
-    return tuple(dict.fromkeys((*tickers, *subscribed)))
 
 
 __all__ = ["router"]
