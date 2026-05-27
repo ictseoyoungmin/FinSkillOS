@@ -1,6 +1,6 @@
 # Current State — FinSkillOS v2.1 / v4.2 Cockpit
 
-Updated: 2026-05-25
+Updated: 2026-05-27
 
 ## Architecture
 
@@ -69,6 +69,11 @@ operational protocols.
 29     Symbol Subscription and Live Preview
 30     Yahoo Provider Diagnostics and Symbol Chart
 31     Symbol Candles / Overlays / yfinance Adapter
+32     News RSS / Atom Provider Adapter
+33     News Feed Configuration / Worker / Status Integration
+34     Foldered Symbol Subscriptions / Watchlist Organization
+35     Symbol Logo Provider Cache / Shared Ticker Identity
+36     Mission Control DB Read Model
 ```
 
 Slice 14 is complete:
@@ -121,6 +126,18 @@ Slice 14 is complete:
 - Symbol Lab renders OHLC candles with volume and selectable EMA/Bollinger
   overlays, exposes a timeframe query, and uses `yfinance` at the market
   provider boundary.
+- RSS/Atom news metadata can be refreshed by System Ops, scripts, or the
+  worker, using explicit feed configuration or subscribed/focus ticker-derived
+  Google News RSS queries.
+- Symbol subscriptions can be organized into durable folders without changing
+  the active refresh universe semantics.
+- Symbol Lab and News Intelligence share a DB-backed Logo.dev URL cache with
+  local initials fallback. The current seeded cache contains 120 Nasdaq/focus
+  ticker logo metadata rows.
+- `/api/mission-control` now reads live account goal progress, portfolio
+  snapshot, current positions, exposure maps, and active alert context when
+  the DB is reachable. `X-FSO-Use-Fixture: 1` still forces the deterministic
+  fixture.
 ```
 
 ## Validation Baseline
@@ -151,23 +168,19 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Mission Control DB read model
-   - Promote the module from fixture/placeholder interpretation to durable
-     DB-backed evidence for goals, protocol status, and next actions.
-
-2. Durable System Ops audit table
+1. Durable System Ops audit table
    - Persist refresh runs, status, duration, and failure details so worker and
      manual System Ops actions can be inspected from the UI.
+
+2. Mission Control live UI layout polish
+   - Rework the page composition now that its payload is live instead of
+     fixture-shaped.
 
 3. News impact sentiment/risk scoring
    - The RSS provider stores articles and impacts, but many generated impacts
      still show UNKNOWN sentiment/risk. Improve deterministic scoring and
      source confidence before adding broader feed coverage.
-     interest lists.
 
-4. Mission Control DB read model
-   - Promote portfolio/goal status after Risk Firewall live path settles.
-
-5. Durable System Ops DB audit table
-   - Optional future replacement for local JSONL if multi-host operations
-     become necessary.
+4. Watchlist-folder driven refresh controls
+   - Let folder organization guide user-facing refresh/filter controls while
+     keeping the worker's active subscription universe predictable.
