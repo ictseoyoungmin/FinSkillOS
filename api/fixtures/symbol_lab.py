@@ -359,6 +359,8 @@ def symbol_identity(ticker: str) -> SymbolIdentity:
 
 
 def _avatar_text(ticker: str) -> str:
+    if ticker in {"SPY", "QQQ", "DIA", "IWM", "SMH", "SOXX", "XLK"}:
+        return ticker
     letters = "".join(ch for ch in ticker if ch.isalpha())
     return (letters[:2] or ticker[:2] or "?").upper()
 

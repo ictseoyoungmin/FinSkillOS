@@ -34,8 +34,8 @@ TIMEFRAME_TO_YFINANCE_INTERVAL: Mapping[str, str] = {
     "1d": "1d",
     "1wk": "1wk",
     "1w": "1wk",
-    "1mo": "1d",
-    "1mon": "1d",
+    "1mo": "1mo",
+    "1mon": "1mo",
     "1y": "1mo",
 }
 
@@ -46,8 +46,8 @@ DEFAULT_PERIOD_BY_TIMEFRAME: Mapping[str, str] = {
     "1d": "1y",
     "1wk": "5y",
     "1w": "5y",
-    "1mo": "1mo",
-    "1mon": "1mo",
+    "1mo": "10y",
+    "1mon": "10y",
     "1y": "10y",
 }
 
@@ -104,6 +104,8 @@ class YahooChartMarketDataAdapter(BaseMarketDataAdapter):
             timeframe=normalized_timeframe,
             history=history,
         )
+        if normalized_timeframe == "1y":
+            return _aggregate_annual_bars(bars)
         return bars
 
     def _history(
@@ -224,3 +226,33 @@ def _decimal_from_row(row: Any, key: str) -> Decimal | None:
         return Decimal(str(raw))
     except (InvalidOperation, ValueError):
         return None
+
+
+def _aggregate_annual_bars(bars: list[MarketBarDTO]) -> list[MarketBarDTO]:
+    buckets: dict[int, list[MarketBarDTO]] = {}
+    for bar in bars:
+        buckets.setdefault(bar.bar_time.year, []).append(bar)
+
+    annual: list[MarketBarDTO] = []
+    for year in sorted(buckets):
+        rows = sorted(buckets[year], key=lambda bar: bar.bar_time)
+        first = rows[0]
+        last = rows[-1]
+        highs = [row.high for row in rows if row.high is not None]
+        lows = [row.low for row in rows if row.low is not None]
+        volumes = [row.volume for row in rows if row.volume is not None]
+        annual.append(
+            MarketBarDTO(
+                ticker=last.ticker,
+                timeframe="1y",
+                bar_time=datetime(year, 1, 1, tzinfo=UTC),
+                open=first.open,
+                high=max(highs) if highs else last.high,
+                low=min(lows) if lows else last.low,
+                close=last.close,
+                volume=sum(volumes, Decimal("0")) if volumes else None,
+                adj_close=last.adj_close,
+                source=last.source,
+            )
+        )
+    return annual

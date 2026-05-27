@@ -264,12 +264,22 @@
 .fso-candle-stage {
   position: relative;
   padding-right: 98px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--fso-bg-3) 35%, transparent),
-    transparent
-  );
+  border: 1px solid rgba(30, 64, 92, 0.24);
   border-radius: var(--fso-radius-sm);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.44),
+      rgba(2, 8, 23, 0.18)
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(148, 163, 184, 0.028) 0,
+      rgba(148, 163, 184, 0.028) 1px,
+      transparent 1px,
+      transparent 40px
+    );
+  box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.04);
 }
 
 .fso-candle-stage svg {
@@ -288,30 +298,36 @@
 }
 
 .fso-candle-axis {
-  stroke: var(--fso-line);
+  stroke: rgba(71, 85, 105, 0.56);
   stroke-width: 1;
 }
 
 .fso-candle-axis-soft {
-  stroke: var(--fso-line-soft);
+  stroke: rgba(59, 130, 246, 0.18);
   stroke-width: 1;
   stroke-dasharray: 4 4;
 }
 
+.fso-candle-time-grid {
+  stroke: rgba(71, 85, 105, 0.18);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
 .fso-candle-body--up,
 .fso-candle-wick--up {
-  fill: rgba(20, 184, 166, 0.7);
-  stroke: rgba(13, 148, 136, 0.9);
+  fill: rgba(20, 184, 166, 0.78);
+  stroke: rgba(45, 212, 191, 0.88);
 }
 
 .fso-candle-body--down,
 .fso-candle-wick--down {
-  fill: rgba(239, 68, 68, 0.62);
-  stroke: rgba(220, 38, 38, 0.9);
+  fill: rgba(239, 68, 68, 0.68);
+  stroke: rgba(248, 113, 113, 0.9);
 }
 
 .fso-candle-volume {
-  opacity: 0.28;
+  opacity: 0.34;
 }
 
 .fso-candle-volume--up {
@@ -331,6 +347,7 @@
 
 .fso-candle-overlay--ema20 {
   stroke: #2563eb;
+  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.2));
 }
 
 .fso-candle-overlay--ema60 {
@@ -342,9 +359,9 @@
 }
 
 .fso-candle-overlay--band {
-  stroke: rgba(245, 158, 11, 0.72);
+  stroke: rgba(245, 158, 11, 0.68);
   stroke-width: 1.5;
-  stroke-dasharray: 5 4;
+  stroke-dasharray: 6 5;
 }
 
 .fso-candle-crosshair {
@@ -500,7 +517,7 @@
 .fso-candlechart .fso-linechart-axislabels {
   position: relative;
   display: block;
-  height: 18px;
+  height: 22px;
   padding: 0 98px 0 0;
   letter-spacing: 0;
 }
@@ -509,11 +526,12 @@
   position: absolute;
   top: 0;
   max-width: 72px;
-  padding: 2px 5px;
-  border-radius: 5px;
+  padding: 3px 5px;
+  border: 1px solid rgba(59, 130, 246, 0.08);
+  border-radius: 6px;
   transform: translateX(-50%);
-  background: rgba(6, 13, 24, 0.36);
-  color: rgba(147, 197, 253, 0.72);
+  background: rgba(6, 13, 24, 0.44);
+  color: rgba(147, 197, 253, 0.82);
   font-size: 0.62rem;
   font-weight: 800;
   text-align: center;

@@ -9,7 +9,7 @@ arbitrary searched symbols when the local DB has no stored bars.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -150,6 +150,11 @@ def _read_symbol_lab(
             except MarketDataFetchError as exc:
                 provider_note = _provider_note(exc)
                 bars = []
+        bars = _bars_for_timeframe_window(
+            _prefer_provider_bars(bars),
+            resolved_timeframe,
+        )
+        usable_indicators = _indicators_for_bars(usable_indicators, bars)
         if bars and not usable_indicators:
             usable_indicators = _fallback_indicators_from_bars(
                 resolved_ticker,
@@ -576,6 +581,41 @@ def _position_context(position, positions: list) -> SymbolPosition | None:
     )
 
 
+def _prefer_provider_bars(bars: list) -> list:
+    if not bars:
+        return bars
+    provider_rows = [bar for bar in bars if getattr(bar, "source", None) != "mock"]
+    return provider_rows or bars
+
+
+def _bars_for_timeframe_window(bars: list, timeframe: str) -> list:
+    if not bars:
+        return bars
+    latest = max(_as_utc(bar.bar_time) for bar in bars)
+    days_by_timeframe = {
+        "5m": 7,
+        "15m": 35,
+        "1h": 75,
+        "1d": 370,
+    }
+    days = days_by_timeframe.get(timeframe)
+    if days is None:
+        return bars
+    cutoff = latest - timedelta(days=days)
+    return [bar for bar in bars if _as_utc(bar.bar_time) >= cutoff]
+
+
+def _indicators_for_bars(indicators: list, bars: list) -> list:
+    if not indicators or not bars:
+        return indicators
+    bar_times = {_as_utc(bar.bar_time) for bar in bars}
+    return [
+        indicator
+        for indicator in indicators
+        if _as_utc(indicator.snapshot_time) in bar_times
+    ]
+
+
 def _symbol_alerts(ticker: str, alerts: list) -> list[SymbolAlert]:
     normalized = ticker.upper()
     result: list[SymbolAlert] = []
@@ -754,6 +794,7 @@ def _refresh_symbol_chart_data(session, ticker: str, timeframe: str) -> str | No
             [ticker],
             timeframe=timeframe,
             end=datetime.now(tz=UTC),
+            force_full=timeframe in {"1mo", "1y"},
         )
         if report.total_bars_written:
             SignalService(session).compute_for_universe(

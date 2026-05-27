@@ -112,6 +112,7 @@ class MarketDataService:
         timeframe: str = DEFAULT_TIMEFRAME,
         *,
         end: datetime | None = None,
+        force_full: bool = False,
     ) -> MarketRefreshReport:
         target_tickers = tuple(
             t.upper() for t in (tickers if tickers is not None else self.universe)
@@ -119,7 +120,9 @@ class MarketDataService:
 
         results: list[TickerRefreshResult] = []
         for ticker in target_tickers:
-            results.append(self._refresh_one(ticker, timeframe, end=end))
+            results.append(
+                self._refresh_one(ticker, timeframe, end=end, force_full=force_full)
+            )
         return MarketRefreshReport(timeframe=timeframe, results=tuple(results))
 
     def _refresh_one(
@@ -128,8 +131,15 @@ class MarketDataService:
         timeframe: str,
         *,
         end: datetime | None,
+        force_full: bool,
     ) -> TickerRefreshResult:
-        latest_existing = _as_utc(self.market_repo.latest_bar_time(ticker, timeframe))
+        latest_row = self.market_repo.latest_bar(ticker, timeframe)
+        latest_existing = _as_utc(latest_row.bar_time if latest_row else None)
+        adapter_source = getattr(self.adapter, "source_name", None)
+        if force_full or (
+            latest_row is not None and adapter_source and latest_row.source != adapter_source
+        ):
+            latest_existing = None
         try:
             new_bars = self.adapter.fetch_bars(
                 ticker,
@@ -175,6 +185,8 @@ class MarketDataService:
                 last_bar_time=latest_existing,
             )
 
+        if force_full:
+            self.market_repo.delete_for(ticker, timeframe)
         written = self.market_repo.upsert_bars(new_bars)
         last_time = max(b.bar_time for b in new_bars)
         return TickerRefreshResult(

@@ -12,6 +12,20 @@ from finskillos.db.repositories import SymbolLogoRepository
 
 LOGO_DEV_TICKER_BASE_URL = "https://img.logo.dev/ticker"
 LOGO_DEV_PROVIDER = "logo_dev"
+LOCAL_LOGO_ONLY_TICKERS = frozenset(
+    {
+        "SPY",
+        "QQQ",
+        "DIA",
+        "IWM",
+        "SMH",
+        "SOXX",
+        "XLK",
+        "VIX",
+        "US10Y",
+        "DXY",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -42,6 +56,8 @@ def resolve_symbol_logo_identity(
         brand_color=brand_color,
     )
     if session is None:
+        return fallback
+    if normalized in LOCAL_LOGO_ONLY_TICKERS:
         return fallback
 
     repo = SymbolLogoRepository(session)

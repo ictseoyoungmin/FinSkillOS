@@ -28,7 +28,7 @@ const TIMEFRAMES = [
   { label: "1h", value: "1h" },
   { label: "1d", value: "1d" },
   { label: "1w", value: "1wk" },
-  { label: "1mon", value: "1mo" },
+  { label: "1mo", value: "1mo" },
   { label: "1y", value: "1y" },
 ];
 
@@ -111,19 +111,49 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function tickDate(iso: string, timeframe: string): string {
-  const [date] = iso.split("T");
-  if (!date) return iso;
-  if (timeframe === "1y" || timeframe === "1wk") {
-    const [year, month] = date.split("-");
-    if (month === "01") return year;
-    return month ?? date.slice(5, 7);
-  }
-  return date.slice(5);
+function dateParts(iso: string) {
+  const [date = "", time = ""] = iso.split("T");
+  const [year = "", month = "", day = ""] = date.split("-");
+  const clock = time.slice(0, 5);
+  return { date, year, month, day, clock };
 }
 
-function fullDate(iso: string): string {
-  return iso.split("T")[0] ?? iso;
+function isIntraday(timeframe: string): boolean {
+  return timeframe === "5m" || timeframe === "15m" || timeframe === "1h";
+}
+
+function tickLabel(iso: string, timeframe: string, previousIso?: string): string {
+  const current = dateParts(iso);
+  const previous = previousIso ? dateParts(previousIso) : null;
+  const dayChanged = !previous || current.date !== previous.date;
+  const monthChanged =
+    !previous || current.year !== previous.year || current.month !== previous.month;
+  const yearChanged = !previous || current.year !== previous.year;
+
+  if (isIntraday(timeframe)) {
+    return dayChanged
+      ? `${current.month}-${current.day} ${current.clock}`
+      : current.clock;
+  }
+  if (timeframe === "1y") {
+    if (yearChanged) return current.year;
+    if (monthChanged) return `${current.month}-${current.day}`;
+    return current.day;
+  }
+  if (timeframe === "1wk") {
+    return yearChanged ? current.year : `${current.month}-${current.day}`;
+  }
+  return monthChanged
+    ? `${current.year}-${current.month}-${current.day}`
+    : `${current.month}-${current.day}`;
+}
+
+function fullTimestamp(iso: string, timeframe: string): string {
+  const parts = dateParts(iso);
+  if (isIntraday(timeframe) && parts.clock) {
+    return `${parts.date} ${parts.clock}`;
+  }
+  return parts.date || iso;
 }
 
 function formatPrice(
@@ -149,16 +179,46 @@ function axisTickValues(min: number, max: number, count: number): number[] {
   });
 }
 
-function timeTickIndexes(start: number, end: number, maxTicks = 6): number[] {
+function timeTickIndexes(
+  start: number,
+  end: number,
+  bars: SymbolRecentBar[],
+  timeframe: string,
+): number[] {
   const length = end - start;
   if (length <= 0) return [];
+  const maxTicks = isIntraday(timeframe) ? 10 : timeframe === "1y" ? 10 : 8;
   const ticks = Math.min(maxTicks, length);
   if (ticks <= 1) return [start];
   const step = (length - 1) / (ticks - 1);
-  const indexes = Array.from({ length: ticks }, (_, index) =>
+  const evenIndexes = Array.from({ length: ticks }, (_, index) =>
     Math.round(start + step * index),
   );
-  return Array.from(new Set(indexes));
+  const boundaryIndexes: number[] = [];
+  for (let index = start + 1; index < end; index += 1) {
+    const previous = dateParts(bars[index - 1]?.barTime ?? "");
+    const current = dateParts(bars[index]?.barTime ?? "");
+    if (isIntraday(timeframe) && current.date !== previous.date) {
+      boundaryIndexes.push(index);
+    } else if (
+      !isIntraday(timeframe) &&
+      (current.year !== previous.year || current.month !== previous.month)
+    ) {
+      boundaryIndexes.push(index);
+    }
+  }
+  const merged = Array.from(new Set([...evenIndexes, ...boundaryIndexes])).sort(
+    (a, b) => a - b,
+  );
+  if (merged.length <= maxTicks + 2) return merged;
+  const required = new Set([start, end - 1, ...boundaryIndexes]);
+  const optional = merged.filter((index) => !required.has(index));
+  const keepEvery = Math.ceil(merged.length / maxTicks);
+  return merged.filter(
+    (index, position) =>
+      required.has(index) ||
+      (optional.includes(index) && position % keepEvery === 0),
+  );
 }
 
 function formatVolume(value: Numeric | null | undefined): string {
@@ -307,9 +367,18 @@ export function SymbolCandlestickChart({
     label: compactVolume.format(value),
     y: volumeBase - (value / volumeMax) * (VOLUME_HEIGHT - 8),
   }));
-  const timeAxisTicks = timeTickIndexes(visibleStart, visibleEnd).map((index) => ({
+  const timeAxisTicks = timeTickIndexes(
+    visibleStart,
+    visibleEnd,
+    chronological,
+    selectedTimeframe,
+  ).map((index, tickIndex, indexes) => ({
     index,
-    label: tickDate(chronological[index].barTime, selectedTimeframe),
+    label: tickLabel(
+      chronological[index].barTime,
+      selectedTimeframe,
+      tickIndex > 0 ? chronological[indexes[tickIndex - 1]].barTime : undefined,
+    ),
     x: xAt(index),
   }));
   const activeBar =
@@ -598,6 +667,16 @@ export function SymbolCandlestickChart({
               y2={PAD_TOP + PRICE_HEIGHT / 2}
               className="fso-candle-axis-soft"
             />
+            {timeAxisTicks.map((tick) => (
+              <line
+                key={`grid-${tick.index}`}
+                x1={tick.x}
+                x2={tick.x}
+                y1={PAD_TOP}
+                y2={volumeBase}
+                className="fso-candle-time-grid"
+              />
+            ))}
             {enabled.bollinger ? (
               <>
                 <path
@@ -775,7 +854,7 @@ export function SymbolCandlestickChart({
               }}
             >
               <div className="fso-candle-tooltip-head">
-                <strong>{fullDate(selectedBar.barTime)}</strong>
+                <strong>{fullTimestamp(selectedBar.barTime, selectedTimeframe)}</strong>
                 <span>{selectedTimeframe.toUpperCase()}</span>
               </div>
               <dl>

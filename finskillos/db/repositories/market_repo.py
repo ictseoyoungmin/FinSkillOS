@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from finskillos.data_sources.dto import MarketBarDTO
@@ -109,6 +109,15 @@ class MarketRepository:
             MarketBar.timeframe == timeframe,
         )
         return len(list(self.session.scalars(stmt)))
+
+    def delete_for(self, ticker: str, timeframe: str) -> int:
+        stmt = delete(MarketBar).where(
+            MarketBar.ticker == ticker.upper(),
+            MarketBar.timeframe == timeframe,
+        )
+        result = self.session.execute(stmt)
+        self.session.flush()
+        return int(result.rowcount or 0)
 
     def _get(
         self, ticker: str, timeframe: str, bar_time: datetime

@@ -21,6 +21,7 @@ from finskillos.data_sources import (
     MockMarketDataAdapter,
     YahooChartMarketDataAdapter,
 )
+from finskillos.data_sources.dto import MarketBarDTO
 from finskillos.db.repositories import MarketRepository
 from finskillos.services.market_data_service import MarketDataService
 
@@ -141,7 +142,7 @@ def test_yahoo_chart_adapter_supports_symbol_lab_timeframes() -> None:
         ("1h", "1h", "1h", "60d"),
         ("1d", "1d", "1d", "1y"),
         ("1w", "1wk", "1wk", "5y"),
-        ("1mon", "1d", "1mo", "1mo"),
+        ("1mon", "1mo", "1mo", "10y"),
         ("1y", "1mo", "1y", "10y"),
     ):
         client = _FakeYahooClient(
@@ -167,7 +168,7 @@ def test_yahoo_chart_adapter_supports_symbol_lab_timeframes() -> None:
         assert bars[0].timeframe == canonical
 
 
-def test_yahoo_chart_adapter_keeps_one_year_monthly_rows_for_indicators() -> None:
+def test_yahoo_chart_adapter_aggregates_monthly_rows_to_annual_bars() -> None:
     client = _FakeYahooClient(
         [
             (
@@ -211,24 +212,104 @@ def test_yahoo_chart_adapter_keeps_one_year_monthly_rows_for_indicators() -> Non
 
     assert client.calls[0][1]["interval"] == "1mo"
     assert client.calls[0][1]["period"] == "10y"
-    assert [bar.bar_time.year for bar in bars] == [2025, 2026, 2026]
-    assert [bar.timeframe for bar in bars] == ["1y", "1y", "1y"]
+    assert [bar.bar_time.year for bar in bars] == [2025, 2026]
+    assert [bar.timeframe for bar in bars] == ["1y", "1y"]
     assert bars[0].open == Decimal("90.0")
     assert bars[0].high == Decimal("110.0")
     assert bars[0].low == Decimal("85.0")
     assert bars[0].close == Decimal("100.0")
     assert bars[0].volume == Decimal("1000")
     assert bars[1].open == Decimal("100.0")
-    assert bars[1].high == Decimal("125.0")
-    assert bars[1].low == Decimal("95.0")
-    assert bars[1].close == Decimal("120.0")
-    assert bars[1].volume == Decimal("2000")
-    assert bars[2].open == Decimal("120.0")
-    assert bars[2].high == Decimal("130.0")
-    assert bars[2].low == Decimal("90.0")
-    assert bars[2].close == Decimal("115.0")
-    assert bars[2].volume == Decimal("3000")
-    assert bars[2].adj_close == Decimal("114.0")
+    assert bars[1].high == Decimal("130.0")
+    assert bars[1].low == Decimal("90.0")
+    assert bars[1].close == Decimal("115.0")
+    assert bars[1].volume == Decimal("5000")
+    assert bars[1].adj_close == Decimal("114.0")
+
+
+def test_refresh_bars_revalidates_when_latest_source_changes(
+    db_session: Session,
+) -> None:
+    mock_service = MarketDataService(
+        db_session,
+        adapter=MockMarketDataAdapter(default_bars=3),
+        universe=["SPY"],
+    )
+    mock_service.refresh_bars(["SPY"])
+    assert MarketRepository(db_session).latest_bar("SPY", "1d").source == "mock"
+
+    yahoo_client = _FakeYahooClient(
+        [
+            (
+                datetime(2026, 5, 26, tzinfo=UTC),
+                {
+                    "Open": 700.0,
+                    "High": 731.0,
+                    "Low": 699.0,
+                    "Close": 730.28,
+                    "Volume": 1000000,
+                },
+            ),
+        ]
+    )
+    yahoo_service = MarketDataService(
+        db_session,
+        adapter=YahooChartMarketDataAdapter(client=yahoo_client),
+        universe=["SPY"],
+    )
+
+    report = yahoo_service.refresh_bars(["SPY"])
+
+    assert yahoo_client.calls[0][1]["period"] == "1y"
+    assert yahoo_client.calls[0][1].get("start") is None
+    assert report.total_bars_written == 1
+    latest = MarketRepository(db_session).latest_bar("SPY", "1d")
+    assert latest.source == "yfinance"
+    assert latest.close == Decimal("730.28")
+
+
+def test_refresh_bars_force_full_replaces_existing_timeframe(
+    db_session: Session,
+) -> None:
+    initial = MarketBarDTO(
+        ticker="SPY",
+        timeframe="1mo",
+        bar_time=datetime(2026, 5, 1, tzinfo=UTC),
+        open=Decimal("100"),
+        high=Decimal("110"),
+        low=Decimal("90"),
+        close=Decimal("105"),
+        volume=Decimal("1000"),
+        source="mock",
+    )
+    MarketDataService(db_session).import_bars([initial])
+    client = _FakeYahooClient(
+        [
+            (
+                datetime(2026, 4, 1, tzinfo=UTC),
+                {
+                    "Open": 700.0,
+                    "High": 731.0,
+                    "Low": 699.0,
+                    "Close": 730.28,
+                    "Volume": 1000000,
+                },
+            )
+        ]
+    )
+    service = MarketDataService(
+        db_session,
+        adapter=YahooChartMarketDataAdapter(client=client),
+        universe=["SPY"],
+    )
+
+    report = service.refresh_bars(["SPY"], timeframe="1mo", force_full=True)
+
+    rows = MarketRepository(db_session).list_bars("SPY", "1mo")
+    assert report.total_bars_written == 1
+    assert len(rows) == 1
+    assert rows[0].source == "yfinance"
+    assert rows[0].close == Decimal("730.28")
 
 
 def test_yahoo_chart_adapter_maps_common_macro_symbols() -> None:

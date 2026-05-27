@@ -20,6 +20,7 @@ from finskillos.db.repositories import (
     AccountRepository,
     AlertRepository,
     PositionRepository,
+    SymbolLogoRepository,
     SymbolSubscriptionRepository,
 )
 from finskillos.services.market_data_service import MarketDataService
@@ -250,6 +251,44 @@ def test_symbol_lab_uses_cached_logo_provider_when_configured(
         engine.dispose()
 
 
+def test_symbol_lab_keeps_etf_identity_local_even_when_logo_cached(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        SymbolLogoRepository(session).upsert_provider_logo(
+            "SPY",
+            provider="logo_dev",
+            logo_url=(
+                "https://img.logo.dev/ticker/SPY"
+                "?token=test-token&format=png&size=96"
+            ),
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_LOGO_DEV_TOKEN", "test-token")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/symbol-lab?ticker=SPY").json()
+
+        assert body["source"] == "live"
+        assert body["identity"]["ticker"] == "SPY"
+        assert body["identity"]["logoSource"] == "local_fallback"
+        assert body["identity"]["logoUrl"] is None
+        assert body["identity"]["avatarText"] == "SPY"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_symbol_lab_auto_refreshes_requested_chart_before_read(
     monkeypatch, tmp_path
 ) -> None:
@@ -420,6 +459,63 @@ def test_symbol_lab_computes_chart_indicator_fallback_when_snapshots_missing(
         assert body["technical"]["trendState"] is not None
         assert body["recentBars"][-1]["ema20"] is not None
         assert body["recentBars"][-1]["bbUpper"] is not None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_symbol_lab_prefers_provider_bars_over_mock_tail(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        MarketDataService(session).import_bars(
+            [
+                MarketBarDTO(
+                    ticker="QQQ",
+                    timeframe="1d",
+                    bar_time=datetime(2026, 5, 22, tzinfo=timezone.utc),
+                    open=Decimal("718"),
+                    high=Decimal("722"),
+                    low=Decimal("715"),
+                    close=Decimal("717"),
+                    volume=Decimal("1000000"),
+                    source="yfinance",
+                ),
+                MarketBarDTO(
+                    ticker="QQQ",
+                    timeframe="1d",
+                    bar_time=datetime(2026, 5, 23, tzinfo=timezone.utc),
+                    open=Decimal("547"),
+                    high=Decimal("555"),
+                    low=Decimal("540"),
+                    close=Decimal("548"),
+                    volume=Decimal("1000000"),
+                    source="mock",
+                ),
+            ]
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_AUTO_REFRESH_ADAPTER", "off")
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/symbol-lab?ticker=QQQ&timeframe=1d").json()
+
+        assert body["source"] == "live"
+        assert body["header"]["latestClose"] == "717.000000"
+        assert [row["barTime"][:10] for row in body["recentBars"]] == [
+            "2026-05-22"
+        ]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
