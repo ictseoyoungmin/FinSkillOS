@@ -31,6 +31,7 @@ from finskillos.db.repositories import (
     NewsArticleRepository,
     PortfolioRepository,
     PositionRepository,
+    SystemOpsProtocolRunRepository,
 )
 from finskillos.services.market_data_service import MarketDataService
 
@@ -188,6 +189,43 @@ def test_system_ops_protocol_runs_are_audited_to_jsonl(monkeypatch, tmp_path) ->
     get_body = client.get("/api/system-ops").json()
     assert get_body["recentProtocolRuns"][0]["protocol"] == "seed_sample_account"
     assert get_body["recentProtocolRuns"][0]["ranAt"] == post_body["ranAt"]
+
+
+def test_system_ops_protocol_runs_are_audited_to_db(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        post_body = _client().post("/api/system-ops/seed-sample-account").json()
+        assert post_body["protocol"] == "seed_sample_account"
+        assert post_body["status"] == "OK"
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            rows = SystemOpsProtocolRunRepository(session).list_recent(limit=10)
+            assert len(rows) == 1
+            assert rows[0].protocol == "seed_sample_account"
+            assert rows[0].status == "OK"
+            assert rows[0].db_status == "LIVE"
+
+        get_body = _client().get("/api/system-ops").json()
+        assert get_body["source"] == "live"
+        assert get_body["recentProtocolRuns"][0]["protocol"] == "seed_sample_account"
+        protocol = next(
+            item
+            for item in get_body["protocols"]
+            if item["key"] == "seed_sample_account"
+        )
+        assert protocol["lastRunAt"] == get_body["recentProtocolRuns"][0]["ranAt"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 def test_refresh_market_data_protocol_writes_mock_bars(monkeypatch, tmp_path) -> None:

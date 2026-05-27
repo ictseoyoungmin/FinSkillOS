@@ -54,6 +54,7 @@ def test_alembic_upgrade_head_creates_core_tables(alembic_cfg: Config) -> None:
         "positions",
         "trades",
         "alerts",
+        "system_ops_protocol_runs",
         "alembic_version",
     }
     assert required.issubset(tables), f"missing: {required - tables}"
@@ -71,6 +72,9 @@ def test_alembic_creates_documented_indexes(alembic_cfg: Config) -> None:
             ix["name"] for ix in inspector.get_indexes("portfolio_snapshots")
         }
         alerts_indexes = {ix["name"] for ix in inspector.get_indexes("alerts")}
+        system_ops_indexes = {
+            ix["name"] for ix in inspector.get_indexes("system_ops_protocol_runs")
+        }
     finally:
         engine.dispose()
 
@@ -78,6 +82,7 @@ def test_alembic_creates_documented_indexes(alembic_cfg: Config) -> None:
     assert "idx_positions_account_ticker" in positions_indexes
     assert "idx_trades_account_date" in trades_indexes
     assert "idx_alerts_date_severity" in alerts_indexes
+    assert "idx_system_ops_protocol_runs_protocol_time" in system_ops_indexes
 
 
 def test_alembic_market_regimes_has_factor_columns(alembic_cfg: Config) -> None:

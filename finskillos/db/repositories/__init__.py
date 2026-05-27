@@ -22,6 +22,7 @@ from finskillos.db.repositories.symbol_subscription_repo import (
 from finskillos.db.repositories.symbol_subscription_folder_repo import (
     SymbolSubscriptionFolderRepository,
 )
+from finskillos.db.repositories.system_ops_repo import SystemOpsProtocolRunRepository
 from finskillos.db.repositories.trade_repo import TradeRepository
 
 __all__ = [
@@ -39,5 +40,6 @@ __all__ = [
     "SymbolLogoRepository",
     "SymbolSubscriptionRepository",
     "SymbolSubscriptionFolderRepository",
+    "SystemOpsProtocolRunRepository",
     "TradeRepository",
 ]

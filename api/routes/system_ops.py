@@ -35,6 +35,7 @@ from api.schemas.system_ops import (
     SystemOpsResponse,
 )
 from finskillos.data_sources import DEFAULT_US_TICKER_UNIVERSE
+from finskillos.db.repositories import SystemOpsProtocolRunRepository
 
 router = APIRouter(tags=["system-ops"])
 
@@ -50,9 +51,22 @@ def system_ops(
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> SystemOpsResponse:
     payload = system_ops_fixture()
-    payload.recent_protocol_runs = _read_recent_protocol_runs()
     if use_fixture:
+        payload.recent_protocol_runs = _read_recent_protocol_runs()
         payload.source = "fixture"
+        return payload
+
+    with get_session_scope() as session:
+        if session is None:
+            payload.recent_protocol_runs = _read_recent_protocol_runs()
+            return payload
+        try:
+            payload.recent_protocol_runs = _read_recent_protocol_runs(session=session)
+            _attach_last_run_times(payload, session)
+            payload.source = "live"
+        except Exception:
+            session.rollback()
+            payload.recent_protocol_runs = _read_recent_protocol_runs()
     return payload
 
 
@@ -210,7 +224,13 @@ def _run_protocol(
                 detail=detail,
                 ran_at=_now_iso(),
             )
-            _append_protocol_run(result, db_status="LIVE", source="live")
+            _append_protocol_run(
+                result,
+                db_status="LIVE",
+                source="live",
+                session=session,
+            )
+            session.commit()
             return result
         except Exception as exc:  # noqa: BLE001 — surface as structured JSON
             session.rollback()
@@ -224,7 +244,13 @@ def _run_protocol(
                 detail=type(exc).__name__,
                 ran_at=_now_iso(),
             )
-            _append_protocol_run(result, db_status="LIVE", source="live")
+            _append_protocol_run(
+                result,
+                db_status="LIVE",
+                source="live",
+                session=session,
+            )
+            session.commit()
             return result
 
 
@@ -242,7 +268,22 @@ def _append_protocol_run(
     *,
     db_status: str,
     source: str,
+    session=None,
 ) -> None:
+    if session is not None:
+        try:
+            SystemOpsProtocolRunRepository(session).create(
+                protocol=result.protocol,
+                status=result.status,
+                message=result.message,
+                detail=result.detail,
+                db_status=db_status,
+                source=source,
+                ran_at=datetime.fromisoformat(result.ran_at),
+            )
+        except Exception:
+            session.rollback()
+
     try:
         path = _audit_log_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -258,11 +299,22 @@ def _append_protocol_run(
         with path.open("a", encoding="utf-8") as handle:
             handle.write(record.model_dump_json(by_alias=True))
             handle.write("\n")
-    except OSError:
+    except (OSError, ValueError):
         return
 
 
-def _read_recent_protocol_runs(limit: int = 5) -> list[ProtocolRunRecord]:
+def _read_recent_protocol_runs(
+    limit: int = 5,
+    *,
+    session=None,
+) -> list[ProtocolRunRecord]:
+    if session is not None:
+        try:
+            rows = SystemOpsProtocolRunRepository(session).list_recent(limit=limit)
+            return [_protocol_record_from_db(row) for row in rows]
+        except Exception:
+            session.rollback()
+
     path = _audit_log_path()
     if not path.exists():
         return []
@@ -281,6 +333,26 @@ def _read_recent_protocol_runs(limit: int = 5) -> list[ProtocolRunRecord]:
         except (json.JSONDecodeError, ValueError):
             continue
     return list(reversed(records))
+
+
+def _attach_last_run_times(payload: SystemOpsResponse, session) -> None:
+    latest = SystemOpsProtocolRunRepository(session).latest_by_protocol()
+    for protocol in payload.protocols:
+        row = latest.get(protocol.key)
+        if row is not None:
+            protocol.last_run_at = row.ran_at.isoformat()
+
+
+def _protocol_record_from_db(row) -> ProtocolRunRecord:
+    return ProtocolRunRecord(
+        protocol=row.protocol,
+        status=row.status,
+        message=row.message,
+        detail=row.detail,
+        ran_at=row.ran_at.isoformat(),
+        db_status=row.db_status,
+        source=row.source,
+    )
 
 
 def _invoke_seed_sample_account(session) -> tuple[str, str, str]:

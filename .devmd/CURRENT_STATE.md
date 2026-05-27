@@ -75,6 +75,7 @@ operational protocols.
 35     Symbol Logo Provider Cache / Shared Ticker Identity
 36     Mission Control DB Read Model
 37     Portfolio Seed Position Coherence
+38     System Ops DB Audit Table
 ```
 
 Slice 14 is complete:
@@ -143,6 +144,10 @@ Slice 14 is complete:
   coherent by creating current positions whose market value plus cash matches
   the initial portfolio snapshot. The local DB's prior snapshot-only seed
   state has been repaired.
+- System Ops protocol runs are now persisted in `system_ops_protocol_runs`
+  through Alembic `0011_system_ops_protocol_runs`. The API still writes the
+  local JSONL sidecar, but `GET /api/system-ops` reads recent runs and
+  protocol `lastRunAt` from the DB when reachable.
 ```
 
 ## Validation Baseline
@@ -173,19 +178,18 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Durable System Ops audit table
-   - Persist refresh runs, status, duration, and failure details so worker and
-     manual System Ops actions can be inspected from the UI.
-
-2. Mission Control live UI layout polish
+1. Mission Control live UI layout polish
    - Rework the page composition now that its payload is live instead of
      fixture-shaped.
 
-3. News impact sentiment/risk scoring
+2. News impact sentiment/risk scoring
    - The RSS provider stores articles and impacts, but many generated impacts
      still show UNKNOWN sentiment/risk. Improve deterministic scoring and
      source confidence before adding broader feed coverage.
 
-4. Watchlist-folder driven refresh controls
+3. Watchlist-folder driven refresh controls
    - Let folder organization guide user-facing refresh/filter controls while
      keeping the worker's active subscription universe predictable.
+
+4. Worker status dashboard
+   - Summarize worker cycles and protocol freshness using DB audit rows.
