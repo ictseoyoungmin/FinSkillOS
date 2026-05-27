@@ -74,6 +74,7 @@ operational protocols.
 34     Foldered Symbol Subscriptions / Watchlist Organization
 35     Symbol Logo Provider Cache / Shared Ticker Identity
 36     Mission Control DB Read Model
+37     Portfolio Seed Position Coherence
 ```
 
 Slice 14 is complete:
@@ -138,6 +139,10 @@ Slice 14 is complete:
   snapshot, current positions, exposure maps, and active alert context when
   the DB is reachable. `X-FSO-Use-Fixture: 1` still forces the deterministic
   fixture.
+- `seed_sample_account` now keeps the default sample account internally
+  coherent by creating current positions whose market value plus cash matches
+  the initial portfolio snapshot. The local DB's prior snapshot-only seed
+  state has been repaired.
 ```
 
 ## Validation Baseline

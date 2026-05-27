@@ -95,11 +95,12 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     logger.info(
-        "Seed complete: account=%s created=%s snapshot=%s created=%s",
+        "Seed complete: account=%s created=%s snapshot=%s created=%s positions=%s",
         result.account.id,
         result.created_account,
         result.initial_snapshot.id if result.initial_snapshot else None,
         result.created_snapshot,
+        result.created_positions,
     )
     return 0
 

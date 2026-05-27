@@ -296,6 +296,10 @@ def _invoke_seed_sample_account(session) -> tuple[str, str, str]:
         detail_parts.append("snapshot_created")
     else:
         detail_parts.append("snapshot_reused")
+    if result.created_positions:
+        detail_parts.append(f"positions_created={result.created_positions}")
+    else:
+        detail_parts.append("positions_reused")
     return (
         "OK",
         f"Sample account ready: {result.account.name}.",

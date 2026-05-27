@@ -13,6 +13,7 @@ Covers:
 from __future__ import annotations
 
 import json
+from datetime import date
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -24,9 +25,12 @@ from finskillos.config import reset_settings_cache
 from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
 from finskillos.db.repositories import (
+    AccountRepository,
     IndicatorRepository,
     MarketRepository,
     NewsArticleRepository,
+    PortfolioRepository,
+    PositionRepository,
 )
 from finskillos.services.market_data_service import MarketDataService
 
@@ -210,6 +214,48 @@ def test_refresh_market_data_protocol_writes_mock_bars(monkeypatch, tmp_path) ->
             repo = MarketRepository(session)
             assert repo.count_for("SPY", "1d") > 0
             assert repo.count_for("QQQ", "1d") > 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_seed_sample_account_repairs_snapshot_only_seed_state(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        account = AccountRepository(session).create(
+            name="Main Trading Account",
+            target_value=100000000,
+        )
+        PortfolioRepository(session).create_snapshot(
+            account_id=account.id,
+            snapshot_date=date(2026, 5, 27),
+            total_value=57000000,
+            cash_value=7000000,
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/seed-sample-account").json()
+
+        assert body["protocol"] == "seed_sample_account"
+        assert body["status"] == "OK"
+        assert "positions_created=5" in body["detail"]
+
+        with factory() as session:
+            positions = PositionRepository(session).list_for_account(account.id)
+            assert len(positions) == 5
+            assert sum(p.market_value for p in positions) == 50000000
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

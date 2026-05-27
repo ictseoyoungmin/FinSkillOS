@@ -74,6 +74,9 @@ def test_seed_cli_creates_default_account_and_initial_snapshot(seed_module) -> N
         snapshots = session.execute(
             text("SELECT total_value, cash_value FROM portfolio_snapshots")
         ).all()
+        positions = session.execute(
+            text("SELECT ticker, market_value FROM positions ORDER BY ticker")
+        ).all()
 
     assert len(accounts) == 1
     assert accounts[0][0] == "Main Trading Account"
@@ -82,6 +85,8 @@ def test_seed_cli_creates_default_account_and_initial_snapshot(seed_module) -> N
 
     assert len(snapshots) == 1
     assert str(snapshots[0][0]) in {"57000000", "57000000.00"}
+    assert len(positions) == 5
+    assert sum(row[1] for row in positions) == 50000000
 
 
 def test_seed_cli_is_idempotent_on_second_run(seed_module) -> None:
@@ -95,9 +100,11 @@ def test_seed_cli_is_idempotent_on_second_run(seed_module) -> None:
         n_snapshots = session.execute(
             text("SELECT count(*) FROM portfolio_snapshots")
         ).scalar_one()
+        n_positions = session.execute(text("SELECT count(*) FROM positions")).scalar_one()
 
     assert n_accounts == 1
     assert n_snapshots == 1  # initial snapshot is only created when none exists
+    assert n_positions == 5
 
 
 def test_seed_smoke_inspector_sees_required_tables(seed_module) -> None:
