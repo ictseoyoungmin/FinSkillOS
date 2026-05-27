@@ -220,6 +220,36 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         engine.dispose()
 
 
+def test_symbol_lab_uses_cached_logo_provider_when_configured(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    monkeypatch.setenv("FINSKILLOS_LOGO_DEV_TOKEN", "test-token")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/symbol-lab?ticker=NVDA").json()
+
+        assert body["source"] == "live"
+        assert body["identity"]["ticker"] == "NVDA"
+        assert body["identity"]["logoSource"] == "provider_cache"
+        assert (
+            body["identity"]["logoUrl"]
+            == "https://img.logo.dev/ticker/NVDA?token=test-token&format=png&size=96"
+        )
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_symbol_lab_auto_refreshes_requested_chart_before_read(
     monkeypatch, tmp_path
 ) -> None:
@@ -483,6 +513,94 @@ def test_symbol_lab_subscribe_toggles_active_without_deleting_history(
             assert row is not None
             assert row.active is True
             assert MarketDataService(session).get_bars("ADBE")
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_symbol_lab_subscription_folders_create_assign_and_remove(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_SUBSCRIBE_ADAPTER", "mock")
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+
+    try:
+        client = _client()
+        empty = client.get("/api/symbol-lab/subscription-folders")
+        assert empty.status_code == 200
+        assert empty.json() == {"folders": []}
+
+        created = client.post(
+            "/api/symbol-lab/subscription-folders",
+            json={"name": "AI Leaders", "description": "core watch", "sortOrder": 2},
+        )
+        assert created.status_code == 200
+        folder = created.json()["folders"][0]
+        assert folder["name"] == "AI Leaders"
+        assert folder["members"] == []
+
+        missing_subscription = client.post(
+            f"/api/symbol-lab/subscription-folders/{folder['id']}/symbols/nvda"
+        )
+        assert missing_subscription.status_code == 404
+
+        client.post("/api/symbol-lab/nvda/subscribe")
+        assigned = client.post(
+            f"/api/symbol-lab/subscription-folders/{folder['id']}/symbols/nvda"
+        )
+        assert assigned.status_code == 200
+        next_folder = assigned.json()["folders"][0]
+        assert next_folder["members"] == [{"ticker": "NVDA", "name": "NVIDIA"}]
+
+        removed = client.delete(
+            f"/api/symbol-lab/subscription-folders/{folder['id']}/symbols/nvda"
+        )
+        assert removed.status_code == 200
+        assert removed.json()["folders"][0]["members"] == []
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_symbol_lab_subscription_folders_hide_inactive_members(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_SUBSCRIBE_ADAPTER", "mock")
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+
+    try:
+        client = _client()
+        folder = client.post(
+            "/api/symbol-lab/subscription-folders",
+            json={"name": "Semis"},
+        ).json()["folders"][0]
+
+        client.post("/api/symbol-lab/nvda/subscribe")
+        client.post(
+            f"/api/symbol-lab/subscription-folders/{folder['id']}/symbols/nvda"
+        )
+        client.post("/api/symbol-lab/nvda/unsubscribe")
+
+        body = client.get("/api/symbol-lab/subscription-folders").json()
+        assert body["folders"][0]["members"] == []
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

@@ -6,6 +6,7 @@ export const apiEndpoints = {
   marketKernel: "/market-kernel",
   analysisWorkspace: "/analysis-workspace",
   symbolLab: "/symbol-lab",
+  symbolSubscriptionFolders: "/symbol-lab/subscription-folders",
   riskFirewall: "/risk-firewall",
   missionControl: "/mission-control",
   systemOps: "/system-ops",

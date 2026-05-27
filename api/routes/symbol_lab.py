@@ -11,8 +11,9 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 from decimal import Decimal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import symbol_lab_fixture
@@ -22,10 +23,15 @@ from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import IndicatorSnapshot
 from api.schemas.symbol_lab import (
     SymbolAlert,
+    SymbolIdentity,
     SymbolLabHeader,
     SymbolLabResponse,
     SymbolPosition,
     SymbolRecentBar,
+    SymbolSubscriptionFolder,
+    SymbolSubscriptionFolderInput,
+    SymbolSubscriptionFolderList,
+    SymbolSubscriptionFolderMember,
     SymbolSubscriptionState,
 )
 from finskillos.data_sources import (
@@ -42,10 +48,12 @@ from finskillos.db.repositories import (
     IndicatorRepository,
     MarketRepository,
     PositionRepository,
+    SymbolSubscriptionFolderRepository,
     SymbolSubscriptionRepository,
 )
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
+from finskillos.services.symbol_logo_service import resolve_symbol_logo_identity
 from finskillos.signals import technical
 
 router = APIRouter(tags=["symbol-lab"])
@@ -150,6 +158,7 @@ def _read_symbol_lab(
             )
             latest_indicator = usable_indicators[-1] if usable_indicators else None
         return _live_response(
+            session=session,
             ticker=resolved_ticker,
             timeframe=resolved_timeframe,
             bars=bars,
@@ -212,8 +221,112 @@ def unsubscribe_symbol(
     return _read_symbol_lab(resolved_ticker, timeframe=timeframe)
 
 
+@router.get(
+    "/symbol-lab/subscription-folders",
+    response_model=SymbolSubscriptionFolderList,
+    summary="List foldered active symbol subscriptions.",
+)
+def list_subscription_folders() -> SymbolSubscriptionFolderList:
+    with get_session_scope() as session:
+        if session is None:
+            return SymbolSubscriptionFolderList()
+        repo = SymbolSubscriptionFolderRepository(session)
+        return SymbolSubscriptionFolderList(
+            folders=[_folder_schema(folder) for folder in repo.list_snapshots()]
+        )
+
+
+@router.post(
+    "/symbol-lab/subscription-folders",
+    response_model=SymbolSubscriptionFolderList,
+    summary="Create or update a symbol subscription folder.",
+)
+def upsert_subscription_folder(
+    payload: SymbolSubscriptionFolderInput,
+) -> SymbolSubscriptionFolderList:
+    error: tuple[int, str] | None = None
+    with get_session_scope() as session:
+        if session is None:
+            return SymbolSubscriptionFolderList()
+        repo = SymbolSubscriptionFolderRepository(session)
+        try:
+            repo.upsert_folder(
+                payload.name,
+                description=payload.description,
+                sort_order=payload.sort_order,
+            )
+            session.commit()
+        except ValueError as exc:
+            session.rollback()
+            error = (400, str(exc))
+        else:
+            return SymbolSubscriptionFolderList(
+                folders=[_folder_schema(folder) for folder in repo.list_snapshots()]
+            )
+    if error is not None:
+        raise HTTPException(status_code=error[0], detail=error[1])
+    return SymbolSubscriptionFolderList()
+
+
+@router.post(
+    "/symbol-lab/subscription-folders/{folder_id}/symbols/{ticker}",
+    response_model=SymbolSubscriptionFolderList,
+    summary="Assign an active subscribed ticker to a folder.",
+)
+def add_symbol_to_subscription_folder(
+    folder_id: UUID,
+    ticker: str,
+) -> SymbolSubscriptionFolderList:
+    resolved_ticker = _normalize_ticker(ticker)
+    error: tuple[int, str] | None = None
+    with get_session_scope() as session:
+        if session is None:
+            return SymbolSubscriptionFolderList()
+        repo = SymbolSubscriptionFolderRepository(session)
+        try:
+            repo.add_symbol(folder_id, resolved_ticker)
+            session.commit()
+        except ValueError as exc:
+            session.rollback()
+            status = (
+                404
+                if str(exc) in {"folder_not_found", "subscription_not_found"}
+                else 400
+            )
+            error = (status, str(exc))
+        else:
+            return SymbolSubscriptionFolderList(
+                folders=[_folder_schema(folder) for folder in repo.list_snapshots()]
+            )
+    if error is not None:
+        raise HTTPException(status_code=error[0], detail=error[1])
+    return SymbolSubscriptionFolderList()
+
+
+@router.delete(
+    "/symbol-lab/subscription-folders/{folder_id}/symbols/{ticker}",
+    response_model=SymbolSubscriptionFolderList,
+    summary="Remove a ticker from a subscription folder.",
+)
+def remove_symbol_from_subscription_folder(
+    folder_id: UUID,
+    ticker: str,
+) -> SymbolSubscriptionFolderList:
+    resolved_ticker = _normalize_ticker(ticker)
+    with get_session_scope() as session:
+        if session is None:
+            return SymbolSubscriptionFolderList()
+        repo = SymbolSubscriptionFolderRepository(session)
+        repo.remove_symbol(folder_id, resolved_ticker)
+        session.commit()
+        return SymbolSubscriptionFolderList(
+            folders=[_folder_schema(folder) for folder in repo.list_snapshots()]
+        )
+
+
 def _live_response(
     *,
+    session,
     ticker: str,
     timeframe: str,
     bars: list,
@@ -237,7 +350,7 @@ def _live_response(
         guard_count=len(symbol_alerts),
     )
     payload.symbol_universe = _symbol_universe(ticker)
-    payload.identity = symbol_identity(ticker)
+    payload.identity = _symbol_identity(session, ticker)
     payload.subscription = _subscription_state(subscription)
     payload.position = _position_context(position, positions)
     payload.alerts = symbol_alerts
@@ -277,7 +390,10 @@ def _live_response(
         )
         missing_watchpoints = [
             ("Stored bars", "Refresh market bars before using this ticker context."),
-            ("Symbol image", "Logo/avatar retrieval is deferred to a provider cache slice."),
+            (
+                "Symbol logo",
+                "Logo metadata uses the configured provider cache when available.",
+            ),
         ]
         if provider_note:
             missing_watchpoints.append(
@@ -299,7 +415,7 @@ def _live_response(
         payload.watchpoints = [
             f"No stored market bars exist for {ticker}.",
             "Use System Ops market refresh before expecting live symbol context.",
-            "Symbol images are not fetched during page render.",
+            "Ticker logos use cached provider metadata when configured.",
         ]
         if provider_note:
             payload.watchpoints.append(
@@ -371,7 +487,10 @@ def _live_response(
     payload.review_watchpoints = watchpoints(
         ("Refresh timestamp", "Check /api/system-status for latest market bar time."),
         ("Position context", "Review active alerts if this symbol is currently held."),
-        ("Symbol image", "Logo/avatar retrieval is deferred to a provider cache slice."),
+        (
+            "Symbol logo",
+            "Logo metadata uses the configured provider cache when available.",
+        ),
     )
     payload.header = SymbolLabHeader(
         ticker=ticker,
@@ -416,7 +535,7 @@ def _live_response(
     payload.watchpoints = [
         "Symbol bars are snapshots, not a streaming quote feed.",
         "Recompute indicators after refreshing market bars for full context.",
-        "Symbol images are not fetched during page render.",
+        "Ticker logos are resolved from cached provider metadata when configured.",
     ]
     if provider_preview_used:
         payload.watchpoints.append(
@@ -547,6 +666,25 @@ def _symbol_universe(selected_ticker: str):
     return rows
 
 
+def _symbol_identity(session, ticker: str) -> SymbolIdentity:
+    fallback = symbol_identity(ticker)
+    resolved = resolve_symbol_logo_identity(
+        session,
+        ticker=fallback.ticker,
+        name=fallback.name,
+        avatar_text=fallback.avatar_text,
+        brand_color=fallback.brand_color,
+    )
+    return SymbolIdentity(
+        ticker=resolved.ticker,
+        name=resolved.name,
+        logo_url=resolved.logo_url,
+        logo_source=resolved.logo_source,
+        avatar_text=resolved.avatar_text,
+        brand_color=resolved.brand_color,
+    )
+
+
 def _universe_row(symbol: str):
     from api.schemas.market_kernel import UniverseTicker
 
@@ -568,6 +706,19 @@ def _subscription_state(subscription) -> SymbolSubscriptionState:
         can_subscribe=True,
         update_universe_member=active,
         last_action=last_action,
+    )
+
+
+def _folder_schema(folder) -> SymbolSubscriptionFolder:
+    return SymbolSubscriptionFolder(
+        id=str(folder.id),
+        name=folder.name,
+        description=folder.description,
+        sort_order=folder.sort_order,
+        members=[
+            SymbolSubscriptionFolderMember(ticker=member.ticker, name=member.name)
+            for member in folder.members
+        ],
     )
 
 

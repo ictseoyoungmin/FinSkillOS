@@ -34,6 +34,8 @@ class Settings:
     base_currency: str
     target_value: Decimal
     default_account_name: str
+    logo_provider: str
+    logo_dev_token: str
 
 
 @lru_cache(maxsize=1)
@@ -63,6 +65,12 @@ def get_settings() -> Settings:
         target_value=target_value,
         default_account_name=_env(
             "FINSKILLOS_DEFAULT_ACCOUNT_NAME", "Main Trading Account"
+        ),
+        logo_provider=_env("FINSKILLOS_LOGO_PROVIDER", "logo_dev").lower(),
+        logo_dev_token=_env(
+            "FINSKILLOS_LOGO_DEV_TOKEN",
+            "",
+            "LOGO_DEV_PUBLISHABLE_KEY",
         ),
     )
 

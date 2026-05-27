@@ -1,10 +1,11 @@
 import { Panel } from "@/shared/ui";
-import type { NewsArticleVM } from "../types";
+import type { NewsArticleVM, NewsTickerIdentity } from "../types";
 import { PaginatedNewsList } from "./PaginatedNewsList";
 import "./news-list.css";
 
 export interface HoldingsRelevantNewsProps {
   articles: NewsArticleVM[];
+  tickerIdentities?: NewsTickerIdentity[];
 }
 
 /**
@@ -12,7 +13,10 @@ export interface HoldingsRelevantNewsProps {
  * of the user's current holdings. Renders the article title, source,
  * timestamp, and the short summary — never a full article body.
  */
-export function HoldingsRelevantNews({ articles }: HoldingsRelevantNewsProps) {
+export function HoldingsRelevantNews({
+  articles,
+  tickerIdentities = [],
+}: HoldingsRelevantNewsProps) {
   if (articles.length === 0) {
     return (
       <Panel
@@ -34,7 +38,12 @@ export function HoldingsRelevantNews({ articles }: HoldingsRelevantNewsProps) {
       badgeTone="info"
       testId="holdings-relevant-news"
     >
-      <PaginatedNewsList articles={articles} pageSize={5} showImpactChips />
+      <PaginatedNewsList
+        articles={articles}
+        pageSize={5}
+        showImpactChips
+        tickerIdentities={tickerIdentities}
+      />
     </Panel>
   );
 }

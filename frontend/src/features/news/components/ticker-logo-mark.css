@@ -1,0 +1,29 @@
+.fso-news-ticker-logo,
+.fso-news-ticker-avatar {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 6px;
+  border: 1px solid var(--fso-line-strong);
+  background: rgba(9, 15, 24, 0.72);
+  object-fit: contain;
+}
+
+.fso-news-ticker-logo {
+  padding: 3px;
+}
+
+.fso-news-ticker-avatar {
+  display: inline-grid;
+  place-items: center;
+  color: var(--fso-text);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--ticker-color, #475569) 78%, #ffffff 8%),
+      color-mix(in srgb, var(--ticker-color, #475569) 54%, #000000 20%)
+    );
+}

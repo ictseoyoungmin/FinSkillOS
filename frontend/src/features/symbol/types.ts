@@ -84,6 +84,23 @@ export interface SymbolSubscriptionState {
   lastAction: "none" | "subscribed" | "unsubscribed";
 }
 
+export interface SymbolSubscriptionFolderMember {
+  ticker: string;
+  name: string | null;
+}
+
+export interface SymbolSubscriptionFolder {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  members: SymbolSubscriptionFolderMember[];
+}
+
+export interface SymbolSubscriptionFolderList {
+  folders: SymbolSubscriptionFolder[];
+}
+
 export interface SymbolLabSystemStatus {
   db: string;
   mode: string;

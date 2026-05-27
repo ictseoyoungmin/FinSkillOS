@@ -68,6 +68,15 @@ export interface NewsImpactMapEntry {
   riskLevel: RiskLevel;
 }
 
+export interface NewsTickerIdentity {
+  ticker: string;
+  name: string;
+  logoUrl: string | null;
+  logoSource: "local_fallback" | "provider_cache" | "deferred";
+  avatarText: string;
+  brandColor: string;
+}
+
 export interface NewsWatchpoint {
   label: string;
   description: string;
@@ -96,6 +105,7 @@ export interface NewsIntelligenceData {
   eventLinked: NewsArticleVM[];
   latestNews: NewsArticleVM[];
   impactMap: NewsImpactMapEntry[];
+  tickerIdentities: NewsTickerIdentity[];
   integratedInterpretation: string[];
   watchpoints: NewsWatchpoint[];
   manualEntryRules: NewsManualEntryRules;

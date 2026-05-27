@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import type { NewsArticleVM } from "../types";
+import type { NewsArticleVM, NewsTickerIdentity } from "../types";
 import { shouldShowArticleSummary } from "./articleText";
 import { formatNewsTimestamp } from "./formatNewsTimestamp";
+import { TickerLogoMark } from "./TickerLogoMark";
 import "./news-list.css";
 
 const DEFAULT_PAGE_SIZE = 5;
@@ -11,6 +12,7 @@ export interface PaginatedNewsListProps {
   pageSize?: number;
   showEventKeys?: boolean;
   showImpactChips?: boolean;
+  tickerIdentities?: NewsTickerIdentity[];
 }
 
 export function PaginatedNewsList({
@@ -18,6 +20,7 @@ export function PaginatedNewsList({
   pageSize = DEFAULT_PAGE_SIZE,
   showEventKeys = false,
   showImpactChips = false,
+  tickerIdentities = [],
 }: PaginatedNewsListProps) {
   const [page, setPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(articles.length / pageSize));
@@ -31,6 +34,14 @@ export function PaginatedNewsList({
     return articles.slice(start, start + pageSize);
   }, [articles, page, pageSize]);
 
+  const identitiesByTicker = useMemo(
+    () =>
+      new Map(
+        tickerIdentities.map((identity) => [identity.ticker, identity]),
+      ),
+    [tickerIdentities],
+  );
+
   return (
     <>
       <ul className="fso-news-list">
@@ -42,25 +53,33 @@ export function PaginatedNewsList({
                 .filter((key): key is string => Boolean(key)),
             ),
           );
+          const logoIdentity = article.impacts
+            .map((impact) =>
+              impact.ticker ? identitiesByTicker.get(impact.ticker) : undefined,
+            )
+            .find((identity): identity is NewsTickerIdentity => Boolean(identity));
 
           return (
             <li className="fso-news-row" key={article.id}>
-              <div className="fso-news-row-head">
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="fso-news-title"
-                >
-                  {article.title}
-                </a>
-                <span className="fso-news-meta">
-                  <strong>{formatNewsTimestamp(article.publishedAt)}</strong>
-                  <span>{article.source}</span>
-                  {showEventKeys && eventKeys.length > 0 ? (
-                    <span>{eventKeys.join(", ")}</span>
-                  ) : null}
-                </span>
+              <div className="fso-news-row-main">
+                {logoIdentity ? <TickerLogoMark identity={logoIdentity} /> : null}
+                <div className="fso-news-row-head">
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="fso-news-title"
+                  >
+                    {article.title}
+                  </a>
+                  <span className="fso-news-meta">
+                    <strong>{formatNewsTimestamp(article.publishedAt)}</strong>
+                    <span>{article.source}</span>
+                    {showEventKeys && eventKeys.length > 0 ? (
+                      <span>{eventKeys.join(", ")}</span>
+                    ) : null}
+                  </span>
+                </div>
               </div>
               {shouldShowArticleSummary(article) ? (
                 <p className="fso-news-summary">{article.summary}</p>

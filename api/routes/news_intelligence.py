@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends
 
 from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import news_intelligence_fixture
+from api.fixtures.symbol_lab import symbol_identity
 from api.schemas.common import SystemStatus
 from api.schemas.news_intelligence import (
     MAX_SUMMARY_CHARS,
@@ -32,8 +33,10 @@ from api.schemas.news_intelligence import (
     NewsImpactVM,
     NewsIntelligenceResponse,
     NewsJudgmentHeader,
+    NewsTickerIdentity,
     NewsWatchpoint,
 )
+from finskillos.services.symbol_logo_service import resolve_symbol_logo_identity
 
 router = APIRouter(tags=["news-intelligence"])
 
@@ -63,7 +66,7 @@ def news_intelligence(
                 session,
                 generated_at=datetime.now(tz=UTC),
             )
-            return _live_response_from_vm(vm)
+            return _live_response_from_vm(vm, session=session)
         except Exception:
             session.rollback()
             return news_intelligence_fixture()
@@ -211,7 +214,7 @@ def _scan_inputs_for_forbidden_wording(
     return None
 
 
-def _live_response_from_vm(vm) -> NewsIntelligenceResponse:
+def _live_response_from_vm(vm, session=None) -> NewsIntelligenceResponse:
     latest = _safe_articles([_article_vm(article) for article in vm.latest_news])
     holdings = _safe_articles(
         [_article_vm(article) for article in vm.holdings_relevant]
@@ -287,6 +290,10 @@ def _live_response_from_vm(vm) -> NewsIntelligenceResponse:
         event_linked=event_linked,
         latest_news=latest,
         impact_map=_impact_map(impacts),
+        ticker_identities=_ticker_identities(
+            session,
+            _affected_tickers(all_articles),
+        ),
         integrated_interpretation=[
             (
                 f"{len(all_articles)} stored news articles are available for "
@@ -320,6 +327,30 @@ def _live_response_from_vm(vm) -> NewsIntelligenceResponse:
             ),
         ],
     )
+
+
+def _ticker_identities(session, tickers: tuple[str, ...]) -> list[NewsTickerIdentity]:
+    rows: list[NewsTickerIdentity] = []
+    for ticker in tickers:
+        fallback = symbol_identity(ticker)
+        resolved = resolve_symbol_logo_identity(
+            session,
+            ticker=fallback.ticker,
+            name=fallback.name,
+            avatar_text=fallback.avatar_text,
+            brand_color=fallback.brand_color,
+        )
+        rows.append(
+            NewsTickerIdentity(
+                ticker=resolved.ticker,
+                name=resolved.name,
+                logo_url=resolved.logo_url,
+                logo_source=resolved.logo_source,
+                avatar_text=resolved.avatar_text,
+                brand_color=resolved.brand_color,
+            )
+        )
+    return rows
 
 
 def _article_vm(article) -> NewsArticleVM:

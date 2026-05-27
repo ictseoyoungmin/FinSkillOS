@@ -57,6 +57,7 @@ def test_news_intelligence_returns_full_payload() -> None:
         "eventLinked",
         "latestNews",
         "impactMap",
+        "tickerIdentities",
         "integratedInterpretation",
         "watchpoints",
         "manualEntryRules",
@@ -275,6 +276,46 @@ def test_news_intelligence_get_reads_stored_db_news(monkeypatch, tmp_path) -> No
         assert "not necessarily current holdings" in body["drivers"][1]["detail"]
         assert "streaming feed" in json.dumps(body).lower()
         assert "Reuters / Bloomberg / WSJ" not in json.dumps(body)
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_news_intelligence_exposes_shared_ticker_logo_identities(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        NewsService(session).ingest_article(
+            NewsArticleInput(
+                title="NVDA data center demand update",
+                source="RSS Desk",
+                url="https://news.example.com/nvda-data-center",
+                published_at=_dt("2026-05-26T12:30:00+00:00"),
+                summary="NVIDIA data center demand remained in focus.",
+            )
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_LOGO_DEV_TOKEN", "test-token")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/news-intelligence").json()
+        identities = {row["ticker"]: row for row in body["tickerIdentities"]}
+
+        assert "NVDA" in identities
+        assert identities["NVDA"]["logoSource"] == "provider_cache"
+        assert identities["NVDA"]["logoUrl"].startswith(
+            "https://img.logo.dev/ticker/NVDA?token=test-token"
+        )
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

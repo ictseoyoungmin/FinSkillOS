@@ -15,8 +15,12 @@ from finskillos.db.repositories.news_repo import (
 from finskillos.db.repositories.portfolio_repo import PortfolioRepository
 from finskillos.db.repositories.position_repo import PositionRepository
 from finskillos.db.repositories.regime_repo import MarketRegimeRepository
+from finskillos.db.repositories.symbol_logo_repo import SymbolLogoRepository
 from finskillos.db.repositories.symbol_subscription_repo import (
     SymbolSubscriptionRepository,
+)
+from finskillos.db.repositories.symbol_subscription_folder_repo import (
+    SymbolSubscriptionFolderRepository,
 )
 from finskillos.db.repositories.trade_repo import TradeRepository
 
@@ -32,6 +36,8 @@ __all__ = [
     "NewsImpactRepository",
     "PortfolioRepository",
     "PositionRepository",
+    "SymbolLogoRepository",
     "SymbolSubscriptionRepository",
+    "SymbolSubscriptionFolderRepository",
     "TradeRepository",
 ]

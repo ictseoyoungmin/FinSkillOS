@@ -55,8 +55,14 @@ export function NewsIntelligencePage() {
         />
       </div>
       <div className="fso-news-intel-row fso-news-intel-main-row">
-        <LatestNewsPanel articles={payload.latestNews} />
-        <NewsImpactMap entries={payload.impactMap} />
+        <LatestNewsPanel
+          articles={payload.latestNews}
+          tickerIdentities={payload.tickerIdentities}
+        />
+        <NewsImpactMap
+          entries={payload.impactMap}
+          tickerIdentities={payload.tickerIdentities}
+        />
       </div>
       <NewsEvidenceDetails
         title="Secondary Evidence"
@@ -64,8 +70,14 @@ export function NewsIntelligencePage() {
       >
         <div className="fso-news-evidence-grid">
           <NewsWatchpointsPanel watchpoints={payload.watchpoints} />
-          <HoldingsRelevantNews articles={payload.holdingsRelevant} />
-          <EventLinkedNewsPanel articles={payload.eventLinked} />
+          <HoldingsRelevantNews
+            articles={payload.holdingsRelevant}
+            tickerIdentities={payload.tickerIdentities}
+          />
+          <EventLinkedNewsPanel
+            articles={payload.eventLinked}
+            tickerIdentities={payload.tickerIdentities}
+          />
         </div>
       </NewsEvidenceDetails>
       <div data-testid="news-intelligence-safety-caption">

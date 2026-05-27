@@ -1,9 +1,11 @@
 import { Panel } from "@/shared/ui";
-import type { NewsImpactMapEntry } from "../types";
+import type { NewsImpactMapEntry, NewsTickerIdentity } from "../types";
+import { TickerLogoMark } from "./TickerLogoMark";
 import "./news-impact-map.css";
 
 export interface NewsImpactMapProps {
   entries: NewsImpactMapEntry[];
+  tickerIdentities?: NewsTickerIdentity[];
 }
 
 /**
@@ -12,7 +14,10 @@ export interface NewsImpactMapProps {
  * the user see where today's news cluster concentrates without
  * scrolling through every article.
  */
-export function NewsImpactMap({ entries }: NewsImpactMapProps) {
+export function NewsImpactMap({
+  entries,
+  tickerIdentities = [],
+}: NewsImpactMapProps) {
   if (entries.length === 0) {
     return (
       <Panel
@@ -36,6 +41,9 @@ export function NewsImpactMap({ entries }: NewsImpactMapProps) {
         .sort((a, b) => b.articleCount - a.articleCount || a.label.localeCompare(b.label)),
     }))
     .filter((group) => group.entries.length > 0);
+  const identitiesByTicker = new Map(
+    tickerIdentities.map((identity) => [identity.ticker, identity]),
+  );
 
   return (
     <Panel
@@ -55,7 +63,13 @@ export function NewsImpactMap({ entries }: NewsImpactMapProps) {
                   data-risk={entry.riskLevel.toLowerCase()}
                   key={`${entry.dimension}-${entry.label}`}
                 >
-                  <span className="fso-news-impact-map-label">{entry.label}</span>
+                  <span className="fso-news-impact-map-headline">
+                    {entry.dimension === "ticker" &&
+                    identitiesByTicker.has(entry.label) ? (
+                      <TickerLogoMark identity={identitiesByTicker.get(entry.label)!} />
+                    ) : null}
+                    <span className="fso-news-impact-map-label">{entry.label}</span>
+                  </span>
                   <span className="fso-news-impact-map-count">
                     {entry.articleCount}
                   </span>

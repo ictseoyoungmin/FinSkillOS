@@ -42,6 +42,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finskillos}:${POSTGRES_PASSWORD:-finskillos_dev_password}@postgres:5432/${POSTGRES_DB:-finskillos}
       FINSKILLOS_CORS_ORIGINS: ${FINSKILLOS_CORS_ORIGINS:-http://localhost:5173,http://web,http://localhost:3000}
+      FINSKILLOS_LOGO_PROVIDER: ${FINSKILLOS_LOGO_PROVIDER:-logo_dev}
+      FINSKILLOS_LOGO_DEV_TOKEN: ${FINSKILLOS_LOGO_DEV_TOKEN:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -97,6 +99,8 @@ services:
       FINSKILLOS_NEWS_RSS_TICKERS: ${FINSKILLOS_NEWS_RSS_TICKERS:-AAPL,MSFT,NVDA,TSLA}
       FINSKILLOS_NEWS_RSS_SOURCE: ${FINSKILLOS_NEWS_RSS_SOURCE:-}
       FINSKILLOS_NEWS_RSS_LANGUAGE: ${FINSKILLOS_NEWS_RSS_LANGUAGE:-en-US}
+      FINSKILLOS_LOGO_PROVIDER: ${FINSKILLOS_LOGO_PROVIDER:-logo_dev}
+      FINSKILLOS_LOGO_DEV_TOKEN: ${FINSKILLOS_LOGO_DEV_TOKEN:-}
     command: ["python", "scripts/refresh_worker.py"]
     depends_on:
       postgres:

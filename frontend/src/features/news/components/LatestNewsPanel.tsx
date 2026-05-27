@@ -1,13 +1,17 @@
 import { Panel } from "@/shared/ui";
-import type { NewsArticleVM } from "../types";
+import type { NewsArticleVM, NewsTickerIdentity } from "../types";
 import { PaginatedNewsList } from "./PaginatedNewsList";
 import "./news-list.css";
 
 export interface LatestNewsPanelProps {
   articles: NewsArticleVM[];
+  tickerIdentities?: NewsTickerIdentity[];
 }
 
-export function LatestNewsPanel({ articles }: LatestNewsPanelProps) {
+export function LatestNewsPanel({
+  articles,
+  tickerIdentities = [],
+}: LatestNewsPanelProps) {
   if (articles.length === 0) {
     return (
       <Panel
@@ -28,7 +32,11 @@ export function LatestNewsPanel({ articles }: LatestNewsPanelProps) {
       badgeTone="info"
       testId="latest-stored-news"
     >
-      <PaginatedNewsList articles={articles} pageSize={4} />
+      <PaginatedNewsList
+        articles={articles}
+        pageSize={4}
+        tickerIdentities={tickerIdentities}
+      />
     </Panel>
   );
 }

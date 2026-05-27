@@ -219,6 +219,24 @@ export const newsIntelligenceFixture: NewsIntelligenceData = {
       riskLevel: "GREEN",
     },
   ],
+  tickerIdentities: [
+    {
+      ticker: "NVDA",
+      name: "NVIDIA",
+      logoUrl: null,
+      logoSource: "local_fallback",
+      avatarText: "NV",
+      brandColor: "#16a34a",
+    },
+    {
+      ticker: "TSLA",
+      name: "Tesla",
+      logoUrl: null,
+      logoSource: "local_fallback",
+      avatarText: "TS",
+      brandColor: "#dc2626",
+    },
+  ],
   integratedInterpretation: [
     "Today's news mix reinforces an AI / Data Center read for the portfolio while keeping a macro overlay active.",
     "It matters because two of the largest holdings (TSLA, NVDA) sit on event-linked themes — date confidence drives the narrative confidence.",

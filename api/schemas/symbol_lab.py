@@ -101,6 +101,29 @@ class SymbolSubscriptionState(CamelModel):
     last_action: Literal["none", "subscribed", "unsubscribed"] = "none"
 
 
+class SymbolSubscriptionFolderMember(CamelModel):
+    ticker: str
+    name: str | None = None
+
+
+class SymbolSubscriptionFolder(CamelModel):
+    id: str
+    name: str
+    description: str | None = None
+    sort_order: int = 0
+    members: list[SymbolSubscriptionFolderMember] = Field(default_factory=list)
+
+
+class SymbolSubscriptionFolderList(CamelModel):
+    folders: list[SymbolSubscriptionFolder] = Field(default_factory=list)
+
+
+class SymbolSubscriptionFolderInput(CamelModel):
+    name: str = Field(..., min_length=1, max_length=80)
+    description: str | None = Field(default=None, max_length=240)
+    sort_order: int = 0
+
+
 class SymbolLabResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -140,5 +163,9 @@ __all__ = [
     "SymbolPosition",
     "SymbolRecentBar",
     "SymbolSubscriptionState",
+    "SymbolSubscriptionFolder",
+    "SymbolSubscriptionFolderInput",
+    "SymbolSubscriptionFolderList",
+    "SymbolSubscriptionFolderMember",
     "UniverseTicker",
 ]

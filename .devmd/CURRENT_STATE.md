@@ -105,14 +105,14 @@ Slice 14 is complete:
   descriptive snapshots from stored bars and keeps worker infrastructure
   deferred.
 - Docker Compose exposes an optional `worker` profile running
-  `scripts/refresh_worker.py`. The worker refreshes market bars and
-  descriptive indicators only; news crawling/provider refresh remains deferred.
+  `scripts/refresh_worker.py`. The worker refreshes market bars, RSS news
+  metadata, and descriptive indicators when enabled.
 - `/api/symbol-lab` can read stored DB bars, latest indicator snapshots,
-  current position context, and symbol-linked active alerts. Symbol logo/image
-  retrieval remains deferred to a provider/cache slice.
-- Symbol Lab now exposes `identity` metadata and renders a local fallback
-  avatar. Official logo retrieval remains deferred until provider/cache and
-  attribution rules are clear.
+  current position context, symbol-linked active alerts, and shared ticker
+  logo identity metadata.
+- Symbol Lab now exposes `identity` metadata and renders a provider-cache logo
+  when `FINSKILLOS_LOGO_DEV_TOKEN` is configured; otherwise it uses the local
+  fallback avatar.
 - Symbol Lab supports arbitrary ticker subscription toggles. Active
   `symbol_subscriptions` are included in System Ops and worker refresh
   universes; unsubscribe keeps historical bars/indicators intact.
@@ -151,18 +151,18 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. News crawling/provider design
-   - Reference assets only showed a Naver Search API implementation. Add a
-     non-Naver provider or crawler only after source, attribution, and
-     rate-limit rules are clear.
+1. Mission Control DB read model
+   - Promote the module from fixture/placeholder interpretation to durable
+     DB-backed evidence for goals, protocol status, and next actions.
 
-2. Symbol image/logo provider cache
-   - Promote `identity.logoUrl` to `provider_cache` only after provider,
-     attribution, cache, and fallback rules are clear.
+2. Durable System Ops audit table
+   - Persist refresh runs, status, duration, and failure details so worker and
+     manual System Ops actions can be inspected from the UI.
 
-3. Foldered symbol subscriptions
-   - Add durable watchlist/folder rows, folder membership mutations, and
-     Symbol Lab filtering so subscribed symbols can be grouped like Toss-style
+3. News impact sentiment/risk scoring
+   - The RSS provider stores articles and impacts, but many generated impacts
+     still show UNKNOWN sentiment/risk. Improve deterministic scoring and
+     source confidence before adding broader feed coverage.
      interest lists.
 
 4. Mission Control DB read model

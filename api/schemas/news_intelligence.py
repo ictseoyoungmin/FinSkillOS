@@ -106,6 +106,19 @@ class NewsImpactMapEntry(CamelModel):
     risk_level: RiskLevel
 
 
+class NewsTickerIdentity(CamelModel):
+    """Logo-ready ticker identity shared with Symbol Lab."""
+
+    ticker: str
+    name: str
+    logo_url: str | None = None
+    logo_source: Literal["local_fallback", "provider_cache", "deferred"] = (
+        "local_fallback"
+    )
+    avatar_text: str
+    brand_color: str = "#475569"
+
+
 class NewsWatchpoint(CamelModel):
     label: str
     description: str
@@ -132,6 +145,7 @@ class NewsIntelligenceResponse(CamelModel):
     event_linked: list[NewsArticleVM]
     latest_news: list[NewsArticleVM]
     impact_map: list[NewsImpactMapEntry]
+    ticker_identities: list[NewsTickerIdentity] = Field(default_factory=list)
     integrated_interpretation: list[str]
     watchpoints: list[NewsWatchpoint]
     manual_entry_rules: NewsManualEntryRules = Field(
@@ -181,5 +195,6 @@ __all__ = [
     "NewsIntelligenceResponse",
     "NewsJudgmentHeader",
     "NewsManualEntryRules",
+    "NewsTickerIdentity",
     "NewsWatchpoint",
 ]

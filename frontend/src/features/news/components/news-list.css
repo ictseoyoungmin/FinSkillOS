@@ -26,6 +26,17 @@
   gap: 4px;
 }
 
+.fso-news-row-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fso-news-row-main .fso-news-row-head {
+  min-width: 0;
+}
+
 .fso-news-title {
   font-size: 13px;
   color: var(--fso-text);

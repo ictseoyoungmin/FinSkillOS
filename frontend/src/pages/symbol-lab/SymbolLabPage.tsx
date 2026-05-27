@@ -5,7 +5,14 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { fetchSymbolLab, setSymbolSubscription } from "@/features/symbol/api";
+import {
+  addSymbolToFolder,
+  createSymbolSubscriptionFolder,
+  fetchSymbolLab,
+  fetchSymbolSubscriptionFolders,
+  removeSymbolFromFolder,
+  setSymbolSubscription,
+} from "@/features/symbol/api";
 import type { SymbolLabData } from "@/features/symbol/types";
 import { SymbolAlertsPanel } from "@/features/symbol/components/SymbolAlertsPanel";
 import { SymbolNewsPanel } from "@/features/symbol/components/SymbolNewsPanel";
@@ -13,6 +20,7 @@ import { SymbolPositionContext } from "@/features/symbol/components/SymbolPositi
 import { SymbolCandlestickChart } from "@/features/symbol/components/SymbolCandlestickChart";
 import { SymbolRecentBarsTable } from "@/features/symbol/components/SymbolRecentBarsTable";
 import { SymbolSearchPanel } from "@/features/symbol/components/SymbolSearchPanel";
+import { SymbolSubscriptionFoldersPanel } from "@/features/symbol/components/SymbolSubscriptionFoldersPanel";
 import { SymbolTechnicalSnapshot } from "@/features/symbol/components/SymbolTechnicalSnapshot";
 import { SymbolWatchpoints } from "@/features/symbol/components/SymbolWatchpoints";
 import { RegimeContextPanel } from "@/features/analysis/components/RegimeContextPanel";
@@ -125,6 +133,12 @@ export function SymbolLabPage() {
     placeholderData: keepPreviousData,
   });
 
+  const { data: folderData } = useQuery({
+    queryKey: ["symbol-subscription-folders"],
+    queryFn: ({ signal }) => fetchSymbolSubscriptionFolders(signal),
+    placeholderData: { folders: [] },
+  });
+
   const selectTicker = (next: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("ticker", next);
@@ -146,6 +160,28 @@ export function SymbolLabPage() {
       queryClient.setQueryData(["symbol-lab", ticker, timeframe], nextPayload);
       queryClient.invalidateQueries({ queryKey: ["symbol-lab", ticker] });
       queryClient.invalidateQueries({ queryKey: ["system-status"] });
+      queryClient.invalidateQueries({ queryKey: ["symbol-subscription-folders"] });
+    },
+  });
+
+  const createFolderMutation = useMutation({
+    mutationFn: (name: string) => createSymbolSubscriptionFolder(name),
+    onSuccess: (nextFolders) => {
+      queryClient.setQueryData(["symbol-subscription-folders"], nextFolders);
+    },
+  });
+
+  const addToFolderMutation = useMutation({
+    mutationFn: (folderId: string) => addSymbolToFolder(folderId, ticker),
+    onSuccess: (nextFolders) => {
+      queryClient.setQueryData(["symbol-subscription-folders"], nextFolders);
+    },
+  });
+
+  const removeFromFolderMutation = useMutation({
+    mutationFn: (folderId: string) => removeSymbolFromFolder(folderId, ticker),
+    onSuccess: (nextFolders) => {
+      queryClient.setQueryData(["symbol-subscription-folders"], nextFolders);
     },
   });
 
@@ -158,6 +194,10 @@ export function SymbolLabPage() {
     (isFetching &&
       (payload.header.ticker !== ticker || payload.header.timeframe !== timeframe));
   const chartRequestError = initialRequestError || Boolean(error && data);
+  const folderMutationBusy =
+    createFolderMutation.isPending ||
+    addToFolderMutation.isPending ||
+    removeFromFolderMutation.isPending;
 
   return (
     <div className="fso-symbol-lab" data-testid="symbol-lab-page">
@@ -244,6 +284,17 @@ export function SymbolLabPage() {
             />
           </div>
           <SymbolAlertsPanel alerts={payload.alerts} />
+          <SymbolSubscriptionFoldersPanel
+            currentTicker={ticker}
+            folders={folderData ?? { folders: [] }}
+            subscription={payload.subscription}
+            busy={folderMutationBusy}
+            onAddToFolder={(folderId) => addToFolderMutation.mutate(folderId)}
+            onCreateFolder={(name) => createFolderMutation.mutate(name)}
+            onRemoveFromFolder={(folderId) =>
+              removeFromFolderMutation.mutate(folderId)
+            }
+          />
           <SymbolNewsPanel news={payload.news} />
           <RegimeContextPanel regime={payload.regime} />
         </aside>
