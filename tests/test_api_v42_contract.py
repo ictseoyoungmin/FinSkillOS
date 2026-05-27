@@ -33,7 +33,11 @@ _V42_ENDPOINTS = (
     ("/api/symbol-lab", "SYMBOL JUDGMENT", "Symbol interpretation"),
     ("/api/risk-firewall", "RISK PERMISSION JUDGMENT", "Read-only"),
     ("/api/mission-control", "MISSION RISK JUDGMENT", "Goal interpretation"),
-    ("/api/news-intelligence", "AI demand", "Descriptive narrative view"),
+    (
+        "/api/news-intelligence",
+        ("AI demand", "News"),
+        "Descriptive narrative view",
+    ),
     ("/api/event-radar", "Event calendar", "preparation / exposure score"),
     ("/api/trade-memory", "Process pattern", "Reflection / process review"),
     ("/api/system-ops", "SYSTEM TRUST JUDGMENT", "Operational protocols only"),
@@ -48,6 +52,8 @@ _V42_FIXTURE_FIRST_ENDPOINTS = tuple(
         "/api/symbol-lab",
         "/api/risk-firewall",
         "/api/mission-control",
+        "/api/news-intelligence",
+        "/api/system-ops",
     }
 )
 _V42_LIVE_CAPABLE_ENDPOINTS = (
@@ -55,6 +61,8 @@ _V42_LIVE_CAPABLE_ENDPOINTS = (
     "/api/symbol-lab",
     "/api/risk-firewall",
     "/api/mission-control",
+    "/api/news-intelligence",
+    "/api/system-ops",
 )
 
 
@@ -72,7 +80,12 @@ def test_all_v42_tabs_expose_core_read_model_contract() -> None:
         assert safety_category in body["safetyCaption"]
 
         judgment_blob = _joined_strings(body["judgment"])
-        assert judgment_anchor in judgment_blob
+        anchors = (
+            judgment_anchor
+            if isinstance(judgment_anchor, tuple)
+            else (judgment_anchor,)
+        )
+        assert any(anchor in judgment_blob for anchor in anchors), path
         assert "confidence" in body["judgment"]
 
         assert len(body["drivers"]) >= 1

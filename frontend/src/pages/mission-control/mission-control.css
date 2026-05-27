@@ -1,36 +1,149 @@
 .fso-mission-control {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
-.fso-mission-control-grid {
+.fso-mission-control-command-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(420px, 1.08fr) minmax(300px, 0.72fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.fso-mission-control-judgment .fso-judgment-header {
+  min-height: 100%;
+  padding: 12px 14px;
+  grid-template-columns: minmax(0, 1fr) 86px;
+  gap: 10px;
+}
+
+.fso-mission-control-judgment .fso-judgment-title {
+  font-size: 18px;
+}
+
+.fso-mission-control-judgment .fso-judgment-summary {
+  margin-top: 6px;
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.fso-mission-control-judgment .fso-judgment-confidence {
+  padding: 8px;
+  gap: 5px;
+}
+
+.fso-mission-control-judgment .fso-judgment-confidence strong {
+  font-size: 18px;
+}
+
+.fso-mission-control-judgment .fso-judgment-confidence-meter {
+  height: 6px;
+}
+
+.fso-mission-control-brief {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 100%;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-md);
+  background: var(--fso-panel);
+  box-shadow: var(--fso-shadow);
+  overflow: hidden;
+}
+
+.fso-mission-control-brief > div {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-left: 1px solid var(--fso-line);
+}
+
+.fso-mission-control-brief > div:first-child {
+  border-left: 0;
+}
+
+.fso-mission-control-brief span,
+.fso-mission-control-brief small {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--fso-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fso-mission-control-brief span {
+  color: var(--fso-text-muted-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fso-mission-control-brief strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 16px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fso-mission-control-brief small {
+  color: var(--fso-text-muted);
+  font-size: 11px;
+}
+
+.fso-mission-control-main-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.82fr) minmax(320px, 0.92fr) minmax(420px, 1.26fr);
+  gap: 14px;
   align-items: start;
 }
 
-.fso-mission-control-evidence-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 18px;
-}
-
-@media (max-width: 1100px) {
-  .fso-mission-control-evidence-row {
-    grid-template-columns: 1fr;
-  }
-
-  .fso-mission-control-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.fso-mission-control-col {
+.fso-mission-control-stack {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.fso-mission-control-primary .fso-goal-tracker-percent {
+  font-size: 34px;
+}
+
+.fso-mission-control-primary .fso-panel {
+  height: 100%;
+}
+
+.fso-mission-control-primary .fso-panel-body {
+  padding: 12px 14px;
+}
+
+.fso-mission-control-primary .fso-goal-tracker-grid {
+  margin-top: 10px;
+}
+
+.fso-mission-control-primary .fso-goal-tracker-challenge {
+  margin-top: 8px;
+}
+
+.fso-mission-control-exposure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fso-mission-control-caption-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 18px;
+  padding: 0 2px;
 }
 
 .fso-mission-control-caption {
@@ -47,4 +160,39 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--fso-text-muted-2);
+}
+
+.fso-mission-control-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .fso-mission-control-command-row,
+  .fso-mission-control-main-grid,
+  .fso-mission-control-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .fso-mission-control-brief,
+  .fso-mission-control-exposure-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fso-mission-control-brief > div {
+    border-left: 0;
+    border-top: 1px solid var(--fso-line);
+  }
+
+  .fso-mission-control-brief > div:first-child {
+    border-top: 0;
+  }
+
+  .fso-mission-control-judgment .fso-judgment-header {
+    grid-template-columns: 1fr;
+  }
 }
