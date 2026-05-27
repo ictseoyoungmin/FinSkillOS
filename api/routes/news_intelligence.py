@@ -354,6 +354,11 @@ def _ticker_identities(session, tickers: tuple[str, ...]) -> list[NewsTickerIden
 
 
 def _article_vm(article) -> NewsArticleVM:
+    from finskillos.services.news_service import infer_news_signal
+
+    inferred_sentiment, inferred_risk = infer_news_signal(
+        f"{article.title} {article.summary}"
+    )
     return NewsArticleVM(
         id=str(article.id),
         title=article.title,
@@ -368,13 +373,22 @@ def _article_vm(article) -> NewsArticleVM:
                 theme=impact.theme,
                 event_key=impact.event_key,
                 impact_score=impact.impact_score,
-                sentiment_label=impact.sentiment_label,
-                risk_level=impact.risk_level,
+                sentiment_label=_fallback_label(
+                    impact.sentiment_label,
+                    inferred_sentiment,
+                ),
+                risk_level=_fallback_label(impact.risk_level, inferred_risk),
                 is_event_linked=impact.is_event_linked,
             )
             for impact in article.impacts
         ],
     )
+
+
+def _fallback_label(stored: str, inferred: str) -> str:
+    if stored and stored != "UNKNOWN":
+        return stored
+    return inferred if inferred and inferred != "UNKNOWN" else "UNKNOWN"
 
 
 def _dedupe_articles(articles: list[NewsArticleVM]) -> list[NewsArticleVM]:

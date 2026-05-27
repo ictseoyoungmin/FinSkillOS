@@ -232,26 +232,101 @@ _EVENT_RULES: tuple[_KeywordRule, ...] = (
 
 
 _POSITIVE_KEYWORDS = (
+    "accelerates",
+    "approval",
     "beats",
-    "surge",
+    "beat",
+    "contract",
+    "demand growth",
+    "expands",
+    "growth",
+    "launch",
+    "launches",
+    "momentum",
+    "outperform",
+    "partnership",
+    "profit rises",
+    "raises guidance",
+    "raises",
     "rallies",
     "record",
-    "upgrade",
-    "strong",
     "rebound",
+    "shares acquired",
+    "strong",
+    "surge",
     "tops",
+    "upgrade",
 )
 _NEGATIVE_KEYWORDS = (
-    "miss",
+    "antitrust",
+    "bankruptcy",
+    "cut guidance",
+    "cuts",
+    "default",
+    "delay",
     "disappoint",
     "downgrade",
+    "fraud",
+    "fail",
+    "guidance cut",
+    "investigation",
+    "lawsuit",
+    "layoff",
+    "miss",
+    "probe",
+    "recall",
+    "reduced by",
+    "reduced stake",
+    "slump",
+    "struggles",
+    "weak",
     "warn",
     "plunge",
-    "slump",
-    "cuts",
-    "fraud",
-    "lawsuit",
+)
+_GREEN_RISK_KEYWORDS = (
+    "approval",
+    "beats",
+    "beat",
+    "contract",
+    "launch",
+    "partnership",
+    "raises guidance",
+    "record",
+    "strong",
+    "upgrade",
+)
+_YELLOW_RISK_KEYWORDS = (
+    "cautious",
+    "delay",
+    "downgrade",
+    "layoff",
+    "margin pressure",
+    "mixed",
+    "risk",
+    "struggles",
+    "tariff",
+    "uncertain",
+    "volatility",
+    "warn",
+    "weak",
+)
+_ORANGE_RISK_KEYWORDS = (
+    "antitrust",
+    "guidance cut",
     "investigation",
+    "lawsuit",
+    "probe",
+    "recall",
+    "regulatory",
+)
+_RED_RISK_KEYWORDS = (
+    "bankruptcy",
+    "breach",
+    "crash",
+    "default",
+    "fraud",
+    "halt",
+    "plunge",
 )
 
 
@@ -267,12 +342,12 @@ def classify_impacts(text: str) -> tuple[NewsImpactInput, ...]:
         return ()
 
     haystack = text
-    sentiment = _detect_sentiment(haystack)
+    sentiment, risk_level = infer_news_signal(haystack)
 
     impacts: list[NewsImpactInput] = []
     for rule in _TICKER_RULES + _THEME_RULES + _EVENT_RULES:
         if _matches(haystack, rule.keywords):
-            impacts.append(_apply_sentiment(rule.impact, sentiment))
+            impacts.append(_apply_news_signal(rule.impact, sentiment, risk_level))
 
     return tuple(impacts)
 
@@ -305,8 +380,48 @@ def _detect_sentiment(haystack: str) -> str:
     return SENTIMENT_UNKNOWN
 
 
-def _apply_sentiment(impact: NewsImpactInput, sentiment: str) -> NewsImpactInput:
-    if impact.sentiment_label != SENTIMENT_UNKNOWN:
+def infer_news_signal(haystack: str) -> tuple[str, str]:
+    """Return deterministic (sentiment, risk) labels for short news text.
+
+    This is intentionally metadata-only: title + short summary in, small
+    enum labels out. It does not predict price direction or imply action.
+    """
+
+    sentiment = _detect_sentiment(haystack)
+    risk_level = _detect_risk_level(haystack, sentiment=sentiment)
+    return sentiment, risk_level
+
+
+def _detect_risk_level(haystack: str, *, sentiment: str) -> str:
+    lowered = haystack.lower()
+    if any(k in lowered for k in _RED_RISK_KEYWORDS):
+        return RISK_RED
+    if any(k in lowered for k in _ORANGE_RISK_KEYWORDS):
+        return RISK_ORANGE
+    if any(k in lowered for k in _YELLOW_RISK_KEYWORDS):
+        return RISK_YELLOW
+    if any(k in lowered for k in _GREEN_RISK_KEYWORDS):
+        return RISK_GREEN
+    if sentiment == SENTIMENT_NEGATIVE:
+        return RISK_YELLOW
+    if sentiment == SENTIMENT_POSITIVE:
+        return RISK_GREEN
+    if sentiment == SENTIMENT_MIXED:
+        return RISK_YELLOW
+    return RISK_UNKNOWN
+
+
+def _apply_news_signal(
+    impact: NewsImpactInput, sentiment: str, risk_level: str
+) -> NewsImpactInput:
+    sentiment_label = impact.sentiment_label
+    if sentiment_label == SENTIMENT_UNKNOWN and sentiment != SENTIMENT_UNKNOWN:
+        sentiment_label = sentiment
+    resolved_risk = impact.risk_level
+    if resolved_risk == RISK_UNKNOWN and risk_level != RISK_UNKNOWN:
+        resolved_risk = risk_level
+
+    if sentiment_label == impact.sentiment_label and resolved_risk == impact.risk_level:
         return impact
     return NewsImpactInput(
         ticker=impact.ticker,
@@ -314,8 +429,8 @@ def _apply_sentiment(impact: NewsImpactInput, sentiment: str) -> NewsImpactInput
         theme=impact.theme,
         event_key=impact.event_key,
         impact_score=impact.impact_score,
-        sentiment_label=sentiment,
-        risk_level=impact.risk_level,
+        sentiment_label=sentiment_label,
+        risk_level=resolved_risk,
         risk_note=impact.risk_note,
         volatility_note=impact.volatility_note,
         is_event_linked=impact.is_event_linked,
@@ -454,7 +569,11 @@ class NewsService:
         if auto_classify:
             impact_inputs.extend(classify_impacts(f"{title} {summary}"))
         impact_inputs.extend(extra_impacts)
-        normalized = tuple(_normalize_impact_input(i) for i in impact_inputs)
+        sentiment, risk_level = infer_news_signal(f"{title} {summary}")
+        enriched = (
+            _apply_news_signal(i, sentiment, risk_level) for i in impact_inputs
+        )
+        normalized = tuple(_normalize_impact_input(i) for i in enriched)
         normalized = _dedupe_impact_inputs(normalized)
 
         if replace_impacts:

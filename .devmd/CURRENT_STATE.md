@@ -77,6 +77,7 @@ operational protocols.
 37     Portfolio Seed Position Coherence
 38     System Ops DB Audit Table
 39     Mission Control Live UI Layout
+40     News Impact Sentiment / Risk Scoring
 ```
 
 Slice 14 is complete:
@@ -152,6 +153,12 @@ Slice 14 is complete:
 - Mission Control now uses a compact live-operations layout: narrative,
   source/freshness, portfolio totals, guard count, and goal progress are in
   the first scan band; detailed evidence is moved below the mission state.
+- Symbol Lab chart data now revalidates provider rows when stale mock tails
+  are detected, treats `1mo` as monthly candles and `1y` as annual candles,
+  and renders denser timeframe-aware x-axis labels.
+- News ingestion now enriches `news_impacts` with deterministic metadata-only
+  sentiment/risk labels. News Intelligence and Symbol Lab also apply the same
+  read-time fallback for older rows that still contain `UNKNOWN`.
 ```
 
 ## Validation Baseline
@@ -182,14 +189,13 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. News impact sentiment/risk scoring
-   - The RSS provider stores articles and impacts, but many generated impacts
-     still show UNKNOWN sentiment/risk. Improve deterministic scoring and
-     source confidence before adding broader feed coverage.
-
-2. Watchlist-folder driven refresh controls
+1. Watchlist-folder driven refresh controls
    - Let folder organization guide user-facing refresh/filter controls while
      keeping the worker's active subscription universe predictable.
 
-3. Worker status dashboard
+2. Worker status dashboard
    - Summarize worker cycles and protocol freshness using DB audit rows.
+
+3. News source confidence / provider coverage
+   - Add source-quality metadata and coverage grouping once the deterministic
+     scoring baseline is stable.

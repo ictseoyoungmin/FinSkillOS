@@ -36,7 +36,7 @@ from finskillos.guards.base import (
     GuardResult,
     assert_no_forbidden_wording,
 )
-from finskillos.services.news_service import NewsService
+from finskillos.services.news_service import NewsService, infer_news_signal
 from finskillos.ui.view_models.control_room_vm import RegimeSummary, _as_utc
 
 UTC = timezone.utc
@@ -514,14 +514,16 @@ def _build_news_for_ticker(
     rows: list[SymbolNewsVM] = []
     for article, impacts in pairs:
         impact = _pick_ticker_impact(impacts, ticker=ticker)
+        inferred_sentiment, _ = infer_news_signal(f"{article.title} {article.summary}")
+        sentiment_label = impact.sentiment_label if impact is not None else "UNKNOWN"
+        if sentiment_label == "UNKNOWN" and inferred_sentiment != "UNKNOWN":
+            sentiment_label = inferred_sentiment
         rows.append(
             SymbolNewsVM(
                 title=article.title,
                 source=article.source,
                 published_at=_as_utc(article.published_at),
-                sentiment_label=impact.sentiment_label
-                if impact is not None
-                else "UNKNOWN",
+                sentiment_label=sentiment_label,
                 impact_score=impact.impact_score
                 if impact is not None
                 else Decimal("0"),

@@ -45,6 +45,7 @@ from finskillos.services.news_service import (
     NewsImpactInput,
     NewsService,
     classify_impacts,
+    infer_news_signal,
 )
 from finskillos.ui.view_models import (
     NewsIntelligenceViewModel,
@@ -281,7 +282,9 @@ def test_classifier_marks_sector_themes_and_events() -> None:
     assert any(i.sector == "Semiconductors" for i in impacts)
 
     impacts = classify_impacts("SpaceX Starship test launch scheduled")
-    assert any(i.is_event_linked and i.event_key == "SPACE_LAUNCH" for i in impacts)
+    space = [i for i in impacts if i.is_event_linked and i.event_key == "SPACE_LAUNCH"]
+    assert space
+    assert space[0].risk_level == "GREEN"
 
     impacts = classify_impacts("Fed minutes hint at rate hike timing")
     assert any(i.event_key == "FED_DECISION" for i in impacts)
@@ -291,10 +294,36 @@ def test_classifier_sentiment_detection() -> None:
     impacts = classify_impacts("Tesla beats delivery expectations")
     pos = [i for i in impacts if i.ticker == "TSLA"]
     assert pos and pos[0].sentiment_label in {"POSITIVE", "MIXED"}
+    assert pos[0].risk_level == "GREEN"
 
     impacts = classify_impacts("Nvidia misses guidance, warns on data center demand")
     neg = [i for i in impacts if i.ticker == "NVDA"]
     assert neg and neg[0].sentiment_label in {"NEGATIVE", "MIXED"}
+    assert neg[0].risk_level in {"YELLOW", "ORANGE", "RED"}
+
+
+def test_news_signal_marks_material_risk_without_price_prediction() -> None:
+    sentiment, risk = infer_news_signal(
+        "Nvidia faces antitrust probe after guidance cut"
+    )
+    assert sentiment == "NEGATIVE"
+    assert risk == "ORANGE"
+
+
+def test_manual_unknown_impacts_are_enriched_from_article_text(
+    db_session: Session,
+) -> None:
+    service = NewsService(db_session)
+    ingested = _ingest(
+        service,
+        title="Microsoft wins major AI cloud contract",
+        summary="The partnership expands enterprise AI infrastructure demand.",
+        url="https://example.com/msft-contract",
+        extra=(NewsImpactInput(ticker="MSFT", sector="Technology"),),
+    )
+
+    assert ingested.impacts[0].sentiment_label == "POSITIVE"
+    assert ingested.impacts[0].risk_level == "GREEN"
 
 
 # ---------------------------------------------------------------------------

@@ -122,6 +122,14 @@ function isIntraday(timeframe: string): boolean {
   return timeframe === "5m" || timeframe === "15m" || timeframe === "1h";
 }
 
+function sameMonth(a: ReturnType<typeof dateParts>, b: ReturnType<typeof dateParts>) {
+  return a.year === b.year && a.month === b.month;
+}
+
+function sameYear(a: ReturnType<typeof dateParts>, b: ReturnType<typeof dateParts>) {
+  return a.year === b.year;
+}
+
 function tickLabel(iso: string, timeframe: string, previousIso?: string): string {
   const current = dateParts(iso);
   const previous = previousIso ? dateParts(previousIso) : null;
@@ -131,21 +139,23 @@ function tickLabel(iso: string, timeframe: string, previousIso?: string): string
   const yearChanged = !previous || current.year !== previous.year;
 
   if (isIntraday(timeframe)) {
-    return dayChanged
-      ? `${current.month}-${current.day} ${current.clock}`
-      : current.clock;
+    if (yearChanged) return `${current.year}-${current.month}-${current.day}`;
+    if (dayChanged) return `${current.month}-${current.day}`;
+    return current.clock;
   }
   if (timeframe === "1y") {
+    return current.year;
+  }
+  if (timeframe === "1mo") {
     if (yearChanged) return current.year;
-    if (monthChanged) return `${current.month}-${current.day}`;
-    return current.day;
+    return current.month;
   }
   if (timeframe === "1wk") {
     return yearChanged ? current.year : `${current.month}-${current.day}`;
   }
-  return monthChanged
-    ? `${current.year}-${current.month}-${current.day}`
-    : `${current.month}-${current.day}`;
+  if (yearChanged) return `${current.year}-${current.month}`;
+  if (monthChanged) return `${current.month}-${current.day}`;
+  return current.day;
 }
 
 function fullTimestamp(iso: string, timeframe: string): string {
@@ -184,41 +194,79 @@ function timeTickIndexes(
   end: number,
   bars: SymbolRecentBar[],
   timeframe: string,
+  candleStep: number,
 ): number[] {
   const length = end - start;
   if (length <= 0) return [];
-  const maxTicks = isIntraday(timeframe) ? 10 : timeframe === "1y" ? 10 : 8;
-  const ticks = Math.min(maxTicks, length);
-  if (ticks <= 1) return [start];
-  const step = (length - 1) / (ticks - 1);
-  const evenIndexes = Array.from({ length: ticks }, (_, index) =>
-    Math.round(start + step * index),
-  );
-  const boundaryIndexes: number[] = [];
+  const minLabelGap = Math.max(1, Math.ceil(58 / Math.max(1, candleStep)));
+  const maxTicks = Math.max(2, Math.floor(length / minLabelGap) + 1);
+  const boundaryIndexes: number[] = [start];
+  const minorCandidates: number[] = [];
+
   for (let index = start + 1; index < end; index += 1) {
     const previous = dateParts(bars[index - 1]?.barTime ?? "");
     const current = dateParts(bars[index]?.barTime ?? "");
-    if (isIntraday(timeframe) && current.date !== previous.date) {
+    if (isIntraday(timeframe)) {
+      if (current.date !== previous.date) boundaryIndexes.push(index);
+      else minorCandidates.push(index);
+      continue;
+    }
+    if (timeframe === "1mo") {
+      if (!sameYear(current, previous) || !sameMonth(current, previous)) {
+        boundaryIndexes.push(index);
+      }
+      continue;
+    }
+    if (timeframe === "1y") {
+      if (!sameYear(current, previous)) boundaryIndexes.push(index);
+      continue;
+    }
+    if (!sameYear(current, previous) || !sameMonth(current, previous)) {
       boundaryIndexes.push(index);
-    } else if (
-      !isIntraday(timeframe) &&
-      (current.year !== previous.year || current.month !== previous.month)
-    ) {
-      boundaryIndexes.push(index);
+    } else {
+      minorCandidates.push(index);
     }
   }
-  const merged = Array.from(new Set([...evenIndexes, ...boundaryIndexes])).sort(
-    (a, b) => a - b,
-  );
-  if (merged.length <= maxTicks + 2) return merged;
-  const required = new Set([start, end - 1, ...boundaryIndexes]);
-  const optional = merged.filter((index) => !required.has(index));
-  const keepEvery = Math.ceil(merged.length / maxTicks);
-  return merged.filter(
-    (index, position) =>
-      required.has(index) ||
-      (optional.includes(index) && position % keepEvery === 0),
-  );
+
+  const preferred =
+    timeframe === "1mo" || timeframe === "1y"
+      ? boundaryIndexes
+      : [...boundaryIndexes, ...sampleEvenly(minorCandidates, maxTicks)];
+  const merged = Array.from(new Set([...preferred, end - 1]))
+    .filter((index) => index >= start && index < end)
+    .sort((a, b) => a - b);
+  return enforceTickSpacing(merged, minLabelGap, new Set([start, end - 1]));
+}
+
+function sampleEvenly(indexes: number[], maxCount: number): number[] {
+  if (indexes.length <= maxCount) return indexes;
+  if (maxCount <= 0) return [];
+  const step = indexes.length / maxCount;
+  return Array.from({ length: maxCount }, (_, index) => {
+    return indexes[Math.min(indexes.length - 1, Math.floor(index * step))];
+  });
+}
+
+function enforceTickSpacing(
+  indexes: number[],
+  minGap: number,
+  required: Set<number>,
+): number[] {
+  const kept: number[] = [];
+  for (const index of indexes) {
+    const previous = kept[kept.length - 1];
+    if (
+      previous === undefined ||
+      index - previous >= minGap ||
+      required.has(index)
+    ) {
+      kept.push(index);
+    }
+  }
+  return kept.filter((index, position) => {
+    const next = kept[position + 1];
+    return next === undefined || next - index >= minGap || required.has(index);
+  });
 }
 
 function formatVolume(value: Numeric | null | undefined): string {
@@ -372,6 +420,7 @@ export function SymbolCandlestickChart({
     visibleEnd,
     chronological,
     selectedTimeframe,
+    candleStep,
   ).map((index, tickIndex, indexes) => ({
     index,
     label: tickLabel(
