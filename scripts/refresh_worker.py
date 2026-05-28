@@ -42,6 +42,14 @@ logger = logging.getLogger("finskillos.scripts.refresh_worker")
 UTC = timezone.utc
 
 
+class WorkerCycleFailed(RuntimeError):
+    """Raised after a failed worker cycle has been recorded."""
+
+    def __init__(self, summary: dict[str, Any]) -> None:
+        super().__init__("refresh worker cycle failed")
+        self.summary = summary
+
+
 @dataclass(frozen=True)
 class WorkerConfig:
     interval_seconds: int
@@ -156,97 +164,101 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
         "indicators": {"enabled": config.indicator_enabled, "status": "SKIPPED"},
     }
 
-    with session_scope() as session:
-        market_policy = build_watchlist_refresh_policy(
-            session, base_tickers=config.market_tickers
-        )
-        indicator_policy = build_watchlist_refresh_policy(
-            session, base_tickers=config.indicator_tickers
-        )
-        market_tickers = market_policy.tickers
-        indicator_tickers = indicator_policy.tickers
-        news_watchlist_policy = build_watchlist_refresh_policy(session)
-        news_policy = build_news_feed_policy(
-            subscribed_tickers=news_watchlist_policy.tickers
-        )
-        config = _with_news_policy(config, news_policy)
-        if config.market_enabled:
-            adapter = _build_market_adapter(config.market_adapter)
-            market_service = MarketDataService(
-                session, adapter=adapter, universe=market_tickers
+    try:
+        with session_scope() as session:
+            market_policy = build_watchlist_refresh_policy(
+                session, base_tickers=config.market_tickers
             )
-            report = market_service.refresh_bars(
-                market_tickers,
-                timeframe=config.timeframe,
-                end=datetime.now(tz=UTC),
+            indicator_policy = build_watchlist_refresh_policy(
+                session, base_tickers=config.indicator_tickers
             )
-            summary["market"] = {
-                "enabled": True,
-                "status": "OK" if report.succeeded else "NOOP",
-                "adapter": config.market_adapter,
-                "tickers": len(report.results),
-                "succeeded": len(report.succeeded),
-                "failed": len(report.failed),
-                "barsWritten": report.total_bars_written,
-                "scope": market_policy.scope,
-                "folders": market_policy.folder_names,
-            }
-
-        if config.news_enabled:
-            if not config.news_policy.feeds:
-                summary["news"] = {
+            market_tickers = market_policy.tickers
+            indicator_tickers = indicator_policy.tickers
+            news_watchlist_policy = build_watchlist_refresh_policy(session)
+            news_policy = build_news_feed_policy(
+                subscribed_tickers=news_watchlist_policy.tickers
+            )
+            config = _with_news_policy(config, news_policy)
+            if config.market_enabled:
+                adapter = _build_market_adapter(config.market_adapter)
+                market_service = MarketDataService(
+                    session, adapter=adapter, universe=market_tickers
+                )
+                report = market_service.refresh_bars(
+                    market_tickers,
+                    timeframe=config.timeframe,
+                    end=datetime.now(tz=UTC),
+                )
+                summary["market"] = {
                     "enabled": True,
-                    "status": "NOOP",
-                    "adapter": config.news_adapter,
-                    "feeds": 0,
-                    "tickers": 0,
-                    "generated": config.news_policy.generated,
-                    "articlesIngested": 0,
-                    "scope": news_watchlist_policy.scope,
-                    "folders": news_watchlist_policy.folder_names,
-                }
-            else:
-                from finskillos.services.news_service import NewsService
-
-                adapter = _build_news_adapter(config)
-                articles = tuple(adapter.fetch_latest())
-                news_service = NewsService(session)
-                for article in articles:
-                    news_service.ingest_article(article)
-                summary["news"] = {
-                    "enabled": True,
-                    "status": "OK" if articles else "NOOP",
-                    "adapter": config.news_adapter,
-                    "feeds": len(config.news_policy.feeds),
-                    "tickers": len(config.news_policy.tickers),
-                    "generated": config.news_policy.generated,
-                    "articlesIngested": len(articles),
-                    "scope": news_watchlist_policy.scope,
-                    "folders": news_watchlist_policy.folder_names,
+                    "status": "OK" if report.succeeded else "NOOP",
+                    "adapter": config.market_adapter,
+                    "tickers": len(report.results),
+                    "succeeded": len(report.succeeded),
+                    "failed": len(report.failed),
+                    "barsWritten": report.total_bars_written,
+                    "scope": market_policy.scope,
+                    "folders": market_policy.folder_names,
                 }
 
-        if config.indicator_enabled:
-            signal_service = SignalService(session)
-            results = signal_service.compute_for_universe(
-                indicator_tickers,
-                timeframe=config.timeframe,
-                persist_history=config.persist_indicator_history,
-            )
-            succeeded = [item for item in results if item.ok]
-            failed = [item for item in results if not item.ok]
-            summary["indicators"] = {
-                "enabled": True,
-                "status": "OK" if succeeded else "NOOP",
-                "tickers": len(results),
-                "succeeded": len(succeeded),
-                "failed": len(failed),
-                "snapshotsWritten": sum(item.snapshots_written for item in results),
-                "scope": indicator_policy.scope,
-                "folders": indicator_policy.folder_names,
-            }
+            if config.news_enabled:
+                if not config.news_policy.feeds:
+                    summary["news"] = {
+                        "enabled": True,
+                        "status": "NOOP",
+                        "adapter": config.news_adapter,
+                        "feeds": 0,
+                        "tickers": 0,
+                        "generated": config.news_policy.generated,
+                        "articlesIngested": 0,
+                        "scope": news_watchlist_policy.scope,
+                        "folders": news_watchlist_policy.folder_names,
+                    }
+                else:
+                    from finskillos.services.news_service import NewsService
 
-        summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
-        _persist_worker_cycle(session, summary)
+                    adapter = _build_news_adapter(config)
+                    articles = tuple(adapter.fetch_latest())
+                    news_service = NewsService(session)
+                    for article in articles:
+                        news_service.ingest_article(article)
+                    summary["news"] = {
+                        "enabled": True,
+                        "status": "OK" if articles else "NOOP",
+                        "adapter": config.news_adapter,
+                        "feeds": len(config.news_policy.feeds),
+                        "tickers": len(config.news_policy.tickers),
+                        "generated": config.news_policy.generated,
+                        "articlesIngested": len(articles),
+                        "scope": news_watchlist_policy.scope,
+                        "folders": news_watchlist_policy.folder_names,
+                    }
+
+            if config.indicator_enabled:
+                signal_service = SignalService(session)
+                results = signal_service.compute_for_universe(
+                    indicator_tickers,
+                    timeframe=config.timeframe,
+                    persist_history=config.persist_indicator_history,
+                )
+                succeeded = [item for item in results if item.ok]
+                failed = [item for item in results if not item.ok]
+                summary["indicators"] = {
+                    "enabled": True,
+                    "status": "OK" if succeeded else "NOOP",
+                    "tickers": len(results),
+                    "succeeded": len(succeeded),
+                    "failed": len(failed),
+                    "snapshotsWritten": sum(item.snapshots_written for item in results),
+                    "scope": indicator_policy.scope,
+                    "folders": indicator_policy.folder_names,
+                }
+
+            summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
+            _persist_worker_cycle(session, summary)
+    except Exception as exc:
+        _record_failed_worker_cycle(summary, exc)
+        raise WorkerCycleFailed(summary) from exc
     return summary
 
 
@@ -255,7 +267,7 @@ def _persist_worker_cycle(session, summary: dict[str, Any]) -> None:
     news = _section_summary(summary, "news")
     indicators = _section_summary(summary, "indicators")
     WorkerCycleRunRepository(session).create(
-        status=_cycle_status((market, news, indicators)),
+        status=str(summary.get("status") or _cycle_status((market, news, indicators))),
         started_at=datetime.fromisoformat(str(summary["startedAt"])),
         finished_at=datetime.fromisoformat(str(summary["finishedAt"])),
         timeframe=str(summary.get("timeframe") or DEFAULT_TIMEFRAME),
@@ -267,6 +279,20 @@ def _persist_worker_cycle(session, summary: dict[str, Any]) -> None:
         indicator_scope=str(indicators.get("scope") or "unknown"),
         summary=summary,
     )
+
+
+def _record_failed_worker_cycle(summary: dict[str, Any], exc: Exception) -> None:
+    summary["status"] = "ERROR"
+    summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
+    summary["error"] = {
+        "type": exc.__class__.__name__,
+        "message": str(exc),
+    }
+    try:
+        with session_scope() as session:
+            _persist_worker_cycle(session, summary)
+    except Exception:
+        logger.exception("Failed to persist refresh worker error summary")
 
 
 def _section_summary(summary: dict[str, Any], key: str) -> dict[str, Any]:

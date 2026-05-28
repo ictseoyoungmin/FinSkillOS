@@ -59,6 +59,12 @@
 .fso-ticker-change.fso-ticker-flat { color: var(--fso-text-muted-2); }
 
 @media (max-width: 980px) {
+  .fso-ticker-strip,
+  .fso-ticker-scroll {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
   .fso-ticker-scroll {
     gap: 14px;
     padding: 0 48px;

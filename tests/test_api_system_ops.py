@@ -272,6 +272,49 @@ def test_system_ops_get_exposes_worker_cycle_status(monkeypatch, tmp_path) -> No
         engine.dispose()
 
 
+def test_system_ops_get_exposes_worker_cycle_error_detail(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime(2026, 5, 27, 12, 0, tzinfo=timezone.utc)
+    with factory() as session:
+        WorkerCycleRunRepository(session).create(
+            status="ERROR",
+            started_at=now,
+            finished_at=now,
+            timeframe="1d",
+            market_status="SKIPPED",
+            news_status="SKIPPED",
+            indicator_status="SKIPPED",
+            market_scope="unknown",
+            news_scope="unknown",
+            indicator_scope="unknown",
+            summary={
+                "startedAt": now.isoformat(),
+                "finishedAt": now.isoformat(),
+                "status": "ERROR",
+                "error": {"type": "ValueError", "message": "bad adapter"},
+            },
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops").json()
+
+        assert body["workerStatus"]["status"] == "ERROR"
+        assert "error=ValueError" in body["workerStatus"]["latestDetail"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_refresh_market_data_protocol_writes_mock_bars(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"

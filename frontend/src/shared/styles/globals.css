@@ -161,6 +161,16 @@ button {
   }
 }
 
+@media (max-width: 980px) {
+  .fso-v42-topline {
+    grid-template-columns: 1fr;
+  }
+
+  .fso-v42-topline > :first-child {
+    grid-column: auto;
+  }
+}
+
 @media (max-width: 760px) {
   .fso-v42-topline {
     grid-template-columns: 1fr;

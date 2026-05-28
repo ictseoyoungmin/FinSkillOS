@@ -50,7 +50,6 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await page.goto("/system-ops");
     await expect(page.getByTestId("system-ops-page")).toBeVisible();
     await expect(page.getByTestId("system-ops-data-sources")).toBeVisible();
-    await expect(page.getByTestId("worker-status-dashboard")).toBeVisible();
     await expect(page.getByTestId("system-ops-protocols")).toBeVisible();
     await expect(
       page.getByTestId("system-ops-protocol-seed-sample-account"),
@@ -67,6 +66,9 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await expect(
       page.getByTestId("system-ops-safety-caption"),
     ).toContainText("Operational protocols only");
+
+    await page.getByTestId("system-ops-tab-worker").click();
+    await expect(page.getByTestId("worker-status-dashboard")).toBeVisible();
   });
 
   test("System Ops confirm dialog gates the protocol run", async ({ page }) => {

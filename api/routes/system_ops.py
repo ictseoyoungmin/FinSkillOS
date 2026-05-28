@@ -405,12 +405,18 @@ def _worker_status_value(value: str) -> str:
 
 
 def _worker_cycle_detail(row) -> str:
-    return (
+    detail = (
         f"market={row.market_status}/{row.market_scope},"
         f"news={row.news_status}/{row.news_scope},"
         f"indicators={row.indicator_status}/{row.indicator_scope},"
         f"timeframe={row.timeframe}"
     )
+    if row.status == "ERROR" and isinstance(row.summary, dict):
+        error = row.summary.get("error")
+        if isinstance(error, dict):
+            error_type = str(error.get("type") or "WorkerError")
+            detail = f"{detail},error={error_type}"
+    return detail
 
 
 def _invoke_seed_sample_account(session) -> tuple[str, str, str]:

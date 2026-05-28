@@ -20,13 +20,13 @@ function ThemeButton({ theme, cycleTheme }: ThemeContextValue) {
   return (
     <button
       type="button"
-      className="fso-tray-btn"
+      className="fso-tray-icon-btn"
       onClick={cycleTheme}
       data-testid="theme-toggle"
       aria-label={`Switch theme (current: ${theme})`}
+      title={`Theme · ${theme}`}
     >
-      <span className="fso-tray-btn-glyph" aria-hidden>◐</span>
-      <span className="fso-tray-btn-label">Theme · {theme}</span>
+      <span aria-hidden>◐</span>
     </button>
   );
 }
@@ -51,24 +51,40 @@ export function OsTopTray({ guardCount, onOpenPalette }: OsTopTrayProps) {
         <span className="fso-tray-brand-version">v4.1</span>
       </div>
 
-      <nav className="fso-tray-nav" data-testid="os-nav" aria-label="Product modules">
-        {OS_NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.key}
-            to={item.path}
-            end={item.path === "/"}
-            data-page={item.key}
-            data-testid={`os-nav-${item.key}`}
-            className={({ isActive }) =>
-              `fso-tray-nav-btn ${isActive ? "active" : ""}`.trim()
-            }
-            title={item.description}
+      <div className="fso-tray-nav-cluster">
+        <nav className="fso-tray-nav" data-testid="os-nav" aria-label="Product modules">
+          {OS_NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.key}
+              to={item.path}
+              end={item.path === "/"}
+              data-page={item.key}
+              data-testid={`os-nav-${item.key}`}
+              className={({ isActive }) =>
+                `fso-tray-nav-btn ${isActive ? "active" : ""}`.trim()
+              }
+              title={item.description}
+            >
+              <span className="fso-tray-nav-dot" aria-hidden />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="fso-tray-command-slot">
+          <button
+            type="button"
+            className="fso-tray-icon-btn"
+            onClick={onOpenPalette}
+            data-testid="open-command-palette"
+            aria-label="Open command drawer (Ctrl + K)"
+            title="Command · Ctrl or Command K"
           >
-            <span className="fso-tray-nav-dot" aria-hidden />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
+            <span aria-hidden>⌘</span>
+          </button>
+          <span className="fso-tray-command-label" aria-hidden>
+          </span>
+        </div>
+      </div>
 
       <div className="fso-tray-right" data-testid="os-status-pills">
         <StatusPill label="DB · Live" tone="success" testId="status-db" />
@@ -78,16 +94,6 @@ export function OsTopTray({ guardCount, onOpenPalette }: OsTopTrayProps) {
           tone={guardCount > 0 ? "warning" : "neutral"}
           testId="status-guards"
         />
-        <button
-          type="button"
-          className="fso-tray-btn"
-          onClick={onOpenPalette}
-          data-testid="open-command-palette"
-          aria-label="Open command palette (Ctrl + K)"
-        >
-          <span className="fso-tray-btn-glyph" aria-hidden>⌘</span>
-          <span className="fso-tray-btn-label">Command · ⌘K</span>
-        </button>
         <ThemeButton {...themeCtx} />
         <span className="fso-tray-clock" data-testid="clock">{clock}</span>
       </div>

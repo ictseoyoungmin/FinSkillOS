@@ -248,3 +248,46 @@ def test_refresh_worker_once_ingests_configured_news_feed(tmp_path) -> None:
     finally:
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_refresh_worker_once_records_error_cycle_on_failure(tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    try:
+        result = subprocess.run(
+            [
+                "python3",
+                str(ROOT / "scripts" / "refresh_worker.py"),
+                "--once",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "DATABASE_URL": database_url,
+                "FINSKILLOS_SKIP_DOTENV": "1",
+                "FINSKILLOS_MARKET_REFRESH_ADAPTER": "unsupported",
+                "FINSKILLOS_WORKER_MARKET_ENABLED": "1",
+                "FINSKILLOS_WORKER_NEWS_ENABLED": "0",
+                "FINSKILLOS_WORKER_INDICATOR_ENABLED": "0",
+            },
+        )
+
+        assert result.returncode == 1
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            cycles = WorkerCycleRunRepository(session).list_recent()
+            assert len(cycles) == 1
+            assert cycles[0].status == "ERROR"
+            assert cycles[0].market_status == "SKIPPED"
+            assert cycles[0].summary is not None
+            assert cycles[0].summary["error"]["type"] == "ValueError"
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()

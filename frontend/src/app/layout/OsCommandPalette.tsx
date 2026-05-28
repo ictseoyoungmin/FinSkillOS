@@ -54,7 +54,7 @@ export function OsCommandPalette({ open, onClose }: OsCommandPaletteProps) {
       data-testid="command-palette"
       role="dialog"
       aria-modal="true"
-      aria-label="FinSkillOS command palette"
+      aria-label="FinSkillOS command drawer"
       onClick={onClose}
     >
       <div
@@ -82,9 +82,9 @@ export function OsCommandPalette({ open, onClose }: OsCommandPaletteProps) {
             type="button"
             className="fso-command-close"
             onClick={onClose}
-            aria-label="Close palette"
+            aria-label="Close command drawer"
           >
-            ESC
+            <span aria-hidden>×</span>
           </button>
         </div>
 
