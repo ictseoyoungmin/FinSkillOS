@@ -5,6 +5,7 @@ import { GuardResultCard } from "@/features/risk-guards/components/GuardResultCa
 import { RiskProtocolPanel } from "@/features/risk-guards/components/RiskProtocolPanel";
 import { riskFirewallFixture } from "@/mocks/fixtures/riskFirewall.fixture";
 import {
+  Badge,
   ConflictsPanel,
   DriversPanel,
   EmptyState,
@@ -14,6 +15,12 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui/Badge";
+import type {
+  GuardStatus,
+  RiskFirewallData,
+  RiskLevel,
+} from "@/features/risk-guards/types";
 import "./risk-firewall.css";
 
 export function RiskFirewallPage() {
@@ -60,6 +67,7 @@ export function RiskFirewallPage() {
           }))}
         />
       </div>
+      <RiskFirewallDataStateBand payload={payload} />
       <div className="fso-risk-firewall-grid">
         <div data-testid="risk-firewall-guard-results">
           <GuardResultCard guards={payload.guards} />
@@ -88,6 +96,91 @@ export function RiskFirewallPage() {
         }))}
       />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+    </div>
+  );
+}
+
+function RiskFirewallDataStateBand({ payload }: { payload: RiskFirewallData }) {
+  const state = payload.dataState;
+  const sourceLabel = state.evaluationSource === "live" ? "LIVE" : "FIXTURE";
+  const sourceTone: BadgeTone =
+    state.evaluationSource === "live" ? "success" : "warning";
+  const persistedLabel = state.persistedAlerts ? "PERSISTED" : "READ ONLY";
+
+  return (
+    <div
+      className="fso-risk-firewall-state-band"
+      data-testid="risk-firewall-data-state"
+    >
+      <RiskFirewallStateItem
+        label="Evaluation"
+        value={sourceLabel}
+        detail={state.sourceNote}
+        tone={sourceTone}
+      />
+      <RiskFirewallStateItem
+        label="Risk state"
+        value={state.evaluationStatus}
+        detail={`${state.highestRiskLevel} highest risk · ${state.flaggedGuardCount} flagged`}
+        tone={guardStatusTone(state.evaluationStatus)}
+      />
+      <RiskFirewallStateItem
+        label="Guard ladder"
+        value={`${state.guardCount}`}
+        detail={`${state.passCount} pass · ${state.alertCount} active alerts`}
+        tone={riskLevelTone(state.highestRiskLevel)}
+      />
+      <RiskFirewallStateItem
+        label="Alert writes"
+        value={persistedLabel}
+        detail={state.reviewNote}
+        tone={state.persistedAlerts ? "warning" : "info"}
+      />
+    </div>
+  );
+}
+
+function guardStatusTone(status: GuardStatus): BadgeTone {
+  if (status === "PASS" || status === "INFO") {
+    return "success";
+  }
+  if (status === "WARN") {
+    return "warning";
+  }
+  return "danger";
+}
+
+function riskLevelTone(level: RiskLevel): BadgeTone {
+  if (level === "GREEN") {
+    return "success";
+  }
+  if (level === "YELLOW" || level === "ORANGE") {
+    return "warning";
+  }
+  if (level === "RED") {
+    return "danger";
+  }
+  return "neutral";
+}
+
+interface RiskFirewallStateItemProps {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}
+
+function RiskFirewallStateItem({
+  label,
+  value,
+  detail,
+  tone,
+}: RiskFirewallStateItemProps) {
+  return (
+    <div className="fso-risk-firewall-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }

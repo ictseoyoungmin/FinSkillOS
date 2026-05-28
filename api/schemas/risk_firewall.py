@@ -49,9 +49,25 @@ class RiskProtocolEntry(CamelModel):
     description: str
 
 
+class RiskFirewallDataState(CamelModel):
+    """Compact source/evaluation state for Risk Firewall."""
+
+    evaluation_source: Literal["fixture", "live"] = "fixture"
+    evaluation_status: Literal["PASS", "WARN", "FAIL", "BLOCKED", "INFO"]
+    highest_risk_level: Literal["GREEN", "YELLOW", "ORANGE", "RED", "UNKNOWN"]
+    guard_count: int = 0
+    flagged_guard_count: int = 0
+    pass_count: int = 0
+    alert_count: int = 0
+    persisted_alerts: bool = False
+    source_note: str
+    review_note: str
+
+
 class RiskFirewallResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    data_state: RiskFirewallDataState
     judgment: JudgmentHeader
     drivers: list[EvidenceDriver]
     conflicts: list[EvidenceConflict]
@@ -69,6 +85,7 @@ class RiskFirewallResponse(CamelModel):
 __all__ = [
     "ActiveAlertItem",
     "AlertSeverity",
+    "RiskFirewallDataState",
     "RiskFirewallResponse",
     "RiskProtocolEntry",
     "RiskProtocolTone",

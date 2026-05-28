@@ -39,9 +39,23 @@ export interface RiskFirewallSystemStatus {
   guardCount: number;
 }
 
+export interface RiskFirewallDataState {
+  evaluationSource: "fixture" | "live";
+  evaluationStatus: GuardStatus;
+  highestRiskLevel: RiskLevel;
+  guardCount: number;
+  flaggedGuardCount: number;
+  passCount: number;
+  alertCount: number;
+  persistedAlerts: boolean;
+  sourceNote: string;
+  reviewNote: string;
+}
+
 export interface RiskFirewallData {
   generatedAt: string;
   systemStatus: RiskFirewallSystemStatus;
+  dataState: RiskFirewallDataState;
   judgment: JudgmentHeaderData;
   drivers: EvidenceDriverData[];
   conflicts: EvidenceConflictData[];

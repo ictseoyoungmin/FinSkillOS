@@ -97,6 +97,7 @@ operational protocols.
 57     Mission Control Evidence Density
 58     Catalyst Watch Source Date Confidence
 59     Market Kernel Data State Hardening
+60     Risk Firewall Guard Evidence Density
 ```
 
 Slice 14 is complete:
@@ -224,6 +225,9 @@ Slice 14 is complete:
 - Market Kernel now exposes a `dataState` API contract and renders a compact
   source/chart/indicator/event state band, aligned with Symbol Lab's
   live/fixture/missing-data language.
+- Risk Firewall now exposes a `dataState` API contract and renders a compact
+  evaluation/risk/guard/alert-write state band. Live active-alert rows now
+  serialize through the canonical camelCase schema.
 ```
 
 ## Validation Baseline
@@ -254,15 +258,16 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Risk Firewall guard evidence density
-   - Recheck guard result cards and active alert rows for live/fixture state,
-     repeated wording, and compact review flow.
-
-2. Catalyst Watch DB read-model promotion
+1. Catalyst Watch DB read-model promotion
    - Promote `/api/event-radar` from fixture-first shell to a live DB-backed
      event read model when stored event rows are available.
 
-3. Analysis Workspace state hardening
+2. Analysis Workspace state hardening
    - Align index lab, strongest/weakest panels, and regime summary with the
      same source/data-availability language now used across Market Kernel and
      Symbol Lab.
+
+3. Control Room state-band coherence
+   - Recheck the overview grid after individual tabs gained explicit
+     `dataState` contracts, so summary cards do not imply fixture/live states
+     that differ from the underlying tabs.

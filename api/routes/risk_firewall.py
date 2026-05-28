@@ -17,7 +17,11 @@ from api.fixtures import risk_firewall_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import GuardSummaryVM
-from api.schemas.risk_firewall import RiskFirewallResponse
+from api.schemas.risk_firewall import (
+    ActiveAlertItem,
+    RiskFirewallDataState,
+    RiskFirewallResponse,
+)
 from finskillos.db.repositories import AccountRepository
 from finskillos.guards import (
     STATUS_BLOCKED,
@@ -75,6 +79,18 @@ def _live_response(report) -> RiskFirewallResponse:
         mode="READ_MODE",
         guard_count=guard_count,
     )
+    payload.data_state = RiskFirewallDataState(
+        evaluation_source="live",
+        evaluation_status=report.overall_status,
+        highest_risk_level=report.overall_risk_level,
+        guard_count=len(report.results),
+        flagged_guard_count=guard_count,
+        pass_count=sum(1 for result in report.results if result.status == "PASS"),
+        alert_count=guard_count,
+        persisted_alerts=False,
+        source_note="Evaluated from the local DB snapshot.",
+        review_note="GET evaluation is read-only and does not persist alert rows.",
+    )
     payload.judgment = judgment(
         "RISK PERMISSION JUDGMENT",
         report.overall_risk_level.title(),
@@ -128,13 +144,13 @@ def _live_response(report) -> RiskFirewallResponse:
         for result in report.results
     ]
     payload.active_alerts = [
-        {
-            "alert_date": report.generated_at.date().isoformat(),
-            "severity": risk_level_to_severity(result.risk_level),
-            "guard_name": result.guard_name,
-            "title": result.title,
-            "message": result.message,
-        }
+        ActiveAlertItem(
+            alert_date=report.generated_at.date().isoformat(),
+            severity=risk_level_to_severity(result.risk_level),
+            guard_name=result.guard_name,
+            title=result.title,
+            message=result.message,
+        )
         for result in report.results
         if result.status in {STATUS_WARN, STATUS_FAIL, STATUS_BLOCKED}
     ]

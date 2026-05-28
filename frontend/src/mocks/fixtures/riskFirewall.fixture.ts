@@ -9,6 +9,18 @@ export const riskFirewallFixture: RiskFirewallData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 3 },
+  dataState: {
+    evaluationSource: "fixture",
+    evaluationStatus: "FAIL",
+    highestRiskLevel: "RED",
+    guardCount: 8,
+    flaggedGuardCount: 4,
+    passCount: 2,
+    alertCount: 3,
+    persistedAlerts: false,
+    sourceNote: "Deterministic guard ladder fixture.",
+    reviewNote: "Fixture alerts are read-only examples, not persisted runs.",
+  },
   judgment: {
     eyebrow: "RISK PERMISSION JUDGMENT",
     title: "Limited",

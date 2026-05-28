@@ -37,6 +37,7 @@ def test_risk_firewall_returns_full_payload() -> None:
     expected = {
         "generatedAt",
         "systemStatus",
+        "dataState",
         "overallStatus",
         "overallRiskLevel",
         "guards",
@@ -46,8 +47,14 @@ def test_risk_firewall_returns_full_payload() -> None:
         "source",
     }
     assert expected.issubset(body.keys())
-    assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    if body["source"] == "fixture":
+        assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    else:
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
     assert body["overallStatus"] in {"PASS", "WARN", "FAIL", "BLOCKED", "INFO"}
+    assert body["dataState"]["evaluationStatus"] == body["overallStatus"]
+    assert body["dataState"]["highestRiskLevel"] == body["overallRiskLevel"]
+    assert body["dataState"]["guardCount"] == len(body["guards"])
 
 
 def test_risk_firewall_guards_include_all_camelcase_fields() -> None:
@@ -119,6 +126,8 @@ def test_risk_firewall_can_return_live_db_read_model(monkeypatch, tmp_path) -> N
         assert body["systemStatus"]["mode"] == "READ_MODE"
         assert body["generatedAt"] != FIXTURE_TIMESTAMP
         assert len(body["guards"]) >= 6
+        assert body["dataState"]["evaluationSource"] == "live"
+        assert body["dataState"]["persistedAlerts"] is False
     finally:
         reset_settings_cache()
         engine.dispose()

@@ -7,6 +7,10 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
   }) => {
     await page.goto("/risk-firewall");
     await expect(page.getByTestId("risk-firewall-page")).toBeVisible();
+    await expect(page.getByTestId("risk-firewall-data-state")).toBeVisible();
+    await expect(page.getByTestId("risk-firewall-data-state")).toContainText(
+      /Evaluation/i,
+    );
     await expect(page.getByTestId("risk-firewall-guard-results")).toBeVisible();
     await expect(
       page.getByTestId("risk-firewall-active-alerts"),
