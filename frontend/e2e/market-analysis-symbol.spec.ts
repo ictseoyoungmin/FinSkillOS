@@ -45,20 +45,20 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     ).toContainText("Stored data only");
   });
 
-  test("Symbol Lab default ticker shows position context for TSLA", async ({
+  test("Symbol Lab default ticker shows data state and position panel", async ({
     page,
   }) => {
     await page.goto("/symbol-lab");
     await expect(page.getByTestId("symbol-lab-page")).toBeVisible();
     await expect(page.getByTestId("ticker-search")).toBeVisible();
-    await expect(page.locator(".fso-ticker-search-option")).toHaveCount(5);
+    await expect(page.locator(".fso-ticker-search-option").first()).toBeVisible();
+    await expect(page.getByTestId("symbol-data-state")).toBeVisible();
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
     await expect(page.getByTestId("symbol-technical-snapshot")).toBeVisible();
     await expect(page.getByTestId("symbol-recent-bars")).toBeVisible();
     const position = page.getByTestId("symbol-position-context");
     await expect(position).toBeVisible();
-    // TSLA is held in the fixture set — its position card must show
-    // sector + theme metadata rather than the empty-state copy.
-    await expect(position).toContainText("Consumer Discretionary");
+    await expect(position).toContainText("Position Context");
     await expect(
       page.getByTestId("symbol-watchpoints-safety-caption"),
     ).toContainText("Stored data only");
@@ -73,15 +73,15 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(position).toContainText("No current holding");
   });
 
-  test("Symbol Lab shortcut buttons search stored fixture symbols", async ({
+  test("Symbol Lab search accepts stored universe symbols", async ({
     page,
   }) => {
     await page.goto("/symbol-lab");
-    await page
-      .locator(".fso-ticker-search-option", { hasText: "SMH" })
-      .click();
+    await page.locator("#ticker-search-input").fill("smh");
+    await page.getByTestId("ticker-search-submit").click();
     await expect(page).toHaveURL(/ticker=SMH/);
     await expect(page.getByTestId("judgment-header")).toContainText("SMH");
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
   });
 
   test("Symbol Lab accepts arbitrary ticker input", async ({ page }) => {
@@ -90,9 +90,7 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await page.getByTestId("ticker-search-submit").click();
     await expect(page).toHaveURL(/ticker=ADBE/);
     await expect(page.getByTestId("judgment-header")).toContainText("ADBE");
-    await expect(page.getByTestId("symbol-lab-setup-hint")).toContainText(
-      "ADBE",
-    );
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
   });
 
   test("Symbol Lab macro proxies remain searchable through free text", async ({
@@ -105,9 +103,8 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await page.locator("#ticker-search-input").fill("us10y");
     await page.getByTestId("ticker-search-submit").click();
     await expect(page).toHaveURL(/ticker=US10Y/);
-    await expect(page.getByTestId("symbol-lab-setup-hint")).toContainText(
-      "US10Y",
-    );
+    await expect(page.getByTestId("judgment-header")).toContainText("US10Y");
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
   });
 
   test("Slice 13.7 routes never expose forbidden execution captions", async ({

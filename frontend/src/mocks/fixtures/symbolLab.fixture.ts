@@ -60,6 +60,15 @@ const TSLA: SymbolLabData = {
     updateUniverseMember: true,
     lastAction: "subscribed",
   },
+  dataState: {
+    chartStatus: "OK",
+    chartEvidence: "stored",
+    barCount: 12,
+    indicatorStatus: "AVAILABLE",
+    logoSource: "local_fallback",
+    subscriptionStatus: "subscribed",
+    providerNote: null,
+  },
   header: {
     ticker: "TSLA",
     timeframe: "1d",
@@ -172,6 +181,10 @@ export function symbolLabFixture(
       canSubscribe: true,
       updateUniverseMember: false,
       lastAction: "none",
+    },
+    dataState: {
+      ...TSLA.dataState,
+      subscriptionStatus: "watch_only",
     },
     header: { ...TSLA.header, ticker: t, timeframe },
     position: null,

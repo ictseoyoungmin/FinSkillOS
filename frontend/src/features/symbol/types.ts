@@ -84,6 +84,16 @@ export interface SymbolSubscriptionState {
   lastAction: "none" | "subscribed" | "unsubscribed";
 }
 
+export interface SymbolLabDataState {
+  chartStatus: DataStatus;
+  chartEvidence: "stored" | "provider_preview" | "missing";
+  barCount: number;
+  indicatorStatus: "AVAILABLE" | "PARTIAL" | "MISSING";
+  logoSource: SymbolIdentity["logoSource"];
+  subscriptionStatus: "subscribed" | "watch_only" | "unavailable";
+  providerNote: string | null;
+}
+
 export interface SymbolSubscriptionFolderMember {
   ticker: string;
   name: string | null;
@@ -118,6 +128,7 @@ export interface SymbolLabData {
   symbolUniverse: UniverseTicker[];
   identity: SymbolIdentity;
   subscription: SymbolSubscriptionState;
+  dataState: SymbolLabDataState;
   header: SymbolLabHeader;
   technical: IndicatorSnapshot;
   recentBars: SymbolRecentBar[];

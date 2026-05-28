@@ -22,7 +22,8 @@
     grid-template-columns: 1fr;
   }
 
-  .fso-symbol-lab-grid {
+  .fso-symbol-lab-grid,
+  .fso-symbol-state-band {
     grid-template-columns: 1fr;
   }
 }
@@ -37,6 +38,47 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.fso-symbol-state-band {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fso-symbol-state-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-panel) 88%, transparent);
+}
+
+.fso-symbol-state-item > span,
+.fso-symbol-state-item > small {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--fso-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fso-symbol-state-item > span {
+  color: var(--fso-text-muted-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fso-symbol-state-item > small {
+  grid-column: 1 / -1;
+  color: var(--fso-text-muted);
+  font-size: 11px;
 }
 
 .fso-symbol-request-state {

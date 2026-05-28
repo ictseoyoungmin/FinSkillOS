@@ -56,6 +56,7 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
         "interpretation",
         "symbolUniverse",
         "identity",
+        "dataState",
         "safetyCaption",
         "source",
     }
@@ -63,6 +64,11 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
     assert body["header"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
     assert body["identity"]["ticker"] == SYMBOL_LAB_DEFAULT_TICKER
     assert body["identity"]["logoSource"] == "local_fallback"
+    assert body["dataState"]["chartStatus"] == "OK"
+    assert body["dataState"]["chartEvidence"] == "stored"
+    assert body["dataState"]["barCount"] > 0
+    assert body["dataState"]["indicatorStatus"] == "AVAILABLE"
+    assert body["dataState"]["logoSource"] == "local_fallback"
     assert body["subscription"]["canSubscribe"] is True
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
 
@@ -119,6 +125,10 @@ def test_symbol_lab_non_held_ticker_returns_none_position() -> None:
 def test_symbol_lab_unknown_ticker_returns_missing_status() -> None:
     body = _fixture_json("/api/symbol-lab?ticker=ZZZZZ")
     assert body["header"]["dataStatus"] == "MISSING"
+    assert body["dataState"]["chartStatus"] == "MISSING"
+    assert body["dataState"]["chartEvidence"] == "missing"
+    assert body["dataState"]["barCount"] == 0
+    assert body["dataState"]["indicatorStatus"] == "MISSING"
     assert body["identity"]["avatarText"] == "ZZ"
     assert body["recentBars"] == []
     assert body["position"] is None
@@ -208,6 +218,10 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         assert body["systemStatus"]["db"] == "LIVE"
         assert body["header"]["ticker"] == "SPY"
         assert body["header"]["dataStatus"] == "OK"
+        assert body["dataState"]["chartStatus"] == "OK"
+        assert body["dataState"]["chartEvidence"] == "stored"
+        assert body["dataState"]["barCount"] == 30
+        assert body["dataState"]["indicatorStatus"] == "AVAILABLE"
         assert len(body["recentBars"]) == 30
         assert body["technical"]["rsi14"] is not None
         assert body["identity"]["ticker"] == "SPY"
@@ -241,6 +255,7 @@ def test_symbol_lab_uses_cached_logo_provider_when_configured(
         assert body["source"] == "live"
         assert body["identity"]["ticker"] == "NVDA"
         assert body["identity"]["logoSource"] == "provider_cache"
+        assert body["dataState"]["logoSource"] == "provider_cache"
         assert (
             body["identity"]["logoUrl"]
             == "https://img.logo.dev/ticker/NVDA?token=test-token&format=png&size=96"

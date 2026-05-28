@@ -24,6 +24,7 @@ from api.schemas.market_kernel import IndicatorSnapshot
 from api.schemas.symbol_lab import (
     SymbolAlert,
     SymbolIdentity,
+    SymbolLabDataState,
     SymbolLabHeader,
     SymbolLabResponse,
     SymbolPosition,
@@ -357,6 +358,15 @@ def _live_response(
     payload.symbol_universe = _symbol_universe(ticker)
     payload.identity = _symbol_identity(session, ticker)
     payload.subscription = _subscription_state(subscription)
+    payload.data_state = _data_state_for(
+        chart_status="MISSING",
+        chart_evidence="missing",
+        bars=[],
+        latest_indicator=None,
+        identity=payload.identity,
+        subscription=payload.subscription,
+        provider_note=provider_note,
+    )
     payload.position = _position_context(position, positions)
     payload.alerts = symbol_alerts
     payload.news = []
@@ -417,6 +427,15 @@ def _live_response(
         )
         payload.technical = IndicatorSnapshot()
         payload.recent_bars = []
+        payload.data_state = _data_state_for(
+            chart_status="MISSING",
+            chart_evidence="missing",
+            bars=[],
+            latest_indicator=None,
+            identity=payload.identity,
+            subscription=payload.subscription,
+            provider_note=provider_note,
+        )
         payload.watchpoints = [
             f"No stored market bars exist for {ticker}.",
             "Use System Ops market refresh before expecting live symbol context.",
@@ -503,6 +522,15 @@ def _live_response(
         latest_close=latest_bar.close,
         latest_time=_iso(latest_bar.bar_time),
         data_status="OK" if latest_indicator is not None else "PARTIAL",
+    )
+    payload.data_state = _data_state_for(
+        chart_status=payload.header.data_status,
+        chart_evidence="provider_preview" if provider_preview_used else "stored",
+        bars=bars,
+        latest_indicator=latest_indicator,
+        identity=payload.identity,
+        subscription=payload.subscription,
+        provider_note=provider_note,
     )
     payload.technical = IndicatorSnapshot(
         rsi_14=getattr(latest_indicator, "rsi_14", None),
@@ -746,6 +774,41 @@ def _subscription_state(subscription) -> SymbolSubscriptionState:
         can_subscribe=True,
         update_universe_member=active,
         last_action=last_action,
+    )
+
+
+def _data_state_for(
+    *,
+    chart_status: str,
+    chart_evidence: str,
+    bars: list,
+    latest_indicator,
+    identity: SymbolIdentity,
+    subscription: SymbolSubscriptionState,
+    provider_note: str | None,
+) -> SymbolLabDataState:
+    if latest_indicator is not None:
+        indicator_status = "AVAILABLE"
+    elif bars:
+        indicator_status = "PARTIAL"
+    else:
+        indicator_status = "MISSING"
+
+    if not subscription.can_subscribe:
+        subscription_status = "unavailable"
+    elif subscription.is_subscribed:
+        subscription_status = "subscribed"
+    else:
+        subscription_status = "watch_only"
+
+    return SymbolLabDataState(
+        chart_status=chart_status,
+        chart_evidence=chart_evidence,
+        bar_count=len(bars),
+        indicator_status=indicator_status,
+        logo_source=identity.logo_source,
+        subscription_status=subscription_status,
+        provider_note=provider_note,
     )
 
 

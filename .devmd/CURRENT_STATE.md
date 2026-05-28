@@ -93,6 +93,7 @@ operational protocols.
 53     Mission Control State Hardening
 54     News Intelligence Source Coverage
 55     News Intelligence Manual Article Removal
+56     Symbol Lab Data State Hardening
 ```
 
 Slice 14 is complete:
@@ -208,6 +209,9 @@ Slice 14 is complete:
 - News Intelligence now exposes source coverage as an API contract, renders a
   compact provider/article/coverage band, keeps impact-map empty states
   testable, and no longer exposes manual news registration.
+- Symbol Lab now exposes `dataState` as an API contract and renders a compact
+  source/chart/indicator/logo/subscription state band, while E2E checks are
+  live-aware instead of relying on fixed fixture shortcut or position rows.
 ```
 
 ## Validation Baseline
@@ -238,14 +242,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Symbol Lab data-state hardening / refactor
-   - Recheck chart, indicator, logo, subscription, and provider diagnostics
-     states for coherent live/fixture/missing-data behavior.
-
-2. Mission Control evidence density follow-up
+1. Mission Control evidence density follow-up
    - Review lower evidence panels for scan density and repeated copy after the
      state band has stabilized.
 
-3. Catalyst Watch source/date confidence hardening
+2. Catalyst Watch source/date confidence hardening
    - Recheck manual and DB-backed event source/date confidence copy, empty
      states, and linked-news behavior after News Intelligence coverage work.
+
+3. Market Kernel data-state hardening
+   - Align chart/source/indicator state copy with Symbol Lab so the market
+     evidence tabs speak the same live/fixture/missing-data language.

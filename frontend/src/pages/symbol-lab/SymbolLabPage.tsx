@@ -25,6 +25,7 @@ import { SymbolTechnicalSnapshot } from "@/features/symbol/components/SymbolTech
 import { SymbolWatchpoints } from "@/features/symbol/components/SymbolWatchpoints";
 import { RegimeContextPanel } from "@/features/analysis/components/RegimeContextPanel";
 import {
+  Badge,
   ConflictsPanel,
   DriversPanel,
   InterpretationPanel,
@@ -34,6 +35,7 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui";
 import "@/pages/market-kernel/market-kernel.css";
 import "./symbol-lab.css";
 
@@ -90,6 +92,15 @@ function pendingSymbolLabData(ticker: string, timeframe: string): SymbolLabData 
       canSubscribe: false,
       updateUniverseMember: false,
       lastAction: "none",
+    },
+    dataState: {
+      chartStatus: "MISSING",
+      chartEvidence: "missing",
+      barCount: 0,
+      indicatorStatus: "MISSING",
+      logoSource: "local_fallback",
+      subscriptionStatus: "unavailable",
+      providerNote: null,
     },
     header: {
       ticker,
@@ -223,6 +234,7 @@ export function SymbolLabPage() {
         universe={payload.symbolUniverse}
         onSelect={selectTicker}
       />
+      <SymbolDataStateBand payload={payload} />
       {payload.setupHint ? (
         <div className="fso-symbol-inline-state" data-testid="symbol-lab-setup-hint">
           <strong>Limited data available</strong>
@@ -313,6 +325,102 @@ export function SymbolLabPage() {
         }))}
       />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+    </div>
+  );
+}
+
+function SymbolDataStateBand({ payload }: { payload: SymbolLabData }) {
+  const state = payload.dataState;
+  const sourceTone: BadgeTone = payload.source === "live" ? "success" : "warning";
+  const chartTone = dataStatusTone(state.chartStatus);
+  const indicatorTone = indicatorStatusTone(state.indicatorStatus);
+  const logoTone = state.logoSource === "provider_cache" ? "success" : "neutral";
+  const subscriptionTone = subscriptionStatusTone(state.subscriptionStatus);
+  const chartDetail =
+    state.chartEvidence === "provider_preview"
+      ? "Provider preview, not persisted"
+      : state.chartEvidence === "stored"
+        ? `${state.barCount} stored bars`
+        : state.providerNote ?? "No chart bars available";
+
+  return (
+    <div className="fso-symbol-state-band" data-testid="symbol-data-state">
+      <SymbolStateItem
+        label="Source"
+        value={payload.source.toUpperCase()}
+        detail={
+          payload.source === "live"
+            ? "DB-backed symbol context"
+            : "Deterministic sample"
+        }
+        tone={sourceTone}
+      />
+      <SymbolStateItem
+        label="Chart"
+        value={state.chartStatus}
+        detail={chartDetail}
+        tone={chartTone}
+      />
+      <SymbolStateItem
+        label="Indicators"
+        value={state.indicatorStatus}
+        detail={payload.header.latestTime ?? "No indicator timestamp"}
+        tone={indicatorTone}
+      />
+      <SymbolStateItem
+        label="Logo"
+        value={state.logoSource.replace("_", " ")}
+        detail={payload.identity.name}
+        tone={logoTone}
+      />
+      <SymbolStateItem
+        label="Universe"
+        value={state.subscriptionStatus.replace("_", " ")}
+        detail={payload.subscription.lastAction}
+        tone={subscriptionTone}
+      />
+    </div>
+  );
+}
+
+function dataStatusTone(status: SymbolLabData["dataState"]["chartStatus"]): BadgeTone {
+  if (status === "OK") return "success";
+  if (status === "PARTIAL") return "warning";
+  return "neutral";
+}
+
+function indicatorStatusTone(
+  status: SymbolLabData["dataState"]["indicatorStatus"],
+): BadgeTone {
+  if (status === "AVAILABLE") return "success";
+  if (status === "PARTIAL") return "warning";
+  return "neutral";
+}
+
+function subscriptionStatusTone(
+  status: SymbolLabData["dataState"]["subscriptionStatus"],
+): BadgeTone {
+  if (status === "subscribed") return "success";
+  if (status === "unavailable") return "neutral";
+  return "info";
+}
+
+function SymbolStateItem({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}) {
+  return (
+    <div className="fso-symbol-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }

@@ -101,6 +101,20 @@ class SymbolSubscriptionState(CamelModel):
     last_action: Literal["none", "subscribed", "unsubscribed"] = "none"
 
 
+class SymbolLabDataState(CamelModel):
+    chart_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    chart_evidence: Literal["stored", "provider_preview", "missing"] = "missing"
+    bar_count: int = Field(default=0, ge=0)
+    indicator_status: Literal["AVAILABLE", "PARTIAL", "MISSING"] = "MISSING"
+    logo_source: Literal["local_fallback", "provider_cache", "deferred"] = (
+        "local_fallback"
+    )
+    subscription_status: Literal["subscribed", "watch_only", "unavailable"] = (
+        "watch_only"
+    )
+    provider_note: str | None = None
+
+
 class SymbolSubscriptionFolderMember(CamelModel):
     ticker: str
     name: str | None = None
@@ -137,6 +151,7 @@ class SymbolLabResponse(CamelModel):
     subscription: SymbolSubscriptionState = Field(
         default_factory=SymbolSubscriptionState
     )
+    data_state: SymbolLabDataState = Field(default_factory=SymbolLabDataState)
     header: SymbolLabHeader
     technical: IndicatorSnapshot
     recent_bars: list[SymbolRecentBar] = Field(default_factory=list)
@@ -157,6 +172,7 @@ class SymbolLabResponse(CamelModel):
 __all__ = [
     "SymbolAlert",
     "SymbolIdentity",
+    "SymbolLabDataState",
     "SymbolLabHeader",
     "SymbolLabResponse",
     "SymbolNewsItem",

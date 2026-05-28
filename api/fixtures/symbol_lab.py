@@ -21,6 +21,7 @@ from api.schemas.market_kernel import IndicatorSnapshot
 from api.schemas.symbol_lab import (
     SymbolAlert,
     SymbolIdentity,
+    SymbolLabDataState,
     SymbolLabHeader,
     SymbolLabResponse,
     SymbolNewsItem,
@@ -235,6 +236,18 @@ def symbol_lab_fixture(
             is_subscribed=focus.symbol in {"NVDA", "TSLA", "AAPL", "MSFT", "SMH"},
             update_universe_member=True,
         ),
+        data_state=SymbolLabDataState(
+            chart_status="OK",
+            chart_evidence="stored",
+            bar_count=len(focus.bars),
+            indicator_status="AVAILABLE",
+            logo_source="local_fallback",
+            subscription_status=(
+                "subscribed"
+                if focus.symbol in {"NVDA", "TSLA", "AAPL", "MSFT", "SMH"}
+                else "watch_only"
+            ),
+        ),
         header=SymbolLabHeader(
             ticker=focus.symbol,
             timeframe=timeframe,
@@ -317,6 +330,14 @@ def _missing_payload(ticker: str, *, timeframe: str = "1d") -> SymbolLabResponse
         symbol_universe=list(_SYMBOL_UNIVERSE),
         identity=symbol_identity(ticker),
         subscription=SymbolSubscriptionState(is_subscribed=False),
+        data_state=SymbolLabDataState(
+            chart_status="MISSING",
+            chart_evidence="missing",
+            bar_count=0,
+            indicator_status="MISSING",
+            logo_source="local_fallback",
+            subscription_status="watch_only",
+        ),
         header=SymbolLabHeader(
             ticker=ticker,
             timeframe=timeframe,
