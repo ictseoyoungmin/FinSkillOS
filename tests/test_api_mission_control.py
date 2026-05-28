@@ -175,3 +175,30 @@ def test_mission_control_reads_live_db_snapshot(monkeypatch, tmp_path) -> None:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_mission_control_live_empty_state_stays_live(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "mission-empty.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        response = _client().get("/api/mission-control")
+        body = response.json()
+
+        assert response.status_code == 200
+        assert body["source"] == "live"
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert body["portfolio"]["positionCount"] == 0
+        assert body["capitalMap"] == []
+        assert body["themeMap"] == []
+        assert "baseline" in body["challengeStatusCaption"].lower()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

@@ -7,6 +7,7 @@ import { PortfolioSnapshotPanel } from "@/features/portfolio/components/Portfoli
 import { missionControlFixture } from "@/mocks/fixtures/missionControl.fixture";
 import { formatKrw, formatPct } from "@/shared/lib/format";
 import {
+  Badge,
   ConflictsPanel,
   DriversPanel,
   EmptyState,
@@ -16,6 +17,8 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui/Badge";
+import type { MissionControlData } from "@/features/portfolio/types";
 import "./mission-control.css";
 
 export function MissionControlPage() {
@@ -39,6 +42,7 @@ export function MissionControlPage() {
   }
 
   const payload = data ?? missionControlFixture;
+  const state = buildMissionControlState(payload);
   const generatedLabel = payload.generatedAt.slice(0, 16).replace("T", " ");
   const largestLabel = payload.portfolio.largestPositionTicker
     ? `${payload.portfolio.largestPositionTicker} · ${formatPct(
@@ -56,9 +60,9 @@ export function MissionControlPage() {
         <div className="fso-mission-control-brief" data-testid="mission-live-brief">
           <div>
             <span>Source</span>
-            <strong>{payload.source.toUpperCase()}</strong>
+            <strong>{state.sourceLabel}</strong>
             <small>
-              DB {payload.systemStatus.db} · {generatedLabel}
+              {state.sourceDetail} · {generatedLabel}
             </small>
           </div>
           <div>
@@ -82,6 +86,32 @@ export function MissionControlPage() {
             <MissionGoalTracker goal={payload.goal} />
           </div>
         </div>
+      </div>
+      <div className="fso-mission-control-state-band" data-testid="mission-state-band">
+        <StateItem
+          label="Source"
+          value={state.sourceLabel}
+          detail={state.sourceDetail}
+          tone={state.sourceTone}
+        />
+        <StateItem
+          label="Database"
+          value={state.dbLabel}
+          detail={state.dbDetail}
+          tone={state.dbTone}
+        />
+        <StateItem
+          label="Sector exposure"
+          value={state.capitalLabel}
+          detail={state.capitalDetail}
+          tone={state.capitalTone}
+        />
+        <StateItem
+          label="Theme exposure"
+          value={state.themeLabel}
+          detail={state.themeDetail}
+          tone={state.themeTone}
+        />
       </div>
       <div className="fso-mission-control-main-grid">
         <div className="fso-mission-control-stack">
@@ -115,19 +145,19 @@ export function MissionControlPage() {
             <div data-testid="mission-capital-map-sector">
               <CapitalMapPanel
                 title="Sector Exposure"
-                badge="Sector"
+                badge={state.capitalLabel}
                 slices={payload.capitalMap}
                 testId="capital-map"
               />
             </div>
-            {payload.themeMap.length > 0 ? (
+            <div data-testid="mission-capital-map-theme-shell">
               <CapitalMapPanel
                 title="Theme Exposure"
-                badge="Theme"
+                badge={state.themeLabel}
                 slices={payload.themeMap}
                 testId="mission-capital-map-theme"
               />
-            ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -173,6 +203,65 @@ export function MissionControlPage() {
           }))}
         />
       </div>
+    </div>
+  );
+}
+
+interface MissionControlState {
+  sourceLabel: string;
+  sourceDetail: string;
+  sourceTone: BadgeTone;
+  dbLabel: string;
+  dbDetail: string;
+  dbTone: BadgeTone;
+  capitalLabel: string;
+  capitalDetail: string;
+  capitalTone: BadgeTone;
+  themeLabel: string;
+  themeDetail: string;
+  themeTone: BadgeTone;
+}
+
+function buildMissionControlState(payload: MissionControlData): MissionControlState {
+  const isLive = payload.source === "live";
+  const dbLive = payload.systemStatus.db.toUpperCase() === "LIVE";
+  const accountReady = payload.portfolio.positionCount > 0;
+  const capitalCount = payload.capitalMap.length;
+  const themeCount = payload.themeMap.length;
+
+  return {
+    sourceLabel: isLive ? "LIVE" : "FIXTURE",
+    sourceDetail: isLive ? "DB-backed mission snapshot" : "Deterministic sample",
+    sourceTone: isLive ? "success" : "warning",
+    dbLabel: payload.systemStatus.db.toUpperCase(),
+    dbDetail: dbLive ? "Session active" : "Fixture fallback",
+    dbTone: dbLive ? "success" : "warning",
+    capitalLabel: capitalCount > 0 ? `${capitalCount} rows` : "No rows",
+    capitalDetail: accountReady
+      ? "Sector map read from current holdings"
+      : "Waiting for account holdings",
+    capitalTone: capitalCount > 0 ? "info" : "neutral",
+    themeLabel: themeCount > 0 ? `${themeCount} rows` : "No rows",
+    themeDetail: accountReady
+      ? "Theme map read from current holdings"
+      : "Waiting for account holdings",
+    themeTone: themeCount > 0 ? "info" : "neutral",
+  };
+}
+
+interface StateItemProps {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}
+
+function StateItem({ label, value, detail, tone }: StateItemProps) {
+  return (
+    <div className="fso-mission-control-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }

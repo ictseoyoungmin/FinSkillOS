@@ -90,6 +90,7 @@ operational protocols.
 50     Trade Memory Live State Polish
 51     Trade Memory Journal Mutation UX
 52     Trade Memory Form Ergonomics
+53     Mission Control State Hardening
 ```
 
 Slice 14 is complete:
@@ -198,6 +199,10 @@ Slice 14 is complete:
 - The React Trade Memory journal form is grouped by journal intent, defaults
   the date to today, exposes compact required/tag/side state, blocks incomplete
   submissions, and includes a reset action for repeated local journaling.
+- Mission Control now exposes a compact source/DB/exposure state band, keeps
+  sector and theme exposure panels visible even when live rows are absent, and
+  has an API regression proving reachable empty DB state remains live rather
+  than silently falling back to fixture copy.
 ```
 
 ## Validation Baseline
@@ -228,14 +233,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. News source confidence / provider coverage
-   - Add source-quality metadata and coverage grouping once the deterministic
-     scoring baseline is stable.
+1. News Intelligence source confidence / provider coverage
+   - Add source-quality metadata, coverage grouping, and empty/error state
+     polish once the deterministic scoring baseline is stable.
 
-2. Current-state documentation sweep
-   - Keep slice manifests, source-of-truth docs, and Docker-only validation
-     notes aligned with the latest live DB-backed cockpit behavior.
+2. Symbol Lab data-state hardening / refactor
+   - Recheck chart, indicator, logo, subscription, and provider diagnostics
+     states for coherent live/fixture/missing-data behavior.
 
-3. Trade Memory journal edit / review workflow
-   - Add an explicit read-model path for reviewing and amending stored
-     reflection entries without introducing brokerage or execution behavior.
+3. Mission Control evidence density follow-up
+   - Review lower evidence panels for scan density and repeated copy after the
+     state band has stabilized.
