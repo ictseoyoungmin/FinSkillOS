@@ -71,6 +71,37 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     ]);
   });
 
+  test("Trade Memory form stores an entry and refreshes the read model", async ({
+    page,
+    request,
+  }) => {
+    await request.post("/api/system-ops/seed-sample-account");
+    await page.goto("/trade-memory");
+    const form = page.getByTestId("trade-entry-form");
+
+    await form.getByLabel("Trade date").fill("2026-05-28");
+    await form.getByLabel("Ticker").fill("AMD");
+    await form.getByTestId("trade-entry-form-side").selectOption("WATCH");
+    await form.getByLabel("Strategy").fill("review");
+    await form.getByRole("textbox", { name: "Regime" }).fill("HEALTHY_BULL");
+    await form
+      .getByRole("textbox", { name: "Thesis" })
+      .fill("Process review entry.");
+    await form
+      .getByRole("textbox", { name: "Reason" })
+      .fill("Checklist practice remained calm.");
+    await form
+      .getByRole("textbox", { name: "Notes" })
+      .fill("Reflection-only journal smoke.");
+    await page.getByTestId("trade-entry-form-submit").click();
+
+    await expect(page.getByTestId("trade-entry-form-result")).toContainText("OK");
+    await expect(page.getByTestId("trade-memory-source-state")).toContainText(
+      /Source\s*LIVE/,
+    );
+    await expect(page.getByTestId("recent-entries")).toContainText("AMD");
+  });
+
   test("Manual article entry rejects an over-cap summary", async ({
     page,
     request,

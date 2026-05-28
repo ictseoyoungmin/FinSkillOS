@@ -12,6 +12,7 @@ import "./trade-entry-form.css";
 
 export interface TradeEntryFormProps {
   rules: TradeFormRules;
+  onSaved?: (result: TradeEntryResult) => void | Promise<void>;
 }
 
 interface FormState {
@@ -61,7 +62,7 @@ const empty = (rules: TradeFormRules): FormState => ({
  * Slice-12 reflection vocabulary; the disclaimer reinforces that this
  * is a process-review surface, not an execution control.
  */
-export function TradeEntryForm({ rules }: TradeEntryFormProps) {
+export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
   const [form, setForm] = useState<FormState>(() => empty(rules));
   const [result, setResult] = useState<TradeEntryResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -118,6 +119,7 @@ export function TradeEntryForm({ rules }: TradeEntryFormProps) {
       setResult(next);
       if (next.status === "OK") {
         setForm(empty(rules));
+        await onSaved?.(next);
       }
     } catch (error) {
       setResult({

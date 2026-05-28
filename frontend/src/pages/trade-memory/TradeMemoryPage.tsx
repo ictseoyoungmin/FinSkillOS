@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTradeMemory } from "@/features/trades/api";
 import { MistakeFrequencyPanel } from "@/features/trades/components/MistakeFrequencyPanel";
 import { PerformanceByRegime } from "@/features/trades/components/PerformanceByRegime";
@@ -22,6 +22,7 @@ import {
 import "./trade-memory.css";
 
 export function TradeMemoryPage() {
+  const queryClient = useQueryClient();
   const { data, error } = useQuery({
     queryKey: ["trade-memory"],
     queryFn: ({ signal }) => fetchTradeMemory(signal),
@@ -94,7 +95,14 @@ export function TradeMemoryPage() {
           <TradeMemoryWatchpoints watchpoints={payload.watchpoints} />
           <WeeklyReviewPanel review={payload.weeklyReview} />
           <WeeklyMarkdownExport markdown={payload.weeklyReview.markdown} />
-          <TradeEntryForm rules={payload.formRules} />
+          <TradeEntryForm
+            rules={payload.formRules}
+            onSaved={async () => {
+              await queryClient.invalidateQueries({
+                queryKey: ["trade-memory"],
+              });
+            }}
+          />
         </div>
       </div>
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>

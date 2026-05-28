@@ -88,6 +88,7 @@ operational protocols.
 48     Worker Cadence Supervision
 49     Trade Memory DB Read Model
 50     Trade Memory Live State Polish
+51     Trade Memory Journal Mutation UX
 ```
 
 Slice 14 is complete:
@@ -191,6 +192,8 @@ Slice 14 is complete:
 - The React Trade Memory page now shows a source/state band that distinguishes
   deterministic fixture samples, live DB-backed stored entries, and live empty
   journal state.
+- The React Trade Memory journal form now refreshes the live read model after a
+  successful save, so stored entries appear without a manual reload.
 ```
 
 ## Validation Baseline
@@ -229,6 +232,6 @@ e2e image for frontend build and visual checks.
    - Keep slice manifests, source-of-truth docs, and Docker-only validation
      notes aligned with the latest live DB-backed cockpit behavior.
 
-3. Trade Memory journal mutation UX
-   - Wire the React journal form through the POST API with cache refresh,
-     success/error states, and reflection-only copy.
+3. Trade Memory journal form ergonomics
+   - Improve field grouping, defaults, and compact states now that mutation and
+     live read refresh are connected.
