@@ -112,13 +112,13 @@ export const systemOpsFixture: SystemOpsData = {
     },
     {
       key: "seed_sample_events",
-      title: "Seed sample events",
+      title: "Seed event catalog",
       description:
-        "Loads the deterministic Slice-11 catalog of uncertain events. Status remains tentative / speculative / window.",
+        "Loads the deterministic Slice-11 event catalog through the System Ops ingestion boundary. Catalyst Watch stays read-only.",
       idempotencyNote:
-        "Idempotent · existing rows are skipped by title; no event is upgraded to CONFIRMED automatically.",
-      buttonLabel: "Seed sample data",
-      confirmLabel: "Seed sample data",
+        "Idempotent · existing rows are skipped by title; date statuses remain TENTATIVE / SPECULATIVE / WINDOW.",
+      buttonLabel: "Seed event catalog",
+      confirmLabel: "Seed event catalog",
       tone: "info",
       lastRunAt: null,
     },
@@ -148,7 +148,7 @@ export const systemOpsFixture: SystemOpsData = {
     {
       label: "News / Event Stores",
       status: "FIXTURE",
-      detail: "Manual upsert, RSS refresh, and seed helpers available.",
+      detail: "RSS refresh and System Ops event ingestion protocols available.",
     },
     {
       label: "Mode",

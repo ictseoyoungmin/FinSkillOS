@@ -107,6 +107,7 @@ operational protocols.
 67     Catalyst Watch Backend Mutation Boundary Cleanup
 68     Analysis Workspace Coverage Ergonomics
 69     Control Room Live Rail Composition
+70     System Ops Event Ingestion Hardening
 ```
 
 Slice 14 is complete:
@@ -269,6 +270,10 @@ Slice 14 is complete:
   Catalyst Watch events, active symbol subscriptions, mission state, and guard
   evidence when those DB rows exist. Missing rails are explicit in `dataState`
   rather than hard-coded as fixture partials.
+- System Ops now labels deterministic event catalog ingestion as the dedicated
+  System Ops boundary, removes stale manual-upsert copy, reports
+  `boundary=system_ops` in seed results, and has a DB-backed regression proving
+  event rows remain uncertain-date statuses across OK/NOOP runs.
 ```
 
 ## Validation Baseline
@@ -298,14 +303,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. System Ops event ingestion hardening
-   - Tighten the event seeding protocol copy and audit evidence now that
-     product-tab event mutation routes have been removed.
-
-2. Market Kernel / Analysis Workspace shared coverage vocabulary
+1. Market Kernel / Analysis Workspace shared coverage vocabulary
    - Align chart/indicator coverage language across the two market-structure
      tabs so sparse live DB states use the same status tiers.
 
-3. Control Room rail freshness detail
+2. Control Room rail freshness detail
    - Add per-rail latest timestamp/source notes so composed live rails can show
      whether market, event, and watchlist context are fresh or stale.
+
+3. System Ops protocol result ergonomics
+   - Surface structured protocol result details in the UI as compact key/value
+     evidence instead of a single message line.

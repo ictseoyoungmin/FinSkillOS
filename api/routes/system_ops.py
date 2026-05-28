@@ -806,13 +806,17 @@ def _invoke_seed_sample_events(session) -> tuple[str, str, str]:
     if not created:
         return (
             "NOOP",
-            "Sample events already loaded · no new rows inserted.",
-            "noop_existing",
+            "Event catalog already loaded · no new rows inserted.",
+            "noop_existing,boundary=system_ops",
         )
+    statuses = sorted({event.date_status for event in created})
     return (
         "OK",
-        f"{len(created)} sample events loaded (tentative status preserved).",
-        "events_seeded",
+        f"{len(created)} event catalog rows loaded through System Ops.",
+        (
+            f"events_seeded,created_count={len(created)},"
+            f"date_statuses={'+'.join(statuses)},boundary=system_ops"
+        ),
     )
 
 

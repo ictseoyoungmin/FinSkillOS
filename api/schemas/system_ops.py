@@ -2,7 +2,7 @@
 
 Camel-case Pydantic shape for ``GET /api/system-ops`` and the four
 operational POST endpoints (seed sample account, recompute regime,
-run risk guards, seed sample events). The protocol cards are safe by
+run risk guards, seed event catalog). The protocol cards are safe by
 construction:
 
 * The wording avoids any execution / buy / sell phrasing.

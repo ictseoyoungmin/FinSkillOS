@@ -160,18 +160,18 @@ def system_ops_fixture() -> SystemOpsResponse:
             ),
             ProtocolCard(
                 key="seed_sample_events",
-                title="Seed sample events",
+                title="Seed event catalog",
                 description=(
-                    "Loads the deterministic Slice-11 catalog of "
-                    "uncertain events. Status remains tentative / "
-                    "speculative / window."
+                    "Loads the deterministic Slice-11 event catalog through "
+                    "the System Ops ingestion boundary. Catalyst Watch stays "
+                    "read-only."
                 ),
                 idempotency_note=(
                     "Idempotent · existing rows are skipped by title; "
-                    "no event is upgraded to CONFIRMED automatically."
+                    "date statuses remain TENTATIVE / SPECULATIVE / WINDOW."
                 ),
-                button_label="Seed sample data",
-                confirm_label="Seed sample data",
+                button_label="Seed event catalog",
+                confirm_label="Seed event catalog",
                 tone="info",
                 last_run_at=None,
             ),
@@ -190,7 +190,7 @@ def system_ops_fixture() -> SystemOpsResponse:
             DataSourcePill(
                 label="News / Event Stores",
                 status="FIXTURE",
-                detail="Manual upsert, RSS refresh, and seed helpers available.",
+                detail="RSS refresh and System Ops event ingestion protocols available.",
             ),
             DataSourcePill(
                 label="Mode",

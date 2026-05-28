@@ -26,6 +26,7 @@ from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
 from finskillos.db.repositories import (
     AccountRepository,
+    EventRepository,
     IndicatorRepository,
     MarketRepository,
     NewsArticleRepository,
@@ -111,6 +112,19 @@ def test_system_ops_protocols_have_camelcase_fields() -> None:
     }
     for protocol in body["protocols"]:
         assert expected_fields.issubset(protocol.keys()), protocol
+
+
+def test_system_ops_event_catalog_protocol_marks_ingestion_boundary() -> None:
+    body = _client().get("/api/system-ops").json()
+    protocol = next(
+        item for item in body["protocols"] if item["key"] == "seed_sample_events"
+    )
+
+    assert protocol["title"] == "Seed event catalog"
+    assert protocol["buttonLabel"] == "Seed event catalog"
+    assert "System Ops ingestion boundary" in protocol["description"]
+    assert "Catalyst Watch stays read-only" in protocol["description"]
+    assert "CONFIRMED" not in protocol["idempotencyNote"]
 
 
 def test_system_ops_data_sources_use_safe_status_values() -> None:
@@ -297,6 +311,48 @@ def test_system_ops_protocol_runs_are_audited_to_db(monkeypatch, tmp_path) -> No
             if item["key"] == "seed_sample_account"
         )
         assert protocol["lastRunAt"] == get_body["recentProtocolRuns"][0]["ranAt"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_seed_sample_events_protocol_is_audited_and_preserves_uncertain_statuses(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        first = _client().post("/api/system-ops/seed-sample-events").json()
+        second = _client().post("/api/system-ops/seed-sample-events").json()
+
+        assert first["protocol"] == "seed_sample_events"
+        assert first["status"] == "OK"
+        assert "boundary=system_ops" in first["detail"]
+        assert "created_count=" in first["detail"]
+        assert "CONFIRMED" not in first["detail"]
+        assert second["status"] == "NOOP"
+        assert second["detail"] == "noop_existing,boundary=system_ops"
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            events = EventRepository(session).list_all()
+            assert events
+            assert {event.date_status for event in events}.issubset(
+                {"TENTATIVE", "SPECULATIVE", "WINDOW"}
+            )
+            rows = SystemOpsProtocolRunRepository(session).list_recent(limit=10)
+            assert [row.protocol for row in rows[:2]] == [
+                "seed_sample_events",
+                "seed_sample_events",
+            ]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
