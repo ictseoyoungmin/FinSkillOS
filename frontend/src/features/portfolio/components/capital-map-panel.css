@@ -40,3 +40,13 @@
   display: block;
   height: 100%;
 }
+
+.fso-capital-map-empty {
+  padding: 16px;
+  border: 1px dashed var(--fso-line);
+  border-radius: 8px;
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}

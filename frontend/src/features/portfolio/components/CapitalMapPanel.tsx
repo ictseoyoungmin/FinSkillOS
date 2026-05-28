@@ -36,32 +36,38 @@ export function CapitalMapPanel({
       badgeTone="info"
       testId={testId ?? "capital-map"}
     >
-      <ul className="fso-capital-map-list">
-        {slices.map((slice) => {
-          const tone = TONE_COLOR[slice.tone];
-          return (
-            <li className="fso-capital-map-row" key={slice.label}>
-              <div className="fso-capital-map-meta">
-                <span className="fso-capital-map-label">{slice.label}</span>
-                <span
-                  className="fso-capital-map-weight"
-                  style={{ color: tone }}
-                >
-                  {formatPct(slice.weightPct)}
-                </span>
-              </div>
-              <div className="fso-capital-map-bar" aria-hidden>
-                <span
-                  style={{
-                    width: `${Math.min(100, toNumber(slice.weightPct))}%`,
-                    background: tone,
-                  }}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      {slices.length > 0 ? (
+        <ul className="fso-capital-map-list">
+          {slices.map((slice) => {
+            const tone = TONE_COLOR[slice.tone];
+            return (
+              <li className="fso-capital-map-row" key={slice.label}>
+                <div className="fso-capital-map-meta">
+                  <span className="fso-capital-map-label">{slice.label}</span>
+                  <span
+                    className="fso-capital-map-weight"
+                    style={{ color: tone }}
+                  >
+                    {formatPct(slice.weightPct)}
+                  </span>
+                </div>
+                <div className="fso-capital-map-bar" aria-hidden>
+                  <span
+                    style={{
+                      width: `${Math.min(100, toNumber(slice.weightPct))}%`,
+                      background: tone,
+                    }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="fso-capital-map-empty">
+          Stored exposure rows are unavailable for this account snapshot.
+        </div>
+      )}
     </Panel>
   );
 }

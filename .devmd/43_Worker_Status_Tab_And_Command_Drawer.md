@@ -83,9 +83,8 @@ Result:
 - Docker backend System Ops / worker / migration test scope passed: 33 tests.
 - Docker Playwright navigation/theme/responsive/System Ops scope passed: 19 tests.
 
-Known issue:
+Resolved follow-up:
 
-- Full `risk-mission-ops.spec.ts` still has an unrelated live-data failure in
-  `Mission Control renders goal tracker and milestone timeline` because
-  `mission-capital-map-sector` is absent in the current running DB-backed
-  payload. This was excluded from the 43 verification scope.
+- The unrelated Mission Control `mission-capital-map-sector` e2e failure was
+  resolved in Slice 44, and full `risk-mission-ops.spec.ts` now passes without
+  exclusions.

@@ -112,12 +112,14 @@ export function MissionControlPage() {
             className="fso-mission-control-exposure-grid"
             data-testid="mission-exposure-grid"
           >
-            <CapitalMapPanel
-              title="Sector Exposure"
-              badge="Sector"
-              slices={payload.capitalMap}
-              testId="capital-map"
-            />
+            <div data-testid="mission-capital-map-sector">
+              <CapitalMapPanel
+                title="Sector Exposure"
+                badge="Sector"
+                slices={payload.capitalMap}
+                testId="capital-map"
+              />
+            </div>
             {payload.themeMap.length > 0 ? (
               <CapitalMapPanel
                 title="Theme Exposure"
