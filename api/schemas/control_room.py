@@ -107,9 +107,27 @@ class ReviewQueueItem(CamelModel):
     tag: Literal["weekly", "mistake", "thesis", "event"] = "weekly"
 
 
+class ControlRoomDataState(CamelModel):
+    source: Literal["fixture", "live"] = "fixture"
+    overview_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    system_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    mission_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    market_tape_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    guard_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    catalyst_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    watchlist_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    market_tape_points: int = 0
+    guard_count: int = 0
+    catalyst_count: int = 0
+    watchlist_count: int = 0
+    source_note: str
+    refresh_note: str
+
+
 class ControlRoomResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    data_state: ControlRoomDataState
     judgment: JudgmentHeader
     drivers: list[EvidenceDriver]
     conflicts: list[EvidenceConflict]
@@ -131,6 +149,7 @@ class ControlRoomResponse(CamelModel):
 
 __all__ = [
     "CatalystSummary",
+    "ControlRoomDataState",
     "ControlRoomResponse",
     "GuardSummaryVM",
     "MarketTapePoint",

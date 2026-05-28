@@ -38,6 +38,7 @@ def test_control_room_endpoint_returns_full_payload() -> None:
     expected_top_level = {
         "generatedAt",
         "systemStatus",
+        "dataState",
         "tickerStrip",
         "mission",
         "operatingState",
@@ -51,6 +52,12 @@ def test_control_room_endpoint_returns_full_payload() -> None:
         "source",
     }
     assert expected_top_level.issubset(body.keys())
+    assert body["dataState"]["source"] == body["source"]
+    assert body["dataState"]["overviewStatus"] == "OK"
+    assert body["dataState"]["marketTapePoints"] == len(body["marketTape"])
+    assert body["dataState"]["guardCount"] == len(body["riskFirewall"])
+    assert body["dataState"]["catalystCount"] == len(body["catalystWatch"])
+    assert body["dataState"]["watchlistCount"] == len(body["watchlist"])
 
 
 def test_control_room_market_tape_is_normalised_and_nonempty() -> None:

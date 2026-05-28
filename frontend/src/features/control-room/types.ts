@@ -25,9 +25,29 @@ export interface ControlRoomSystemStatus {
   guardCount: number;
 }
 
+export type ControlRoomDataStatus = "OK" | "PARTIAL" | "MISSING";
+
+export interface ControlRoomDataState {
+  source: "fixture" | "live";
+  overviewStatus: ControlRoomDataStatus;
+  systemStatus: ControlRoomDataStatus;
+  missionStatus: ControlRoomDataStatus;
+  marketTapeStatus: ControlRoomDataStatus;
+  guardStatus: ControlRoomDataStatus;
+  catalystStatus: ControlRoomDataStatus;
+  watchlistStatus: ControlRoomDataStatus;
+  marketTapePoints: number;
+  guardCount: number;
+  catalystCount: number;
+  watchlistCount: number;
+  sourceNote: string;
+  refreshNote: string;
+}
+
 export interface ControlRoomData {
   generatedAt: string;
   systemStatus: ControlRoomSystemStatus;
+  dataState: ControlRoomDataState;
   judgment: JudgmentHeaderData;
   drivers: EvidenceDriverData[];
   conflicts: EvidenceConflictData[];

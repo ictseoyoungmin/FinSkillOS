@@ -9,6 +9,8 @@ import { CatalystListCard } from "@/features/events/components/CatalystListCard"
 import { WatchlistCard } from "@/features/market/components/WatchlistCard";
 import { PortfolioMarketTapePanel } from "@/features/market/components/PortfolioMarketTapePanel";
 import {
+  Badge,
+  type BadgeTone,
   ConflictsPanel,
   DriversPanel,
   InterpretationPanel,
@@ -17,7 +19,11 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
-import type { ControlRoomData } from "@/features/control-room/types";
+import type {
+  ControlRoomData,
+  ControlRoomDataState,
+  ControlRoomDataStatus,
+} from "@/features/control-room/types";
 import "./control-room-grid.css";
 
 export interface ControlRoomGridProps {
@@ -47,6 +53,7 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
           }))}
         />
       </div>
+      <ControlRoomStateBand dataState={data.dataState} />
       <div className="fso-control-grid">
         <section
           className="fso-control-column"
@@ -95,4 +102,98 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
       <SafetyCaption>{data.safetyCaption}</SafetyCaption>
     </div>
   );
+}
+
+function ControlRoomStateBand({
+  dataState,
+}: {
+  dataState: ControlRoomDataState;
+}) {
+  return (
+    <div
+      className="fso-control-state-band"
+      data-testid="control-room-state-band"
+    >
+      <ControlRoomStateItem
+        label="Overview Source"
+        value={dataState.source === "live" ? "Live" : "Fixture"}
+        detail={dataState.sourceNote}
+        tone={dataState.source === "live" ? "success" : "warning"}
+      />
+      <ControlRoomStateItem
+        label="Evidence Coverage"
+        value={dataState.overviewStatus}
+        detail={[
+          `Mission ${dataState.missionStatus}`,
+          `System ${dataState.systemStatus}`,
+        ].join(" · ")}
+        tone={dataStatusTone(dataState.overviewStatus)}
+      />
+      <ControlRoomStateItem
+        label="Market Tape"
+        value={dataState.marketTapeStatus}
+        detail={`${dataState.marketTapePoints} normalized points`}
+        tone={dataStatusTone(dataState.marketTapeStatus)}
+      />
+      <ControlRoomStateItem
+        label="Linked Modules"
+        value={moduleStatus(dataState)}
+        detail={[
+          `${dataState.guardCount} guards`,
+          `${dataState.catalystCount} catalysts`,
+          `${dataState.watchlistCount} watchlist`,
+        ].join(" · ")}
+        tone={moduleTone(dataState)}
+      />
+    </div>
+  );
+}
+
+function ControlRoomStateItem({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}) {
+  return (
+    <div className="fso-control-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
+function dataStatusTone(status: ControlRoomDataStatus): BadgeTone {
+  if (status === "OK") {
+    return "success";
+  }
+  if (status === "PARTIAL") {
+    return "warning";
+  }
+  return "danger";
+}
+
+function moduleTone(dataState: ControlRoomDataState): BadgeTone {
+  return dataStatusTone(moduleStatus(dataState));
+}
+
+function moduleStatus(dataState: ControlRoomDataState): ControlRoomDataStatus {
+  const statuses = [
+    dataState.guardStatus,
+    dataState.catalystStatus,
+    dataState.watchlistStatus,
+  ];
+  if (statuses.every((status) => status === "OK")) {
+    return "OK";
+  }
+  if (statuses.some((status) => status === "MISSING")) {
+    return "MISSING";
+  }
+  return "PARTIAL";
 }

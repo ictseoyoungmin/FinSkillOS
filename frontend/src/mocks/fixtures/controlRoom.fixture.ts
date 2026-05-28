@@ -10,7 +10,25 @@ export const CONTROL_ROOM_FIXTURE_TIMESTAMP = "2026-05-20T12:00:00+09:00";
 export const controlRoomFixture: ControlRoomData = {
   generatedAt: CONTROL_ROOM_FIXTURE_TIMESTAMP,
   source: "fixture",
-  systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 2 },
+  systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 3 },
+  dataState: {
+    source: "fixture",
+    overviewStatus: "OK",
+    systemStatus: "OK",
+    missionStatus: "OK",
+    marketTapeStatus: "OK",
+    guardStatus: "OK",
+    catalystStatus: "OK",
+    watchlistStatus: "OK",
+    marketTapePoints: 11,
+    guardCount: 3,
+    catalystCount: 3,
+    watchlistCount: 4,
+    sourceNote:
+      "Control Room is a fixture-first operating overview; underlying tabs expose their own live/fixture evidence.",
+    refreshNote:
+      "Use dedicated Market, Risk, Mission, Catalyst, and Symbol tabs for promoted DB-backed read models.",
+  },
   judgment: {
     eyebrow: "GLOBAL OPERATING VERDICT",
     title: "Risk-On but",

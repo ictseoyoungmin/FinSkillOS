@@ -9,6 +9,9 @@ test.describe("OS shell navigation", () => {
   test("Control Room is the default route", async ({ page }) => {
     await gotoControlRoom(page);
     await expect(page.getByTestId("control-room-grid")).toBeVisible();
+    await expect(page.getByTestId("control-room-state-band")).toContainText(
+      /Overview Source/i,
+    );
     await expect(page.getByTestId("os-tray")).toBeVisible();
     await expect(page.getByTestId("ticker-strip")).toBeVisible();
   });

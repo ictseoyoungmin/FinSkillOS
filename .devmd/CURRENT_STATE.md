@@ -100,6 +100,7 @@ operational protocols.
 60     Risk Firewall Guard Evidence Density
 61     Catalyst Watch DB Read Model Promotion
 62     Analysis Workspace State Hardening
+63     Control Room State Band Coherence
 ```
 
 Slice 14 is complete:
@@ -237,6 +238,10 @@ Slice 14 is complete:
 - Analysis Workspace now exposes a `dataState` API contract and renders a
   compact universe-source/coverage/ranked-tape/regime state band, aligning
   Index Lab copy with the rest of the evidence tabs.
+- Control Room now exposes a `dataState` API contract and renders a compact
+  overview-source/evidence-coverage/market-tape/linked-module state band, so
+  its fixture-first summary does not imply DB-backed parity with promoted
+  product tabs.
 ```
 
 ## Validation Baseline
@@ -267,15 +272,15 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Control Room state-band coherence
-   - Recheck the overview grid after individual tabs gained explicit
-     `dataState` contracts, so summary cards do not imply fixture/live states
-     that differ from the underlying tabs.
-
-2. Catalyst Watch manual event UX removal/replacement
+1. Catalyst Watch manual event UX removal/replacement
    - Decide whether manual event entry should remain now that the tab has a
      DB-backed read model, or replace it with read-only event catalog evidence.
 
-3. Analysis Workspace DB read-model promotion
+2. Analysis Workspace DB read-model promotion
    - Promote `/api/analysis-workspace` from fixture-first Index Lab snapshot
      to DB-backed stored bars/indicators once universe storage is wired.
+
+3. Control Room DB read-model promotion
+   - Decide whether Control Room should compose promoted tab read models, or
+     stay fixture-first as a stable operating overview while evidence tabs own
+     live detail.

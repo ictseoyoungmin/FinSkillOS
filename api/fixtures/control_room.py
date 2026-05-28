@@ -19,6 +19,7 @@ from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watc
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import (
     CatalystSummary,
+    ControlRoomDataState,
     ControlRoomResponse,
     GuardSummaryVM,
     MarketTapePoint,
@@ -36,10 +37,36 @@ CONTROL_ROOM_FIXTURE_TIMESTAMP = FIXTURE_TIMESTAMP
 
 
 def control_room_fixture() -> ControlRoomResponse:
+    guard_count = 3
+    catalyst_count = 3
+    watchlist_count = 4
+    market_tape_points = 11
     return ControlRoomResponse(
         generated_at=CONTROL_ROOM_FIXTURE_TIMESTAMP,
         source="fixture",
-        system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=2),
+        system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=guard_count),
+        data_state=ControlRoomDataState(
+            source="fixture",
+            overview_status="OK",
+            system_status="OK",
+            mission_status="OK",
+            market_tape_status="OK",
+            guard_status="OK",
+            catalyst_status="OK",
+            watchlist_status="OK",
+            market_tape_points=market_tape_points,
+            guard_count=guard_count,
+            catalyst_count=catalyst_count,
+            watchlist_count=watchlist_count,
+            source_note=(
+                "Control Room is a fixture-first operating overview; "
+                "underlying tabs expose their own live/fixture evidence."
+            ),
+            refresh_note=(
+                "Use dedicated Market, Risk, Mission, Catalyst, and Symbol "
+                "tabs for promoted DB-backed read models."
+            ),
+        ),
         judgment=judgment(
             "GLOBAL OPERATING VERDICT",
             "Risk-On but",
