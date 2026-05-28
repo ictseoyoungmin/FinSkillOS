@@ -34,6 +34,10 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await expect(page.getByTestId("mission-portfolio-snapshot")).toBeVisible();
     await expect(page.getByTestId("mission-state-band")).toBeVisible();
     await expect(page.getByTestId("mission-state-band")).toContainText(/Source/i);
+    await expect(page.getByTestId("mission-evidence-digest")).toBeVisible();
+    await expect(page.getByTestId("mission-evidence-digest")).toContainText(
+      /Drivers|Review/i,
+    );
     await expect(page.getByTestId("mission-capital-map-sector")).toBeVisible();
     await expect(page.getByTestId("mission-capital-map-theme")).toBeVisible();
     await expect(page.getByTestId("mission-control-caption")).toContainText(

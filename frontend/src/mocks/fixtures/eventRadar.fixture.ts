@@ -171,6 +171,20 @@ export const eventRadarFixture: EventRadarData = {
   today: "2026-05-20",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 3 },
+  dataState: {
+    calendarSource: "fixture",
+    calendarStatus: "fixture_first",
+    calendarDetail:
+      "Deterministic event catalog; live DB event read model has not been promoted for this tab yet.",
+    eventCount: 5,
+    linkedNewsCount: 2,
+    confirmedCount: 0,
+    uncertainCount: 5,
+    nearestEventDays: 10,
+    dateConfidenceStatus: "uncertain",
+    dateConfidenceDetail: "0 CONFIRMED · 1 WINDOW · 3 TENTATIVE · 1 SPECULATIVE",
+    sourceNote: "DB status is shown separately from Catalyst calendar source.",
+  },
   judgment: {
     headline:
       "Event calendar shows clustered macro + earnings risk over the next 3 weeks; preparation, not prediction, drives the score.",

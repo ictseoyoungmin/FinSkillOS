@@ -49,6 +49,7 @@ def test_event_radar_returns_full_payload() -> None:
         "generatedAt",
         "today",
         "systemStatus",
+        "dataState",
         "judgment",
         "drivers",
         "conflicts",
@@ -65,12 +66,16 @@ def test_event_radar_returns_full_payload() -> None:
     }
     assert expected.issubset(body.keys())
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    assert body["dataState"]["calendarStatus"] == "fixture_first"
+    assert body["dataState"]["dateConfidenceStatus"] == "uncertain"
 
 
 def test_event_radar_snapshot_exposes_v42_contract() -> None:
     body = _client().get("/api/event-radar").json()
 
     assert body["judgment"]
+    assert body["dataState"]["eventCount"] == len(body["upcoming"])
+    assert body["dataState"]["linkedNewsCount"] == len(body["linkedNews"])
     assert body["drivers"]
     assert body["conflicts"]
     assert body["dateStatusBadgeTone"]

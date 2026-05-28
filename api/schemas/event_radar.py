@@ -134,10 +134,29 @@ class ManualEventRules(CamelModel):
     )
 
 
+class EventRadarDataState(CamelModel):
+    """Explicit source/date-confidence state for Catalyst Watch."""
+
+    calendar_source: Literal["fixture", "live"] = "fixture"
+    calendar_status: Literal["fixture_first", "db_backed", "empty"] = "fixture_first"
+    calendar_detail: str
+    event_count: int = 0
+    linked_news_count: int = 0
+    confirmed_count: int = 0
+    uncertain_count: int = 0
+    nearest_event_days: int | None = None
+    date_confidence_status: Literal[
+        "confirmed", "mixed", "uncertain", "missing"
+    ] = "missing"
+    date_confidence_detail: str
+    source_note: str
+
+
 class EventRadarResponse(CamelModel):
     generated_at: str
     today: str
     system_status: SystemStatus
+    data_state: EventRadarDataState
     judgment: EventExposureJudgment
     drivers: list[EventDriver]
     conflicts: list[EventConflict]
@@ -206,6 +225,7 @@ __all__ = [
     "EventLinkVM",
     "EventLinkedNewsVM",
     "EventRadarResponse",
+    "EventRadarDataState",
     "EventRiskRow",
     "EventWatchpoint",
     "ManualEventInput",

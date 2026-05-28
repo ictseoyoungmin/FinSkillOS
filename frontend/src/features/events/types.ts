@@ -108,6 +108,30 @@ export interface ManualEventRules {
   disclaimer: string;
 }
 
+export type EventRadarCalendarStatus =
+  | "fixture_first"
+  | "db_backed"
+  | "empty";
+export type EventRadarDateConfidenceStatus =
+  | "confirmed"
+  | "mixed"
+  | "uncertain"
+  | "missing";
+
+export interface EventRadarDataState {
+  calendarSource: "fixture" | "live";
+  calendarStatus: EventRadarCalendarStatus;
+  calendarDetail: string;
+  eventCount: number;
+  linkedNewsCount: number;
+  confirmedCount: number;
+  uncertainCount: number;
+  nearestEventDays: number | null;
+  dateConfidenceStatus: EventRadarDateConfidenceStatus;
+  dateConfidenceDetail: string;
+  sourceNote: string;
+}
+
 export interface EventRadarSystemStatus {
   db: string;
   mode: string;
@@ -118,6 +142,7 @@ export interface EventRadarData {
   generatedAt: string;
   today: string;
   systemStatus: EventRadarSystemStatus;
+  dataState: EventRadarDataState;
   judgment: EventExposureJudgment;
   drivers: EventDriver[];
   conflicts: EventConflict[];

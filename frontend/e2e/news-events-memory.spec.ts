@@ -25,6 +25,13 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     await page.goto("/catalyst-watch");
     await expect(page.getByTestId("catalyst-watch-page")).toBeVisible();
     await expect(page.getByTestId("event-judgment-header")).toBeVisible();
+    await expect(page.getByTestId("catalyst-data-state")).toBeVisible();
+    await expect(page.getByTestId("catalyst-data-state")).toContainText(
+      /Calendar source/i,
+    );
+    await expect(page.getByTestId("catalyst-data-state")).toContainText(
+      /Date confidence/i,
+    );
     await expect(page.getByTestId("event-upcoming")).toBeVisible();
     await expect(page.getByTestId("event-upcoming-table")).toBeVisible();
     await expect(page.getByTestId("event-manual-entry")).toBeVisible();

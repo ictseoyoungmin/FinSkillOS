@@ -8,14 +8,10 @@ import { missionControlFixture } from "@/mocks/fixtures/missionControl.fixture";
 import { formatKrw, formatPct } from "@/shared/lib/format";
 import {
   Badge,
-  ConflictsPanel,
-  DriversPanel,
   EmptyState,
-  InterpretationPanel,
   JudgmentHeader,
   Panel,
   SectionHeader,
-  WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
 import type { MissionControlData } from "@/features/portfolio/types";
@@ -175,34 +171,7 @@ export function MissionControlPage() {
           {payload.safetyCaption}
         </p>
       </div>
-      <div className="fso-mission-control-evidence-grid">
-        <DriversPanel
-          drivers={payload.drivers.map((driver) => ({
-            label: driver.title,
-            value: driver.score,
-            detail: driver.note,
-          }))}
-        />
-        <ConflictsPanel
-          conflicts={payload.conflicts.map((conflict) => ({
-            label: conflict.title,
-            description: conflict.note,
-          }))}
-        />
-        <InterpretationPanel
-          bullets={[
-            payload.interpretation.verdict,
-            payload.interpretation.whyItMatters,
-            payload.interpretation.whatRemainsUncertain,
-          ]}
-        />
-        <WatchpointsPanel
-          watchpoints={payload.watchpoints.map((watchpoint) => ({
-            label: watchpoint.title,
-            description: watchpoint.note,
-          }))}
-        />
-      </div>
+      <MissionEvidenceDigest payload={payload} />
     </div>
   );
 }
@@ -263,5 +232,86 @@ function StateItem({ label, value, detail, tone }: StateItemProps) {
       <Badge tone={tone}>{value}</Badge>
       <small>{detail}</small>
     </div>
+  );
+}
+
+function MissionEvidenceDigest({ payload }: { payload: MissionControlData }) {
+  const firstDriver = payload.drivers[0];
+  const firstConflict = payload.conflicts[0];
+  const firstWatchpoint = payload.watchpoints[0];
+
+  return (
+    <section
+      className="fso-mission-control-evidence-digest"
+      data-testid="mission-evidence-digest"
+      aria-label="Mission evidence digest"
+    >
+      <div className="fso-mission-control-digest-lead">
+        <div>
+          <span>Evidence Digest</span>
+          <strong>{payload.interpretation.verdict}</strong>
+        </div>
+        <Badge tone="info">READ MODEL</Badge>
+      </div>
+      <div className="fso-mission-control-digest-grid">
+        <EvidenceDigestItem
+          label="Drivers"
+          value={`${payload.drivers.length}`}
+          title={firstDriver?.title ?? "No active drivers"}
+          detail={
+            firstDriver
+              ? `${firstDriver.score} · ${firstDriver.note}`
+              : "Awaiting evidence rows"
+          }
+          tone="info"
+        />
+        <EvidenceDigestItem
+          label="Uncertainty"
+          value={`${payload.conflicts.length}`}
+          title={firstConflict?.title ?? "No conflicts logged"}
+          detail={
+            firstConflict?.note ?? payload.interpretation.whatRemainsUncertain
+          }
+          tone={payload.conflicts.length > 0 ? "warning" : "success"}
+        />
+        <EvidenceDigestItem
+          label="Review"
+          value={`${payload.watchpoints.length}`}
+          title={firstWatchpoint?.title ?? "No watchpoints logged"}
+          detail={firstWatchpoint?.note ?? payload.interpretation.whyItMatters}
+          tone="info"
+        />
+      </div>
+      <p className="fso-mission-control-digest-context">
+        {payload.interpretation.whyItMatters}
+      </p>
+    </section>
+  );
+}
+
+interface EvidenceDigestItemProps {
+  label: string;
+  value: string;
+  title: string;
+  detail: string;
+  tone: BadgeTone;
+}
+
+function EvidenceDigestItem({
+  label,
+  value,
+  title,
+  detail,
+  tone,
+}: EvidenceDigestItemProps) {
+  return (
+    <article className="fso-mission-control-digest-item">
+      <div className="fso-mission-control-digest-item-heading">
+        <span>{label}</span>
+        <Badge tone={tone}>{value}</Badge>
+      </div>
+      <strong>{title}</strong>
+      <small>{detail}</small>
+    </article>
   );
 }

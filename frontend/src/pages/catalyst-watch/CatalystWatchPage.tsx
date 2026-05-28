@@ -9,6 +9,7 @@ import { HoldingsLinkedEventsPanel } from "@/features/events/components/Holdings
 import { ManualEventEntry } from "@/features/events/components/ManualEventEntry";
 import { eventRadarFixture } from "@/mocks/fixtures/eventRadar.fixture";
 import {
+  Badge,
   ConflictsPanel,
   EmptyState,
   InterpretationPanel,
@@ -16,6 +17,8 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui/Badge";
+import type { EventRadarData } from "@/features/events/types";
 import "./catalyst-watch.css";
 
 export function CatalystWatchPage() {
@@ -50,6 +53,7 @@ export function CatalystWatchPage() {
         </div>
         <ConflictsPanel conflicts={payload.conflicts} />
       </div>
+      <CatalystDataStateBand payload={payload} />
       <div className="fso-catalyst-watch-grid">
         <div className="fso-catalyst-watch-col">
           <div data-testid="event-upcoming">
@@ -88,6 +92,92 @@ export function CatalystWatchPage() {
       <div data-testid="catalyst-watch-safety-caption">
         <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
       </div>
+    </div>
+  );
+}
+
+function CatalystDataStateBand({ payload }: { payload: EventRadarData }) {
+  const state = payload.dataState;
+  const sourceLabel =
+    state.calendarStatus === "db_backed" ? "LIVE" : "FIXTURE";
+  const sourceTone: BadgeTone =
+    state.calendarStatus === "db_backed" ? "success" : "warning";
+  const confidenceTone: BadgeTone = dateConfidenceTone(
+    state.dateConfidenceStatus,
+  );
+  const nearestLabel =
+    state.nearestEventDays === null ? "No event" : `T-${state.nearestEventDays}`;
+
+  return (
+    <div
+      className="fso-catalyst-state-band"
+      data-testid="catalyst-data-state"
+    >
+      <CatalystStateItem
+        label="Calendar source"
+        value={sourceLabel}
+        detail={state.calendarDetail}
+        tone={sourceTone}
+      />
+      <CatalystStateItem
+        label="Date confidence"
+        value={state.dateConfidenceStatus.toUpperCase()}
+        detail={state.dateConfidenceDetail}
+        tone={confidenceTone}
+      />
+      <CatalystStateItem
+        label="Event rows"
+        value={`${state.eventCount}`}
+        detail={`${nearestLabel} nearest · ${state.linkedNewsCount} linked news`}
+        tone={state.eventCount > 0 ? "info" : "neutral"}
+      />
+      <CatalystStateItem
+        label="DB / mode"
+        value={payload.systemStatus.db.toUpperCase()}
+        detail={`${payload.systemStatus.mode} · ${state.sourceNote}`}
+        tone={
+          payload.systemStatus.db.toUpperCase() === "LIVE"
+            ? "success"
+            : "warning"
+        }
+      />
+    </div>
+  );
+}
+
+function dateConfidenceTone(
+  status: EventRadarData["dataState"]["dateConfidenceStatus"],
+): BadgeTone {
+  if (status === "confirmed") {
+    return "success";
+  }
+  if (status === "mixed") {
+    return "info";
+  }
+  if (status === "uncertain") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+interface CatalystStateItemProps {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}
+
+function CatalystStateItem({
+  label,
+  value,
+  detail,
+  tone,
+}: CatalystStateItemProps) {
+  return (
+    <div className="fso-catalyst-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }

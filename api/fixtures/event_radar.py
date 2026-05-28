@@ -20,6 +20,7 @@ from api.schemas.event_radar import (
     EventExposureJudgment,
     EventLinkedNewsVM,
     EventLinkVM,
+    EventRadarDataState,
     EventRadarResponse,
     EventRiskRow,
     EventWatchpoint,
@@ -240,11 +241,37 @@ _UPCOMING: tuple[EventRiskRow, ...] = (
 def event_radar_fixture() -> EventRadarResponse:
     high_risk = [row for row in _UPCOMING if row.risk_label in {"HIGH", "CRITICAL"}]
     holdings_linked = [row for row in _UPCOMING if row.affected_tickers]
+    confirmed_count = sum(1 for row in _UPCOMING if row.date_status == "CONFIRMED")
+    uncertain_count = len(_UPCOMING) - confirmed_count
+    nearest_event_days = min(
+        (row.days_to_event for row in _UPCOMING if row.days_to_event is not None),
+        default=None,
+    )
     return EventRadarResponse(
         generated_at=FIXTURE_TIMESTAMP,
         today=_TODAY,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=3),
+        data_state=EventRadarDataState(
+            calendar_source="fixture",
+            calendar_status="fixture_first",
+            calendar_detail=(
+                "Deterministic event catalog; live DB event read model has "
+                "not been promoted for this tab yet."
+            ),
+            event_count=len(_UPCOMING),
+            linked_news_count=len(_LINKED_NEWS),
+            confirmed_count=confirmed_count,
+            uncertain_count=uncertain_count,
+            nearest_event_days=nearest_event_days,
+            date_confidence_status="uncertain",
+            date_confidence_detail=(
+                "0 CONFIRMED · 1 WINDOW · 3 TENTATIVE · 1 SPECULATIVE"
+            ),
+            source_note=(
+                "DB status is shown separately from Catalyst calendar source."
+            ),
+        ),
         judgment=EventExposureJudgment(
             headline=(
                 "Event calendar shows clustered macro + earnings risk over "

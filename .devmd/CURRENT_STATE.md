@@ -94,6 +94,8 @@ operational protocols.
 54     News Intelligence Source Coverage
 55     News Intelligence Manual Article Removal
 56     Symbol Lab Data State Hardening
+57     Mission Control Evidence Density
+58     Catalyst Watch Source Date Confidence
 ```
 
 Slice 14 is complete:
@@ -212,6 +214,12 @@ Slice 14 is complete:
 - Symbol Lab now exposes `dataState` as an API contract and renders a compact
   source/chart/indicator/logo/subscription state band, while E2E checks are
   live-aware instead of relying on fixed fixture shortcut or position rows.
+- Mission Control now uses a compact evidence digest instead of four large
+  lower evidence panels, keeping verdict, lead driver, uncertainty, and review
+  watchpoints visible without expanding the page with repeated narrative.
+- Catalyst Watch now exposes a `dataState` API contract and renders a compact
+  calendar source/date-confidence band, so a live DB session is not confused
+  with a promoted live event-calendar read model.
 ```
 
 ## Validation Baseline
@@ -242,14 +250,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Mission Control evidence density follow-up
-   - Review lower evidence panels for scan density and repeated copy after the
-     state band has stabilized.
-
-2. Catalyst Watch source/date confidence hardening
-   - Recheck manual and DB-backed event source/date confidence copy, empty
-     states, and linked-news behavior after News Intelligence coverage work.
-
-3. Market Kernel data-state hardening
+1. Market Kernel data-state hardening
    - Align chart/source/indicator state copy with Symbol Lab so the market
      evidence tabs speak the same live/fixture/missing-data language.
+
+2. Risk Firewall guard evidence density
+   - Recheck guard result cards and active alert rows for live/fixture state,
+     repeated wording, and compact review flow.
+
+3. Catalyst Watch DB read-model promotion
+   - Promote `/api/event-radar` from fixture-first shell to a live DB-backed
+     event read model when stored event rows are available.
