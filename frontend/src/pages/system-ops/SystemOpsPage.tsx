@@ -8,6 +8,9 @@ import {
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
 import type {
+  DataCompleteness,
+  SystemStatusData,
+  SystemStatusSource,
   WorkerCycleRecord,
   WorkerStatusSummary,
 } from "@/features/system-ops/types";
@@ -59,9 +62,6 @@ export function SystemOpsPage() {
         tone: "info" as const,
         text: "Status endpoint loading.",
       };
-  const latestSummary = statusData
-    ? summarizeLatest(statusData)
-    : "Freshness timestamps pending.";
 
   return (
     <div className="fso-system-ops" data-testid="system-ops-page">
@@ -117,12 +117,13 @@ export function SystemOpsPage() {
               badgeTone={dbBadgeTone}
               testId="system-health"
             >
-              <p>API mode: {statusData?.mode ?? payload.systemStatus.mode}</p>
-              <p data-testid="system-status-summary">
-                API {statusData?.apiStatus ?? "LIVE"} · source{" "}
-                {(statusData?.source ?? payload.source).toUpperCase()} · completeness{" "}
-                {(statusData?.dataCompleteness ?? "missing").toUpperCase()}
-              </p>
+              <SystemHealthSummary
+                mode={statusData?.mode ?? payload.systemStatus.mode}
+                apiStatus={statusData?.apiStatus ?? "LIVE"}
+                dbStatus={statusData?.dbStatus ?? payload.systemStatus.db}
+                source={statusData?.source ?? payload.source}
+                completeness={statusData?.dataCompleteness ?? "missing"}
+              />
             </Panel>
             <Panel
               title="Freshness Status"
@@ -130,8 +131,10 @@ export function SystemOpsPage() {
               badgeTone={staleSummary.tone}
               testId="migration-status"
             >
-              <p data-testid="system-freshness-status">{staleSummary.text}</p>
-              <p>{latestSummary}</p>
+              <FreshnessSummary
+                status={statusData}
+                staleText={staleSummary.text}
+              />
             </Panel>
           </div>
           <div data-testid="system-ops-data-sources">
@@ -191,6 +194,106 @@ export function SystemOpsPage() {
       ) : (
         <WorkerStatusDashboard workerStatus={payload.workerStatus} />
       )}
+    </div>
+  );
+}
+
+function SystemHealthSummary({
+  mode,
+  apiStatus,
+  dbStatus,
+  source,
+  completeness,
+}: {
+  mode: string;
+  apiStatus: string;
+  dbStatus: string;
+  source: SystemStatusSource | "fixture" | "live";
+  completeness: DataCompleteness | "missing";
+}) {
+  return (
+    <div className="fso-health-summary" data-testid="system-status-summary">
+      <HealthMetric label="API" value={apiStatus} tone="success" />
+      <HealthMetric
+        label="DB"
+        value={dbStatus}
+        tone={dbStatus === "LIVE" ? "success" : "danger"}
+      />
+      <HealthMetric label="Mode" value={mode} tone="info" />
+      <HealthMetric
+        label="Source"
+        value={source.toUpperCase()}
+        tone={source === "live" ? "success" : "warning"}
+      />
+      <HealthMetric
+        label="Completeness"
+        value={completeness.toUpperCase()}
+        tone={completeness === "complete" ? "success" : "warning"}
+      />
+    </div>
+  );
+}
+
+function HealthMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "success" | "warning" | "danger" | "info";
+}) {
+  return (
+    <div className="fso-health-metric" data-tone={tone}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function FreshnessSummary({
+  status,
+  staleText,
+}: {
+  status: SystemStatusData | undefined;
+  staleText: string;
+}) {
+  const items: Array<[string, string | null]> = status
+    ? [
+        ["Portfolio", status.latestPortfolioSnapshotAt],
+        ["Market", status.latestMarketBarAt],
+        ["Indicators", status.latestIndicatorAt],
+        ["Regime", status.latestRegimeAt],
+        ["News", status.latestNewsAt],
+        ["Events", status.latestEventAt],
+      ]
+    : [
+        ["Portfolio", null],
+        ["Market", null],
+        ["Indicators", null],
+        ["Regime", null],
+        ["News", null],
+        ["Events", null],
+      ];
+
+  return (
+    <div className="fso-freshness-summary">
+      <p className="fso-freshness-note" data-testid="system-freshness-status">
+        {staleText}
+      </p>
+      <div className="fso-freshness-grid">
+        {items.map(([label, value]) => (
+          <div
+            className="fso-freshness-item"
+            data-state={value ? "available" : "missing"}
+            key={label}
+            title={value ?? "missing"}
+          >
+            <span>{label}</span>
+            <strong>{formatFreshnessValue(value)}</strong>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -376,6 +479,23 @@ function formatDuration(start: string | null, finish: string | null): string {
   return `${minutes}m ${remainingSeconds}s`;
 }
 
+function formatFreshnessValue(value: string | null): string {
+  if (!value) {
+    return "Missing";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 function summarizeStaleFlags(flags: string[]): {
   badge: string;
   tone: "info" | "success" | "warning";
@@ -395,22 +515,4 @@ function summarizeStaleFlags(flags: string[]): {
       flags.length > 3 ? " ..." : ""
     }`,
   };
-}
-
-function summarizeLatest(status: {
-  latestPortfolioSnapshotAt: string | null;
-  latestMarketBarAt: string | null;
-  latestIndicatorAt: string | null;
-  latestRegimeAt: string | null;
-  latestNewsAt: string | null;
-  latestEventAt: string | null;
-}): string {
-  return [
-    `portfolio ${status.latestPortfolioSnapshotAt ?? "missing"}`,
-    `market ${status.latestMarketBarAt ?? "missing"}`,
-    `indicator ${status.latestIndicatorAt ?? "missing"}`,
-    `regime ${status.latestRegimeAt ?? "missing"}`,
-    `news ${status.latestNewsAt ?? "missing"}`,
-    `event ${status.latestEventAt ?? "missing"}`,
-  ].join(" · ");
 }

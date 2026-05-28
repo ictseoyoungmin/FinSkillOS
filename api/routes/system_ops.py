@@ -28,7 +28,15 @@ from fastapi import APIRouter, Depends
 
 from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import system_ops_fixture
+from api.schemas.common import (
+    EvidenceConflict,
+    EvidenceDriver,
+    EvidenceWatchpoint,
+    IntegratedInterpretation,
+    JudgmentHeader,
+)
 from api.schemas.system_ops import (
+    DataSourcePill,
     ProtocolKey,
     ProtocolRunRecord,
     ProtocolRunResult,
@@ -69,6 +77,8 @@ def system_ops(
             payload.recent_protocol_runs = _read_recent_protocol_runs(session=session)
             payload.worker_status = _read_worker_status(session=session)
             _attach_last_run_times(payload, session)
+            payload.data_sources = _live_data_sources()
+            _attach_live_evidence(payload)
             payload.source = "live"
         except Exception:
             session.rollback()
@@ -195,6 +205,112 @@ def run_seed_sample_events() -> ProtocolRunResult:
 
 def _now_iso() -> str:
     return datetime.now(tz=UTC).isoformat(timespec="seconds")
+
+
+def _live_data_sources() -> list[DataSourcePill]:
+    return [
+        DataSourcePill(
+            label="Database",
+            status="LIVE",
+            detail=(
+                "PostgreSQL session active; protocol and worker audit rows "
+                "are DB-backed."
+            ),
+        ),
+        DataSourcePill(
+            label="Market / Indicators",
+            status="LIVE",
+            detail=(
+                "Stored bars and indicator snapshots are read from the live DB; "
+                "provider freshness is shown separately."
+            ),
+        ),
+        DataSourcePill(
+            label="News / Event Stores",
+            status="LIVE",
+            detail=(
+                "Stored news and event metadata are read from the live DB; "
+                "feed freshness depends on refresh protocols."
+            ),
+        ),
+        DataSourcePill(
+            label="Mode",
+            status="LIVE",
+            detail="Read mode · operational protocols only.",
+        ),
+    ]
+
+
+def _attach_live_evidence(payload: SystemOpsResponse) -> None:
+    protocol_count = str(len(payload.protocols))
+    payload.judgment = JudgmentHeader(
+        eyebrow="SYSTEM TRUST JUDGMENT",
+        title="Local System DB-Backed",
+        accent="and Ready for Read Ops",
+        summary=(
+            "Core protocols, audit history, worker state, and stored data "
+            "summaries are reading from the live database."
+        ),
+        confidence=82,
+    )
+    payload.drivers = [
+        EvidenceDriver(
+            score=protocol_count,
+            title="Protocols",
+            note="Operational cards are available for local DB-backed workflows.",
+        ),
+        EvidenceDriver(
+            score="Live",
+            title="Data layer",
+            note=(
+                "Database, market snapshots, indicators, news, and event stores "
+                "are reported as live DB-backed views."
+            ),
+        ),
+        EvidenceDriver(
+            score="Read",
+            title="Mode",
+            note="The system exposes descriptive operational protocols only.",
+        ),
+    ]
+    payload.conflicts = [
+        EvidenceConflict(
+            title="Stored data vs provider freshness",
+            note=(
+                "Live DB rows are available; external provider freshness still "
+                "depends on the refresh protocols and worker cycle."
+            ),
+        ),
+        EvidenceConflict(
+            title="Protocol actions vs trading actions",
+            note="Operational buttons do not create brokerage workflows.",
+        ),
+    ]
+    payload.interpretation = IntegratedInterpretation(
+        verdict="Local System DB-Backed is the current trust read.",
+        why_it_matters=(
+            "The page now separates DB-backed stored views from provider "
+            "freshness, so live status is easier to interpret."
+        ),
+        what_remains_uncertain=(
+            "Freshness still depends on refresh cadence, RSS availability, "
+            "and the latest worker cycle result."
+        ),
+    )
+    payload.watchpoints = [
+        EvidenceWatchpoint(
+            title="Refresh cadence",
+            note="Review freshness tiles before relying on stored snapshots.",
+        ),
+        EvidenceWatchpoint(
+            title="Protocol idempotency",
+            note="Read each idempotency note before running a protocol.",
+        ),
+        EvidenceWatchpoint(
+            title="Container health",
+            note="Check API and database status if protocol results drift.",
+        ),
+    ]
 
 
 def _run_protocol(

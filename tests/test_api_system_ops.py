@@ -73,6 +73,10 @@ def _client() -> TestClient:
     return TestClient(create_app())
 
 
+def _data_source_by_label(body: dict, label: str) -> dict:
+    return next(item for item in body["dataSources"] if item["label"] == label)
+
+
 def test_system_ops_get_returns_full_payload() -> None:
     response = _client().get("/api/system-ops")
     assert response.status_code == 200
@@ -169,7 +173,75 @@ def test_use_fixture_header_is_accepted_on_system_ops() -> None:
         "/api/system-ops", headers={"X-FSO-Use-Fixture": "1"}
     )
     assert response.status_code == 200
-    assert response.json()["source"] == "fixture"
+    body = response.json()
+    assert body["source"] == "fixture"
+    assert _data_source_by_label(body, "Database")["status"] == "FIXTURE"
+
+
+def test_system_ops_live_data_sources_match_db_backed_payload(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops").json()
+
+        assert body["source"] == "live"
+        assert _data_source_by_label(body, "Database")["status"] == "LIVE"
+        assert (
+            _data_source_by_label(body, "Market / Indicators")["status"] == "LIVE"
+        )
+        assert (
+            _data_source_by_label(body, "News / Event Stores")["status"] == "LIVE"
+        )
+        assert "DB-backed" in _data_source_by_label(body, "Database")["detail"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_system_ops_live_evidence_copy_matches_db_backed_payload(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops").json()
+        raw = json.dumps(
+            {
+                "judgment": body["judgment"],
+                "drivers": body["drivers"],
+                "conflicts": body["conflicts"],
+            }
+        ).lower()
+
+        assert body["source"] == "live"
+        assert body["judgment"]["title"] == "Local System DB-Backed"
+        assert next(
+            driver for driver in body["drivers"] if driver["title"] == "Protocols"
+        )["score"] == str(len(body["protocols"]))
+        assert next(
+            driver for driver in body["drivers"] if driver["title"] == "Data layer"
+        )["score"] == "Live"
+        assert "fixture-first" not in raw
+        assert "source freshness is limited" not in raw
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 def test_system_ops_protocol_runs_are_audited_to_jsonl(monkeypatch, tmp_path) -> None:
