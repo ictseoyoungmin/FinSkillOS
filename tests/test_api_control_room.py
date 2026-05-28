@@ -18,19 +18,37 @@ Verifies the shape the React shell relies on:
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import date
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from api.fixtures import CONTROL_ROOM_FIXTURE_TIMESTAMP
 from api.main import create_app
+from api.routes.control_room import control_room
+from finskillos.db.repositories import AccountRepository
+from finskillos.services.portfolio_service import PortfolioPositionInput, PortfolioService
 
 
 def _client() -> TestClient:
     return TestClient(create_app())
 
 
+def _fixture_json() -> dict:
+    return _client().get(
+        "/api/control-room",
+        headers={"X-FSO-Use-Fixture": "1"},
+    ).json()
+
+
 def test_control_room_endpoint_returns_full_payload() -> None:
-    response = _client().get("/api/control-room")
+    response = _client().get(
+        "/api/control-room",
+        headers={"X-FSO-Use-Fixture": "1"},
+    )
     assert response.status_code == 200
     body = response.json()
 
@@ -63,7 +81,7 @@ def test_control_room_endpoint_returns_full_payload() -> None:
 def test_control_room_market_tape_is_normalised_and_nonempty() -> None:
     """13.6 cleanup §1 — Portfolio / Market Tape series must be wired."""
 
-    body = _client().get("/api/control-room").json()
+    body = _fixture_json()
     tape = body["marketTape"]
     assert isinstance(tape, list) and len(tape) >= 5, (
         "Control Room must surface a Portfolio / Market Tape series with "
@@ -80,12 +98,12 @@ def test_control_room_market_tape_is_normalised_and_nonempty() -> None:
 
 
 def test_control_room_returns_deterministic_fixture_timestamp() -> None:
-    body = _client().get("/api/control-room").json()
+    body = _fixture_json()
     assert body["generatedAt"] == CONTROL_ROOM_FIXTURE_TIMESTAMP
 
 
 def test_control_room_ticker_strip_has_expected_symbols() -> None:
-    body = _client().get("/api/control-room").json()
+    body = _fixture_json()
     symbols = {row["symbol"] for row in body["tickerStrip"]}
     # Slice-04 universe + macro proxies anchor the strip.
     must_have = {"SPY", "QQQ", "NVDA", "TSLA", "VIX"}
@@ -93,7 +111,7 @@ def test_control_room_ticker_strip_has_expected_symbols() -> None:
 
 
 def test_control_room_mission_includes_progress_and_phase() -> None:
-    body = _client().get("/api/control-room").json()
+    body = _fixture_json()
     mission = body["mission"]
     assert "currentValue" in mission
     assert "targetValue" in mission
@@ -103,14 +121,14 @@ def test_control_room_mission_includes_progress_and_phase() -> None:
 
 
 def test_control_room_preparation_score_is_an_integer_in_range() -> None:
-    body = _client().get("/api/control-room").json()
+    body = _fixture_json()
     score = body["operatingState"]["preparationScore"]
     assert isinstance(score, int)
     assert 0 <= score <= 100
 
 
 def test_control_room_risk_firewall_lists_documented_guards() -> None:
-    body = _client().get("/api/control-room").json()
+    body = _fixture_json()
     guards = {row["name"] for row in body["riskFirewall"]}
     assert "SINGLE_POSITION_LIMIT_GUARD" in guards
     assert "DRAWDOWN_GUARD" in guards
@@ -120,7 +138,7 @@ def test_control_room_risk_firewall_lists_documented_guards() -> None:
 def test_control_room_response_does_not_expose_execution_concepts() -> None:
     """Safety contract — interpretation-first JSON only."""
 
-    raw = json.dumps(_client().get("/api/control-room").json()).lower()
+    raw = json.dumps(_fixture_json()).lower()
     for forbidden in (
         '"buy"',
         '"sell"',
@@ -157,3 +175,75 @@ def test_api_response_does_not_advertise_execution_endpoints() -> None:
         assert forbidden not in paths, (
             f"OpenAPI exposes forbidden execution path {forbidden!r}"
         )
+
+
+def test_control_room_live_empty_state_when_db_reachable(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    _patch_session_scope(monkeypatch, db_session)
+
+    body = control_room(use_fixture=False).model_dump(by_alias=True)
+
+    assert body["source"] == "live"
+    assert body["dataState"]["source"] == "live"
+    assert body["dataState"]["overviewStatus"] == "MISSING"
+    assert body["dataState"]["missionStatus"] == "MISSING"
+    assert body["mission"]["progressPct"] == Decimal("0")
+    assert body["riskFirewall"] == []
+    assert body["reviewQueue"][0]["title"] == "Account baseline"
+
+
+def test_control_room_promotes_live_mission_portfolio_and_guards(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    _seed_account_and_portfolio(db_session)
+    _patch_session_scope(monkeypatch, db_session)
+
+    body = control_room(use_fixture=False).model_dump(by_alias=True)
+
+    assert body["source"] == "live"
+    assert body["dataState"]["overviewStatus"] == "PARTIAL"
+    assert body["dataState"]["missionStatus"] == "OK"
+    assert body["dataState"]["guardStatus"] == "OK"
+    assert body["mission"]["progressPct"] > 0
+    assert body["portfolioExposure"]
+    assert body["riskFirewall"]
+    assert body["systemStatus"]["guardCount"] <= len(body["riskFirewall"])
+
+
+def _patch_session_scope(monkeypatch, db_session: Session) -> None:
+    @contextmanager
+    def _scope() -> Iterator[Session]:
+        yield db_session
+
+    monkeypatch.setattr("api.routes.control_room.get_session_scope", _scope)
+
+
+def _seed_account_and_portfolio(session: Session) -> None:
+    account = AccountRepository(session).create(
+        name="Control Room API Account",
+        target_value=Decimal("100000000"),
+    )
+    PortfolioService(session).import_snapshot(
+        account_id=account.id,
+        snapshot_date=date(2026, 5, 28),
+        rows=[
+            PortfolioPositionInput(
+                ticker="NVDA",
+                quantity=Decimal("1"),
+                market_value=Decimal("20000000"),
+                sector="Semiconductors",
+            ),
+            PortfolioPositionInput(
+                ticker="TSLA",
+                quantity=Decimal("1"),
+                market_value=Decimal("12000000"),
+                sector="Consumer Discretionary",
+            ),
+        ],
+        cash_value=Decimal("8000000"),
+        peak_value=Decimal("45000000"),
+        drawdown_pct=Decimal("-4.20"),
+    )

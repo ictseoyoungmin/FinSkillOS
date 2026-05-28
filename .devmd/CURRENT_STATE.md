@@ -103,6 +103,7 @@ operational protocols.
 63     Control Room State Band Coherence
 64     Catalyst Watch Manual Event UX Removal
 65     Analysis Workspace DB Read Model Promotion
+66     Control Room DB Read Model Promotion
 ```
 
 Slice 14 is complete:
@@ -252,6 +253,10 @@ Slice 14 is complete:
   Index Lab read model when a DB session is reachable, reads stored bars,
   indicators, and regime context without provider calls, and keeps
   `X-FSO-Use-Fixture: 1` as the deterministic fixture path.
+- Control Room `/api/control-room` now promotes to a DB-backed operating
+  overview when a DB session is reachable, composing live mission, portfolio,
+  regime, and risk-guard context while marking non-promoted overview rails as
+  partial in `dataState`.
 ```
 
 ## Validation Baseline
@@ -282,16 +287,16 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Control Room DB read-model promotion
-   - Decide whether Control Room should compose promoted tab read models, or
-     stay fixture-first as a stable operating overview while evidence tabs own
-     live detail.
-
-2. Catalyst Watch backend mutation boundary cleanup
+1. Catalyst Watch backend mutation boundary cleanup
    - Decide whether the backend manual-event POST route remains useful for
      tests/admin workflows or should move behind a System Ops ingestion
      protocol.
 
-3. Analysis Workspace coverage ergonomics
+2. Analysis Workspace coverage ergonomics
    - Refine empty/partial universe copy now that live DB-backed rows can be
      sparse, especially when only subscribed folders have refreshed bars.
+
+3. Control Room rail promotion follow-up
+   - Replace the remaining fixture overview rails with composed live summaries
+     from Market Kernel, Catalyst Watch, Symbol Lab, and Worker Status where
+     the contracts are stable enough.
