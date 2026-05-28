@@ -102,6 +102,7 @@ operational protocols.
 62     Analysis Workspace State Hardening
 63     Control Room State Band Coherence
 64     Catalyst Watch Manual Event UX Removal
+65     Analysis Workspace DB Read Model Promotion
 ```
 
 Slice 14 is complete:
@@ -247,6 +248,10 @@ Slice 14 is complete:
   The former form has been replaced with read-only event catalog evidence,
   while the backend manual-event API remains covered by existing regression
   tests.
+- Analysis Workspace `/api/analysis-workspace` now promotes to the DB-backed
+  Index Lab read model when a DB session is reachable, reads stored bars,
+  indicators, and regime context without provider calls, and keeps
+  `X-FSO-Use-Fixture: 1` as the deterministic fixture path.
 ```
 
 ## Validation Baseline
@@ -277,16 +282,16 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Analysis Workspace DB read-model promotion
-   - Promote `/api/analysis-workspace` from fixture-first Index Lab snapshot
-     to DB-backed stored bars/indicators once universe storage is wired.
-
-2. Control Room DB read-model promotion
+1. Control Room DB read-model promotion
    - Decide whether Control Room should compose promoted tab read models, or
      stay fixture-first as a stable operating overview while evidence tabs own
      live detail.
 
-3. Catalyst Watch backend mutation boundary cleanup
+2. Catalyst Watch backend mutation boundary cleanup
    - Decide whether the backend manual-event POST route remains useful for
      tests/admin workflows or should move behind a System Ops ingestion
      protocol.
+
+3. Analysis Workspace coverage ergonomics
+   - Refine empty/partial universe copy now that live DB-backed rows can be
+     sparse, especially when only subscribed folders have refreshed bars.
