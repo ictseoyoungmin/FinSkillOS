@@ -17,6 +17,7 @@ export type ProtocolKey =
 
 export type ProtocolStatus = "OK" | "NOOP" | "ERROR";
 export type WorkerStatus = ProtocolStatus | "MISSING";
+export type WorkerCadenceStatus = "FRESH" | "STALE" | "ERROR" | "MISSING";
 export type ProtocolTone = "info" | "warning" | "neutral" | "success";
 export type DataSourceStatus = "LIVE" | "FIXTURE" | "MISSING";
 export type ApiStatus = "LIVE";
@@ -92,9 +93,12 @@ export interface WorkerCycleRecord {
 
 export interface WorkerStatusSummary {
   status: WorkerStatus;
+  cadenceStatus: WorkerCadenceStatus;
   latestStartedAt: string | null;
   latestFinishedAt: string | null;
+  expectedNextCycleAt: string | null;
   latestDetail: string;
+  cadenceDetail: string;
   recentCycles: WorkerCycleRecord[];
 }
 

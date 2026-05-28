@@ -13,7 +13,7 @@ Covers:
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -381,6 +381,48 @@ def test_system_ops_get_exposes_worker_cycle_error_detail(monkeypatch, tmp_path)
 
         assert body["workerStatus"]["status"] == "ERROR"
         assert "error=ValueError" in body["workerStatus"]["latestDetail"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_system_ops_get_exposes_worker_cadence_status(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime.now(tz=timezone.utc)
+    with factory() as session:
+        WorkerCycleRunRepository(session).create(
+            status="OK",
+            started_at=now - timedelta(seconds=130),
+            finished_at=now - timedelta(seconds=120),
+            timeframe="1d",
+            market_status="OK",
+            news_status="NOOP",
+            indicator_status="OK",
+            market_scope="all_active",
+            news_scope="all_active",
+            indicator_scope="all_active",
+            summary={"startedAt": now.isoformat(), "finishedAt": now.isoformat()},
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_WORKER_INTERVAL_SECONDS", "30")
+    monkeypatch.setenv("FINSKILLOS_WORKER_STALE_GRACE_SECONDS", "30")
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops").json()
+
+        assert body["workerStatus"]["status"] == "OK"
+        assert body["workerStatus"]["cadenceStatus"] == "STALE"
+        assert body["workerStatus"]["expectedNextCycleAt"]
+        assert "Overdue" in body["workerStatus"]["cadenceDetail"]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

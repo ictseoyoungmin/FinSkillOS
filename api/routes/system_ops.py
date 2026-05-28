@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
@@ -488,15 +488,23 @@ def _read_worker_status(
         rows = WorkerCycleRunRepository(session).list_recent(limit=limit)
     except Exception:
         session.rollback()
-        return WorkerStatusSummary(latest_detail="Worker cycle history is unavailable.")
+        return WorkerStatusSummary(
+            latest_detail="Worker cycle history is unavailable."
+        )
     if not rows:
         return WorkerStatusSummary()
     latest = rows[0]
+    cadence_status, expected_next_cycle_at, cadence_detail = _worker_cadence(latest)
     return WorkerStatusSummary(
         status=_worker_status_value(latest.status),
+        cadence_status=cadence_status,
         latest_started_at=latest.started_at.isoformat(),
         latest_finished_at=latest.finished_at.isoformat(),
+        expected_next_cycle_at=(
+            expected_next_cycle_at.isoformat() if expected_next_cycle_at else None
+        ),
         latest_detail=_worker_cycle_detail(latest),
+        cadence_detail=cadence_detail,
         recent_cycles=[_worker_cycle_record_from_db(row) for row in rows],
     )
 
@@ -518,6 +526,73 @@ def _worker_cycle_record_from_db(row) -> WorkerCycleRecord:
 
 def _worker_status_value(value: str) -> str:
     return value if value in {"OK", "NOOP", "ERROR"} else "MISSING"
+
+
+def _worker_cadence(row) -> tuple[str, datetime | None, str]:
+    if row.status == "ERROR":
+        return (
+            "ERROR",
+            None,
+            "Latest worker cycle ended with an error; cadence is blocked.",
+        )
+    if row.finished_at is None:
+        return (
+            "MISSING",
+            None,
+            "Latest worker cycle has no finish timestamp.",
+        )
+
+    finished_at = _as_utc(row.finished_at)
+    interval_seconds = _worker_interval_seconds()
+    grace_seconds = _worker_stale_grace_seconds(interval_seconds)
+    expected_next_cycle_at = finished_at + timedelta(seconds=interval_seconds)
+    stale_after = expected_next_cycle_at + timedelta(seconds=grace_seconds)
+    now = datetime.now(tz=UTC)
+
+    if now <= stale_after:
+        return (
+            "FRESH",
+            expected_next_cycle_at,
+            (
+                f"On cadence; expected every {interval_seconds}s "
+                f"with {grace_seconds}s grace."
+            ),
+        )
+    lag_seconds = max(0, int((now - stale_after).total_seconds()))
+    return (
+        "STALE",
+        expected_next_cycle_at,
+        (
+            f"Overdue by {lag_seconds}s after {interval_seconds}s interval "
+            f"and {grace_seconds}s grace."
+        ),
+    )
+
+
+def _worker_interval_seconds() -> int:
+    return _positive_int_env("FINSKILLOS_WORKER_INTERVAL_SECONDS", 24 * 60 * 60)
+
+
+def _worker_stale_grace_seconds(interval_seconds: int) -> int:
+    default_grace = max(60, interval_seconds // 2)
+    return _positive_int_env("FINSKILLOS_WORKER_STALE_GRACE_SECONDS", default_grace)
+
+
+def _positive_int_env(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return max(0, value)
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _worker_cycle_detail(row) -> str:

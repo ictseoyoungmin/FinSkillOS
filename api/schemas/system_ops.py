@@ -38,6 +38,7 @@ ProtocolKey = Literal[
 
 ProtocolStatus = Literal["OK", "NOOP", "ERROR"]
 WorkerStatus = Literal["OK", "NOOP", "ERROR", "MISSING"]
+WorkerCadenceStatus = Literal["FRESH", "STALE", "ERROR", "MISSING"]
 ProtocolTone = Literal["info", "warning", "neutral", "success"]
 DataSourceStatus = Literal["LIVE", "FIXTURE", "MISSING"]
 
@@ -105,9 +106,14 @@ class WorkerStatusSummary(CamelModel):
     """System Ops summary for the optional refresh worker."""
 
     status: WorkerStatus = "MISSING"
+    cadence_status: WorkerCadenceStatus = "MISSING"
     latest_started_at: str | None = None
     latest_finished_at: str | None = None
+    expected_next_cycle_at: str | None = None
     latest_detail: str = "No worker cycle has been recorded."
+    cadence_detail: str = (
+        "Worker cadence cannot be assessed until a cycle exists."
+    )
     recent_cycles: list[WorkerCycleRecord] = Field(default_factory=list)
 
 
@@ -137,6 +143,7 @@ __all__ = [
     "ProtocolStatus",
     "ProtocolTone",
     "SystemOpsResponse",
+    "WorkerCadenceStatus",
     "WorkerCycleRecord",
     "WorkerStatus",
     "WorkerStatusSummary",

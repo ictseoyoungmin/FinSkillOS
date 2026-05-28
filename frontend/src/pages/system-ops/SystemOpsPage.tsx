@@ -11,6 +11,7 @@ import type {
   DataCompleteness,
   SystemStatusData,
   SystemStatusSource,
+  WorkerCadenceStatus,
   WorkerCycleRecord,
   WorkerStatusSummary,
 } from "@/features/system-ops/types";
@@ -340,8 +341,8 @@ function WorkerStatusDashboard({
     <div className="fso-worker-tab" data-testid="worker-status-dashboard">
       <Panel
         title="Worker Status"
-        badge={workerStatus.status.toLowerCase()}
-        badgeTone={workerBadgeTone(workerStatus.status)}
+        badge={workerStatus.cadenceStatus.toLowerCase()}
+        badgeTone={workerCadenceBadgeTone(workerStatus.cadenceStatus)}
       >
         <div className="fso-worker-hero">
           <div
@@ -353,6 +354,7 @@ function WorkerStatusDashboard({
             <span>Latest cycle</span>
             <strong>{workerStatus.status}</strong>
             <small>{workerStatus.latestDetail}</small>
+            <small>{workerStatus.cadenceDetail}</small>
           </div>
           <div className="fso-worker-metrics">
             <WorkerMetric
@@ -364,11 +366,12 @@ function WorkerStatusDashboard({
               value={workerStatus.latestFinishedAt ?? "No cycle"}
             />
             <WorkerMetric
-              label="Duration"
-              value={formatDuration(
-                workerStatus.latestStartedAt,
-                workerStatus.latestFinishedAt,
-              )}
+              label="Cadence"
+              value={workerStatus.cadenceStatus}
+            />
+            <WorkerMetric
+              label="Next due"
+              value={workerStatus.expectedNextCycleAt ?? "Unknown"}
             />
             <WorkerMetric
               label="Recent"
@@ -446,17 +449,17 @@ function WorkerCycleRow({ cycle }: { cycle: WorkerCycleRecord }) {
   );
 }
 
-function workerBadgeTone(
-  status: string,
+function workerCadenceBadgeTone(
+  status: WorkerCadenceStatus,
 ): "info" | "success" | "warning" | "danger" {
-  if (status === "OK") {
+  if (status === "FRESH") {
     return "success";
+  }
+  if (status === "STALE") {
+    return "warning";
   }
   if (status === "ERROR") {
     return "danger";
-  }
-  if (status === "NOOP") {
-    return "warning";
   }
   return "info";
 }

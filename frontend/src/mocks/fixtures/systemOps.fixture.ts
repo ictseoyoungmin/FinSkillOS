@@ -126,9 +126,12 @@ export const systemOpsFixture: SystemOpsData = {
   recentProtocolRuns: [],
   workerStatus: {
     status: "MISSING",
+    cadenceStatus: "MISSING",
     latestStartedAt: null,
     latestFinishedAt: null,
+    expectedNextCycleAt: null,
     latestDetail: "No worker cycle has been recorded.",
+    cadenceDetail: "Worker cadence cannot be assessed until a cycle exists.",
     recentCycles: [],
   },
   dataSources: [

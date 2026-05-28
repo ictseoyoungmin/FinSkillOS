@@ -1,6 +1,6 @@
 # Current State — FinSkillOS v2.1 / v4.2 Cockpit
 
-Updated: 2026-05-27
+Updated: 2026-05-28
 
 ## Architecture
 
@@ -80,6 +80,12 @@ operational protocols.
 40     News Impact Sentiment / Risk Scoring
 41     Watchlist Folder Driven Refresh Controls
 42     Worker Status Dashboard
+43     Worker Status Tab / Command Drawer
+44     Mission Control Capital Map DB Coherence
+45     System Ops Data Source State Clarity
+46     System Ops Health / Freshness Polish
+47     System Ops Live Evidence Copy Coherence
+48     Worker Cadence Supervision
 ```
 
 Slice 14 is complete:
@@ -169,6 +175,14 @@ Slice 14 is complete:
 - The lightweight worker now persists completed cycle summaries to
   `worker_cycle_runs`; System Ops exposes and renders a Worker Status panel
   with latest market/news/indicator sub-status and refresh scope metadata.
+- Worker Status now lives in its own System Ops tab. The command affordance is
+  icon-first beside the global tab rail and opens as a drawer.
+- Mission Control's live capital map now reads the DB-backed portfolio exposure
+  map coherently instead of falling back to fixture-only copy.
+- System Ops live pages now align health, data-source, evidence, and conflict
+  copy around the DB-backed state. Fixture-forced responses remain explicit.
+- Worker Status now supervises cadence from `worker_cycle_runs`, reporting
+  fresh/stale/error/missing cadence and expected next-cycle timing.
 ```
 
 ## Validation Baseline
@@ -199,14 +213,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. User-facing folder refresh controls
-   - Surface folder-scoped refresh intent in System Ops UI and add explicit
-     controls after the backend policy has settled.
-
-2. News source confidence / provider coverage
+1. News source confidence / provider coverage
    - Add source-quality metadata and coverage grouping once the deterministic
      scoring baseline is stable.
 
-3. Worker process supervision
-   - Add explicit heartbeat/process health once cycle audit rows and Docker
-     deployment behavior are stable.
+2. Current-state documentation sweep
+   - Keep slice manifests, source-of-truth docs, and Docker-only validation
+     notes aligned with the latest live DB-backed cockpit behavior.
+
+3. Trade Memory DB read model
+   - Promote Trade Memory away from fixture-only journal snapshots while
+     preserving reflection-only, non-execution wording.
