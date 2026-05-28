@@ -118,32 +118,6 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     await expect(page.getByTestId("recent-entries")).toContainText("AMD");
   });
 
-  test("Manual event entry rejects CONFIRMED + manual_seed", async ({
-    request,
-  }) => {
-    const response = await request.post("/api/event-radar/manual-event", {
-      data: {
-        title: "Should be rejected",
-        eventType: "EARNINGS",
-        dateStatus: "CONFIRMED",
-        startDate: "2026-06-01",
-        endDate: null,
-        source: "manual_seed",
-        sourceUrl: null,
-        description: null,
-        importanceScore: "1.0",
-        ticker: null,
-        sector: null,
-        theme: null,
-        eventKey: null,
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.status).toBe("REJECTED");
-    expect(String(body.detail)).toContain("confirmed_requires_external_source");
-  });
-
   test("Manual trade entry rejects forbidden wording", async ({ request }) => {
     const response = await request.post("/api/trade-memory/entries", {
       data: {

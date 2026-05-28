@@ -104,6 +104,7 @@ operational protocols.
 64     Catalyst Watch Manual Event UX Removal
 65     Analysis Workspace DB Read Model Promotion
 66     Control Room DB Read Model Promotion
+67     Catalyst Watch Backend Mutation Boundary Cleanup
 ```
 
 Slice 14 is complete:
@@ -246,9 +247,7 @@ Slice 14 is complete:
   its fixture-first summary does not imply DB-backed parity with promoted
   product tabs.
 - Catalyst Watch no longer exposes manual event registration in the React UI.
-  The former form has been replaced with read-only event catalog evidence,
-  while the backend manual-event API remains covered by existing regression
-  tests.
+  The former form has been replaced with read-only event catalog evidence.
 - Analysis Workspace `/api/analysis-workspace` now promotes to the DB-backed
   Index Lab read model when a DB session is reachable, reads stored bars,
   indicators, and regime context without provider calls, and keeps
@@ -257,46 +256,48 @@ Slice 14 is complete:
   overview when a DB session is reachable, composing live mission, portfolio,
   regime, and risk-guard context while marking non-promoted overview rails as
   partial in `dataState`.
+- Catalyst Watch `/api/event-radar` is now read-only at the product route
+  boundary. Manual-event and Event Radar seed POST routes were removed, the
+  `manualEntryRules` contract was dropped, and event seeding remains under
+  System Ops.
 ```
 
 ## Validation Baseline
 
-Use these focused checks before touching the v4.2 cockpit surface:
+Use these focused Docker checks before touching the v4.2 cockpit surface:
 
 ```bash
-python3 -m pytest \
+docker compose -f docker-compose.yml run --rm --no-deps api pytest \
   tests/test_api_v42_contract.py \
   tests/test_api_health.py \
   tests/test_api_system_ops.py \
   tests/test_operations_scripts.py \
   -q
 
-python3 -m ruff check \
+docker compose -f docker-compose.yml run --rm --no-deps api ruff check \
   api/routes/health.py \
   api/dependencies.py \
   tests/test_api_health.py \
   tests/test_operations_scripts.py \
   tests/test_api_v42_contract.py
 
-docker compose --profile e2e run --rm e2e npm run build
-docker compose --profile e2e run --rm e2e npm run test:visual
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npm run test:visual
 ```
 
-Host Node may be unreliable in WSL for this workspace; prefer the Docker
-e2e image for frontend build and visual checks.
+All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Catalyst Watch backend mutation boundary cleanup
-   - Decide whether the backend manual-event POST route remains useful for
-     tests/admin workflows or should move behind a System Ops ingestion
-     protocol.
-
-2. Analysis Workspace coverage ergonomics
+1. Analysis Workspace coverage ergonomics
    - Refine empty/partial universe copy now that live DB-backed rows can be
      sparse, especially when only subscribed folders have refreshed bars.
 
-3. Control Room rail promotion follow-up
+2. Control Room rail promotion follow-up
    - Replace the remaining fixture overview rails with composed live summaries
      from Market Kernel, Catalyst Watch, Symbol Lab, and Worker Status where
      the contracts are stable enough.
+
+3. System Ops event ingestion hardening
+   - Tighten the event seeding protocol copy and audit evidence now that
+     product-tab event mutation routes have been removed.

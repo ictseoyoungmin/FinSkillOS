@@ -1,15 +1,13 @@
 """Event Radar / Catalyst Watch API schemas — Slice 13.9.
 
-Camel-case Pydantic shape for ``GET /api/event-radar``,
-``POST /api/event-radar/manual-event`` and
-``POST /api/event-radar/seed-sample-events``. The payload follows the
-v4.2 Evidence-to-Judgment hierarchy with per-tab vocab:
+Camel-case Pydantic shape for ``GET /api/event-radar``. The payload follows
+the v4.2 Evidence-to-Judgment hierarchy with per-tab vocab:
 
 * Event Exposure Judgment header
 * Primary Drivers (portfolio exposure, days-to-event, regime multiplier)
 * Conflicts / Uncertainty (confirmed vs speculative, news attention vs
   date confidence)
-* Evidence (upcoming events, holdings-linked, linked news, manual entry)
+* Evidence (upcoming events, holdings-linked, linked news)
 * Integrated interpretation + Watchpoints
 
 Safety:
@@ -17,8 +15,7 @@ Safety:
 * Event risk score is described as preparation / exposure only, never
   as price prediction. The wording is enforced via the response copy
   and reinforced by the e2e safety scan.
-* Manual event entry defaults to TENTATIVE; CONFIRMED + manual_seed is
-  rejected by ``EventService._validate_event_input`` upstream.
+* Catalyst Watch is read-only. Event ingestion protocols live in System Ops.
 """
 
 from __future__ import annotations
@@ -123,17 +120,6 @@ class EventWatchpoint(CamelModel):
     tone: JudgmentTone = "info"
 
 
-class ManualEventRules(CamelModel):
-    """Hard caps the React manual-event form must respect."""
-
-    default_date_status: DateStatus = "TENTATIVE"
-    confirmed_requires_external_source: bool = True
-    disclaimer: str = (
-        "Manual entry defaults to TENTATIVE. CONFIRMED requires a "
-        "non-seed external source."
-    )
-
-
 class EventRadarDataState(CamelModel):
     """Explicit source/date-confidence state for Catalyst Watch."""
 
@@ -166,7 +152,6 @@ class EventRadarResponse(CamelModel):
     linked_news: list[EventLinkedNewsVM]
     integrated_interpretation: list[str]
     watchpoints: list[EventWatchpoint]
-    manual_entry_rules: ManualEventRules = Field(default_factory=ManualEventRules)
     date_status_badge_tone: dict[str, BadgeTone] = Field(
         default_factory=lambda: dict(DATE_STATUS_BADGE_TONE)
     )
@@ -175,45 +160,6 @@ class EventRadarResponse(CamelModel):
         "It is not a price direction prediction."
     )
     source: Literal["fixture", "live"] = "fixture"
-
-
-class ManualEventInput(CamelModel):
-    """Request body for POST /api/event-radar/manual-event."""
-
-    title: str = Field(..., min_length=1, max_length=255)
-    event_type: str = Field(..., min_length=1)
-    date_status: DateStatus = "TENTATIVE"
-    start_date: str = Field(..., description="ISO-8601 date.")
-    end_date: str | None = None
-    source: str | None = None
-    source_url: str | None = None
-    description: str | None = None
-    importance_score: Decimal = Decimal("1.0")
-    ticker: str | None = None
-    sector: str | None = None
-    theme: str | None = None
-    event_key: str | None = None
-
-
-ManualEventStatus = Literal["OK", "REJECTED", "ERROR"]
-
-
-class ManualEventResult(CamelModel):
-    status: ManualEventStatus
-    message: str
-    detail: str = ""
-    event_id: str | None = None
-
-
-SeedEventsStatus = Literal["OK", "NOOP", "ERROR"]
-
-
-class SeedEventsResult(CamelModel):
-    status: SeedEventsStatus
-    message: str
-    detail: str = ""
-    created_count: int = 0
-    ran_at: str
 
 
 __all__ = [
@@ -228,11 +174,5 @@ __all__ = [
     "EventRadarDataState",
     "EventRiskRow",
     "EventWatchpoint",
-    "ManualEventInput",
-    "ManualEventResult",
-    "ManualEventRules",
-    "ManualEventStatus",
     "RiskLabel",
-    "SeedEventsResult",
-    "SeedEventsStatus",
 ]

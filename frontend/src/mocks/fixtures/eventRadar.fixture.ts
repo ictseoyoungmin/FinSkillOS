@@ -271,12 +271,6 @@ export const eventRadarFixture: EventRadarData = {
       tone: "warning",
     },
   ],
-  manualEntryRules: {
-    defaultDateStatus: "TENTATIVE",
-    confirmedRequiresExternalSource: true,
-    disclaimer:
-      "Manual entry defaults to TENTATIVE. CONFIRMED requires a non-seed external source.",
-  },
   dateStatusBadgeTone: {
     CONFIRMED: "success",
     WINDOW: "info",

@@ -24,7 +24,6 @@ from api.schemas.event_radar import (
     EventRadarResponse,
     EventRiskRow,
     EventWatchpoint,
-    ManualEventRules,
 )
 
 _TODAY = "2026-05-20"
@@ -378,7 +377,6 @@ def event_radar_fixture() -> EventRadarResponse:
                 tone="warning",
             ),
         ],
-        manual_entry_rules=ManualEventRules(),
         date_status_badge_tone=dict(DATE_STATUS_BADGE_TONE),
     )
 

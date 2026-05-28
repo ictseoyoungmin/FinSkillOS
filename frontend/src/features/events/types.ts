@@ -102,12 +102,6 @@ export interface EventWatchpoint {
   tone: EventJudgmentTone;
 }
 
-export interface ManualEventRules {
-  defaultDateStatus: EventDateStatus;
-  confirmedRequiresExternalSource: boolean;
-  disclaimer: string;
-}
-
 export type EventRadarCalendarStatus =
   | "fixture_first"
   | "db_backed"
@@ -152,7 +146,6 @@ export interface EventRadarData {
   linkedNews: EventLinkedNewsVM[];
   integratedInterpretation: string[];
   watchpoints: EventWatchpoint[];
-  manualEntryRules: ManualEventRules;
   dateStatusBadgeTone: Record<string, EventBadgeTone>;
   safetyCaption: string;
   source: "fixture" | "live";

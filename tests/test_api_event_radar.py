@@ -4,15 +4,11 @@ Verifies:
 
 * GET response shape (judgment, drivers, conflicts, upcoming events,
   high-risk subset, holdings-linked subset, linked news, watchpoints,
-  manual-entry rules, date-status badge tone map).
+  date-status badge tone map).
 * camelCase field names.
 * Date-status badge tone map covers the five Slice-11 statuses with
   the expected colour buckets.
-* POST /api/event-radar/manual-event rejects:
-    - invalid ISO dates,
-    - CONFIRMED + source="manual_seed" (or empty source).
-* POST /api/event-radar/seed-sample-events returns a structured
-  SeedEventsResult even in fixture-first mode.
+* Event Radar remains read-only. Event seeding lives in System Ops.
 """
 
 from __future__ import annotations
@@ -70,7 +66,6 @@ def test_event_radar_returns_full_payload() -> None:
         "linkedNews",
         "integratedInterpretation",
         "watchpoints",
-        "manualEntryRules",
         "dateStatusBadgeTone",
         "safetyCaption",
         "source",
@@ -158,125 +153,12 @@ def test_event_radar_payload_descriptive_only_wording() -> None:
         )
 
 
-def test_manual_event_rejects_confirmed_plus_manual_seed() -> None:
-    response = _client().post(
-        "/api/event-radar/manual-event",
-        json={
-            "title": "Should be rejected",
-            "eventType": "EARNINGS",
-            "dateStatus": "CONFIRMED",
-            "startDate": "2026-06-01",
-            "endDate": None,
-            "source": "manual_seed",
-            "sourceUrl": None,
-            "description": None,
-            "importanceScore": "1.0",
-            "ticker": None,
-            "sector": None,
-            "theme": None,
-            "eventKey": None,
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert body["detail"] == "confirmed_requires_external_source"
-
-
-def test_manual_event_rejects_confirmed_manual_seed() -> None:
-    response = _client().post(
-        "/api/event-radar/manual-event",
-        json={
-            "title": "Should be rejected",
-            "eventType": "EARNINGS",
-            "dateStatus": "CONFIRMED",
-            "startDate": "2026-06-01",
-            "endDate": None,
-            "source": "manual_seed",
-            "sourceUrl": None,
-            "description": None,
-            "importanceScore": "1.0",
-            "ticker": None,
-            "sector": None,
-            "theme": None,
-            "eventKey": None,
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert body["detail"] == "confirmed_requires_external_source"
-
-
-def test_manual_event_rejects_invalid_start_date() -> None:
-    response = _client().post(
-        "/api/event-radar/manual-event",
-        json={
-            "title": "Probe",
-            "eventType": "EARNINGS",
-            "dateStatus": "TENTATIVE",
-            "startDate": "not-a-date",
-            "endDate": None,
-            "source": "Reuters",
-            "sourceUrl": None,
-            "description": None,
-            "importanceScore": "1.0",
-            "ticker": None,
-            "sector": None,
-            "theme": None,
-            "eventKey": None,
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert body["detail"] == "invalid_start_date"
-
-
-def test_manual_event_tentative_with_source_accepted() -> None:
-    response = _client().post(
-        "/api/event-radar/manual-event",
-        json={
-            "title": "Probe Tentative",
-            "eventType": "EARNINGS",
-            "dateStatus": "TENTATIVE",
-            "startDate": "2026-06-01",
-            "endDate": None,
-            "source": "manual_seed",
-            "sourceUrl": None,
-            "description": "Tentative; not confirmed.",
-            "importanceScore": "1.0",
-            "ticker": "NVDA",
-            "sector": None,
-            "theme": "AI",
-            "eventKey": None,
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    # Fixture-first session returns OK with no_database_session detail.
-    assert body["status"] in {"OK", "ERROR"}
-
-
-def test_seed_sample_events_returns_structured_result() -> None:
-    response = _client().post("/api/event-radar/seed-sample-events")
-    assert response.status_code == 200
-    assert response.headers["content-type"].startswith("application/json")
-    body = response.json()
-    assert body["status"] in {"OK", "NOOP", "ERROR"}
-    assert "ranAt" in body and body["ranAt"]
-    # No raw stack-trace material in the message.
-    for marker in ("Traceback", 'File "', "line "):
-        assert marker not in body["message"], body
-
-
-def test_seed_sample_events_returns_structured_json() -> None:
-    response = _client().post("/api/event-radar/seed-sample-events")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] in {"OK", "NOOP", "ERROR"}
-    assert "message" in body
-    assert "detail" in body
+def test_event_radar_does_not_expose_mutation_routes() -> None:
+    spec = _client().get("/openapi.json").json()
+    paths = set(spec.get("paths", {}).keys())
+    assert "/api/event-radar/manual-event" not in paths
+    assert "/api/event-radar/seed-sample-events" not in paths
+    assert "/api/system-ops/seed-sample-events" in paths
 
 
 def test_use_fixture_header_is_accepted_on_event_radar() -> None:
