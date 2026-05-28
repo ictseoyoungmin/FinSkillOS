@@ -168,7 +168,7 @@ const ROUTES: readonly RouteSpec[] = [
       "event-risk-table",
       "date-status-badges",
       "event-score-drivers",
-      "manual-event-entry",
+      "event-catalog-evidence",
       "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",

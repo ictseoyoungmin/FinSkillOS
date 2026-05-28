@@ -19,7 +19,7 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     ).toContainText("Descriptive");
   });
 
-  test("Catalyst Watch renders date-status badges and manual event entry", async ({
+  test("Catalyst Watch renders date-status badges and event catalog evidence", async ({
     page,
   }) => {
     await page.goto("/catalyst-watch");
@@ -34,7 +34,10 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     );
     await expect(page.getByTestId("event-upcoming")).toBeVisible();
     await expect(page.getByTestId("event-upcoming-table")).toBeVisible();
-    await expect(page.getByTestId("event-manual-entry")).toBeVisible();
+    await expect(page.getByTestId("event-catalog-evidence")).toBeVisible();
+    await expect(page.getByTestId("event-catalog-evidence")).toContainText(
+      /Calendar rows/i,
+    );
     // At least one date-status badge must render.
     await expect(
       page.locator(".fso-event-status-badge").first(),

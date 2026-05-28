@@ -6,13 +6,13 @@ import { EventRiskTable } from "@/features/events/components/EventRiskTable";
 import { EventScoreDrivers } from "@/features/events/components/EventScoreDrivers";
 import { HighRiskEventsPanel } from "@/features/events/components/HighRiskEventsPanel";
 import { HoldingsLinkedEventsPanel } from "@/features/events/components/HoldingsLinkedEventsPanel";
-import { ManualEventEntry } from "@/features/events/components/ManualEventEntry";
 import { eventRadarFixture } from "@/mocks/fixtures/eventRadar.fixture";
 import {
   Badge,
   ConflictsPanel,
   EmptyState,
   InterpretationPanel,
+  Panel,
   SafetyCaption,
   SectionHeader,
   WatchpointsPanel,
@@ -84,14 +84,77 @@ export function CatalystWatchPage() {
             watchpoints={payload.watchpoints}
             title="Watchpoints"
           />
-          <div data-testid="event-manual-entry">
-            <ManualEventEntry rules={payload.manualEntryRules} />
-          </div>
+          <EventCatalogEvidence payload={payload} />
         </div>
       </div>
       <div data-testid="catalyst-watch-safety-caption">
         <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
       </div>
+    </div>
+  );
+}
+
+function EventCatalogEvidence({ payload }: { payload: EventRadarData }) {
+  const state = payload.dataState;
+  const catalogBadge =
+    state.calendarStatus === "db_backed"
+      ? "DB-backed"
+      : state.calendarStatus === "empty"
+        ? "Live empty"
+        : "Fixture";
+
+  return (
+    <Panel
+      title="Event Catalog Evidence"
+      badge={catalogBadge}
+      badgeTone={state.calendarStatus === "db_backed" ? "success" : "warning"}
+      testId="event-catalog-evidence"
+    >
+      <div className="fso-event-catalog-grid">
+        <EventCatalogMetric
+          label="Calendar rows"
+          value={`${state.eventCount}`}
+          detail={state.calendarDetail}
+        />
+        <EventCatalogMetric
+          label="Confirmed dates"
+          value={`${state.confirmedCount}`}
+          detail={state.dateConfidenceDetail}
+        />
+        <EventCatalogMetric
+          label="Uncertain dates"
+          value={`${state.uncertainCount}`}
+          detail="Tentative, reported, window, and speculative events."
+        />
+        <EventCatalogMetric
+          label="Linked news"
+          value={`${state.linkedNewsCount}`}
+          detail="Stored metadata linked to event exposure rows."
+        />
+      </div>
+      <p className="fso-event-catalog-note">
+        Event catalog rows are read from stored fixture or DB-backed evidence.
+        New event ingestion belongs in provider or System Ops workflows, not the
+        Catalyst Watch review surface.
+      </p>
+    </Panel>
+  );
+}
+
+function EventCatalogMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="fso-event-catalog-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
     </div>
   );
 }

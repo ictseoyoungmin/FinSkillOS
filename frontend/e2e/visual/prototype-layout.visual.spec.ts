@@ -101,7 +101,7 @@ const ROUTES: readonly RouteLayoutSpec[] = [
     mockupId: "catalyst",
     leftTestId: "event-risk-table",
     centerTestId: "event-score-drivers",
-    rightTestId: "manual-event-entry",
+    rightTestId: "event-catalog-evidence",
   },
   {
     label: "trade-memory",

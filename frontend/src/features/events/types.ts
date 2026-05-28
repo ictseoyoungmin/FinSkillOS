@@ -157,38 +157,3 @@ export interface EventRadarData {
   safetyCaption: string;
   source: "fixture" | "live";
 }
-
-export type ManualEventStatus = "OK" | "REJECTED" | "ERROR";
-
-export interface ManualEventInput {
-  title: string;
-  eventType: string;
-  dateStatus: EventDateStatus;
-  startDate: string;
-  endDate: string | null;
-  source: string | null;
-  sourceUrl: string | null;
-  description: string | null;
-  importanceScore: Numeric;
-  ticker: string | null;
-  sector: string | null;
-  theme: string | null;
-  eventKey: string | null;
-}
-
-export interface ManualEventResult {
-  status: ManualEventStatus;
-  message: string;
-  detail: string;
-  eventId: string | null;
-}
-
-export type SeedEventsStatus = "OK" | "NOOP" | "ERROR";
-
-export interface SeedEventsResult {
-  status: SeedEventsStatus;
-  message: string;
-  detail: string;
-  createdCount: number;
-  ranAt: string;
-}
