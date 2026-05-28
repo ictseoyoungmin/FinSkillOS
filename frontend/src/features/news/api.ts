@@ -1,11 +1,7 @@
 import { ApiError, getJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
 import { newsIntelligenceFixture } from "@/mocks/fixtures/newsIntelligence.fixture";
-import type {
-  ManualArticleInput,
-  ManualArticleResult,
-  NewsIntelligenceData,
-} from "./types";
+import type { NewsIntelligenceData } from "./types";
 
 /**
  * Read the News Intelligence snapshot. Falls back to the deterministic
@@ -25,29 +21,4 @@ export async function fetchNewsIntelligence(
     }
     return newsIntelligenceFixture;
   }
-}
-
-export async function submitManualArticle(
-  input: ManualArticleInput,
-  signal?: AbortSignal,
-): Promise<ManualArticleResult> {
-  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
-  const url = `${base}${apiEndpoints.newsManualArticle}`;
-  const response = await fetch(url, {
-    method: "POST",
-    credentials: "omit",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-    signal,
-  });
-  if (!response.ok) {
-    throw new ApiError(
-      response.status,
-      `${response.status} ${response.statusText} for ${url}`,
-    );
-  }
-  return (await response.json()) as ManualArticleResult;
 }

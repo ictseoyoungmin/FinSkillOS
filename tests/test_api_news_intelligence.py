@@ -3,12 +3,8 @@
 Verifies:
 
 * GET response shape (judgment header, drivers, conflicts, evidence
-  lists, impact map, interpretation, watchpoints, manual-entry rules).
+  lists, impact map, interpretation, watchpoints, source coverage).
 * camelCase field names for the React client.
-* POST /api/news-intelligence/manual-article rejects:
-    - summaries longer than MAX_SUMMARY_CHARS,
-    - forbidden execution / direct-advice wording,
-    - invalid ISO timestamps.
 * No execution / order / buy / sell concepts leak into the JSON.
 """
 
@@ -43,8 +39,12 @@ def _client() -> TestClient:
     return TestClient(create_app())
 
 
+def _fixture_get(client: TestClient):
+    return client.get("/api/news-intelligence", headers={"X-FSO-Use-Fixture": "1"})
+
+
 def test_news_intelligence_returns_full_payload() -> None:
-    response = _client().get("/api/news-intelligence")
+    response = _fixture_get(_client())
     assert response.status_code == 200
     body = response.json()
     expected = {
@@ -58,9 +58,9 @@ def test_news_intelligence_returns_full_payload() -> None:
         "latestNews",
         "impactMap",
         "tickerIdentities",
+        "sourceCoverage",
         "integratedInterpretation",
         "watchpoints",
-        "manualEntryRules",
         "safetyCaption",
         "source",
     }
@@ -69,18 +69,19 @@ def test_news_intelligence_returns_full_payload() -> None:
 
 
 def test_news_intelligence_snapshot_exposes_v42_contract() -> None:
-    body = _client().get("/api/news-intelligence").json()
+    body = _fixture_get(_client()).json()
 
     assert body["judgment"]
     assert body["drivers"]
     assert body["conflicts"]
     assert body["impactMap"]
-    assert body["manualEntryRules"]["maxSummaryChars"] == 500
+    assert body["sourceCoverage"]["articleCount"] >= 0
+    assert body["sourceCoverage"]["sourceCount"] >= 0
     assert "Descriptive narrative view only" in body["safetyCaption"]
 
 
 def test_news_intelligence_judgment_header_fields_are_present() -> None:
-    body = _client().get("/api/news-intelligence").json()
+    body = _fixture_get(_client()).json()
     judgment = body["judgment"]
     for key in (
         "headline",
@@ -95,21 +96,13 @@ def test_news_intelligence_judgment_header_fields_are_present() -> None:
 
 
 def test_news_intelligence_articles_only_carry_short_summaries() -> None:
-    body = _client().get("/api/news-intelligence").json()
+    body = _fixture_get(_client()).json()
     for article in body["latestNews"]:
         assert len(article["summary"]) <= 500, article
 
 
-def test_news_intelligence_manual_entry_rules_use_safe_caps() -> None:
-    body = _client().get("/api/news-intelligence").json()
-    rules = body["manualEntryRules"]
-    assert rules["maxSummaryChars"] == 500
-    assert rules["forbidFullBody"] is True
-    assert "no full article body" in rules["disclaimer"].lower()
-
-
 def test_news_intelligence_payload_contains_no_forbidden_wording() -> None:
-    raw = json.dumps(_client().get("/api/news-intelligence").json()).lower()
+    raw = json.dumps(_fixture_get(_client()).json()).lower()
     # The Slice-13.9 payload describes "sell-the-news" only via the
     # event-radar post_event_note (not part of /news-intelligence), so
     # bare 'sell' tokens must not appear here.
@@ -117,116 +110,6 @@ def test_news_intelligence_payload_contains_no_forbidden_wording() -> None:
         assert forbidden not in raw, (
             f"News Intelligence payload leaks forbidden wording: {forbidden!r}"
         )
-
-
-def test_manual_article_rejects_over_cap_summary() -> None:
-    response = _client().post(
-        "/api/news-intelligence/manual-article",
-        json={
-            "title": "Probe",
-            "source": "Probe",
-            "url": "https://example.com/probe",
-            "publishedAt": "2026-05-20T12:00:00+00:00",
-            "summary": "x" * 700,
-            "affectedTickers": [],
-            "theme": None,
-            "eventKey": None,
-            "sentiment": "UNKNOWN",
-            "riskLevel": "UNKNOWN",
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert body["detail"] == "summary_too_long"
-
-
-def test_manual_article_rejects_over_cap_summary_with_structured_response() -> None:
-    response = _client().post(
-        "/api/news-intelligence/manual-article",
-        json={
-            "title": "Probe",
-            "source": "Probe",
-            "url": "https://example.com/probe",
-            "publishedAt": "2026-05-20T12:00:00+00:00",
-            "summary": "x" * 700,
-            "affectedTickers": [],
-            "theme": None,
-            "eventKey": None,
-            "sentiment": "UNKNOWN",
-            "riskLevel": "UNKNOWN",
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert body["detail"] == "summary_too_long"
-
-
-def test_manual_article_accepts_summary_at_cap() -> None:
-    response = _client().post(
-        "/api/news-intelligence/manual-article",
-        json={
-            "title": "Probe",
-            "source": "Probe",
-            "url": "https://example.com/probe",
-            "publishedAt": "2026-05-20T12:00:00+00:00",
-            "summary": "x" * 500,
-            "affectedTickers": [],
-            "theme": None,
-            "eventKey": None,
-            "sentiment": "UNKNOWN",
-            "riskLevel": "UNKNOWN",
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] in {"OK", "ERROR"}
-    # Fixture-first session returns OK with no_database_session detail.
-
-
-def test_manual_article_rejects_forbidden_wording() -> None:
-    response = _client().post(
-        "/api/news-intelligence/manual-article",
-        json={
-            "title": "지금 사라",
-            "source": "Probe",
-            "url": "https://example.com/probe",
-            "publishedAt": "2026-05-20T12:00:00+00:00",
-            "summary": "Descriptive summary.",
-            "affectedTickers": [],
-            "theme": None,
-            "eventKey": None,
-            "sentiment": "UNKNOWN",
-            "riskLevel": "UNKNOWN",
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert "forbidden_wording" in body["detail"]
-
-
-def test_manual_article_rejects_invalid_published_at() -> None:
-    response = _client().post(
-        "/api/news-intelligence/manual-article",
-        json={
-            "title": "Probe",
-            "source": "Probe",
-            "url": "https://example.com/probe",
-            "publishedAt": "not-a-timestamp",
-            "summary": "Descriptive summary.",
-            "affectedTickers": [],
-            "theme": None,
-            "eventKey": None,
-            "sentiment": "UNKNOWN",
-            "riskLevel": "UNKNOWN",
-        },
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "REJECTED"
-    assert body["detail"] == "invalid_published_at"
 
 
 def test_use_fixture_header_is_accepted_on_news_intelligence() -> None:
@@ -267,6 +150,10 @@ def test_news_intelligence_get_reads_stored_db_news(monkeypatch, tmp_path) -> No
         assert body["source"] == "live"
         assert body["latestNews"][0]["title"] == "AAPL data center update"
         assert body["latestNews"][0]["source"] == "RSS Desk"
+        assert body["sourceCoverage"]["articleCount"] == 1
+        assert body["sourceCoverage"]["sourceCount"] == 1
+        assert body["sourceCoverage"]["confidence"] == "LOW"
+        assert body["sourceCoverage"]["providerMix"] == "RSS Desk"
         assert body["latestNews"][0]["publishedAt"].startswith("2026-05-26T12:30:00")
         assert (
             body["judgment"]["portfolioRelevance"]

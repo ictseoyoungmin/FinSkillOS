@@ -26,7 +26,7 @@ export function NewsImpactMap({
         badgeTone="info"
         testId="news-impact-map"
       >
-        <p className="fso-news-impact-empty">
+        <p className="fso-news-impact-empty" data-testid="news-impact-map-table">
           No stored impacts available to aggregate.
         </p>
       </Panel>
@@ -52,7 +52,10 @@ export function NewsImpactMap({
       badgeTone="info"
       testId="news-impact-map"
     >
-      <div className="fso-news-impact-groups" data-testid="news-impact-map-groups">
+      <div
+        className="fso-news-impact-groups"
+        data-testid="news-impact-map-table"
+      >
         {grouped.map((group) => (
           <section className="fso-news-impact-group" key={group.dimension}>
             <h3>{group.dimension}</h3>

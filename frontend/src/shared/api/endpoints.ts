@@ -11,7 +11,6 @@ export const apiEndpoints = {
   missionControl: "/mission-control",
   systemOps: "/system-ops",
   newsIntelligence: "/news-intelligence",
-  newsManualArticle: "/news-intelligence/manual-article",
   eventRadar: "/event-radar",
   eventManualEvent: "/event-radar/manual-event",
   eventSeedSampleEvents: "/event-radar/seed-sample-events",

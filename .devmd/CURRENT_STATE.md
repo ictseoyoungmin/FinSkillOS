@@ -91,6 +91,8 @@ operational protocols.
 51     Trade Memory Journal Mutation UX
 52     Trade Memory Form Ergonomics
 53     Mission Control State Hardening
+54     News Intelligence Source Coverage
+55     News Intelligence Manual Article Removal
 ```
 
 Slice 14 is complete:
@@ -203,6 +205,9 @@ Slice 14 is complete:
   sector and theme exposure panels visible even when live rows are absent, and
   has an API regression proving reachable empty DB state remains live rather
   than silently falling back to fixture copy.
+- News Intelligence now exposes source coverage as an API contract, renders a
+  compact provider/article/coverage band, keeps impact-map empty states
+  testable, and no longer exposes manual news registration.
 ```
 
 ## Validation Baseline
@@ -233,14 +238,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. News Intelligence source confidence / provider coverage
-   - Add source-quality metadata, coverage grouping, and empty/error state
-     polish once the deterministic scoring baseline is stable.
-
-2. Symbol Lab data-state hardening / refactor
+1. Symbol Lab data-state hardening / refactor
    - Recheck chart, indicator, logo, subscription, and provider diagnostics
      states for coherent live/fixture/missing-data behavior.
 
-3. Mission Control evidence density follow-up
+2. Mission Control evidence density follow-up
    - Review lower evidence panels for scan density and repeated copy after the
      state band has stabilized.
+
+3. Catalyst Watch source/date confidence hardening
+   - Recheck manual and DB-backed event source/date confidence copy, empty
+     states, and linked-news behavior after News Intelligence coverage work.

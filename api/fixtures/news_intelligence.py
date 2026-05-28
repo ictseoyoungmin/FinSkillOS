@@ -18,7 +18,7 @@ from api.schemas.news_intelligence import (
     NewsImpactVM,
     NewsIntelligenceResponse,
     NewsJudgmentHeader,
-    NewsManualEntryRules,
+    NewsSourceCoverage,
     NewsWatchpoint,
 )
 
@@ -200,6 +200,17 @@ def news_intelligence_fixture() -> NewsIntelligenceResponse:
                 risk_level="GREEN",
             ),
         ],
+        source_coverage=NewsSourceCoverage(
+            article_count=3,
+            source_count=3,
+            latest_published_at="2026-05-19T13:20:00+00:00",
+            confidence="MODERATE",
+            provider_mix="Bloomberg · Reuters · WSJ",
+            coverage_note=(
+                "Fixture sample uses three named providers; live coverage "
+                "depends on configured RSS feeds and manual entries."
+            ),
+        ),
         integrated_interpretation=[
             "Today's news mix reinforces an AI / Data Center read for the "
             "portfolio while keeping a macro overlay active.",
@@ -235,7 +246,6 @@ def news_intelligence_fixture() -> NewsIntelligenceResponse:
                 tone="warning",
             ),
         ],
-        manual_entry_rules=NewsManualEntryRules(),
     )
 
 

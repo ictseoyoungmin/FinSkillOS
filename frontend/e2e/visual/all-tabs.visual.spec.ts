@@ -149,7 +149,6 @@ const ROUTES: readonly RouteSpec[] = [
       "holdings-relevant-news",
       "news-impact-map",
       "event-linked-news",
-      "manual-article-entry",
       "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",

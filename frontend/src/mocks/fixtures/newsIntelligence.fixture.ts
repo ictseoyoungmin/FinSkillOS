@@ -237,6 +237,15 @@ export const newsIntelligenceFixture: NewsIntelligenceData = {
       brandColor: "#dc2626",
     },
   ],
+  sourceCoverage: {
+    articleCount: 3,
+    sourceCount: 3,
+    latestPublishedAt: "2026-05-19T13:20:00+00:00",
+    confidence: "MODERATE",
+    providerMix: "Bloomberg · Reuters · WSJ",
+    coverageNote:
+      "Fixture sample uses three named providers; live coverage depends on configured RSS feeds and manual entries.",
+  },
   integratedInterpretation: [
     "Today's news mix reinforces an AI / Data Center read for the portfolio while keeping a macro overlay active.",
     "It matters because two of the largest holdings (TSLA, NVDA) sit on event-linked themes — date confidence drives the narrative confidence.",
@@ -262,10 +271,5 @@ export const newsIntelligenceFixture: NewsIntelligenceData = {
       tone: "warning",
     },
   ],
-  manualEntryRules: {
-    maxSummaryChars: 500,
-    forbidFullBody: true,
-    disclaimer: "Short summaries only — no full article body stored.",
-  },
   safetyCaption: "Descriptive narrative view only — no execution controls.",
 };

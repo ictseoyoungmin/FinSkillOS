@@ -2,18 +2,18 @@ import { expect, test } from "@playwright/test";
 import { FORBIDDEN_EXECUTION_LABELS } from "./_helpers";
 
 test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory", () => {
-  test("News Intelligence renders impact map + manual article entry", async ({
+  test("News Intelligence renders impact map and source coverage", async ({
     page,
   }) => {
     await page.goto("/news-intel");
     await expect(page.getByTestId("news-intelligence-page")).toBeVisible();
     await expect(page.getByTestId("news-judgment-header")).toBeVisible();
+    await expect(page.getByTestId("news-source-coverage")).toBeVisible();
+    await expect(page.getByTestId("news-source-coverage")).toContainText(
+      /Providers/i,
+    );
     await expect(page.getByTestId("news-impact-map")).toBeVisible();
     await expect(page.getByTestId("news-impact-map-table")).toBeVisible();
-    await expect(page.getByTestId("news-manual-article")).toBeVisible();
-    await expect(
-      page.getByTestId("news-manual-article-disclaimer"),
-    ).toContainText("Short summaries only");
     await expect(
       page.getByTestId("news-intelligence-safety-caption"),
     ).toContainText("Descriptive");
@@ -106,31 +106,6 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
       /Source\s*LIVE/,
     );
     await expect(page.getByTestId("recent-entries")).toContainText("AMD");
-  });
-
-  test("Manual article entry rejects an over-cap summary", async ({
-    page,
-    request,
-  }) => {
-    await page.goto("/news-intel");
-    const response = await request.post("/api/news-intelligence/manual-article", {
-      data: {
-        title: "Probe",
-        source: "Probe",
-        url: "https://example.com/probe",
-        publishedAt: "2026-05-20T12:00:00+00:00",
-        summary: "x".repeat(700),
-        affectedTickers: [],
-        theme: null,
-        eventKey: null,
-        sentiment: "UNKNOWN",
-        riskLevel: "UNKNOWN",
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.status).toBe("REJECTED");
-    expect(String(body.detail)).toContain("summary_too_long");
   });
 
   test("Manual event entry rejects CONFIRMED + manual_seed", async ({

@@ -1,20 +1,14 @@
-"""GET /api/news-intelligence + POST /api/news-intelligence/manual-article.
+"""GET /api/news-intelligence.
 
 DB-first wrapper around the Slice-10 NewsService. When a database session is
 available the GET endpoint returns stored RSS/manual news rows; fixture data is
 used only when explicitly requested or when the DB is unavailable.
-
-Manual article ingestion enforces the Slice-10 safety contract before
-delegating to the service: summary length is capped, full-body input
-is rejected, and ``assert_no_forbidden_wording`` runs on every text
-field at the API seam.
 """
 
 from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
@@ -23,9 +17,6 @@ from api.fixtures import news_intelligence_fixture
 from api.fixtures.symbol_lab import symbol_identity
 from api.schemas.common import SystemStatus
 from api.schemas.news_intelligence import (
-    MAX_SUMMARY_CHARS,
-    ManualArticleInput,
-    ManualArticleResult,
     NewsArticleVM,
     NewsConflict,
     NewsDriver,
@@ -33,6 +24,7 @@ from api.schemas.news_intelligence import (
     NewsImpactVM,
     NewsIntelligenceResponse,
     NewsJudgmentHeader,
+    NewsSourceCoverage,
     NewsTickerIdentity,
     NewsWatchpoint,
 )
@@ -72,148 +64,6 @@ def news_intelligence(
             return news_intelligence_fixture()
 
 
-@router.post(
-    "/news-intelligence/manual-article",
-    response_model=ManualArticleResult,
-    summary="Persist a manually entered article via the Slice-10 NewsService.",
-)
-def post_manual_article(payload: ManualArticleInput) -> ManualArticleResult:
-    if len(payload.summary) > MAX_SUMMARY_CHARS:
-        return ManualArticleResult(
-            status="REJECTED",
-            message=(
-                f"Summary exceeds the {MAX_SUMMARY_CHARS}-char cap. Store "
-                "short summaries only — no full article body."
-            ),
-            detail="summary_too_long",
-        )
-
-    safety_error = _scan_inputs_for_forbidden_wording(payload)
-    if safety_error is not None:
-        return ManualArticleResult(
-            status="REJECTED",
-            message=(
-                "Submission contains direct-advice or execution wording. "
-                "Manual articles must be descriptive only."
-            ),
-            detail=safety_error,
-        )
-
-    published = _parse_iso_datetime(payload.published_at)
-    if published is None:
-        return ManualArticleResult(
-            status="REJECTED",
-            message="publishedAt must be a valid ISO-8601 timestamp.",
-            detail="invalid_published_at",
-        )
-
-    with get_session_scope() as session:
-        if session is None:
-            return ManualArticleResult(
-                status="OK",
-                message=(
-                    "Manual article accepted in fixture-first shell. "
-                    "No database session was available; storage will "
-                    "occur once the live wiring lands."
-                ),
-                detail="no_database_session",
-            )
-        try:
-            from finskillos.services.news_service import (
-                NewsArticleInput,
-                NewsImpactInput,
-                NewsService,
-            )
-
-            extra_impacts: list[NewsImpactInput] = []
-            for ticker in payload.affected_tickers:
-                extra_impacts.append(
-                    NewsImpactInput(
-                        ticker=ticker,
-                        theme=payload.theme,
-                        event_key=payload.event_key,
-                        impact_score=Decimal("0.4"),
-                        sentiment_label=payload.sentiment,
-                        risk_level=payload.risk_level,
-                        is_event_linked=bool(payload.event_key),
-                    )
-                )
-            if not extra_impacts and (payload.theme or payload.event_key):
-                extra_impacts.append(
-                    NewsImpactInput(
-                        theme=payload.theme,
-                        event_key=payload.event_key,
-                        impact_score=Decimal("0.3"),
-                        sentiment_label=payload.sentiment,
-                        risk_level=payload.risk_level,
-                        is_event_linked=bool(payload.event_key),
-                    )
-                )
-
-            service = NewsService(session)
-            result = service.ingest_article(
-                NewsArticleInput(
-                    title=payload.title,
-                    source=payload.source,
-                    url=payload.url,
-                    published_at=published,
-                    summary=payload.summary,
-                ),
-                extra_impacts=extra_impacts,
-            )
-            session.commit()
-            return ManualArticleResult(
-                status="OK",
-                message="Manual article stored with short summary only.",
-                detail="article_persisted",
-                article_id=str(result.article.id),
-            )
-        except Exception as exc:  # noqa: BLE001 — structured JSON
-            session.rollback()
-            return ManualArticleResult(
-                status="ERROR",
-                message=(
-                    "Manual article request could not complete. Stored "
-                    "data was not modified."
-                ),
-                detail=type(exc).__name__,
-            )
-
-
-def _scan_inputs_for_forbidden_wording(
-    payload: ManualArticleInput,
-) -> str | None:
-    """Re-run the Slice-06 forbidden-wording guard at the API seam."""
-
-    from finskillos.guards.base import (
-        GuardResult,
-        assert_no_forbidden_wording,
-    )
-
-    fields: tuple[tuple[str, str | None], ...] = (
-        ("title", payload.title),
-        ("summary", payload.summary),
-        ("source", payload.source),
-        ("theme", payload.theme),
-        ("event_key", payload.event_key),
-    )
-    for name, value in fields:
-        if not value:
-            continue
-        placeholder = GuardResult(
-            guard_name=f"NEWS_MANUAL:{name}",
-            status="INFO",
-            risk_level="GREEN",
-            title="",
-            message=value,
-        )
-        try:
-            assert_no_forbidden_wording(placeholder)
-        except AssertionError:
-            return f"forbidden_wording_in_{name}"
-    return None
-
-
 def _live_response_from_vm(vm, session=None) -> NewsIntelligenceResponse:
     latest = _safe_articles([_article_vm(article) for article in vm.latest_news])
     holdings = _safe_articles(
@@ -225,7 +75,8 @@ def _live_response_from_vm(vm, session=None) -> NewsIntelligenceResponse:
     all_articles = _dedupe_articles([*latest, *holdings, *event_linked])
     impacts = [impact for article in all_articles for impact in article.impacts]
     dominant_theme = _dominant_theme(impacts)
-    confidence = _confidence(len(all_articles))
+    source_coverage = _source_coverage(all_articles)
+    confidence = source_coverage.confidence
     sentiment_tone = _dominant_label(
         [impact.sentiment_label for impact in impacts],
         fallback="UNKNOWN",
@@ -294,6 +145,7 @@ def _live_response_from_vm(vm, session=None) -> NewsIntelligenceResponse:
             session,
             _affected_tickers(all_articles),
         ),
+        source_coverage=source_coverage,
         integrated_interpretation=[
             (
                 f"{len(all_articles)} stored news articles are available for "
@@ -447,12 +299,42 @@ def _dominant_theme(impacts: list[NewsImpactVM]) -> str:
     return Counter(themes).most_common(1)[0][0]
 
 
-def _confidence(article_count: int) -> str:
-    if article_count >= 8:
-        return "HIGH"
-    if article_count >= 3:
-        return "MODERATE"
-    return "LOW"
+def _source_coverage(articles: list[NewsArticleVM]) -> NewsSourceCoverage:
+    sources = sorted(
+        {article.source.strip() for article in articles if article.source.strip()}
+    )
+    latest = max((article.published_at for article in articles), default=None)
+    source_count = len(sources)
+    article_count = len(articles)
+    if article_count >= 8 and source_count >= 3:
+        confidence = "HIGH"
+    elif article_count >= 3 and source_count >= 2:
+        confidence = "MODERATE"
+    else:
+        confidence = "LOW"
+
+    if source_count == 0:
+        provider_mix = "No providers"
+        coverage_note = "No stored news providers are available yet."
+    elif source_count == 1:
+        provider_mix = sources[0]
+        coverage_note = "Single-provider coverage; corroboration is limited."
+    else:
+        provider_mix = " · ".join(sources[:4])
+        if source_count > 4:
+            provider_mix = f"{provider_mix} · +{source_count - 4}"
+        coverage_note = (
+            f"{source_count} distinct providers are represented in stored metadata."
+        )
+
+    return NewsSourceCoverage(
+        article_count=article_count,
+        source_count=source_count,
+        latest_published_at=latest,
+        confidence=confidence,
+        provider_mix=provider_mix,
+        coverage_note=coverage_note,
+    )
 
 
 def _dominant_label(labels: list[str], *, fallback: str) -> str:
@@ -511,19 +393,6 @@ def _impact_map(impacts: list[NewsImpactVM]) -> list[NewsImpactMapEntry]:
             )
         )
     return rows
-
-
-def _parse_iso_datetime(value: str) -> datetime | None:
-    if not value:
-        return None
-    raw = value.replace("Z", "+00:00")
-    try:
-        parsed = datetime.fromisoformat(raw)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed
 
 
 __all__ = ["router"]

@@ -93,7 +93,7 @@ const ROUTES: readonly RouteLayoutSpec[] = [
     mockupId: "news",
     leftTestId: "holdings-relevant-news",
     centerTestId: "news-impact-map",
-    rightTestId: "manual-article-entry",
+    rightTestId: "event-linked-news",
   },
   {
     label: "catalyst-watch",

@@ -83,10 +83,13 @@ export interface NewsWatchpoint {
   tone: JudgmentTone;
 }
 
-export interface NewsManualEntryRules {
-  maxSummaryChars: number;
-  forbidFullBody: boolean;
-  disclaimer: string;
+export interface NewsSourceCoverage {
+  articleCount: number;
+  sourceCount: number;
+  latestPublishedAt: string | null;
+  confidence: ConfidenceLevel;
+  providerMix: string;
+  coverageNote: string;
 }
 
 export interface NewsSystemStatus {
@@ -106,31 +109,9 @@ export interface NewsIntelligenceData {
   latestNews: NewsArticleVM[];
   impactMap: NewsImpactMapEntry[];
   tickerIdentities: NewsTickerIdentity[];
+  sourceCoverage: NewsSourceCoverage;
   integratedInterpretation: string[];
   watchpoints: NewsWatchpoint[];
-  manualEntryRules: NewsManualEntryRules;
   safetyCaption: string;
   source: "fixture" | "live";
-}
-
-export type ManualArticleStatus = "OK" | "REJECTED" | "ERROR";
-
-export interface ManualArticleInput {
-  title: string;
-  source: string;
-  url: string;
-  publishedAt: string;
-  summary: string;
-  affectedTickers: string[];
-  theme: string | null;
-  eventKey: string | null;
-  sentiment: SentimentLabel;
-  riskLevel: RiskLevel;
-}
-
-export interface ManualArticleResult {
-  status: ManualArticleStatus;
-  message: string;
-  detail: string;
-  articleId: string | null;
 }

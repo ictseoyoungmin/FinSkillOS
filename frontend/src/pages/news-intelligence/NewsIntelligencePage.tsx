@@ -8,13 +8,16 @@ import { NewsImpactMap } from "@/features/news/components/NewsImpactMap";
 import { NewsJudgmentHeader } from "@/features/news/components/NewsJudgmentHeader";
 import { NewsSignalSummary } from "@/features/news/components/NewsSignalSummary";
 import { NewsWatchpointsPanel } from "@/features/news/components/NewsWatchpointsPanel";
+import type { NewsSourceCoverage } from "@/features/news/types";
 import { newsIntelligenceFixture } from "@/mocks/fixtures/newsIntelligence.fixture";
 import {
+  Badge,
   EmptyState,
   InterpretationPanel,
   SafetyCaption,
   SectionHeader,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui";
 import "./news-intelligence.css";
 
 export function NewsIntelligencePage() {
@@ -38,6 +41,7 @@ export function NewsIntelligencePage() {
   }
 
   const payload = data ?? newsIntelligenceFixture;
+  const coverage = payload.sourceCoverage;
 
   return (
     <div className="fso-news-intel" data-testid="news-intelligence-page">
@@ -54,6 +58,7 @@ export function NewsIntelligencePage() {
           testId="news-interpretation-panel"
         />
       </div>
+      <SourceCoverageBand coverage={coverage} source={payload.source} />
       <div className="fso-news-intel-row fso-news-intel-main-row">
         <LatestNewsPanel
           articles={payload.latestNews}
@@ -83,6 +88,77 @@ export function NewsIntelligencePage() {
       <div data-testid="news-intelligence-safety-caption">
         <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
       </div>
+    </div>
+  );
+}
+
+function SourceCoverageBand({
+  coverage,
+  source,
+}: {
+  coverage: NewsSourceCoverage;
+  source: "fixture" | "live";
+}) {
+  const latest = coverage.latestPublishedAt
+    ? coverage.latestPublishedAt.slice(0, 16).replace("T", " ")
+    : "No timestamp";
+
+  return (
+    <div
+      className="fso-news-source-band"
+      data-source={source}
+      data-testid="news-source-coverage"
+    >
+      <CoverageItem
+        label="Source"
+        value={source.toUpperCase()}
+        detail={source === "live" ? "Stored DB metadata" : "Deterministic sample"}
+        tone={source === "live" ? "success" : "warning"}
+      />
+      <CoverageItem
+        label="Providers"
+        value={String(coverage.sourceCount)}
+        detail={coverage.providerMix}
+        tone={coverage.sourceCount > 1 ? "info" : "neutral"}
+      />
+      <CoverageItem
+        label="Articles"
+        value={String(coverage.articleCount)}
+        detail={latest}
+        tone={coverage.articleCount > 0 ? "info" : "neutral"}
+      />
+      <CoverageItem
+        label="Coverage"
+        value={coverage.confidence}
+        detail={coverage.coverageNote}
+        tone={coverageTone(coverage.confidence)}
+      />
+    </div>
+  );
+}
+
+function coverageTone(confidence: NewsSourceCoverage["confidence"]): BadgeTone {
+  if (confidence === "HIGH") return "success";
+  if (confidence === "MODERATE") return "warning";
+  return "neutral";
+}
+
+function CoverageItem({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}) {
+  return (
+    <div className="fso-news-source-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }
