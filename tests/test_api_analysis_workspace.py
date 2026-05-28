@@ -61,8 +61,12 @@ def test_analysis_workspace_returns_full_payload() -> None:
     assert body["timeframe"] == "1d"
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
     assert body["dataState"]["universeStatus"] == "OK"
+    assert body["dataState"]["coverageLevel"] == "COMPLETE"
+    assert body["dataState"]["evidenceCoveragePercent"] == 100
     assert body["dataState"]["universeCount"] == len(body["universe"])
     assert body["dataState"]["rankedCount"] >= len(body["strongest"])
+    assert body["dataState"]["rankedStatus"] == "READY"
+    assert body["dataState"]["missingSummary"] == "No missing universe rows."
 
 
 def test_analysis_workspace_universe_covers_etfs_and_macro_proxies() -> None:
@@ -133,8 +137,12 @@ def test_analysis_workspace_live_empty_state_when_db_reachable(
     assert body["source"] == "live"
     assert body["dataState"]["universeSource"] == "live"
     assert body["dataState"]["universeStatus"] == "MISSING"
+    assert body["dataState"]["coverageLevel"] == "EMPTY"
+    assert body["dataState"]["evidenceCoveragePercent"] == 0
     assert body["dataState"]["okCount"] == 0
     assert body["dataState"]["missingCount"] == len(body["universe"])
+    assert body["dataState"]["rankedStatus"] == "EMPTY"
+    assert body["dataState"]["missingPreview"][:3] == ["SPY", "QQQ", "DIA"]
     assert body["strongest"] == []
     assert body["weakest"] == []
     assert body["setupHint"]
@@ -187,10 +195,15 @@ def test_analysis_workspace_promotes_stored_bars_and_indicators(
     assert body["generatedAt"] != FIXTURE_TIMESTAMP
     assert body["dataState"]["universeSource"] == "live"
     assert body["dataState"]["universeStatus"] == "PARTIAL"
+    assert body["dataState"]["coverageLevel"] == "SPARSE"
+    assert body["dataState"]["evidenceCoveragePercent"] == 12
     assert body["dataState"]["okCount"] == 2
     assert body["dataState"]["rankedCount"] == 2
+    assert body["dataState"]["rankedStatus"] == "LIMITED"
     assert body["dataState"]["regimeStatus"] == "AVAILABLE"
     assert body["dataState"]["latestSnapshotAt"] == ts.isoformat()
+    assert body["dataState"]["missingPreview"][:3] == ["SPY", "DIA", "IWM"]
+    assert body["dataState"]["missingSummary"].startswith("Missing SPY, DIA, IWM")
     assert body["strongest"][0]["ticker"] == "QQQ"
     assert body["weakest"][0]["ticker"] == "XLE"
     assert body["regime"]["regime"] == "RISK_ON_OVERHEAT"

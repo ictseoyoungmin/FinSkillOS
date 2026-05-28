@@ -105,6 +105,7 @@ operational protocols.
 65     Analysis Workspace DB Read Model Promotion
 66     Control Room DB Read Model Promotion
 67     Catalyst Watch Backend Mutation Boundary Cleanup
+68     Analysis Workspace Coverage Ergonomics
 ```
 
 Slice 14 is complete:
@@ -260,6 +261,9 @@ Slice 14 is complete:
   boundary. Manual-event and Event Radar seed POST routes were removed, the
   `manualEntryRules` contract was dropped, and event seeding remains under
   System Ops.
+- Analysis Workspace now distinguishes complete, partial, sparse, and empty
+  universe coverage in its API contract, exposes ranked-tape readiness and
+  missing-row previews, and renders those cues in the state band.
 ```
 
 ## Validation Baseline
@@ -289,15 +293,15 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Analysis Workspace coverage ergonomics
-   - Refine empty/partial universe copy now that live DB-backed rows can be
-     sparse, especially when only subscribed folders have refreshed bars.
-
-2. Control Room rail promotion follow-up
+1. Control Room rail promotion follow-up
    - Replace the remaining fixture overview rails with composed live summaries
      from Market Kernel, Catalyst Watch, Symbol Lab, and Worker Status where
      the contracts are stable enough.
 
-3. System Ops event ingestion hardening
+2. System Ops event ingestion hardening
    - Tighten the event seeding protocol copy and audit evidence now that
      product-tab event mutation routes have been removed.
+
+3. Market Kernel / Analysis Workspace shared coverage vocabulary
+   - Align chart/indicator coverage language across the two market-structure
+     tabs so sparse live DB states use the same status tiers.

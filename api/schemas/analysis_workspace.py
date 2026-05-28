@@ -68,13 +68,18 @@ class AnalysisWorkspaceDataState(CamelModel):
 
     universe_source: Literal["fixture", "live"] = "fixture"
     universe_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    coverage_level: Literal["COMPLETE", "PARTIAL", "SPARSE", "EMPTY"] = "EMPTY"
+    evidence_coverage_percent: int = 0
     universe_count: int = 0
     ok_count: int = 0
     partial_count: int = 0
     missing_count: int = 0
     ranked_count: int = 0
+    ranked_status: Literal["READY", "LIMITED", "EMPTY"] = "EMPTY"
     regime_status: Literal["AVAILABLE", "MISSING"] = "MISSING"
     latest_snapshot_at: str | None = None
+    missing_preview: list[str] = Field(default_factory=list)
+    missing_summary: str = ""
     source_note: str
     refresh_note: str
 

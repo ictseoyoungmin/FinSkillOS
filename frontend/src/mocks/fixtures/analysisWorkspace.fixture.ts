@@ -12,13 +12,18 @@ export const analysisWorkspaceFixture: AnalysisWorkspaceData = {
   dataState: {
     universeSource: "fixture",
     universeStatus: "OK",
+    coverageLevel: "COMPLETE",
+    evidenceCoveragePercent: 100,
     universeCount: 17,
     okCount: 17,
     partialCount: 0,
     missingCount: 0,
     rankedCount: 14,
+    rankedStatus: "READY",
     regimeStatus: "AVAILABLE",
     latestSnapshotAt: "2026-05-19T00:00:00+00:00",
+    missingPreview: [],
+    missingSummary: "No missing universe rows.",
     sourceNote: "Deterministic Index Lab fixture for breadth and macro proxies.",
     refreshNote:
       "Promote to DB-backed rows after index-universe storage is wired.",

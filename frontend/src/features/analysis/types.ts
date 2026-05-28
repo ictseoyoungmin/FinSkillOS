@@ -58,13 +58,18 @@ export interface AnalysisWorkspaceSystemStatus {
 export interface AnalysisWorkspaceDataState {
   universeSource: "fixture" | "live";
   universeStatus: DataStatus;
+  coverageLevel: "COMPLETE" | "PARTIAL" | "SPARSE" | "EMPTY";
+  evidenceCoveragePercent: number;
   universeCount: number;
   okCount: number;
   partialCount: number;
   missingCount: number;
   rankedCount: number;
+  rankedStatus: "READY" | "LIMITED" | "EMPTY";
   regimeStatus: "AVAILABLE" | "MISSING";
   latestSnapshotAt: string | null;
+  missingPreview: string[];
+  missingSummary: string;
   sourceNote: string;
   refreshNote: string;
 }

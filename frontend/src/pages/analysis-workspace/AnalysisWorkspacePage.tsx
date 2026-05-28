@@ -17,10 +17,7 @@ import {
   WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
-import type {
-  AnalysisWorkspaceData,
-  DataStatus,
-} from "@/features/analysis/types";
+import type { AnalysisWorkspaceData } from "@/features/analysis/types";
 import "./analysis-workspace.css";
 
 export function AnalysisWorkspacePage() {
@@ -139,15 +136,21 @@ function AnalysisDataStateBand({ payload }: { payload: AnalysisWorkspaceData }) 
       />
       <AnalysisStateItem
         label="Coverage"
-        value={state.universeStatus}
-        detail={`${state.okCount} OK · ${state.partialCount} partial · ${state.missingCount} missing`}
-        tone={dataStatusTone(state.universeStatus)}
+        value={state.coverageLevel}
+        detail={`${state.okCount}/${state.universeCount} complete · ${state.evidenceCoveragePercent}% evidence`}
+        tone={coverageTone(state.coverageLevel)}
       />
       <AnalysisStateItem
         label="Ranked tape"
-        value={`${state.rankedCount}`}
-        detail={`${state.universeCount} total rows · ${latestLabel}`}
-        tone={state.rankedCount > 0 ? "info" : "neutral"}
+        value={state.rankedStatus}
+        detail={`${state.rankedCount} ranked rows · ${latestLabel}`}
+        tone={state.rankedStatus === "READY" ? "info" : "neutral"}
+      />
+      <AnalysisStateItem
+        label="Gap focus"
+        value={state.missingCount > 0 ? `${state.missingCount}` : "NONE"}
+        detail={state.missingSummary}
+        tone={state.missingCount > 0 ? "warning" : "success"}
       />
       <AnalysisStateItem
         label="Regime"
@@ -159,11 +162,13 @@ function AnalysisDataStateBand({ payload }: { payload: AnalysisWorkspaceData }) 
   );
 }
 
-function dataStatusTone(status: DataStatus): BadgeTone {
-  if (status === "OK") {
+function coverageTone(
+  level: AnalysisWorkspaceData["dataState"]["coverageLevel"],
+): BadgeTone {
+  if (level === "COMPLETE") {
     return "success";
   }
-  if (status === "PARTIAL") {
+  if (level === "PARTIAL" || level === "SPARSE") {
     return "warning";
   }
   return "neutral";

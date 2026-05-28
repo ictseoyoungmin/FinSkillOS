@@ -82,7 +82,21 @@ def _live_response(vm: IndexLabViewModel) -> AnalysisWorkspaceResponse:
         partial_count=partial_count,
         missing_count=missing_count,
     )
+    coverage_level = _coverage_level(
+        universe_count=len(universe),
+        ok_count=ok_count,
+        partial_count=partial_count,
+        missing_count=missing_count,
+        ranked_count=ranked_count,
+    )
+    evidence_coverage_percent = _coverage_percent(
+        universe_count=len(universe),
+        ok_count=ok_count,
+        partial_count=partial_count,
+    )
+    ranked_status = _ranked_status(ranked_count)
     latest_snapshot_at = _latest_snapshot_at(vm)
+    missing_preview = list(vm.missing_data[:5])
 
     return AnalysisWorkspaceResponse(
         generated_at=vm.generated_at.isoformat(),
@@ -91,13 +105,21 @@ def _live_response(vm: IndexLabViewModel) -> AnalysisWorkspaceResponse:
         data_state=AnalysisWorkspaceDataState(
             universe_source="live",
             universe_status=universe_status,
+            coverage_level=coverage_level,
+            evidence_coverage_percent=evidence_coverage_percent,
             universe_count=len(universe),
             ok_count=ok_count,
             partial_count=partial_count,
             missing_count=missing_count,
             ranked_count=ranked_count,
+            ranked_status=ranked_status,
             regime_status="AVAILABLE" if vm.regime is not None else "MISSING",
             latest_snapshot_at=latest_snapshot_at,
+            missing_preview=missing_preview,
+            missing_summary=_missing_summary(
+                missing_count=missing_count,
+                missing_preview=missing_preview,
+            ),
             source_note=(
                 "DB-backed Index Lab read model from stored bars and indicators."
                 if ok_count or partial_count
@@ -214,6 +236,56 @@ def _universe_status(
     if missing_count or partial_count:
         return DATA_STATUS_PARTIAL
     return DATA_STATUS_OK
+
+
+def _coverage_level(
+    *,
+    universe_count: int,
+    ok_count: int,
+    partial_count: int,
+    missing_count: int,
+    ranked_count: int,
+) -> str:
+    available_count = ok_count + partial_count
+    if universe_count == 0 or available_count == 0:
+        return "EMPTY"
+    if missing_count == 0 and partial_count == 0:
+        return "COMPLETE"
+    if available_count < max(3, universe_count // 3) or ranked_count < 3:
+        return "SPARSE"
+    return "PARTIAL"
+
+
+def _coverage_percent(
+    *,
+    universe_count: int,
+    ok_count: int,
+    partial_count: int,
+) -> int:
+    if universe_count <= 0:
+        return 0
+    return round(((ok_count + partial_count) / universe_count) * 100)
+
+
+def _ranked_status(ranked_count: int) -> str:
+    if ranked_count <= 0:
+        return "EMPTY"
+    if ranked_count < 3:
+        return "LIMITED"
+    return "READY"
+
+
+def _missing_summary(*, missing_count: int, missing_preview: list[str]) -> str:
+    if missing_count <= 0:
+        return "No missing universe rows."
+    if not missing_preview:
+        return f"{missing_count} universe rows need stored bars and indicators."
+    suffix = (
+        ""
+        if missing_count <= len(missing_preview)
+        else f" +{missing_count - len(missing_preview)} more"
+    )
+    return f"Missing {', '.join(missing_preview)}{suffix}."
 
 
 def _latest_snapshot_at(vm: IndexLabViewModel) -> str | None:

@@ -402,13 +402,18 @@ def analysis_workspace_fixture() -> AnalysisWorkspaceResponse:
         data_state=AnalysisWorkspaceDataState(
             universe_source="fixture",
             universe_status="OK",
+            coverage_level="COMPLETE",
+            evidence_coverage_percent=100,
             universe_count=len(_UNIVERSE),
             ok_count=ok_count,
             partial_count=partial_count,
             missing_count=missing_count,
             ranked_count=ranked_count,
+            ranked_status="READY",
             regime_status="AVAILABLE",
             latest_snapshot_at="2026-05-19T00:00:00+00:00",
+            missing_preview=[],
+            missing_summary="No missing universe rows.",
             source_note=(
                 "Deterministic Index Lab fixture for breadth and macro proxies."
             ),
