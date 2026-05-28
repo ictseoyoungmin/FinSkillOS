@@ -98,6 +98,7 @@ operational protocols.
 58     Catalyst Watch Source Date Confidence
 59     Market Kernel Data State Hardening
 60     Risk Firewall Guard Evidence Density
+61     Catalyst Watch DB Read Model Promotion
 ```
 
 Slice 14 is complete:
@@ -228,6 +229,10 @@ Slice 14 is complete:
 - Risk Firewall now exposes a `dataState` API contract and renders a compact
   evaluation/risk/guard/alert-write state band. Live active-alert rows now
   serialize through the canonical camelCase schema.
+- Catalyst Watch `/api/event-radar` now promotes to a live DB-backed read
+  model when a DB session is reachable, returns explicit live-empty state when
+  no upcoming event rows exist, and filters unsafe external linked-news copy
+  instead of letting provider headlines break the read model.
 ```
 
 ## Validation Baseline
@@ -258,16 +263,16 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Catalyst Watch DB read-model promotion
-   - Promote `/api/event-radar` from fixture-first shell to a live DB-backed
-     event read model when stored event rows are available.
-
-2. Analysis Workspace state hardening
+1. Analysis Workspace state hardening
    - Align index lab, strongest/weakest panels, and regime summary with the
      same source/data-availability language now used across Market Kernel and
      Symbol Lab.
 
-3. Control Room state-band coherence
+2. Control Room state-band coherence
    - Recheck the overview grid after individual tabs gained explicit
      `dataState` contracts, so summary cards do not imply fixture/live states
      that differ from the underlying tabs.
+
+3. Catalyst Watch manual event UX removal/replacement
+   - Decide whether manual event entry should remain now that the tab has a
+     DB-backed read model, or replace it with read-only event catalog evidence.

@@ -18,11 +18,22 @@ Verifies:
 from __future__ import annotations
 
 import json
+from datetime import date
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
+from finskillos.config import reset_settings_cache
+from finskillos.db.base import Base
+from finskillos.services.event_service import (
+    EventInput,
+    EventLinkInput,
+    EventService,
+)
 
 _FORBIDDEN_WORDS = (
     "buy ",
@@ -65,9 +76,18 @@ def test_event_radar_returns_full_payload() -> None:
         "source",
     }
     assert expected.issubset(body.keys())
-    assert body["generatedAt"] == FIXTURE_TIMESTAMP
-    assert body["dataState"]["calendarStatus"] == "fixture_first"
-    assert body["dataState"]["dateConfidenceStatus"] == "uncertain"
+    if body["source"] == "fixture":
+        assert body["generatedAt"] == FIXTURE_TIMESTAMP
+        assert body["dataState"]["calendarStatus"] == "fixture_first"
+    else:
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert body["dataState"]["calendarStatus"] in {"db_backed", "empty"}
+    assert body["dataState"]["dateConfidenceStatus"] in {
+        "confirmed",
+        "mixed",
+        "uncertain",
+        "missing",
+    }
 
 
 def test_event_radar_snapshot_exposes_v42_contract() -> None:
@@ -101,7 +121,9 @@ def test_event_radar_date_status_badge_tone_map() -> None:
 
 
 def test_event_radar_upcoming_rows_use_camelcase_fields() -> None:
-    body = _client().get("/api/event-radar").json()
+    body = _client().get(
+        "/api/event-radar", headers={"X-FSO-Use-Fixture": "1"}
+    ).json()
     assert len(body["upcoming"]) >= 1
     expected = {
         "eventId",
@@ -263,3 +285,65 @@ def test_use_fixture_header_is_accepted_on_event_radar() -> None:
     )
     assert response.status_code == 200
     assert response.json()["source"] == "fixture"
+
+
+def test_event_radar_can_return_live_db_read_model(monkeypatch, tmp_path) -> None:
+    db_url = f"sqlite+pysqlite:///{tmp_path / 'event_radar.db'}"
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", db_url)
+    reset_settings_cache()
+
+    engine = create_engine(db_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        EventService(session).create_event(
+            EventInput(
+                title="NVIDIA earnings window",
+                event_type="EARNINGS",
+                date_status="TENTATIVE",
+                start_date=date(2026, 6, 10),
+                source="Nasdaq",
+                description="Tentative earnings window.",
+                importance_score=Decimal("4.0"),
+            ),
+            links=(
+                EventLinkInput(ticker="NVDA", theme="AI", event_key="EARNINGS"),
+            ),
+        )
+        session.commit()
+
+    try:
+        response = TestClient(create_app()).get("/api/event-radar")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["source"] == "live"
+        assert body["dataState"]["calendarStatus"] == "db_backed"
+        assert body["dataState"]["eventCount"] == 1
+        assert body["dataState"]["dateConfidenceStatus"] == "uncertain"
+        assert body["upcoming"][0]["title"] == "NVIDIA earnings window"
+    finally:
+        reset_settings_cache()
+        engine.dispose()
+
+
+def test_event_radar_live_empty_db_is_explicit(monkeypatch, tmp_path) -> None:
+    db_url = f"sqlite+pysqlite:///{tmp_path / 'empty_event_radar.db'}"
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", db_url)
+    reset_settings_cache()
+
+    engine = create_engine(db_url, future=True)
+    Base.metadata.create_all(engine)
+
+    try:
+        response = TestClient(create_app()).get("/api/event-radar")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["source"] == "live"
+        assert body["dataState"]["calendarStatus"] == "empty"
+        assert body["dataState"]["eventCount"] == 0
+        assert body["upcoming"] == []
+    finally:
+        reset_settings_cache()
+        engine.dispose()
