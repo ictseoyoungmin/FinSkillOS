@@ -22,6 +22,57 @@
   gap: 12px;
 }
 
+.fso-system-ops-worker-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.4fr);
+  gap: 12px;
+}
+
+.fso-system-ops-worker-grid div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--fso-line);
+  border-radius: 6px;
+}
+
+.fso-system-ops-worker-grid span,
+.fso-system-ops-worker-row span {
+  display: block;
+  color: var(--fso-text-muted-2);
+  font-size: 11px;
+}
+
+.fso-system-ops-worker-grid strong,
+.fso-system-ops-worker-row strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--fso-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.fso-system-ops-worker-table {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fso-system-ops-worker-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) 64px repeat(3, minmax(110px, 1fr));
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--fso-line);
+}
+
+@media (max-width: 900px) {
+  .fso-system-ops-worker-grid,
+  .fso-system-ops-worker-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fso-system-ops-caption {
   margin: 0;
   font-family: var(--fso-font-mono);

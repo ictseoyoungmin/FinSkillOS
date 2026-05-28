@@ -1,4 +1,4 @@
-"""Repository for System Ops protocol run audit records."""
+"""Repositories for System Ops and worker audit records."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from finskillos.db.models import SystemOpsProtocolRun
+from finskillos.db.models import SystemOpsProtocolRun, WorkerCycleRun
 
 
 class SystemOpsProtocolRunRepository:
@@ -59,3 +59,56 @@ class SystemOpsProtocolRunRepository:
         for row in rows:
             latest.setdefault(row.protocol, row)
         return latest
+
+
+class WorkerCycleRunRepository:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def create(
+        self,
+        *,
+        status: str,
+        started_at: datetime,
+        finished_at: datetime,
+        timeframe: str,
+        market_status: str,
+        news_status: str,
+        indicator_status: str,
+        market_scope: str,
+        news_scope: str,
+        indicator_scope: str,
+        summary: dict,
+    ) -> WorkerCycleRun:
+        row = WorkerCycleRun(
+            status=status,
+            started_at=started_at,
+            finished_at=finished_at,
+            timeframe=timeframe,
+            market_status=market_status,
+            news_status=news_status,
+            indicator_status=indicator_status,
+            market_scope=market_scope,
+            news_scope=news_scope,
+            indicator_scope=indicator_scope,
+            summary=summary,
+        )
+        self.session.add(row)
+        self.session.flush()
+        return row
+
+    def list_recent(self, limit: int = 5) -> list[WorkerCycleRun]:
+        stmt = (
+            select(WorkerCycleRun)
+            .order_by(WorkerCycleRun.started_at.desc(), WorkerCycleRun.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.session.scalars(stmt))
+
+    def latest(self) -> WorkerCycleRun | None:
+        stmt = (
+            select(WorkerCycleRun)
+            .order_by(WorkerCycleRun.started_at.desc(), WorkerCycleRun.created_at.desc())
+            .limit(1)
+        )
+        return self.session.scalars(stmt).one_or_none()

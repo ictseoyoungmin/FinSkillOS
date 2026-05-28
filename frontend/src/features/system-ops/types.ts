@@ -16,6 +16,7 @@ export type ProtocolKey =
   | "seed_sample_events";
 
 export type ProtocolStatus = "OK" | "NOOP" | "ERROR";
+export type WorkerStatus = ProtocolStatus | "MISSING";
 export type ProtocolTone = "info" | "warning" | "neutral" | "success";
 export type DataSourceStatus = "LIVE" | "FIXTURE" | "MISSING";
 export type ApiStatus = "LIVE";
@@ -58,6 +59,7 @@ export interface SystemOpsData {
   protocols: ProtocolCard[];
   dataSources: DataSourcePill[];
   recentProtocolRuns: ProtocolRunRecord[];
+  workerStatus: WorkerStatusSummary;
   safetyCaption: string;
   source: "fixture" | "live";
 }
@@ -73,6 +75,27 @@ export interface ProtocolRunResult {
 export interface ProtocolRunRecord extends ProtocolRunResult {
   dbStatus: string;
   source: "fixture" | "live";
+}
+
+export interface WorkerCycleRecord {
+  status: WorkerStatus;
+  startedAt: string;
+  finishedAt: string;
+  timeframe: string;
+  marketStatus: string;
+  newsStatus: string;
+  indicatorStatus: string;
+  marketScope: string;
+  newsScope: string;
+  indicatorScope: string;
+}
+
+export interface WorkerStatusSummary {
+  status: WorkerStatus;
+  latestStartedAt: string | null;
+  latestFinishedAt: string | null;
+  latestDetail: string;
+  recentCycles: WorkerCycleRecord[];
 }
 
 export interface ProtocolAvailability {

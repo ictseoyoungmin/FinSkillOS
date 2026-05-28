@@ -30,6 +30,7 @@ from finskillos.data_sources import (
     MockMarketDataAdapter,
     YahooChartMarketDataAdapter,
 )
+from finskillos.db.repositories import WorkerCycleRunRepository
 from finskillos.db.session import session_scope
 from finskillos.logging_config import setup_logging
 from finskillos.services.market_data_service import MarketDataService
@@ -244,8 +245,42 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                 "folders": indicator_policy.folder_names,
             }
 
-    summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
+        summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
+        _persist_worker_cycle(session, summary)
     return summary
+
+
+def _persist_worker_cycle(session, summary: dict[str, Any]) -> None:
+    market = _section_summary(summary, "market")
+    news = _section_summary(summary, "news")
+    indicators = _section_summary(summary, "indicators")
+    WorkerCycleRunRepository(session).create(
+        status=_cycle_status((market, news, indicators)),
+        started_at=datetime.fromisoformat(str(summary["startedAt"])),
+        finished_at=datetime.fromisoformat(str(summary["finishedAt"])),
+        timeframe=str(summary.get("timeframe") or DEFAULT_TIMEFRAME),
+        market_status=str(market.get("status") or "SKIPPED"),
+        news_status=str(news.get("status") or "SKIPPED"),
+        indicator_status=str(indicators.get("status") or "SKIPPED"),
+        market_scope=str(market.get("scope") or "unknown"),
+        news_scope=str(news.get("scope") or "unknown"),
+        indicator_scope=str(indicators.get("scope") or "unknown"),
+        summary=summary,
+    )
+
+
+def _section_summary(summary: dict[str, Any], key: str) -> dict[str, Any]:
+    value = summary.get(key)
+    return value if isinstance(value, dict) else {"status": "SKIPPED"}
+
+
+def _cycle_status(sections: tuple[dict[str, Any], ...]) -> str:
+    statuses = [str(section.get("status") or "SKIPPED") for section in sections]
+    if "ERROR" in statuses:
+        return "ERROR"
+    if "OK" in statuses:
+        return "OK"
+    return "NOOP"
 
 
 def _with_news_policy(config: WorkerConfig, policy: NewsFeedPolicy) -> WorkerConfig:

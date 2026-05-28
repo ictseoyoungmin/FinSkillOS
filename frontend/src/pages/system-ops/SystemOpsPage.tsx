@@ -103,6 +103,45 @@ export function SystemOpsPage() {
       <div data-testid="system-ops-data-sources">
         <DataSourceStrip pills={payload.dataSources} />
       </div>
+      <Panel
+        title="Worker Status"
+        badge={payload.workerStatus.status.toLowerCase()}
+        badgeTone={workerBadgeTone(payload.workerStatus.status)}
+        testId="worker-status-dashboard"
+      >
+        <div className="fso-system-ops-worker-grid">
+          <div>
+            <span>Latest start</span>
+            <strong>{payload.workerStatus.latestStartedAt ?? "No cycle recorded"}</strong>
+          </div>
+          <div>
+            <span>Latest finish</span>
+            <strong>{payload.workerStatus.latestFinishedAt ?? "No cycle recorded"}</strong>
+          </div>
+          <div>
+            <span>Cycle detail</span>
+            <strong>{payload.workerStatus.latestDetail}</strong>
+          </div>
+        </div>
+        {payload.workerStatus.recentCycles.length > 0 ? (
+          <div className="fso-system-ops-worker-table">
+            {payload.workerStatus.recentCycles.map((cycle) => (
+              <div
+                className="fso-system-ops-worker-row"
+                key={`${cycle.startedAt}-${cycle.finishedAt}`}
+              >
+                <span>{cycle.startedAt}</span>
+                <strong>{cycle.status}</strong>
+                <span>market {cycle.marketStatus} · {cycle.marketScope}</span>
+                <span>news {cycle.newsStatus} · {cycle.newsScope}</span>
+                <span>
+                  indicators {cycle.indicatorStatus} · {cycle.indicatorScope}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </Panel>
       <div data-testid="system-ops-protocols">
         <Panel
           title="Operational Protocols"
@@ -155,6 +194,21 @@ export function SystemOpsPage() {
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
+}
+
+function workerBadgeTone(
+  status: string,
+): "info" | "success" | "warning" | "danger" {
+  if (status === "OK") {
+    return "success";
+  }
+  if (status === "ERROR") {
+    return "danger";
+  }
+  if (status === "NOOP") {
+    return "warning";
+  }
+  return "info";
 }
 
 function summarizeStaleFlags(flags: string[]): {

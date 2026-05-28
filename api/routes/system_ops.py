@@ -33,9 +33,14 @@ from api.schemas.system_ops import (
     ProtocolRunRecord,
     ProtocolRunResult,
     SystemOpsResponse,
+    WorkerCycleRecord,
+    WorkerStatusSummary,
 )
 from finskillos.data_sources import DEFAULT_US_TICKER_UNIVERSE
-from finskillos.db.repositories import SystemOpsProtocolRunRepository
+from finskillos.db.repositories import (
+    SystemOpsProtocolRunRepository,
+    WorkerCycleRunRepository,
+)
 
 router = APIRouter(tags=["system-ops"])
 
@@ -62,6 +67,7 @@ def system_ops(
             return payload
         try:
             payload.recent_protocol_runs = _read_recent_protocol_runs(session=session)
+            payload.worker_status = _read_worker_status(session=session)
             _attach_last_run_times(payload, session)
             payload.source = "live"
         except Exception:
@@ -352,6 +358,58 @@ def _protocol_record_from_db(row) -> ProtocolRunRecord:
         ran_at=row.ran_at.isoformat(),
         db_status=row.db_status,
         source=row.source,
+    )
+
+
+def _read_worker_status(
+    limit: int = 5,
+    *,
+    session=None,
+) -> WorkerStatusSummary:
+    if session is None:
+        return WorkerStatusSummary()
+    try:
+        rows = WorkerCycleRunRepository(session).list_recent(limit=limit)
+    except Exception:
+        session.rollback()
+        return WorkerStatusSummary(latest_detail="Worker cycle history is unavailable.")
+    if not rows:
+        return WorkerStatusSummary()
+    latest = rows[0]
+    return WorkerStatusSummary(
+        status=_worker_status_value(latest.status),
+        latest_started_at=latest.started_at.isoformat(),
+        latest_finished_at=latest.finished_at.isoformat(),
+        latest_detail=_worker_cycle_detail(latest),
+        recent_cycles=[_worker_cycle_record_from_db(row) for row in rows],
+    )
+
+
+def _worker_cycle_record_from_db(row) -> WorkerCycleRecord:
+    return WorkerCycleRecord(
+        status=_worker_status_value(row.status),
+        started_at=row.started_at.isoformat(),
+        finished_at=row.finished_at.isoformat(),
+        timeframe=row.timeframe,
+        market_status=row.market_status,
+        news_status=row.news_status,
+        indicator_status=row.indicator_status,
+        market_scope=row.market_scope,
+        news_scope=row.news_scope,
+        indicator_scope=row.indicator_scope,
+    )
+
+
+def _worker_status_value(value: str) -> str:
+    return value if value in {"OK", "NOOP", "ERROR"} else "MISSING"
+
+
+def _worker_cycle_detail(row) -> str:
+    return (
+        f"market={row.market_status}/{row.market_scope},"
+        f"news={row.news_status}/{row.news_scope},"
+        f"indicators={row.indicator_status}/{row.indicator_scope},"
+        f"timeframe={row.timeframe}"
     )
 
 

@@ -13,7 +13,7 @@ Covers:
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -32,6 +32,7 @@ from finskillos.db.repositories import (
     PortfolioRepository,
     PositionRepository,
     SystemOpsProtocolRunRepository,
+    WorkerCycleRunRepository,
 )
 from finskillos.services.market_data_service import MarketDataService
 
@@ -83,12 +84,14 @@ def test_system_ops_get_returns_full_payload() -> None:
         "protocols",
         "dataSources",
         "recentProtocolRuns",
+        "workerStatus",
         "safetyCaption",
         "source",
     }
     assert expected.issubset(body.keys())
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
     assert {p["key"] for p in body["protocols"]} == _PROTOCOL_KEYS
+    assert body["workerStatus"]["status"] in {"OK", "NOOP", "ERROR", "MISSING"}
 
 
 def test_system_ops_protocols_have_camelcase_fields() -> None:
@@ -222,6 +225,47 @@ def test_system_ops_protocol_runs_are_audited_to_db(monkeypatch, tmp_path) -> No
             if item["key"] == "seed_sample_account"
         )
         assert protocol["lastRunAt"] == get_body["recentProtocolRuns"][0]["ranAt"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_system_ops_get_exposes_worker_cycle_status(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime(2026, 5, 27, 12, 0, tzinfo=timezone.utc)
+    with factory() as session:
+        WorkerCycleRunRepository(session).create(
+            status="OK",
+            started_at=now,
+            finished_at=now,
+            timeframe="1d",
+            market_status="OK",
+            news_status="NOOP",
+            indicator_status="OK",
+            market_scope="folder",
+            news_scope="folder",
+            indicator_scope="folder",
+            summary={"startedAt": now.isoformat(), "finishedAt": now.isoformat()},
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops").json()
+
+        assert body["source"] == "live"
+        assert body["workerStatus"]["status"] == "OK"
+        assert body["workerStatus"]["latestStartedAt"].startswith("2026-05-27T12:00:00")
+        assert "market=OK/folder" in body["workerStatus"]["latestDetail"]
+        assert body["workerStatus"]["recentCycles"][0]["indicatorScope"] == "folder"
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

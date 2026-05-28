@@ -50,6 +50,7 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await page.goto("/system-ops");
     await expect(page.getByTestId("system-ops-page")).toBeVisible();
     await expect(page.getByTestId("system-ops-data-sources")).toBeVisible();
+    await expect(page.getByTestId("worker-status-dashboard")).toBeVisible();
     await expect(page.getByTestId("system-ops-protocols")).toBeVisible();
     await expect(
       page.getByTestId("system-ops-protocol-seed-sample-account"),

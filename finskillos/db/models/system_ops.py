@@ -1,14 +1,17 @@
-"""System Ops protocol audit trail."""
+"""System Ops and worker audit trails."""
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, String, Text, Uuid, func
+from sqlalchemy import JSON, DateTime, Index, String, Text, Uuid, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from finskillos.db.base import Base
+
+JSONPayload = JSON().with_variant(JSONB(), "postgresql")
 
 
 class SystemOpsProtocolRun(Base):
@@ -29,6 +32,34 @@ class SystemOpsProtocolRun(Base):
         String(16), default="live", server_default="live", nullable=False
     )
     ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class WorkerCycleRun(Base):
+    __tablename__ = "worker_cycle_runs"
+    __table_args__ = (
+        Index("idx_worker_cycle_runs_started_at", "started_at"),
+        Index("idx_worker_cycle_runs_status_time", "status", "started_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(), primary_key=True, default=uuid.uuid4)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    timeframe: Mapped[str] = mapped_column(String(16), default="1d", nullable=False)
+    market_status: Mapped[str] = mapped_column(String(16), default="SKIPPED", nullable=False)
+    news_status: Mapped[str] = mapped_column(String(16), default="SKIPPED", nullable=False)
+    indicator_status: Mapped[str] = mapped_column(
+        String(16), default="SKIPPED", nullable=False
+    )
+    market_scope: Mapped[str] = mapped_column(String(32), default="unknown", nullable=False)
+    news_scope: Mapped[str] = mapped_column(String(32), default="unknown", nullable=False)
+    indicator_scope: Mapped[str] = mapped_column(
+        String(32), default="unknown", nullable=False
+    )
+    summary: Mapped[dict | None] = mapped_column(JSONPayload)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

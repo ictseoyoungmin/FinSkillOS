@@ -37,6 +37,7 @@ ProtocolKey = Literal[
 ]
 
 ProtocolStatus = Literal["OK", "NOOP", "ERROR"]
+WorkerStatus = Literal["OK", "NOOP", "ERROR", "MISSING"]
 ProtocolTone = Literal["info", "warning", "neutral", "success"]
 DataSourceStatus = Literal["LIVE", "FIXTURE", "MISSING"]
 
@@ -85,6 +86,31 @@ class ProtocolRunRecord(ProtocolRunResult):
     source: Literal["fixture", "live"] = "fixture"
 
 
+class WorkerCycleRecord(CamelModel):
+    """Persisted lightweight worker cycle audit record."""
+
+    status: WorkerStatus
+    started_at: str
+    finished_at: str
+    timeframe: str
+    market_status: str
+    news_status: str
+    indicator_status: str
+    market_scope: str
+    news_scope: str
+    indicator_scope: str
+
+
+class WorkerStatusSummary(CamelModel):
+    """System Ops summary for the optional refresh worker."""
+
+    status: WorkerStatus = "MISSING"
+    latest_started_at: str | None = None
+    latest_finished_at: str | None = None
+    latest_detail: str = "No worker cycle has been recorded."
+    recent_cycles: list[WorkerCycleRecord] = Field(default_factory=list)
+
+
 class SystemOpsResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -96,6 +122,7 @@ class SystemOpsResponse(CamelModel):
     protocols: list[ProtocolCard]
     data_sources: list[DataSourcePill]
     recent_protocol_runs: list[ProtocolRunRecord] = Field(default_factory=list)
+    worker_status: WorkerStatusSummary = Field(default_factory=WorkerStatusSummary)
     safety_caption: str = "Operational protocols only — no trading actions."
     source: Literal["fixture", "live"] = "fixture"
 
@@ -110,4 +137,7 @@ __all__ = [
     "ProtocolStatus",
     "ProtocolTone",
     "SystemOpsResponse",
+    "WorkerCycleRecord",
+    "WorkerStatus",
+    "WorkerStatusSummary",
 ]

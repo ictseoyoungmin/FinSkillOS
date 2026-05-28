@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from finskillos.db.base import Base
-from finskillos.db.repositories import NewsArticleRepository
+from finskillos.db.repositories import NewsArticleRepository, WorkerCycleRunRepository
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKUP_SCRIPT = ROOT / "scripts" / "backup_postgres.sh"
@@ -182,6 +182,7 @@ def test_refresh_worker_contract_includes_news_refresh() -> None:
     assert "FINSKILLOS_WORKER_NEWS_ENABLED" in compose
     assert "FINSKILLOS_NEWS_RSS_FEEDS" in compose
     assert "FINSKILLOS_NEWS_RSS_TICKERS" in compose
+    assert "FINSKILLOS_REFRESH_FOLDER_NAMES" in compose
     assert 'command: ["python", "scripts/refresh_worker.py"]' in compose
 
 
@@ -238,6 +239,12 @@ def test_refresh_worker_once_ingests_configured_news_feed(tmp_path) -> None:
             assert len(rows) == 1
             assert rows[0].url == "https://news.example.com/msft-ai"
             assert rows[0].summary == "Microsoft data center spending remained in focus."
+            cycles = WorkerCycleRunRepository(session).list_recent()
+            assert len(cycles) == 1
+            assert cycles[0].status == "OK"
+            assert cycles[0].market_status == "SKIPPED"
+            assert cycles[0].news_status == "OK"
+            assert cycles[0].indicator_status == "SKIPPED"
     finally:
         Base.metadata.drop_all(engine)
         engine.dispose()

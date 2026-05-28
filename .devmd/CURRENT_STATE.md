@@ -79,6 +79,7 @@ operational protocols.
 39     Mission Control Live UI Layout
 40     News Impact Sentiment / Risk Scoring
 41     Watchlist Folder Driven Refresh Controls
+42     Worker Status Dashboard
 ```
 
 Slice 14 is complete:
@@ -165,6 +166,9 @@ Slice 14 is complete:
   setting `FINSKILLOS_REFRESH_FOLDER_NAMES` scopes subscription-derived refresh
   tickers to active members of named folders while preserving explicit/default
   baseline tickers.
+- The lightweight worker now persists completed cycle summaries to
+  `worker_cycle_runs`; System Ops exposes and renders a Worker Status panel
+  with latest market/news/indicator sub-status and refresh scope metadata.
 ```
 
 ## Validation Baseline
@@ -195,13 +199,14 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Worker status dashboard
-   - Summarize worker cycles and protocol freshness using DB audit rows.
-
-2. User-facing folder refresh controls
+1. User-facing folder refresh controls
    - Surface folder-scoped refresh intent in System Ops UI and add explicit
      controls after the backend policy has settled.
 
-3. News source confidence / provider coverage
+2. News source confidence / provider coverage
    - Add source-quality metadata and coverage grouping once the deterministic
      scoring baseline is stable.
+
+3. Worker process supervision
+   - Add explicit heartbeat/process health once cycle audit rows and Docker
+     deployment behavior are stable.

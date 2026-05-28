@@ -124,6 +124,13 @@ export const systemOpsFixture: SystemOpsData = {
     },
   ],
   recentProtocolRuns: [],
+  workerStatus: {
+    status: "MISSING",
+    latestStartedAt: null,
+    latestFinishedAt: null,
+    latestDetail: "No worker cycle has been recorded.",
+    recentCycles: [],
+  },
   dataSources: [
     {
       label: "Database",
