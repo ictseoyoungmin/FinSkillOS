@@ -10,6 +10,7 @@ import { SymbolUniverseRail } from "@/features/market/components/SymbolUniverseR
 import { TickerSearch } from "@/features/market/components/TickerSearch";
 import { marketKernelFixture } from "@/mocks/fixtures/marketKernel.fixture";
 import {
+  Badge,
   ConflictsPanel,
   DriversPanel,
   EmptyState,
@@ -19,6 +20,8 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui/Badge";
+import type { MarketKernelData } from "@/features/market/kernel-types";
 import "./market-kernel.css";
 
 const DEFAULT_TICKER = "NVDA";
@@ -78,6 +81,7 @@ export function MarketKernelPage() {
           }))}
         />
       </div>
+      <MarketKernelDataStateBand payload={payload} />
       <div className="fso-market-kernel-grid">
         <SymbolUniverseRail
           universe={payload.universe}
@@ -149,6 +153,95 @@ export function MarketKernelPage() {
         }))}
       />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+    </div>
+  );
+}
+
+function MarketKernelDataStateBand({ payload }: { payload: MarketKernelData }) {
+  const state = payload.dataState;
+  const sourceLabel = payload.source === "live" ? "LIVE" : "FIXTURE";
+  const sourceTone: BadgeTone = payload.source === "live" ? "success" : "warning";
+  const chartTone = statusTone(state.chartStatus);
+  const indicatorTone = indicatorToneFor(state.indicatorStatus);
+  const eventTone: BadgeTone =
+    state.eventOverlayStatus === "AVAILABLE" ? "info" : "neutral";
+  const latestLabel = state.latestBarAt
+    ? state.latestBarAt.slice(0, 10)
+    : "No latest bar";
+
+  return (
+    <div
+      className="fso-market-kernel-state-band"
+      data-testid="market-kernel-data-state"
+    >
+      <MarketKernelStateItem
+        label="Source"
+        value={sourceLabel}
+        detail={state.sourceNote}
+        tone={sourceTone}
+      />
+      <MarketKernelStateItem
+        label="Chart"
+        value={state.chartStatus}
+        detail={`${state.chartEvidence} · ${state.barCount} bars · ${latestLabel}`}
+        tone={chartTone}
+      />
+      <MarketKernelStateItem
+        label="Indicators"
+        value={state.indicatorStatus}
+        detail={state.refreshNote}
+        tone={indicatorTone}
+      />
+      <MarketKernelStateItem
+        label="Events"
+        value={state.eventOverlayStatus}
+        detail={`${payload.events.length} overlays linked to this symbol`}
+        tone={eventTone}
+      />
+    </div>
+  );
+}
+
+function statusTone(status: MarketKernelData["dataState"]["chartStatus"]): BadgeTone {
+  if (status === "OK") {
+    return "success";
+  }
+  if (status === "PARTIAL") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function indicatorToneFor(
+  status: MarketKernelData["dataState"]["indicatorStatus"],
+): BadgeTone {
+  if (status === "AVAILABLE") {
+    return "success";
+  }
+  if (status === "PARTIAL") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+interface MarketKernelStateItemProps {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}
+
+function MarketKernelStateItem({
+  label,
+  value,
+  detail,
+  tone,
+}: MarketKernelStateItemProps) {
+  return (
+    <div className="fso-market-kernel-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }

@@ -8,6 +8,10 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(page.getByTestId("symbol-universe-rail")).toBeVisible();
     await expect(page.getByTestId("market-kernel-chart-panel")).toBeVisible();
     await expect(page.getByTestId("market-kernel-line-chart")).toBeVisible();
+    await expect(page.getByTestId("market-kernel-data-state")).toBeVisible();
+    await expect(page.getByTestId("market-kernel-data-state")).toContainText(
+      /Chart/i,
+    );
     await expect(page.getByTestId("ticker-search")).toBeVisible();
     await expect(
       page.getByTestId("market-kernel-timeframes"),

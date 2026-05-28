@@ -17,7 +17,11 @@ from api.dependencies import get_session_scope, use_fixture_flag
 from api.fixtures import market_kernel_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
-from api.schemas.market_kernel import MarketBarPoint, MarketKernelResponse
+from api.schemas.market_kernel import (
+    MarketBarPoint,
+    MarketKernelDataState,
+    MarketKernelResponse,
+)
 from finskillos.data_sources import DEFAULT_TIMEFRAME
 from finskillos.db.repositories import IndicatorRepository, MarketRepository
 
@@ -82,6 +86,22 @@ def _live_response(
     payload.generated_at = generated_at
     payload.source = "live"
     payload.system_status = SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0)
+    payload.data_state = MarketKernelDataState(
+        chart_status="MISSING",
+        chart_evidence="missing",
+        bar_count=0,
+        latest_bar_at=None,
+        indicator_status="MISSING",
+        event_overlay_status="MISSING",
+        source_note=(
+            "Live DB is reachable, but no stored market bars exist for "
+            "this ticker."
+        ),
+        refresh_note=(
+            "Run System Ops market-bar refresh before expecting chart "
+            "context."
+        ),
+    )
 
     if not bars:
         payload.judgment = judgment(
@@ -142,6 +162,7 @@ def _live_response(
 
     visible_bars = bars[-120:]
     latest_bar = visible_bars[-1]
+    indicator_status = _data_state_indicator_status(latest_indicator)
     payload.judgment = judgment(
         "TECHNICAL SIGNAL JUDGMENT",
         _trend_title(latest_indicator),
@@ -183,6 +204,19 @@ def _live_response(
     payload.header.latest_close = latest_bar.close
     payload.header.latest_time = _iso(latest_bar.bar_time)
     payload.header.data_status = "OK" if latest_indicator is not None else "PARTIAL"
+    payload.data_state = MarketKernelDataState(
+        chart_status=payload.header.data_status,
+        chart_evidence="stored",
+        bar_count=len(bars),
+        latest_bar_at=_iso(latest_bar.bar_time),
+        indicator_status=indicator_status,
+        event_overlay_status="MISSING",
+        source_note="Read from local DB; no provider call during page render.",
+        refresh_note=(
+            "Freshness depends on the latest System Ops refresh and "
+            "indicator calculation."
+        ),
+    )
     payload.bars = [
         MarketBarPoint(
             bar_time=_iso(bar.bar_time),
@@ -238,6 +272,24 @@ def _indicator_status(latest_indicator) -> str:
     if latest_indicator is None:
         return "PARTIAL"
     return latest_indicator.trend_state or "AVAILABLE"
+
+
+def _data_state_indicator_status(latest_indicator) -> str:
+    if latest_indicator is None:
+        return "MISSING"
+    fields = (
+        "rsi_14",
+        "ema_20",
+        "ema_60",
+        "ema_120",
+        "volume_zscore",
+        "momentum_score",
+        "trend_state",
+    )
+    values = [getattr(latest_indicator, field, None) for field in fields]
+    if all(value is not None for value in values):
+        return "AVAILABLE"
+    return "PARTIAL"
 
 
 def _trend_title(latest_indicator) -> str:

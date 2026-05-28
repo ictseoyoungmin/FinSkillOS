@@ -17,6 +17,7 @@ from api.schemas.market_kernel import (
     EventOverlayItem,
     IndicatorSnapshot,
     MarketBarPoint,
+    MarketKernelDataState,
     MarketKernelHeader,
     MarketKernelResponse,
     UniverseTicker,
@@ -54,6 +55,21 @@ def market_kernel_fixture(ticker: str | None = None) -> MarketKernelResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        data_state=MarketKernelDataState(
+            chart_status="OK",
+            chart_evidence="fixture",
+            bar_count=len(focus.bars),
+            latest_bar_at=focus.bars[-1].bar_time,
+            indicator_status="AVAILABLE",
+            event_overlay_status="AVAILABLE" if focus.events else "MISSING",
+            source_note=(
+                "Deterministic fixture snapshot; not a live provider feed."
+            ),
+            refresh_note=(
+                "Use System Ops market refresh and indicator calculation for "
+                "DB-backed technical evidence."
+            ),
+        ),
         judgment=judgment(
             "TECHNICAL SIGNAL JUDGMENT",
             "Constructive Tape",
@@ -146,6 +162,16 @@ def _missing_payload(ticker: str) -> MarketKernelResponse:
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        data_state=MarketKernelDataState(
+            chart_status="MISSING",
+            chart_evidence="missing",
+            bar_count=0,
+            latest_bar_at=None,
+            indicator_status="MISSING",
+            event_overlay_status="MISSING",
+            source_note="No fixture technical snapshot exists for this symbol.",
+            refresh_note="Select a supported fixture ticker or refresh DB bars.",
+        ),
         judgment=judgment(
             "TECHNICAL SIGNAL JUDGMENT",
             "Data Missing",

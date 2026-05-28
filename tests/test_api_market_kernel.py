@@ -48,6 +48,7 @@ def test_market_kernel_default_ticker_returns_full_payload() -> None:
     expected = {
         "generatedAt",
         "systemStatus",
+        "dataState",
         "universe",
         "header",
         "bars",
@@ -61,7 +62,13 @@ def test_market_kernel_default_ticker_returns_full_payload() -> None:
     assert expected.issubset(body.keys())
     assert body["header"]["ticker"] == MARKET_KERNEL_DEFAULT_TICKER
     assert body["header"]["dataStatus"] == "OK"
-    assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    assert body["dataState"]["chartStatus"] == "OK"
+    assert body["dataState"]["chartEvidence"] in {"fixture", "stored"}
+    assert body["dataState"]["barCount"] >= len(body["bars"])
+    if body["source"] == "fixture":
+        assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    else:
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
 
 
 def test_market_kernel_universe_contains_focus_set() -> None:
@@ -117,7 +124,8 @@ def test_market_kernel_unknown_ticker_returns_missing_status() -> None:
     body = _client().get("/api/market-kernel?ticker=ZZZZZ").json()
     assert body["header"]["dataStatus"] == "MISSING"
     assert body["bars"] == []
-    assert body["setupHint"] is not None and "fixture" in body["setupHint"].lower()
+    assert body["setupHint"] is not None
+    assert body["dataState"]["chartStatus"] == "MISSING"
 
 
 def test_market_kernel_response_does_not_expose_execution_concepts() -> None:
@@ -163,6 +171,9 @@ def test_market_kernel_can_return_live_db_bars(monkeypatch, tmp_path) -> None:
         assert body["systemStatus"]["db"] == "LIVE"
         assert body["header"]["ticker"] == "SPY"
         assert body["header"]["dataStatus"] == "OK"
+        assert body["dataState"]["chartEvidence"] == "stored"
+        assert body["dataState"]["barCount"] == 30
+        assert body["dataState"]["indicatorStatus"] in {"AVAILABLE", "PARTIAL"}
         assert len(body["bars"]) == 30
         assert body["indicators"]["rsi14"] is not None
         assert body["generatedAt"] != FIXTURE_TIMESTAMP
@@ -188,6 +199,8 @@ def test_market_kernel_live_db_missing_ticker_is_explicit(
 
         assert body["source"] == "live"
         assert body["header"]["dataStatus"] == "MISSING"
+        assert body["dataState"]["chartStatus"] == "MISSING"
+        assert body["dataState"]["chartEvidence"] == "missing"
         assert body["bars"] == []
         assert "no stored bar series" in body["interpretation"].lower()
         assert body["setupHint"] is not None
@@ -242,6 +255,7 @@ def test_market_kernel_ignores_future_stored_bars(monkeypatch, tmp_path) -> None
 
         assert body["source"] == "live"
         assert body["header"]["latestClose"] == "100.000000"
+        assert body["dataState"]["barCount"] == 1
         assert len(body["bars"]) == 1
     finally:
         reset_settings_cache()

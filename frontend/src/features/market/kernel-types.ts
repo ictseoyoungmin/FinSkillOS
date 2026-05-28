@@ -65,9 +65,21 @@ export interface MarketKernelSystemStatus {
   guardCount: number;
 }
 
+export interface MarketKernelDataState {
+  chartStatus: "OK" | "PARTIAL" | "MISSING";
+  chartEvidence: "stored" | "fixture" | "missing";
+  barCount: number;
+  latestBarAt: string | null;
+  indicatorStatus: "AVAILABLE" | "PARTIAL" | "MISSING";
+  eventOverlayStatus: "AVAILABLE" | "MISSING";
+  sourceNote: string;
+  refreshNote: string;
+}
+
 export interface MarketKernelData {
   generatedAt: string;
   systemStatus: MarketKernelSystemStatus;
+  dataState: MarketKernelDataState;
   judgment: JudgmentHeaderData;
   drivers: EvidenceDriverData[];
   conflicts: EvidenceConflictData[];

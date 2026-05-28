@@ -84,9 +84,23 @@ class MarketKernelHeader(CamelModel):
     data_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
 
 
+class MarketKernelDataState(CamelModel):
+    """Explicit chart/indicator/source state for Market Kernel."""
+
+    chart_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    chart_evidence: Literal["stored", "fixture", "missing"] = "missing"
+    bar_count: int = 0
+    latest_bar_at: str | None = None
+    indicator_status: Literal["AVAILABLE", "PARTIAL", "MISSING"] = "MISSING"
+    event_overlay_status: Literal["AVAILABLE", "MISSING"] = "MISSING"
+    source_note: str
+    refresh_note: str
+
+
 class MarketKernelResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    data_state: MarketKernelDataState
     judgment: JudgmentHeader
     drivers: list[EvidenceDriver]
     conflicts: list[EvidenceConflict]
@@ -111,6 +125,7 @@ __all__ = [
     "EventOverlayItem",
     "IndicatorSnapshot",
     "MarketBarPoint",
+    "MarketKernelDataState",
     "MarketKernelHeader",
     "MarketKernelResponse",
     "UniverseTicker",
