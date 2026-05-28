@@ -55,9 +55,24 @@ export interface AnalysisWorkspaceSystemStatus {
   guardCount: number;
 }
 
+export interface AnalysisWorkspaceDataState {
+  universeSource: "fixture" | "live";
+  universeStatus: DataStatus;
+  universeCount: number;
+  okCount: number;
+  partialCount: number;
+  missingCount: number;
+  rankedCount: number;
+  regimeStatus: "AVAILABLE" | "MISSING";
+  latestSnapshotAt: string | null;
+  sourceNote: string;
+  refreshNote: string;
+}
+
 export interface AnalysisWorkspaceData {
   generatedAt: string;
   systemStatus: AnalysisWorkspaceSystemStatus;
+  dataState: AnalysisWorkspaceDataState;
   judgment: JudgmentHeaderData;
   drivers: EvidenceDriverData[];
   conflicts: EvidenceConflictData[];

@@ -99,6 +99,7 @@ operational protocols.
 59     Market Kernel Data State Hardening
 60     Risk Firewall Guard Evidence Density
 61     Catalyst Watch DB Read Model Promotion
+62     Analysis Workspace State Hardening
 ```
 
 Slice 14 is complete:
@@ -233,6 +234,9 @@ Slice 14 is complete:
   model when a DB session is reachable, returns explicit live-empty state when
   no upcoming event rows exist, and filters unsafe external linked-news copy
   instead of letting provider headlines break the read model.
+- Analysis Workspace now exposes a `dataState` API contract and renders a
+  compact universe-source/coverage/ranked-tape/regime state band, aligning
+  Index Lab copy with the rest of the evidence tabs.
 ```
 
 ## Validation Baseline
@@ -263,16 +267,15 @@ e2e image for frontend build and visual checks.
 
 ## Next Useful Slices
 
-1. Analysis Workspace state hardening
-   - Align index lab, strongest/weakest panels, and regime summary with the
-     same source/data-availability language now used across Market Kernel and
-     Symbol Lab.
-
-2. Control Room state-band coherence
+1. Control Room state-band coherence
    - Recheck the overview grid after individual tabs gained explicit
      `dataState` contracts, so summary cards do not imply fixture/live states
      that differ from the underlying tabs.
 
-3. Catalyst Watch manual event UX removal/replacement
+2. Catalyst Watch manual event UX removal/replacement
    - Decide whether manual event entry should remain now that the tab has a
      DB-backed read model, or replace it with read-only event catalog evidence.
+
+3. Analysis Workspace DB read-model promotion
+   - Promote `/api/analysis-workspace` from fixture-first Index Lab snapshot
+     to DB-backed stored bars/indicators once universe storage is wired.

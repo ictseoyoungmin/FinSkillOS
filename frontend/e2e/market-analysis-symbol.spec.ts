@@ -37,6 +37,10 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(
       page.getByTestId("analysis-workspace-universe-table"),
     ).toBeVisible();
+    await expect(page.getByTestId("analysis-workspace-data-state")).toBeVisible();
+    await expect(page.getByTestId("analysis-workspace-data-state")).toContainText(
+      /Coverage/i,
+    );
     await expect(page.getByTestId("analysis-workspace-strongest")).toBeVisible();
     await expect(page.getByTestId("analysis-workspace-weakest")).toBeVisible();
     await expect(page.getByTestId("analysis-workspace-regime")).toBeVisible();

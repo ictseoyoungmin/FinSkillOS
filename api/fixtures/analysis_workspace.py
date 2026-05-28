@@ -15,6 +15,7 @@ from decimal import Decimal
 from api.fixtures._common import FIXTURE_TIMESTAMP, D
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.analysis_workspace import (
+    AnalysisWorkspaceDataState,
     AnalysisWorkspaceResponse,
     IndexUniverseRow,
     RegimeContext,
@@ -386,10 +387,35 @@ def _regime_context() -> RegimeContext:
 
 
 def analysis_workspace_fixture() -> AnalysisWorkspaceResponse:
+    ok_count = sum(1 for row in _UNIVERSE if row.data_status == "OK")
+    partial_count = sum(1 for row in _UNIVERSE if row.data_status == "PARTIAL")
+    missing_count = sum(1 for row in _UNIVERSE if row.data_status == "MISSING")
+    ranked_count = sum(
+        1
+        for row in _UNIVERSE
+        if row.kind != "MACRO_PROXY" and row.relative_strength_score is not None
+    )
     return AnalysisWorkspaceResponse(
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        data_state=AnalysisWorkspaceDataState(
+            universe_source="fixture",
+            universe_status="OK",
+            universe_count=len(_UNIVERSE),
+            ok_count=ok_count,
+            partial_count=partial_count,
+            missing_count=missing_count,
+            ranked_count=ranked_count,
+            regime_status="AVAILABLE",
+            latest_snapshot_at="2026-05-19T00:00:00+00:00",
+            source_note=(
+                "Deterministic Index Lab fixture for breadth and macro proxies."
+            ),
+            refresh_note=(
+                "Promote to DB-backed rows after index-universe storage is wired."
+            ),
+        ),
         judgment=judgment(
             "MARKET STRUCTURE JUDGMENT",
             "Leadership is",

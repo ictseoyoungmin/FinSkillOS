@@ -9,6 +9,20 @@ export const analysisWorkspaceFixture: AnalysisWorkspaceData = {
   generatedAt: "2026-05-20T12:00:00+09:00",
   source: "fixture",
   systemStatus: { db: "LIVE", mode: "READ_MODE", guardCount: 0 },
+  dataState: {
+    universeSource: "fixture",
+    universeStatus: "OK",
+    universeCount: 17,
+    okCount: 17,
+    partialCount: 0,
+    missingCount: 0,
+    rankedCount: 14,
+    regimeStatus: "AVAILABLE",
+    latestSnapshotAt: "2026-05-19T00:00:00+00:00",
+    sourceNote: "Deterministic Index Lab fixture for breadth and macro proxies.",
+    refreshNote:
+      "Promote to DB-backed rows after index-universe storage is wired.",
+  },
   judgment: {
     eyebrow: "MARKET STRUCTURE JUDGMENT",
     title: "Leadership is",

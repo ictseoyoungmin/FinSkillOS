@@ -22,6 +22,7 @@ def test_analysis_workspace_returns_full_payload() -> None:
     expected = {
         "generatedAt",
         "systemStatus",
+        "dataState",
         "timeframe",
         "universe",
         "strongest",
@@ -34,6 +35,9 @@ def test_analysis_workspace_returns_full_payload() -> None:
     assert expected.issubset(body.keys())
     assert body["timeframe"] == "1d"
     assert body["generatedAt"] == FIXTURE_TIMESTAMP
+    assert body["dataState"]["universeStatus"] == "OK"
+    assert body["dataState"]["universeCount"] == len(body["universe"])
+    assert body["dataState"]["rankedCount"] >= len(body["strongest"])
 
 
 def test_analysis_workspace_universe_covers_etfs_and_macro_proxies() -> None:

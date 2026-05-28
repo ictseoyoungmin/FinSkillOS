@@ -6,6 +6,7 @@ import { RegimeContextPanel } from "@/features/analysis/components/RegimeContext
 import { MissingDataPanel } from "@/features/analysis/components/MissingDataPanel";
 import { analysisWorkspaceFixture } from "@/mocks/fixtures/analysisWorkspace.fixture";
 import {
+  Badge,
   ConflictsPanel,
   DriversPanel,
   EmptyState,
@@ -15,6 +16,11 @@ import {
   SectionHeader,
   WatchpointsPanel,
 } from "@/shared/ui";
+import type { BadgeTone } from "@/shared/ui/Badge";
+import type {
+  AnalysisWorkspaceData,
+  DataStatus,
+} from "@/features/analysis/types";
 import "./analysis-workspace.css";
 
 export function AnalysisWorkspacePage() {
@@ -64,6 +70,7 @@ export function AnalysisWorkspacePage() {
           }))}
         />
       </div>
+      <AnalysisDataStateBand payload={payload} />
       <div className="fso-analysis-grid">
         <div className="fso-analysis-main">
           <div data-testid="analysis-workspace-universe-table">
@@ -106,6 +113,80 @@ export function AnalysisWorkspacePage() {
         }))}
       />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
+    </div>
+  );
+}
+
+function AnalysisDataStateBand({ payload }: { payload: AnalysisWorkspaceData }) {
+  const state = payload.dataState;
+  const sourceLabel = state.universeSource === "live" ? "LIVE" : "FIXTURE";
+  const sourceTone: BadgeTone =
+    state.universeSource === "live" ? "success" : "warning";
+  const latestLabel = state.latestSnapshotAt
+    ? state.latestSnapshotAt.slice(0, 10)
+    : "No snapshot";
+
+  return (
+    <div
+      className="fso-analysis-state-band"
+      data-testid="analysis-workspace-data-state"
+    >
+      <AnalysisStateItem
+        label="Universe source"
+        value={sourceLabel}
+        detail={state.sourceNote}
+        tone={sourceTone}
+      />
+      <AnalysisStateItem
+        label="Coverage"
+        value={state.universeStatus}
+        detail={`${state.okCount} OK · ${state.partialCount} partial · ${state.missingCount} missing`}
+        tone={dataStatusTone(state.universeStatus)}
+      />
+      <AnalysisStateItem
+        label="Ranked tape"
+        value={`${state.rankedCount}`}
+        detail={`${state.universeCount} total rows · ${latestLabel}`}
+        tone={state.rankedCount > 0 ? "info" : "neutral"}
+      />
+      <AnalysisStateItem
+        label="Regime"
+        value={state.regimeStatus}
+        detail={state.refreshNote}
+        tone={state.regimeStatus === "AVAILABLE" ? "success" : "neutral"}
+      />
+    </div>
+  );
+}
+
+function dataStatusTone(status: DataStatus): BadgeTone {
+  if (status === "OK") {
+    return "success";
+  }
+  if (status === "PARTIAL") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+interface AnalysisStateItemProps {
+  label: string;
+  value: string;
+  detail: string;
+  tone: BadgeTone;
+}
+
+function AnalysisStateItem({
+  label,
+  value,
+  detail,
+  tone,
+}: AnalysisStateItemProps) {
+  return (
+    <div className="fso-analysis-state-item">
+      <span>{label}</span>
+      <Badge tone={tone}>{value}</Badge>
+      <small>{detail}</small>
     </div>
   );
 }

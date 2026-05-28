@@ -63,9 +63,26 @@ class RegimeContext(CamelModel):
     snapshot_time: str | None = None
 
 
+class AnalysisWorkspaceDataState(CamelModel):
+    """Explicit source/coverage state for Analysis Workspace."""
+
+    universe_source: Literal["fixture", "live"] = "fixture"
+    universe_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
+    universe_count: int = 0
+    ok_count: int = 0
+    partial_count: int = 0
+    missing_count: int = 0
+    ranked_count: int = 0
+    regime_status: Literal["AVAILABLE", "MISSING"] = "MISSING"
+    latest_snapshot_at: str | None = None
+    source_note: str
+    refresh_note: str
+
+
 class AnalysisWorkspaceResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
+    data_state: AnalysisWorkspaceDataState
     judgment: JudgmentHeader
     drivers: list[EvidenceDriver]
     conflicts: list[EvidenceConflict]
@@ -83,6 +100,7 @@ class AnalysisWorkspaceResponse(CamelModel):
 
 
 __all__ = [
+    "AnalysisWorkspaceDataState",
     "AnalysisWorkspaceResponse",
     "IndexUniverseRow",
     "RegimeContext",
