@@ -11,6 +11,79 @@
   align-items: start;
 }
 
+.fso-trade-memory-state {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--fso-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--fso-bg-2) 82%, transparent), transparent),
+    var(--fso-panel);
+}
+
+.fso-trade-memory-state[data-source="live"] {
+  border-color: color-mix(in srgb, var(--fso-green) 34%, var(--fso-line));
+}
+
+.fso-trade-memory-state[data-source="fixture"] {
+  border-color: color-mix(in srgb, var(--fso-amber) 34%, var(--fso-line));
+}
+
+.fso-trade-memory-state > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.fso-trade-memory-state span,
+.fso-trade-memory-state dt {
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fso-trade-memory-state strong {
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.fso-trade-memory-state small {
+  color: var(--fso-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fso-trade-memory-state dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(74px, auto));
+  gap: 8px;
+  margin: 0;
+}
+
+.fso-trade-memory-state dl div {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fso-bg-2) 64%, transparent);
+}
+
+.fso-trade-memory-state dd {
+  margin: 0;
+  color: var(--fso-text);
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
 .fso-trade-memory-col {
   display: flex;
   flex-direction: column;
@@ -19,6 +92,20 @@
 
 @media (max-width: 1100px) {
   .fso-trade-memory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fso-trade-memory-state {
+    grid-template-columns: 1fr;
+  }
+
+  .fso-trade-memory-state dl {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .fso-trade-memory-state dl {
     grid-template-columns: 1fr;
   }
 }

@@ -87,6 +87,7 @@ operational protocols.
 47     System Ops Live Evidence Copy Coherence
 48     Worker Cadence Supervision
 49     Trade Memory DB Read Model
+50     Trade Memory Live State Polish
 ```
 
 Slice 14 is complete:
@@ -187,6 +188,9 @@ Slice 14 is complete:
 - Trade Memory GET routes now read the live DB-backed Slice-12 reflection
   model when a DB session is available; fixture mode remains explicit through
   `X-FSO-Use-Fixture: 1`.
+- The React Trade Memory page now shows a source/state band that distinguishes
+  deterministic fixture samples, live DB-backed stored entries, and live empty
+  journal state.
 ```
 
 ## Validation Baseline
@@ -225,6 +229,6 @@ e2e image for frontend build and visual checks.
    - Keep slice manifests, source-of-truth docs, and Docker-only validation
      notes aligned with the latest live DB-backed cockpit behavior.
 
-3. Trade Memory live empty-state polish
-   - Make the React page distinguish DB-backed empty journal state from
-     deterministic fixture samples.
+3. Trade Memory journal mutation UX
+   - Wire the React journal form through the POST API with cache refresh,
+     success/error states, and reflection-only copy.

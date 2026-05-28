@@ -56,6 +56,10 @@ test.describe("OS shell navigation", () => {
       const shell = page.getByTestId(route.testId);
       await expect(shell).toBeVisible();
     }
+    await page.goto("/trade-memory");
+    await expect(page.getByTestId("trade-memory-source-state")).toContainText(
+      /Live DB|Deterministic fixture/,
+    );
   });
 
   test("OS top tray exposes every product module", async ({ page }) => {

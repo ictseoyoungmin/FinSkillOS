@@ -42,10 +42,36 @@ export function TradeMemoryPage() {
   }
 
   const payload = data ?? tradeMemoryFixture;
+  const sourceSummary = buildTradeMemorySourceSummary(payload);
 
   return (
     <div className="fso-trade-memory" data-testid="trade-memory-page">
       <SectionHeader eyebrow="FinSkillOS · Module" title="Trade Memory" />
+      <div
+        className="fso-trade-memory-state"
+        data-source={payload.source}
+        data-testid="trade-memory-source-state"
+      >
+        <div>
+          <span>{sourceSummary.eyebrow}</span>
+          <strong>{sourceSummary.title}</strong>
+          <small>{sourceSummary.detail}</small>
+        </div>
+        <dl>
+          <div>
+            <dt>Entries</dt>
+            <dd>{payload.recentEntries.length}</dd>
+          </div>
+          <div>
+            <dt>Weekly</dt>
+            <dd>{payload.weeklyReview.tradeCount}</dd>
+          </div>
+          <div>
+            <dt>Source</dt>
+            <dd>{payload.source.toUpperCase()}</dd>
+          </div>
+        </dl>
+      </div>
       <div className="fso-v42-topline">
         <ProcessJudgmentHeader judgment={payload.judgment} />
         <DriversPanel drivers={payload.drivers} />
@@ -74,4 +100,34 @@ export function TradeMemoryPage() {
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
+}
+
+function buildTradeMemorySourceSummary(
+  payload: typeof tradeMemoryFixture,
+): {
+  eyebrow: string;
+  title: string;
+  detail: string;
+} {
+  if (payload.source === "fixture") {
+    return {
+      eyebrow: "Deterministic fixture",
+      title: "Sample reflection data",
+      detail: "Use fixture mode for visual QA and repeatable contract checks.",
+    };
+  }
+  if (payload.recentEntries.length === 0) {
+    return {
+      eyebrow: "Live DB",
+      title: "Journal is ready, no stored entries yet",
+      detail:
+        "Add reflection entries to activate regime, strategy, and mistake-tag analytics.",
+    };
+  }
+  return {
+    eyebrow: "Live DB",
+    title: "Stored journal read model",
+    detail:
+      "Trade Memory is reading reflection entries and weekly review metrics from the database.",
+  };
 }
