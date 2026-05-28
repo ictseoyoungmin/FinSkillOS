@@ -79,8 +79,14 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     await page.goto("/trade-memory");
     const form = page.getByTestId("trade-entry-form");
 
+    await expect(page.getByTestId("trade-entry-form-state")).toContainText(
+      /Required\s*missing/i,
+    );
     await form.getByLabel("Trade date").fill("2026-05-28");
     await form.getByLabel("Ticker").fill("AMD");
+    await expect(page.getByTestId("trade-entry-form-state")).toContainText(
+      /Required\s*ready/i,
+    );
     await form.getByTestId("trade-entry-form-side").selectOption("WATCH");
     await form.getByLabel("Strategy").fill("review");
     await form.getByRole("textbox", { name: "Regime" }).fill("HEALTHY_BULL");

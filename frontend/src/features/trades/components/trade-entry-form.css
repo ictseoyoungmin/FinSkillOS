@@ -12,6 +12,54 @@
   gap: 12px;
 }
 
+.fso-trade-entry-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.fso-trade-entry-state span {
+  padding: 4px 8px;
+  border: 1px solid var(--fso-line);
+  border-radius: 999px;
+  color: var(--fso-text-muted);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+}
+
+.fso-trade-entry-state span[data-ready="true"] {
+  border-color: color-mix(in srgb, var(--fso-green) 64%, var(--fso-line));
+  color: var(--fso-green);
+}
+
+.fso-trade-entry-state span[data-ready="false"] {
+  border-color: color-mix(in srgb, var(--fso-amber) 64%, var(--fso-line));
+  color: var(--fso-amber);
+}
+
+.fso-trade-entry-section {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fso-bg-2) 48%, transparent);
+}
+
+.fso-trade-entry-section legend {
+  padding: 0 6px;
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .fso-trade-entry-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -71,6 +119,7 @@
 
 .fso-trade-entry-actions {
   display: flex;
+  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -85,6 +134,12 @@
   background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
   color: var(--fso-text);
   cursor: pointer;
+}
+
+.fso-trade-entry-actions button[type="button"] {
+  border-color: var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  color: var(--fso-text-muted);
 }
 
 .fso-trade-entry-actions button:disabled {

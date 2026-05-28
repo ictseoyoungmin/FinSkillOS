@@ -37,7 +37,7 @@ interface FormState {
 }
 
 const empty = (rules: TradeFormRules): FormState => ({
-  tradeDate: "",
+  tradeDate: todayIso(),
   ticker: "",
   side: rules.allowedSides[0] ?? "LONG",
   strategyType: "swing",
@@ -66,6 +66,7 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
   const [form, setForm] = useState<FormState>(() => empty(rules));
   const [result, setResult] = useState<TradeEntryResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const requiredReady = form.tradeDate.trim() !== "" && form.ticker.trim() !== "";
 
   const onChange =
     (key: keyof Omit<FormState, "mistakeTags">) =>
@@ -92,6 +93,15 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!requiredReady) {
+      setResult({
+        status: "REJECTED",
+        message: "Trade date and ticker are required for a journal entry.",
+        detail: "missing_required_fields",
+        entryId: null,
+      });
+      return;
+    }
     setSubmitting(true);
     setResult(null);
     const payload: TradeEntryInput = {
@@ -133,6 +143,11 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
     }
   };
 
+  const resetForm = () => {
+    setForm(empty(rules));
+    setResult(null);
+  };
+
   return (
     <Panel
       title="Add Journal Entry"
@@ -146,8 +161,15 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
       >
         {rules.disclaimer}
       </p>
+      <div className="fso-trade-entry-state" data-testid="trade-entry-form-state">
+        <span data-ready={requiredReady}>Required {requiredReady ? "ready" : "missing"}</span>
+        <span>{form.mistakeTags.length} tags</span>
+        <span>{form.side}</span>
+      </div>
       <form className="fso-trade-entry-form" onSubmit={onSubmit} noValidate>
-        <div className="fso-trade-entry-row">
+        <fieldset className="fso-trade-entry-section">
+          <legend>Entry context</legend>
+          <div className="fso-trade-entry-row">
           <label className="fso-trade-entry-field">
             <span>Trade date</span>
             <input
@@ -180,8 +202,12 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
               ))}
             </select>
           </label>
-        </div>
-        <div className="fso-trade-entry-row">
+          </div>
+        </fieldset>
+
+        <fieldset className="fso-trade-entry-section">
+          <legend>Setup tags</legend>
+          <div className="fso-trade-entry-row">
           <label className="fso-trade-entry-field">
             <span>Strategy</span>
             <input
@@ -215,8 +241,12 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
               onChange={onChange("emotionState")}
             />
           </label>
-        </div>
-        <div className="fso-trade-entry-row">
+          </div>
+        </fieldset>
+
+        <fieldset className="fso-trade-entry-section">
+          <legend>Outcome</legend>
+          <div className="fso-trade-entry-row">
           <label className="fso-trade-entry-field">
             <span>Result PnL</span>
             <input
@@ -241,40 +271,44 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
               onChange={onChange("rMultiple")}
             />
           </label>
-        </div>
-        <label className="fso-trade-entry-field">
-          <span>Catalyst</span>
-          <input
-            type="text"
-            value={form.catalyst}
-            onChange={onChange("catalyst")}
-          />
-        </label>
-        <label className="fso-trade-entry-field">
-          <span>Thesis</span>
-          <textarea
-            value={form.thesis}
-            onChange={onChange("thesis")}
-            rows={2}
-          />
-        </label>
-        <label className="fso-trade-entry-field">
-          <span>Reason</span>
-          <textarea
-            value={form.reason}
-            onChange={onChange("reason")}
-            rows={2}
-          />
-        </label>
-        <label className="fso-trade-entry-field">
-          <span>Notes</span>
-          <textarea
-            value={form.notes}
-            onChange={onChange("notes")}
-            rows={3}
-          />
-        </label>
-        <div className="fso-trade-entry-row">
+          </div>
+        </fieldset>
+
+        <fieldset className="fso-trade-entry-section">
+          <legend>Reflection</legend>
+          <label className="fso-trade-entry-field">
+            <span>Catalyst</span>
+            <input
+              type="text"
+              value={form.catalyst}
+              onChange={onChange("catalyst")}
+            />
+          </label>
+          <label className="fso-trade-entry-field">
+            <span>Thesis</span>
+            <textarea
+              value={form.thesis}
+              onChange={onChange("thesis")}
+              rows={2}
+            />
+          </label>
+          <label className="fso-trade-entry-field">
+            <span>Reason</span>
+            <textarea
+              value={form.reason}
+              onChange={onChange("reason")}
+              rows={2}
+            />
+          </label>
+          <label className="fso-trade-entry-field">
+            <span>Notes</span>
+            <textarea
+              value={form.notes}
+              onChange={onChange("notes")}
+              rows={3}
+            />
+          </label>
+          <div className="fso-trade-entry-row">
           <label className="fso-trade-entry-field">
             <span>Sector</span>
             <input
@@ -299,7 +333,8 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
               onChange={onChange("eventKey")}
             />
           </label>
-        </div>
+          </div>
+        </fieldset>
         <fieldset className="fso-trade-entry-tags">
           <legend>Mistake tags</legend>
           {rules.defaultMistakeTags.map((tag) => (
@@ -314,9 +349,12 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
           ))}
         </fieldset>
         <div className="fso-trade-entry-actions">
+          <button type="button" onClick={resetForm} disabled={submitting}>
+            Reset
+          </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !requiredReady}
             data-testid="trade-entry-form-submit"
           >
             {submitting ? "Saving…" : "Save entry"}
@@ -334,4 +372,8 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
       ) : null}
     </Panel>
   );
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
 }

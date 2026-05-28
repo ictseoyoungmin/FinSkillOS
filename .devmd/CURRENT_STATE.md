@@ -89,6 +89,7 @@ operational protocols.
 49     Trade Memory DB Read Model
 50     Trade Memory Live State Polish
 51     Trade Memory Journal Mutation UX
+52     Trade Memory Form Ergonomics
 ```
 
 Slice 14 is complete:
@@ -194,6 +195,9 @@ Slice 14 is complete:
   journal state.
 - The React Trade Memory journal form now refreshes the live read model after a
   successful save, so stored entries appear without a manual reload.
+- The React Trade Memory journal form is grouped by journal intent, defaults
+  the date to today, exposes compact required/tag/side state, blocks incomplete
+  submissions, and includes a reset action for repeated local journaling.
 ```
 
 ## Validation Baseline
@@ -232,6 +236,6 @@ e2e image for frontend build and visual checks.
    - Keep slice manifests, source-of-truth docs, and Docker-only validation
      notes aligned with the latest live DB-backed cockpit behavior.
 
-3. Trade Memory journal form ergonomics
-   - Improve field grouping, defaults, and compact states now that mutation and
-     live read refresh are connected.
+3. Trade Memory journal edit / review workflow
+   - Add an explicit read-model path for reviewing and amending stored
+     reflection entries without introducing brokerage or execution behavior.
