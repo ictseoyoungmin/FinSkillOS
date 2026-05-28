@@ -106,6 +106,7 @@ operational protocols.
 66     Control Room DB Read Model Promotion
 67     Catalyst Watch Backend Mutation Boundary Cleanup
 68     Analysis Workspace Coverage Ergonomics
+69     Control Room Live Rail Composition
 ```
 
 Slice 14 is complete:
@@ -264,6 +265,10 @@ Slice 14 is complete:
 - Analysis Workspace now distinguishes complete, partial, sparse, and empty
   universe coverage in its API contract, exposes ranked-tape readiness and
   missing-row previews, and renders those cues in the state band.
+- Control Room now composes live overview rails from stored market bars,
+  Catalyst Watch events, active symbol subscriptions, mission state, and guard
+  evidence when those DB rows exist. Missing rails are explicit in `dataState`
+  rather than hard-coded as fixture partials.
 ```
 
 ## Validation Baseline
@@ -293,15 +298,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Control Room rail promotion follow-up
-   - Replace the remaining fixture overview rails with composed live summaries
-     from Market Kernel, Catalyst Watch, Symbol Lab, and Worker Status where
-     the contracts are stable enough.
-
-2. System Ops event ingestion hardening
+1. System Ops event ingestion hardening
    - Tighten the event seeding protocol copy and audit evidence now that
      product-tab event mutation routes have been removed.
 
-3. Market Kernel / Analysis Workspace shared coverage vocabulary
+2. Market Kernel / Analysis Workspace shared coverage vocabulary
    - Align chart/indicator coverage language across the two market-structure
      tabs so sparse live DB states use the same status tiers.
+
+3. Control Room rail freshness detail
+   - Add per-rail latest timestamp/source notes so composed live rails can show
+     whether market, event, and watchlist context are fresh or stale.

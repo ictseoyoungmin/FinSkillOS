@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
@@ -29,8 +29,16 @@ from sqlalchemy.orm import Session
 from api.fixtures import CONTROL_ROOM_FIXTURE_TIMESTAMP
 from api.main import create_app
 from api.routes.control_room import control_room
-from finskillos.db.repositories import AccountRepository
+from finskillos.data_sources.dto import MarketBarDTO
+from finskillos.db.repositories import (
+    AccountRepository,
+    MarketRepository,
+    SymbolSubscriptionRepository,
+)
+from finskillos.services.event_service import EventInput, EventLinkInput, EventService
 from finskillos.services.portfolio_service import PortfolioPositionInput, PortfolioService
+
+UTC = timezone.utc
 
 
 def _client() -> TestClient:
@@ -213,6 +221,41 @@ def test_control_room_promotes_live_mission_portfolio_and_guards(
     assert body["systemStatus"]["guardCount"] <= len(body["riskFirewall"])
 
 
+def test_control_room_promotes_live_overview_rails(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    _seed_account_and_portfolio(db_session)
+    ts = datetime(2026, 5, 28, 14, 0, tzinfo=UTC)
+    _seed_market_series(db_session, "SPY", Decimal("670"), ts)
+    _seed_market_series(db_session, "QQQ", Decimal("550"), ts)
+    _seed_market_series(db_session, "NVDA", Decimal("170"), ts)
+    SymbolSubscriptionRepository(db_session).subscribe("NVDA", name="NVIDIA")
+    EventService(db_session).create_event(
+        EventInput(
+            title="NVIDIA earnings window",
+            event_type="EARNINGS",
+            date_status="TENTATIVE",
+            start_date=date(2026, 6, 3),
+            source="company_calendar",
+            importance_score=Decimal("3.0"),
+        ),
+        links=(EventLinkInput(ticker="NVDA", sector="Semiconductors"),),
+    )
+    _patch_session_scope(monkeypatch, db_session)
+
+    body = control_room(use_fixture=False).model_dump(by_alias=True)
+
+    assert body["source"] == "live"
+    assert body["dataState"]["marketTapeStatus"] == "OK"
+    assert body["dataState"]["catalystStatus"] == "OK"
+    assert body["dataState"]["watchlistStatus"] == "OK"
+    assert body["dataState"]["marketTapePoints"] == len(body["marketTape"])
+    assert body["tickerStrip"][0]["symbol"] == "NVDA"
+    assert body["catalystWatch"][0]["title"] == "NVIDIA earnings window"
+    assert body["watchlist"][0]["symbol"] == "NVDA"
+
+
 def _patch_session_scope(monkeypatch, db_session: Session) -> None:
     @contextmanager
     def _scope() -> Iterator[Session]:
@@ -247,3 +290,27 @@ def _seed_account_and_portfolio(session: Session) -> None:
         peak_value=Decimal("45000000"),
         drawdown_pct=Decimal("-4.20"),
     )
+
+
+def _seed_market_series(
+    session: Session,
+    ticker: str,
+    close: Decimal,
+    ts: datetime,
+) -> None:
+    repo = MarketRepository(session)
+    for offset in range(3):
+        value = close + Decimal(offset)
+        repo.upsert_bar(
+            MarketBarDTO(
+                ticker=ticker,
+                timeframe="1d",
+                bar_time=ts + timedelta(days=offset),
+                open=value,
+                high=value,
+                low=value,
+                close=value,
+                volume=Decimal("1000000"),
+                source="test",
+            )
+        )

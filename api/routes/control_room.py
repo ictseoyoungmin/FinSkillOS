@@ -17,18 +17,28 @@ from api.fixtures import control_room_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import (
+    CatalystSummary,
     ControlRoomDataState,
     ControlRoomResponse,
     GuardSummaryVM,
+    MarketTapePoint,
     MissionProgress,
     OperatingState,
     PortfolioExposureSlice,
     ReviewQueueItem,
+    TickerStripItem,
+    WatchlistItem,
 )
+from finskillos.data_sources import DEFAULT_TIMEFRAME, DEFAULT_US_TICKER_UNIVERSE
+from finskillos.db.repositories import MarketRepository, SymbolSubscriptionRepository
 from finskillos.ui.view_models.control_room_vm import (
     ControlRoomViewModel,
     assert_view_model_is_safe,
     build_control_room_view_model,
+)
+from finskillos.ui.view_models.event_radar_vm import (
+    EventRadarViewModel,
+    build_event_radar_view_model,
 )
 
 router = APIRouter(tags=["control-room"])
@@ -53,11 +63,24 @@ def control_room(
 
         vm = build_control_room_view_model(session, persist_alerts=False)
         assert_view_model_is_safe(vm)
-        return _live_response(vm)
+        event_vm = build_event_radar_view_model(
+            session,
+            generated_at=vm.generated_at,
+            limit=3,
+        )
+        return _live_response(session, vm, event_vm)
 
 
-def _live_response(vm: ControlRoomViewModel) -> ControlRoomResponse:
+def _live_response(
+    session,
+    vm: ControlRoomViewModel,
+    event_vm: EventRadarViewModel,
+) -> ControlRoomResponse:
     payload = control_room_fixture()
+    payload.ticker_strip = _ticker_strip(session, vm)
+    payload.catalyst_watch = _catalyst_watch(event_vm)
+    payload.watchlist = _watchlist(session)
+    payload.market_tape = _market_tape(session)
     guard_count = _flagged_guard_count(vm)
     payload.generated_at = vm.generated_at.isoformat()
     payload.source = "live"
@@ -96,29 +119,39 @@ def _data_state(
 ) -> ControlRoomDataState:
     mission_status = "OK" if vm.goal is not None and vm.portfolio is not None else "MISSING"
     guard_status = "OK" if vm.guard_report else "MISSING"
-    overview_status = "PARTIAL" if vm.has_account else "MISSING"
+    market_tape_status = "OK" if payload.market_tape else "MISSING"
+    catalyst_status = "OK" if payload.catalyst_watch else "MISSING"
+    watchlist_status = "OK" if payload.watchlist else "MISSING"
+    overview_status = _overview_status(
+        mission_status=mission_status,
+        market_tape_status=market_tape_status,
+        guard_status=guard_status,
+        catalyst_status=catalyst_status,
+        watchlist_status=watchlist_status,
+    )
     return ControlRoomDataState(
         source="live",
         overview_status=overview_status,  # type: ignore[arg-type]
         system_status="OK",
         mission_status=mission_status,  # type: ignore[arg-type]
-        market_tape_status="PARTIAL",
+        market_tape_status=market_tape_status,  # type: ignore[arg-type]
         guard_status=guard_status,  # type: ignore[arg-type]
-        catalyst_status="PARTIAL",
-        watchlist_status="PARTIAL",
+        catalyst_status=catalyst_status,  # type: ignore[arg-type]
+        watchlist_status=watchlist_status,  # type: ignore[arg-type]
         market_tape_points=len(payload.market_tape),
         guard_count=len(vm.guard_report),
         catalyst_count=len(payload.catalyst_watch),
         watchlist_count=len(payload.watchlist),
         source_note=(
-            "Live mission, portfolio, regime, and guard context with fixture "
-            "overview rails."
+            "Live mission, portfolio, guard, market, catalyst, and watchlist "
+            "rails are composed from DB read models where rows exist."
             if vm.has_account
             else "Live DB is reachable, but no account baseline exists yet."
         ),
         refresh_note=(
-            "Use promoted evidence tabs for detailed live market, catalyst, "
-            "and watchlist state."
+            "Run System Ops refresh and seed protocols to improve missing rails."
+            if overview_status != "OK"
+            else "Control Room rails are DB-backed for the current overview."
         ),
     )
 
@@ -193,8 +226,8 @@ def _conflicts(vm: ControlRoomViewModel):
         )
     rows.append(
         (
-            "Live overview vs fixture rails",
-            "Ticker tape, catalyst, and watchlist rails remain overview context.",
+            "Overview composition vs detail tabs",
+            "Control Room summarizes promoted read models; use detail tabs for full evidence.",
         )
     )
     return conflicts(*rows)
@@ -211,8 +244,7 @@ def _interpretation(vm: ControlRoomViewModel):
         f"Control Room live overview is {vm.overall_status}.",
         "Mission progress, portfolio concentration, regime, and guard evidence "
         "are composed in one read pass.",
-        "Market tape, catalysts, and watchlist rails should be checked in "
-        "their promoted evidence tabs.",
+        "Sparse market, catalyst, or watchlist rows can still limit the overview.",
     )
 
 
@@ -223,7 +255,7 @@ def _watchpoints(vm: ControlRoomViewModel):
         )
     rows: list[tuple[str, str]] = [
         ("Read-only boundary", "Control Room GET does not persist alert rows."),
-        ("Evidence tabs", "Use dedicated tabs for detailed live market and event evidence."),
+        ("Evidence tabs", "Use dedicated tabs for full live market and event evidence."),
     ]
     if vm.regime is None:
         rows.append(("Regime recompute", "Run regime recompute when regime context is missing."))
@@ -332,6 +364,138 @@ def _interpretation_cards(vm: ControlRoomViewModel) -> list[str]:
     return cards
 
 
+def _ticker_strip(session, vm: ControlRoomViewModel) -> list[TickerStripItem]:
+    repo = MarketRepository(session)
+    rows: list[TickerStripItem] = []
+    for ticker in _ticker_universe(vm):
+        bar = repo.latest_bar(ticker, DEFAULT_TIMEFRAME)
+        if bar is None:
+            continue
+        rows.append(
+            TickerStripItem(
+                symbol=ticker,
+                price=_format_decimal(bar.close),
+                change="Stored",
+                direction="flat",
+            )
+        )
+    return rows[:10]
+
+
+def _ticker_universe(vm: ControlRoomViewModel) -> tuple[str, ...]:
+    values: list[str] = []
+    if vm.portfolio and vm.portfolio.largest_position_ticker:
+        values.append(vm.portfolio.largest_position_ticker)
+    values.extend(DEFAULT_US_TICKER_UNIVERSE)
+    seen: set[str] = set()
+    tickers: list[str] = []
+    for ticker in values:
+        normalized = ticker.upper()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        tickers.append(normalized)
+    return tuple(tickers)
+
+
+def _market_tape(session) -> list[MarketTapePoint]:
+    repo = MarketRepository(session)
+    portfolio_bars = repo.list_bars("SPY", DEFAULT_TIMEFRAME)[-11:]
+    benchmark_bars = repo.list_bars("QQQ", DEFAULT_TIMEFRAME)[-11:]
+    if len(portfolio_bars) < 2 or len(benchmark_bars) < 2:
+        return []
+    limit = min(len(portfolio_bars), len(benchmark_bars))
+    portfolio_bars = portfolio_bars[-limit:]
+    benchmark_bars = benchmark_bars[-limit:]
+    portfolio_start = portfolio_bars[0].close
+    benchmark_start = benchmark_bars[0].close
+    if portfolio_start == 0 or benchmark_start == 0:
+        return []
+    return [
+        MarketTapePoint(
+            label=bar.bar_time.strftime("%m-%d"),
+            portfolio=_quantize((bar.close / portfolio_start) * Decimal("100")),
+            benchmark=_quantize((benchmark.close / benchmark_start) * Decimal("100")),
+        )
+        for bar, benchmark in zip(portfolio_bars, benchmark_bars, strict=False)
+    ]
+
+
+def _catalyst_watch(vm: EventRadarViewModel) -> list[CatalystSummary]:
+    return [
+        CatalystSummary(
+            days_to_event=event.days_to_event,
+            title=event.title,
+            subtitle=_catalyst_subtitle(event),
+            tag=event.risk_label.title(),
+            tone=_catalyst_tone(event.risk_label),  # type: ignore[arg-type]
+        )
+        for event in vm.upcoming[:3]
+    ]
+
+
+def _catalyst_subtitle(event) -> str:
+    links = list(
+        event.affected_tickers or event.affected_sectors or event.affected_themes
+    )
+    prefix = " / ".join(links[:2]) if links else event.event_type
+    return f"{prefix} · {event.date_status.lower()} date"
+
+
+def _catalyst_tone(risk_label: str) -> str:
+    if risk_label == "HIGH":
+        return "danger"
+    if risk_label == "MEDIUM":
+        return "warning"
+    if risk_label == "LOW":
+        return "info"
+    return "neutral"
+
+
+def _watchlist(session) -> list[WatchlistItem]:
+    market_repo = MarketRepository(session)
+    rows: list[WatchlistItem] = []
+    for subscription in SymbolSubscriptionRepository(session).list_active()[:6]:
+        latest = market_repo.latest_bar(subscription.ticker, DEFAULT_TIMEFRAME)
+        if latest is None:
+            note = "Subscribed · no stored market bar yet."
+            tone = "neutral"
+        else:
+            note = f"Latest stored close {_format_decimal(latest.close)}."
+            tone = "info"
+        rows.append(
+            WatchlistItem(
+                symbol=subscription.ticker,
+                label=subscription.name or subscription.ticker,
+                note=note,
+                tone=tone,  # type: ignore[arg-type]
+            )
+        )
+    return rows
+
+
+def _overview_status(
+    *,
+    mission_status: str,
+    market_tape_status: str,
+    guard_status: str,
+    catalyst_status: str,
+    watchlist_status: str,
+) -> str:
+    statuses = [
+        mission_status,
+        market_tape_status,
+        guard_status,
+        catalyst_status,
+        watchlist_status,
+    ]
+    if all(status == "OK" for status in statuses):
+        return "OK"
+    if any(status == "OK" for status in statuses):
+        return "PARTIAL"
+    return "MISSING"
+
+
 def _flagged_guard_count(vm: ControlRoomViewModel) -> int:
     return sum(
         1
@@ -354,6 +518,10 @@ def _phase_for(progress_pct: Decimal) -> str:
 
 def _quantize(value: Decimal) -> Decimal:
     return Decimal(value).quantize(Decimal("0.01"))
+
+
+def _format_decimal(value: Decimal) -> str:
+    return f"{_quantize(value)}"
 
 
 @router.get(

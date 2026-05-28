@@ -72,7 +72,14 @@ export function ControlRoomGrid({ data }: ControlRoomGridProps) {
         >
           <OperatingStateHero state={data.operatingState} />
           <RegimeStateVector state={data.operatingState} />
-          <PortfolioMarketTapePanel points={data.marketTape} badge="90D · Fixture" />
+          <PortfolioMarketTapePanel
+            points={data.marketTape}
+            badge={
+              data.dataState.marketTapeStatus === "OK"
+                ? "Live DB"
+                : "No stored tape"
+            }
+          />
           <InterpretationCards cards={data.interpretationCards} />
         </section>
 
