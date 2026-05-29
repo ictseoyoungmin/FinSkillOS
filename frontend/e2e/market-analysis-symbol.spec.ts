@@ -61,7 +61,7 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(page.getByTestId("ticker-search")).toBeVisible();
     await expect(page.locator(".fso-ticker-search-option").first()).toBeVisible();
     await expect(page.getByTestId("symbol-data-state")).toBeVisible();
-    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Coverage/i);
     await expect(page.getByTestId("symbol-technical-snapshot")).toBeVisible();
     await expect(page.getByTestId("symbol-recent-bars")).toBeVisible();
     const position = page.getByTestId("symbol-position-context");
@@ -89,7 +89,7 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await page.getByTestId("ticker-search-submit").click();
     await expect(page).toHaveURL(/ticker=SMH/);
     await expect(page.getByTestId("judgment-header")).toContainText("SMH");
-    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Coverage/i);
   });
 
   test("Symbol Lab accepts arbitrary ticker input", async ({ page }) => {
@@ -98,7 +98,7 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await page.getByTestId("ticker-search-submit").click();
     await expect(page).toHaveURL(/ticker=ADBE/);
     await expect(page.getByTestId("judgment-header")).toContainText("ADBE");
-    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Coverage/i);
   });
 
   test("Symbol Lab macro proxies remain searchable through free text", async ({
@@ -112,7 +112,7 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await page.getByTestId("ticker-search-submit").click();
     await expect(page).toHaveURL(/ticker=US10Y/);
     await expect(page.getByTestId("judgment-header")).toContainText("US10Y");
-    await expect(page.getByTestId("symbol-data-state")).toContainText(/Chart/i);
+    await expect(page.getByTestId("symbol-data-state")).toContainText(/Coverage/i);
   });
 
   test("Slice 13.7 routes never expose forbidden execution captions", async ({

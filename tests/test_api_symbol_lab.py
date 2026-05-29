@@ -67,6 +67,13 @@ def test_symbol_lab_default_ticker_returns_full_payload() -> None:
     assert body["dataState"]["chartStatus"] == "OK"
     assert body["dataState"]["chartEvidence"] == "stored"
     assert body["dataState"]["barCount"] > 0
+    assert body["dataState"]["coverageLevel"] in {
+        "COMPLETE",
+        "PARTIAL",
+        "SPARSE",
+    }
+    assert body["dataState"]["evidenceCoveragePercent"] > 0
+    assert body["dataState"]["missingSummary"]
     assert body["dataState"]["indicatorStatus"] == "AVAILABLE"
     assert body["dataState"]["logoSource"] == "local_fallback"
     assert body["subscription"]["canSubscribe"] is True
@@ -128,6 +135,11 @@ def test_symbol_lab_unknown_ticker_returns_missing_status() -> None:
     assert body["dataState"]["chartStatus"] == "MISSING"
     assert body["dataState"]["chartEvidence"] == "missing"
     assert body["dataState"]["barCount"] == 0
+    assert body["dataState"]["coverageLevel"] == "EMPTY"
+    assert body["dataState"]["evidenceCoveragePercent"] == 0
+    assert body["dataState"]["missingSummary"] == (
+        "ZZZZZ needs stored bars and indicators."
+    )
     assert body["dataState"]["indicatorStatus"] == "MISSING"
     assert body["identity"]["avatarText"] == "ZZ"
     assert body["recentBars"] == []
@@ -221,6 +233,11 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         assert body["dataState"]["chartStatus"] == "OK"
         assert body["dataState"]["chartEvidence"] == "stored"
         assert body["dataState"]["barCount"] == 30
+        assert body["dataState"]["coverageLevel"] == "COMPLETE"
+        assert body["dataState"]["evidenceCoveragePercent"] == 100
+        assert body["dataState"]["missingSummary"] == (
+            "No missing symbol-lab evidence."
+        )
         assert body["dataState"]["indicatorStatus"] == "AVAILABLE"
         assert len(body["recentBars"]) == 30
         assert body["technical"]["rsi14"] is not None
@@ -370,6 +387,11 @@ def test_symbol_lab_live_db_missing_ticker_is_explicit(
 
         assert body["source"] == "live"
         assert body["header"]["dataStatus"] == "MISSING"
+        assert body["dataState"]["coverageLevel"] == "EMPTY"
+        assert body["dataState"]["evidenceCoveragePercent"] == 0
+        assert body["dataState"]["missingSummary"] == (
+            "SPY needs stored bars and indicators."
+        )
         assert body["subscription"]["isSubscribed"] is False
         assert body["recentBars"] == []
         assert "no stored bar series" in body["interpretation"].lower()
@@ -584,6 +606,12 @@ def test_symbol_lab_ignores_future_stored_bars(monkeypatch, tmp_path) -> None:
         assert body["source"] == "live"
         assert body["header"]["latestClose"] == "100.000000"
         assert len(body["recentBars"]) == 1
+        assert body["dataState"]["barCount"] == 1
+        assert body["dataState"]["coverageLevel"] == "SPARSE"
+        assert body["dataState"]["evidenceCoveragePercent"] == 34
+        assert body["dataState"]["missingSummary"] == (
+            "SPY has fewer than 20 stored bars."
+        )
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

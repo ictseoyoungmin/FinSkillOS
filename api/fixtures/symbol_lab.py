@@ -178,6 +178,18 @@ def symbol_lab_fixture(
     position = _POSITIONS.get(resolved)
     alerts = _ALERTS.get(resolved, ())
     news = _NEWS.get(resolved, ())
+    bar_count = len(focus.bars)
+    coverage_level = "COMPLETE" if bar_count >= 20 else "SPARSE"
+    evidence_coverage_percent = (
+        100
+        if coverage_level == "COMPLETE"
+        else round(min(bar_count / 20, 1) * 70 + 30)
+    )
+    missing_summary = (
+        "No missing symbol-lab evidence."
+        if coverage_level == "COMPLETE"
+        else f"{focus.symbol} has fewer than 20 stored bars."
+    )
 
     return SymbolLabResponse(
         generated_at=FIXTURE_TIMESTAMP,
@@ -239,7 +251,10 @@ def symbol_lab_fixture(
         data_state=SymbolLabDataState(
             chart_status="OK",
             chart_evidence="stored",
-            bar_count=len(focus.bars),
+            bar_count=bar_count,
+            coverage_level=coverage_level,
+            evidence_coverage_percent=evidence_coverage_percent,
+            missing_summary=missing_summary,
             indicator_status="AVAILABLE",
             logo_source="local_fallback",
             subscription_status=(
@@ -334,6 +349,9 @@ def _missing_payload(ticker: str, *, timeframe: str = "1d") -> SymbolLabResponse
             chart_status="MISSING",
             chart_evidence="missing",
             bar_count=0,
+            coverage_level="EMPTY",
+            evidence_coverage_percent=0,
+            missing_summary=f"{ticker} needs stored bars and indicators.",
             indicator_status="MISSING",
             logo_source="local_fallback",
             subscription_status="watch_only",

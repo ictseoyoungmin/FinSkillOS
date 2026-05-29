@@ -111,6 +111,7 @@ operational protocols.
 71     Market Structure Coverage Vocabulary
 72     Control Room Rail Freshness Detail
 73     System Ops Protocol Result Ergonomics
+74     Symbol Lab Market Kernel Coverage Parity
 ```
 
 Slice 14 is complete:
@@ -286,6 +287,10 @@ Slice 14 is complete:
 - System Ops protocol results now render structured detail strings as compact
   evidence chips, separating run timing from created counts, date-status
   summaries, and operational boundary markers.
+- Symbol Lab now shares Market Kernel's coverage vocabulary by exposing
+  `coverageLevel`, `evidenceCoveragePercent`, and `missingSummary` in
+  `dataState`, and its state band now emphasizes coverage rather than only
+  chart status.
 ```
 
 ## Validation Baseline
@@ -315,14 +320,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Symbol Lab / Market Kernel coverage parity
-   - Bring Symbol Lab's chart/indicator state band onto the same coverage-level
-     vocabulary now used by the market-structure tabs.
-
-2. Control Room freshness staleness thresholds
+1. Control Room freshness staleness thresholds
    - Classify rail freshness as fresh/stale/missing rather than only exposing
      latest timestamps.
 
-3. System Ops protocol result API detail normalization
+2. System Ops protocol result API detail normalization
    - Promote repeated protocol detail strings toward a structured API shape
      while preserving the current UI evidence rendering contract.
+
+3. Symbol Lab coverage threshold polish
+   - Tune sparse/partial copy after more stored non-fixture symbol histories
+     are available in the local DB.

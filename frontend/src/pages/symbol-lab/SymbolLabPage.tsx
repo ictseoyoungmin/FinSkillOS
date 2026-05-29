@@ -97,6 +97,9 @@ function pendingSymbolLabData(ticker: string, timeframe: string): SymbolLabData 
       chartStatus: "MISSING",
       chartEvidence: "missing",
       barCount: 0,
+      coverageLevel: "EMPTY",
+      evidenceCoveragePercent: 0,
+      missingSummary: `${ticker} needs stored bars and indicators.`,
       indicatorStatus: "MISSING",
       logoSource: "local_fallback",
       subscriptionStatus: "unavailable",
@@ -332,15 +335,15 @@ export function SymbolLabPage() {
 function SymbolDataStateBand({ payload }: { payload: SymbolLabData }) {
   const state = payload.dataState;
   const sourceTone: BadgeTone = payload.source === "live" ? "success" : "warning";
-  const chartTone = dataStatusTone(state.chartStatus);
+  const coverageTone = coverageToneFor(state.coverageLevel);
   const indicatorTone = indicatorStatusTone(state.indicatorStatus);
   const logoTone = state.logoSource === "provider_cache" ? "success" : "neutral";
   const subscriptionTone = subscriptionStatusTone(state.subscriptionStatus);
-  const chartDetail =
+  const coverageDetail =
     state.chartEvidence === "provider_preview"
-      ? "Provider preview, not persisted"
+      ? `${state.barCount} preview bars · ${state.evidenceCoveragePercent}% evidence`
       : state.chartEvidence === "stored"
-        ? `${state.barCount} stored bars`
+        ? `${state.barCount} stored bars · ${state.evidenceCoveragePercent}% evidence`
         : state.providerNote ?? "No chart bars available";
 
   return (
@@ -356,15 +359,19 @@ function SymbolDataStateBand({ payload }: { payload: SymbolLabData }) {
         tone={sourceTone}
       />
       <SymbolStateItem
-        label="Chart"
-        value={state.chartStatus}
-        detail={chartDetail}
-        tone={chartTone}
+        label="Coverage"
+        value={state.coverageLevel}
+        detail={coverageDetail}
+        tone={coverageTone}
       />
       <SymbolStateItem
         label="Indicators"
         value={state.indicatorStatus}
-        detail={payload.header.latestTime ?? "No indicator timestamp"}
+        detail={
+          state.indicatorStatus === "AVAILABLE"
+            ? (payload.header.latestTime ?? "No indicator timestamp")
+            : state.missingSummary
+        }
         tone={indicatorTone}
       />
       <SymbolStateItem
@@ -383,9 +390,11 @@ function SymbolDataStateBand({ payload }: { payload: SymbolLabData }) {
   );
 }
 
-function dataStatusTone(status: SymbolLabData["dataState"]["chartStatus"]): BadgeTone {
-  if (status === "OK") return "success";
-  if (status === "PARTIAL") return "warning";
+function coverageToneFor(
+  level: SymbolLabData["dataState"]["coverageLevel"],
+): BadgeTone {
+  if (level === "COMPLETE") return "success";
+  if (level === "PARTIAL" || level === "SPARSE") return "warning";
   return "neutral";
 }
 

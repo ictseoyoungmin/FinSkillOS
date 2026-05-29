@@ -88,6 +88,9 @@ export interface SymbolLabDataState {
   chartStatus: DataStatus;
   chartEvidence: "stored" | "provider_preview" | "missing";
   barCount: number;
+  coverageLevel: "COMPLETE" | "PARTIAL" | "SPARSE" | "EMPTY";
+  evidenceCoveragePercent: number;
+  missingSummary: string;
   indicatorStatus: "AVAILABLE" | "PARTIAL" | "MISSING";
   logoSource: SymbolIdentity["logoSource"];
   subscriptionStatus: "subscribed" | "watch_only" | "unavailable";
