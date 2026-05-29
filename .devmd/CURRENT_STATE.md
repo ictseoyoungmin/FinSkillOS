@@ -110,6 +110,7 @@ operational protocols.
 70     System Ops Event Ingestion Hardening
 71     Market Structure Coverage Vocabulary
 72     Control Room Rail Freshness Detail
+73     System Ops Protocol Result Ergonomics
 ```
 
 Slice 14 is complete:
@@ -282,6 +283,9 @@ Slice 14 is complete:
 - Control Room now exposes per-rail freshness detail in `dataState`, including
   latest market, catalyst, and watchlist timestamps plus a compact freshness
   note rendered in the state band.
+- System Ops protocol results now render structured detail strings as compact
+  evidence chips, separating run timing from created counts, date-status
+  summaries, and operational boundary markers.
 ```
 
 ## Validation Baseline
@@ -311,14 +315,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. System Ops protocol result ergonomics
-   - Surface structured protocol result details in the UI as compact key/value
-     evidence instead of a single message line.
-
-2. Symbol Lab / Market Kernel coverage parity
+1. Symbol Lab / Market Kernel coverage parity
    - Bring Symbol Lab's chart/indicator state band onto the same coverage-level
      vocabulary now used by the market-structure tabs.
 
-3. Control Room freshness staleness thresholds
+2. Control Room freshness staleness thresholds
    - Classify rail freshness as fresh/stale/missing rather than only exposing
      latest timestamps.
+
+3. System Ops protocol result API detail normalization
+   - Promote repeated protocol detail strings toward a structured API shape
+     while preserving the current UI evidence rendering contract.

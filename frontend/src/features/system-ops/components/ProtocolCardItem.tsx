@@ -57,6 +57,8 @@ export function ProtocolCardItem({ protocol, onRun }: ProtocolCardItemProps) {
     }
   };
 
+  const evidence = result ? parseProtocolDetail(result.detail) : [];
+
   return (
     <Card testId={testId}>
       <div className="fso-protocol-card">
@@ -140,11 +142,56 @@ export function ProtocolCardItem({ protocol, onRun }: ProtocolCardItemProps) {
             className={`fso-protocol-card-result fso-protocol-card-result--${result.status.toLowerCase()}`}
             data-testid={`${testId}-result`}
           >
-            <strong>{result.status}</strong>
-            <span>{result.message}</span>
+            <div className="fso-protocol-card-result-main">
+              <strong>{result.status}</strong>
+              <span>{result.message}</span>
+            </div>
+            <div
+              className="fso-protocol-card-result-meta"
+              data-testid={`${testId}-result-meta`}
+            >
+              <span>ran_at</span>
+              <b>{result.ranAt}</b>
+            </div>
+            {evidence.length > 0 ? (
+              <dl
+                className="fso-protocol-card-result-evidence"
+                data-testid={`${testId}-result-evidence`}
+              >
+                {evidence.map((item) => (
+                  <div
+                    className="fso-protocol-card-result-chip"
+                    key={`${item.key}-${item.value}`}
+                  >
+                    <dt>{item.key}</dt>
+                    <dd>{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
           </div>
         ) : null}
       </div>
     </Card>
   );
+}
+
+interface ProtocolDetailItem {
+  key: string;
+  value: string;
+}
+
+function parseProtocolDetail(detail: string): ProtocolDetailItem[] {
+  return detail
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const [key, ...valueParts] = item.split("=");
+      const value = valueParts.join("=").trim();
+      if (!value) {
+        return { key: "detail", value: key.trim() };
+      }
+      return { key: key.trim(), value };
+    });
 }

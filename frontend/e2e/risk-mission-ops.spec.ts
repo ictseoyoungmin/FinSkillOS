@@ -97,6 +97,50 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await expect(confirm).toBeHidden();
   });
 
+  test("System Ops protocol result renders structured evidence detail", async ({
+    page,
+  }) => {
+    await page.route("**/api/system-ops/seed-sample-events", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          protocol: "seed_sample_events",
+          status: "OK",
+          message: "3 event catalog rows loaded through System Ops.",
+          detail:
+            "events_seeded,created_count=3,date_statuses=TENTATIVE+WINDOW,boundary=system_ops",
+          ranAt: "2026-05-29T10:00:00+09:00",
+        }),
+      });
+    });
+
+    await page.goto("/system-ops");
+    await page
+      .getByTestId("system-ops-protocol-seed-sample-events-button")
+      .click();
+    await page
+      .getByTestId("system-ops-protocol-seed-sample-events-confirm-button")
+      .click();
+
+    await expect(
+      page.getByTestId("system-ops-protocol-seed-sample-events-result"),
+    ).toContainText("OK");
+    await expect(
+      page.getByTestId("system-ops-protocol-seed-sample-events-result-meta"),
+    ).toContainText("ran_at");
+
+    const evidence = page.getByTestId(
+      "system-ops-protocol-seed-sample-events-result-evidence",
+    );
+    await expect(evidence).toContainText("created_count");
+    await expect(evidence).toContainText("3");
+    await expect(evidence).toContainText("date_statuses");
+    await expect(evidence).toContainText("TENTATIVE+WINDOW");
+    await expect(evidence).toContainText("boundary");
+    await expect(evidence).toContainText("system_ops");
+  });
+
   test("Slice 13.8 routes never expose forbidden execution captions", async ({
     page,
   }) => {
