@@ -89,10 +89,13 @@ class MarketKernelDataState(CamelModel):
 
     chart_status: Literal["OK", "PARTIAL", "MISSING"] = "MISSING"
     chart_evidence: Literal["stored", "fixture", "missing"] = "missing"
+    coverage_level: Literal["COMPLETE", "PARTIAL", "SPARSE", "EMPTY"] = "EMPTY"
+    evidence_coverage_percent: int = 0
     bar_count: int = 0
     latest_bar_at: str | None = None
     indicator_status: Literal["AVAILABLE", "PARTIAL", "MISSING"] = "MISSING"
     event_overlay_status: Literal["AVAILABLE", "MISSING"] = "MISSING"
+    missing_summary: str = ""
     source_note: str
     refresh_note: str
 

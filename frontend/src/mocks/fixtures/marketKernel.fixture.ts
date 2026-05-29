@@ -12,10 +12,13 @@ const NVDA: MarketKernelData = {
   dataState: {
     chartStatus: "OK",
     chartEvidence: "fixture",
+    coverageLevel: "COMPLETE",
+    evidenceCoveragePercent: 100,
     barCount: 22,
     latestBarAt: "2026-05-19T00:00:00+00:00",
     indicatorStatus: "AVAILABLE",
     eventOverlayStatus: "AVAILABLE",
+    missingSummary: "No missing market-kernel evidence.",
     sourceNote: "Deterministic fixture snapshot; not a live provider feed.",
     refreshNote:
       "Use System Ops market refresh and indicator calculation for DB-backed technical evidence.",

@@ -68,10 +68,13 @@ export interface MarketKernelSystemStatus {
 export interface MarketKernelDataState {
   chartStatus: "OK" | "PARTIAL" | "MISSING";
   chartEvidence: "stored" | "fixture" | "missing";
+  coverageLevel: "COMPLETE" | "PARTIAL" | "SPARSE" | "EMPTY";
+  evidenceCoveragePercent: number;
   barCount: number;
   latestBarAt: string | null;
   indicatorStatus: "AVAILABLE" | "PARTIAL" | "MISSING";
   eventOverlayStatus: "AVAILABLE" | "MISSING";
+  missingSummary: string;
   sourceNote: string;
   refreshNote: string;
 }

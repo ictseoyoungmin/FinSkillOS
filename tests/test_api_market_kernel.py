@@ -64,7 +64,10 @@ def test_market_kernel_default_ticker_returns_full_payload() -> None:
     assert body["header"]["dataStatus"] == "OK"
     assert body["dataState"]["chartStatus"] == "OK"
     assert body["dataState"]["chartEvidence"] in {"fixture", "stored"}
+    assert body["dataState"]["coverageLevel"] == "COMPLETE"
+    assert body["dataState"]["evidenceCoveragePercent"] == 100
     assert body["dataState"]["barCount"] >= len(body["bars"])
+    assert body["dataState"]["missingSummary"] == "No missing market-kernel evidence."
     if body["source"] == "fixture":
         assert body["generatedAt"] == FIXTURE_TIMESTAMP
     else:
@@ -172,6 +175,8 @@ def test_market_kernel_can_return_live_db_bars(monkeypatch, tmp_path) -> None:
         assert body["header"]["ticker"] == "SPY"
         assert body["header"]["dataStatus"] == "OK"
         assert body["dataState"]["chartEvidence"] == "stored"
+        assert body["dataState"]["coverageLevel"] in {"COMPLETE", "PARTIAL"}
+        assert body["dataState"]["evidenceCoveragePercent"] >= 85
         assert body["dataState"]["barCount"] == 30
         assert body["dataState"]["indicatorStatus"] in {"AVAILABLE", "PARTIAL"}
         assert len(body["bars"]) == 30
@@ -201,6 +206,9 @@ def test_market_kernel_live_db_missing_ticker_is_explicit(
         assert body["header"]["dataStatus"] == "MISSING"
         assert body["dataState"]["chartStatus"] == "MISSING"
         assert body["dataState"]["chartEvidence"] == "missing"
+        assert body["dataState"]["coverageLevel"] == "EMPTY"
+        assert body["dataState"]["evidenceCoveragePercent"] == 0
+        assert body["dataState"]["missingSummary"] == "SPY needs stored bars and indicators."
         assert body["bars"] == []
         assert "no stored bar series" in body["interpretation"].lower()
         assert body["setupHint"] is not None
@@ -256,6 +264,9 @@ def test_market_kernel_ignores_future_stored_bars(monkeypatch, tmp_path) -> None
         assert body["source"] == "live"
         assert body["header"]["latestClose"] == "100.000000"
         assert body["dataState"]["barCount"] == 1
+        assert body["dataState"]["coverageLevel"] == "SPARSE"
+        assert body["dataState"]["evidenceCoveragePercent"] == 4
+        assert body["dataState"]["missingSummary"] == "SPY has fewer than 20 stored bars."
         assert len(body["bars"]) == 1
     finally:
         reset_settings_cache()

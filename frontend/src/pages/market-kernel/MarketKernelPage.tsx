@@ -161,7 +161,7 @@ function MarketKernelDataStateBand({ payload }: { payload: MarketKernelData }) {
   const state = payload.dataState;
   const sourceLabel = payload.source === "live" ? "LIVE" : "FIXTURE";
   const sourceTone: BadgeTone = payload.source === "live" ? "success" : "warning";
-  const chartTone = statusTone(state.chartStatus);
+  const coverageTone = coverageToneFor(state.coverageLevel);
   const indicatorTone = indicatorToneFor(state.indicatorStatus);
   const eventTone: BadgeTone =
     state.eventOverlayStatus === "AVAILABLE" ? "info" : "neutral";
@@ -181,10 +181,10 @@ function MarketKernelDataStateBand({ payload }: { payload: MarketKernelData }) {
         tone={sourceTone}
       />
       <MarketKernelStateItem
-        label="Chart"
-        value={state.chartStatus}
-        detail={`${state.chartEvidence} · ${state.barCount} bars · ${latestLabel}`}
-        tone={chartTone}
+        label="Coverage"
+        value={state.coverageLevel}
+        detail={`${state.barCount} bars · ${state.evidenceCoveragePercent}% evidence · ${latestLabel}`}
+        tone={coverageTone}
       />
       <MarketKernelStateItem
         label="Indicators"
@@ -195,18 +195,24 @@ function MarketKernelDataStateBand({ payload }: { payload: MarketKernelData }) {
       <MarketKernelStateItem
         label="Events"
         value={state.eventOverlayStatus}
-        detail={`${payload.events.length} overlays linked to this symbol`}
+        detail={
+          payload.events.length > 0
+            ? `${payload.events.length} overlays linked to this symbol`
+            : state.missingSummary
+        }
         tone={eventTone}
       />
     </div>
   );
 }
 
-function statusTone(status: MarketKernelData["dataState"]["chartStatus"]): BadgeTone {
-  if (status === "OK") {
+function coverageToneFor(
+  level: MarketKernelData["dataState"]["coverageLevel"],
+): BadgeTone {
+  if (level === "COMPLETE") {
     return "success";
   }
-  if (status === "PARTIAL") {
+  if (level === "PARTIAL" || level === "SPARSE") {
     return "warning";
   }
   return "neutral";

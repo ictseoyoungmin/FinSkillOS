@@ -108,6 +108,7 @@ operational protocols.
 68     Analysis Workspace Coverage Ergonomics
 69     Control Room Live Rail Composition
 70     System Ops Event Ingestion Hardening
+71     Market Structure Coverage Vocabulary
 ```
 
 Slice 14 is complete:
@@ -274,6 +275,9 @@ Slice 14 is complete:
   System Ops boundary, removes stale manual-upsert copy, reports
   `boundary=system_ops` in seed results, and has a DB-backed regression proving
   event rows remain uncertain-date statuses across OK/NOOP runs.
+- Market Kernel now shares Analysis Workspace's coverage vocabulary by exposing
+  `coverageLevel`, `evidenceCoveragePercent`, and `missingSummary` in
+  `dataState`, while preserving chart/indicator status fields for compatibility.
 ```
 
 ## Validation Baseline
@@ -303,14 +307,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Market Kernel / Analysis Workspace shared coverage vocabulary
-   - Align chart/indicator coverage language across the two market-structure
-     tabs so sparse live DB states use the same status tiers.
-
-2. Control Room rail freshness detail
+1. Control Room rail freshness detail
    - Add per-rail latest timestamp/source notes so composed live rails can show
      whether market, event, and watchlist context are fresh or stale.
 
-3. System Ops protocol result ergonomics
+2. System Ops protocol result ergonomics
    - Surface structured protocol result details in the UI as compact key/value
      evidence instead of a single message line.
+
+3. Symbol Lab / Market Kernel coverage parity
+   - Bring Symbol Lab's chart/indicator state band onto the same coverage-level
+     vocabulary now used by the market-structure tabs.

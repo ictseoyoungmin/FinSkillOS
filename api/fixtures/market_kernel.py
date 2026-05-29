@@ -58,10 +58,13 @@ def market_kernel_fixture(ticker: str | None = None) -> MarketKernelResponse:
         data_state=MarketKernelDataState(
             chart_status="OK",
             chart_evidence="fixture",
+            coverage_level="COMPLETE",
+            evidence_coverage_percent=100,
             bar_count=len(focus.bars),
             latest_bar_at=focus.bars[-1].bar_time,
             indicator_status="AVAILABLE",
             event_overlay_status="AVAILABLE" if focus.events else "MISSING",
+            missing_summary="No missing market-kernel evidence.",
             source_note=(
                 "Deterministic fixture snapshot; not a live provider feed."
             ),
@@ -165,10 +168,13 @@ def _missing_payload(ticker: str) -> MarketKernelResponse:
         data_state=MarketKernelDataState(
             chart_status="MISSING",
             chart_evidence="missing",
+            coverage_level="EMPTY",
+            evidence_coverage_percent=0,
             bar_count=0,
             latest_bar_at=None,
             indicator_status="MISSING",
             event_overlay_status="MISSING",
+            missing_summary=f"{ticker} needs stored bars and indicators.",
             source_note="No fixture technical snapshot exists for this symbol.",
             refresh_note="Select a supported fixture ticker or refresh DB bars.",
         ),

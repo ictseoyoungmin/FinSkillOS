@@ -89,10 +89,13 @@ def _live_response(
     payload.data_state = MarketKernelDataState(
         chart_status="MISSING",
         chart_evidence="missing",
+        coverage_level="EMPTY",
+        evidence_coverage_percent=0,
         bar_count=0,
         latest_bar_at=None,
         indicator_status="MISSING",
         event_overlay_status="MISSING",
+        missing_summary=f"{ticker} needs stored bars and indicators.",
         source_note=(
             "Live DB is reachable, but no stored market bars exist for "
             "this ticker."
@@ -163,6 +166,10 @@ def _live_response(
     visible_bars = bars[-120:]
     latest_bar = visible_bars[-1]
     indicator_status = _data_state_indicator_status(latest_indicator)
+    coverage_level = _coverage_level(
+        bar_count=len(bars),
+        indicator_status=indicator_status,
+    )
     payload.judgment = judgment(
         "TECHNICAL SIGNAL JUDGMENT",
         _trend_title(latest_indicator),
@@ -207,10 +214,20 @@ def _live_response(
     payload.data_state = MarketKernelDataState(
         chart_status=payload.header.data_status,
         chart_evidence="stored",
+        coverage_level=coverage_level,
+        evidence_coverage_percent=_evidence_coverage_percent(
+            bar_count=len(bars),
+            indicator_status=indicator_status,
+        ),
         bar_count=len(bars),
         latest_bar_at=_iso(latest_bar.bar_time),
         indicator_status=indicator_status,
         event_overlay_status="MISSING",
+        missing_summary=_missing_summary(
+            ticker=ticker,
+            coverage_level=coverage_level,
+            indicator_status=indicator_status,
+        ),
         source_note="Read from local DB; no provider call during page render.",
         refresh_note=(
             "Freshness depends on the latest System Ops refresh and "
@@ -290,6 +307,45 @@ def _data_state_indicator_status(latest_indicator) -> str:
     if all(value is not None for value in values):
         return "AVAILABLE"
     return "PARTIAL"
+
+
+def _coverage_level(*, bar_count: int, indicator_status: str) -> str:
+    if bar_count <= 0:
+        return "EMPTY"
+    if bar_count < 20:
+        return "SPARSE"
+    if indicator_status != "AVAILABLE":
+        return "PARTIAL"
+    return "COMPLETE"
+
+
+def _evidence_coverage_percent(*, bar_count: int, indicator_status: str) -> int:
+    if bar_count <= 0:
+        return 0
+    bar_score = min(bar_count / 20, 1.0) * 70
+    indicator_score = {
+        "AVAILABLE": 30,
+        "PARTIAL": 15,
+        "MISSING": 0,
+    }.get(indicator_status, 0)
+    return round(bar_score + indicator_score)
+
+
+def _missing_summary(
+    *,
+    ticker: str,
+    coverage_level: str,
+    indicator_status: str,
+) -> str:
+    if coverage_level == "COMPLETE":
+        return "No missing market-kernel evidence."
+    if coverage_level == "EMPTY":
+        return f"{ticker} needs stored bars and indicators."
+    if coverage_level == "SPARSE":
+        return f"{ticker} has fewer than 20 stored bars."
+    if indicator_status != "AVAILABLE":
+        return f"{ticker} needs a complete indicator snapshot."
+    return f"{ticker} evidence is partial."
 
 
 def _trend_title(latest_indicator) -> str:
