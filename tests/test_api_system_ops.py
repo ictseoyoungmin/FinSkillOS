@@ -163,6 +163,14 @@ def test_system_ops_post_endpoints_return_structured_json() -> None:
         assert body["protocol"] == expected_key
         assert body["status"] in {"OK", "NOOP", "ERROR"}
         assert "message" in body and isinstance(body["message"], str)
+        assert "detailEvidence" in body
+        assert isinstance(body["detailEvidence"], list)
+        assert body["detailEvidence"]
+        assert {"key", "value"}.issubset(body["detailEvidence"][0].keys())
+        assert all(
+            isinstance(item["key"], str) and isinstance(item["value"], str)
+            for item in body["detailEvidence"]
+        )
         assert "ranAt" in body and body["ranAt"]
         # No raw stack-trace material in the message.
         for marker in ("Traceback", "File \"", "line "):
@@ -338,8 +346,14 @@ def test_seed_sample_events_protocol_is_audited_and_preserves_uncertain_statuses
         assert "boundary=system_ops" in first["detail"]
         assert "created_count=" in first["detail"]
         assert "CONFIRMED" not in first["detail"]
+        assert {"key": "boundary", "value": "system_ops"} in first["detailEvidence"]
+        assert any(item["key"] == "created_count" for item in first["detailEvidence"])
         assert second["status"] == "NOOP"
         assert second["detail"] == "noop_existing,boundary=system_ops"
+        assert second["detailEvidence"] == [
+            {"key": "detail", "value": "noop_existing"},
+            {"key": "boundary", "value": "system_ops"},
+        ]
 
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
@@ -353,6 +367,11 @@ def test_seed_sample_events_protocol_is_audited_and_preserves_uncertain_statuses
                 "seed_sample_events",
                 "seed_sample_events",
             ]
+        get_body = _client().get("/api/system-ops").json()
+        assert get_body["recentProtocolRuns"][0]["detailEvidence"] == [
+            {"key": "detail", "value": "noop_existing"},
+            {"key": "boundary", "value": "system_ops"},
+        ]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
@@ -503,6 +522,11 @@ def test_refresh_market_data_protocol_writes_mock_bars(monkeypatch, tmp_path) ->
         assert body["status"] == "OK"
         assert "2 symbols available" in body["message"]
         assert "bars=" in body["detail"]
+        assert any(
+            item == {"key": "adapter", "value": "mock"}
+            for item in body["detailEvidence"]
+        )
+        assert any(item["key"] == "bars" for item in body["detailEvidence"])
 
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
@@ -546,6 +570,7 @@ def test_seed_sample_account_repairs_snapshot_only_seed_state(
         assert body["protocol"] == "seed_sample_account"
         assert body["status"] == "OK"
         assert "positions_created=5" in body["detail"]
+        assert {"key": "positions_created", "value": "5"} in body["detailEvidence"]
 
         with factory() as session:
             positions = PositionRepository(session).list_for_account(account.id)
@@ -619,6 +644,8 @@ def test_refresh_news_protocol_ingests_configured_rss_feed(
         assert "1 articles ingested" in body["message"]
         assert "feeds=1" in body["detail"]
         assert "generated=False" in body["detail"]
+        assert {"key": "feeds", "value": "1"} in body["detailEvidence"]
+        assert {"key": "generated", "value": "False"} in body["detailEvidence"]
 
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
@@ -660,6 +687,7 @@ def test_calculate_indicators_protocol_writes_latest_snapshots(
         assert body["status"] == "OK"
         assert "2 symbols available" in body["message"]
         assert "snapshots=2" in body["detail"]
+        assert {"key": "snapshots", "value": "2"} in body["detailEvidence"]
 
         with factory() as session:
             repo = IndicatorRepository(session)
@@ -690,6 +718,8 @@ def test_calculate_indicators_protocol_noops_without_bars(
         assert body["status"] == "NOOP"
         assert "failed=1" in body["detail"]
         assert "failedSymbols=SPY" in body["detail"]
+        assert {"key": "failed", "value": "1"} in body["detailEvidence"]
+        assert {"key": "failedSymbols", "value": "SPY"} in body["detailEvidence"]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

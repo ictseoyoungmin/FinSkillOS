@@ -70,7 +70,13 @@ export interface ProtocolRunResult {
   status: ProtocolStatus;
   message: string;
   detail: string;
+  detailEvidence: ProtocolDetailEvidence[];
   ranAt: string;
+}
+
+export interface ProtocolDetailEvidence {
+  key: string;
+  value: string;
 }
 
 export interface ProtocolRunRecord extends ProtocolRunResult {

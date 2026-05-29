@@ -113,6 +113,7 @@ operational protocols.
 73     System Ops Protocol Result Ergonomics
 74     Symbol Lab Market Kernel Coverage Parity
 75     Control Room Freshness Staleness Thresholds
+76     System Ops Protocol Result API Detail Normalization
 ```
 
 Slice 14 is complete:
@@ -295,6 +296,9 @@ Slice 14 is complete:
 - Control Room now classifies market, catalyst, watchlist, and aggregate rail
   freshness as `FRESH`, `STALE`, or `MISSING`, so the overview no longer infers
   freshness from timestamp presence alone.
+- System Ops protocol results now expose `detailEvidence` key/value rows in
+  the API contract while preserving the legacy `detail` string for audit and
+  DB-history compatibility.
 ```
 
 ## Validation Baseline
@@ -324,14 +328,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. System Ops protocol result API detail normalization
-   - Promote repeated protocol detail strings toward a structured API shape
-     while preserving the current UI evidence rendering contract.
-
-2. Symbol Lab coverage threshold polish
+1. Symbol Lab coverage threshold polish
    - Tune sparse/partial copy after more stored non-fixture symbol histories
      are available in the local DB.
 
-3. Control Room freshness threshold configuration
+2. Control Room freshness threshold configuration
    - Move the current three-day market/watchlist threshold into an explicit
      settings contract if operational cadence starts varying by environment.
+
+3. System Ops protocol history evidence density
+   - Render recent protocol run `detailEvidence` in the System Ops history
+     area once the audit table has accumulated enough varied run examples.

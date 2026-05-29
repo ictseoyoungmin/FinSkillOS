@@ -37,6 +37,7 @@ from api.schemas.common import (
 )
 from api.schemas.system_ops import (
     DataSourcePill,
+    ProtocolDetailEvidence,
     ProtocolKey,
     ProtocolRunRecord,
     ProtocolRunResult,
@@ -332,6 +333,7 @@ def _run_protocol(
                 status="NOOP",
                 message=fixture_message,
                 detail="no_database_session",
+                detail_evidence=_detail_evidence("no_database_session"),
                 ran_at=_now_iso(),
             )
             _append_protocol_run(result, db_status="MISSING", source="fixture")
@@ -344,6 +346,7 @@ def _run_protocol(
                 status=status,
                 message=message,
                 detail=detail,
+                detail_evidence=_detail_evidence(detail),
                 ran_at=_now_iso(),
             )
             _append_protocol_run(
@@ -364,6 +367,7 @@ def _run_protocol(
                     "modified."
                 ),
                 detail=type(exc).__name__,
+                detail_evidence=_detail_evidence(type(exc).__name__),
                 ran_at=_now_iso(),
             )
             _append_protocol_run(
@@ -414,6 +418,7 @@ def _append_protocol_run(
             status=result.status,
             message=result.message,
             detail=result.detail,
+            detail_evidence=result.detail_evidence,
             ran_at=result.ran_at,
             db_status=db_status,
             source=source,
@@ -471,10 +476,27 @@ def _protocol_record_from_db(row) -> ProtocolRunRecord:
         status=row.status,
         message=row.message,
         detail=row.detail,
+        detail_evidence=_detail_evidence(row.detail),
         ran_at=row.ran_at.isoformat(),
         db_status=row.db_status,
         source=row.source,
     )
+
+
+def _detail_evidence(detail: str) -> list[ProtocolDetailEvidence]:
+    evidence: list[ProtocolDetailEvidence] = []
+    for item in detail.split(","):
+        chunk = item.strip()
+        if not chunk:
+            continue
+        key, separator, value = chunk.partition("=")
+        if separator:
+            evidence.append(
+                ProtocolDetailEvidence(key=key.strip(), value=value.strip())
+            )
+        else:
+            evidence.append(ProtocolDetailEvidence(key="detail", value=chunk))
+    return evidence
 
 
 def _read_worker_status(

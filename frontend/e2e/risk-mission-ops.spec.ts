@@ -108,8 +108,13 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
           protocol: "seed_sample_events",
           status: "OK",
           message: "3 event catalog rows loaded through System Ops.",
-          detail:
-            "events_seeded,created_count=3,date_statuses=TENTATIVE+WINDOW,boundary=system_ops",
+          detail: "legacy_detail",
+          detailEvidence: [
+            { key: "detail", value: "events_seeded" },
+            { key: "created_count", value: "3" },
+            { key: "date_statuses", value: "TENTATIVE+WINDOW" },
+            { key: "boundary", value: "system_ops" },
+          ],
           ranAt: "2026-05-29T10:00:00+09:00",
         }),
       });

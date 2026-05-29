@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "@/shared/ui";
 import type {
   ProtocolCard,
+  ProtocolDetailEvidence,
   ProtocolRunResult,
   ProtocolTone,
 } from "../types";
@@ -51,13 +52,18 @@ export function ProtocolCardItem({ protocol, onRun }: ProtocolCardItemProps) {
         message:
           "Protocol request failed at the network layer. Stored data was not modified.",
         detail: error instanceof Error ? error.name : "network_error",
+        detailEvidence: [],
         ranAt: new Date().toISOString(),
       });
       setPhase("error");
     }
   };
 
-  const evidence = result ? parseProtocolDetail(result.detail) : [];
+  const evidence = result
+    ? (result.detailEvidence?.length ?? 0) > 0
+      ? result.detailEvidence
+      : parseProtocolDetail(result.detail)
+    : [];
 
   return (
     <Card testId={testId}>
@@ -176,12 +182,7 @@ export function ProtocolCardItem({ protocol, onRun }: ProtocolCardItemProps) {
   );
 }
 
-interface ProtocolDetailItem {
-  key: string;
-  value: string;
-}
-
-function parseProtocolDetail(detail: string): ProtocolDetailItem[] {
+function parseProtocolDetail(detail: string): ProtocolDetailEvidence[] {
   return detail
     .split(",")
     .map((item) => item.trim())

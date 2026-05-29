@@ -70,6 +70,13 @@ class DataSourcePill(CamelModel):
     detail: str = ""
 
 
+class ProtocolDetailEvidence(CamelModel):
+    """One structured evidence fragment parsed from a protocol detail string."""
+
+    key: str
+    value: str
+
+
 class ProtocolRunResult(CamelModel):
     """Structured response from any POST /api/system-ops/<protocol>."""
 
@@ -77,6 +84,7 @@ class ProtocolRunResult(CamelModel):
     status: ProtocolStatus
     message: str
     detail: str = ""
+    detail_evidence: list[ProtocolDetailEvidence] = Field(default_factory=list)
     ran_at: str
 
 
@@ -137,6 +145,7 @@ __all__ = [
     "DataSourcePill",
     "DataSourceStatus",
     "ProtocolCard",
+    "ProtocolDetailEvidence",
     "ProtocolKey",
     "ProtocolRunRecord",
     "ProtocolRunResult",
