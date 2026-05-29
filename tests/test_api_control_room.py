@@ -87,6 +87,10 @@ def test_control_room_endpoint_returns_full_payload() -> None:
     assert body["dataState"]["latestMarketAt"]
     assert body["dataState"]["latestEventAt"]
     assert body["dataState"]["latestWatchlistAt"]
+    assert body["dataState"]["marketFreshnessStatus"] == "FRESH"
+    assert body["dataState"]["catalystFreshnessStatus"] == "FRESH"
+    assert body["dataState"]["watchlistFreshnessStatus"] == "FRESH"
+    assert body["dataState"]["railFreshnessStatus"] == "FRESH"
     assert body["dataState"]["railFreshnessNote"]
 
 
@@ -204,6 +208,10 @@ def test_control_room_live_empty_state_when_db_reachable(
     assert body["dataState"]["latestMarketAt"] is None
     assert body["dataState"]["latestEventAt"] is None
     assert body["dataState"]["latestWatchlistAt"] is None
+    assert body["dataState"]["marketFreshnessStatus"] == "MISSING"
+    assert body["dataState"]["catalystFreshnessStatus"] == "MISSING"
+    assert body["dataState"]["watchlistFreshnessStatus"] == "MISSING"
+    assert body["dataState"]["railFreshnessStatus"] == "MISSING"
     assert body["dataState"]["railFreshnessNote"] == "No composed live rail rows yet."
     assert body["mission"]["progressPct"] == Decimal("0")
     assert body["riskFirewall"] == []
@@ -262,10 +270,37 @@ def test_control_room_promotes_live_overview_rails(
     assert body["dataState"]["latestMarketAt"].startswith("2026-05-30T14:00:00")
     assert body["dataState"]["latestEventAt"] == "2026-06-03"
     assert body["dataState"]["latestWatchlistAt"].startswith("2026-05-30T14:00:00")
+    assert body["dataState"]["marketFreshnessStatus"] == "FRESH"
+    assert body["dataState"]["catalystFreshnessStatus"] == "FRESH"
+    assert body["dataState"]["watchlistFreshnessStatus"] == "FRESH"
+    assert body["dataState"]["railFreshnessStatus"] == "FRESH"
     assert "market 2026-05-30" in body["dataState"]["railFreshnessNote"]
     assert body["tickerStrip"][0]["symbol"] == "NVDA"
     assert body["catalystWatch"][0]["title"] == "NVIDIA earnings window"
     assert body["watchlist"][0]["symbol"] == "NVDA"
+
+
+def test_control_room_classifies_stale_market_and_watchlist_rails(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    _seed_account_and_portfolio(db_session)
+    stale_ts = datetime(2026, 5, 1, 14, 0, tzinfo=UTC)
+    _seed_market_series(db_session, "SPY", Decimal("670"), stale_ts)
+    _seed_market_series(db_session, "QQQ", Decimal("550"), stale_ts)
+    _seed_market_series(db_session, "NVDA", Decimal("170"), stale_ts)
+    SymbolSubscriptionRepository(db_session).subscribe("NVDA", name="NVIDIA")
+    _patch_session_scope(monkeypatch, db_session)
+
+    body = control_room(use_fixture=False).model_dump(by_alias=True)
+
+    assert body["dataState"]["marketTapeStatus"] == "OK"
+    assert body["dataState"]["watchlistStatus"] == "OK"
+    assert body["dataState"]["marketFreshnessStatus"] == "STALE"
+    assert body["dataState"]["catalystFreshnessStatus"] == "MISSING"
+    assert body["dataState"]["watchlistFreshnessStatus"] == "STALE"
+    assert body["dataState"]["railFreshnessStatus"] == "STALE"
+    assert "market 2026-05-03" in body["dataState"]["railFreshnessNote"]
 
 
 def _patch_session_scope(monkeypatch, db_session: Session) -> None:

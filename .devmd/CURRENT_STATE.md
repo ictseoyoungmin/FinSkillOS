@@ -112,6 +112,7 @@ operational protocols.
 72     Control Room Rail Freshness Detail
 73     System Ops Protocol Result Ergonomics
 74     Symbol Lab Market Kernel Coverage Parity
+75     Control Room Freshness Staleness Thresholds
 ```
 
 Slice 14 is complete:
@@ -291,6 +292,9 @@ Slice 14 is complete:
   `coverageLevel`, `evidenceCoveragePercent`, and `missingSummary` in
   `dataState`, and its state band now emphasizes coverage rather than only
   chart status.
+- Control Room now classifies market, catalyst, watchlist, and aggregate rail
+  freshness as `FRESH`, `STALE`, or `MISSING`, so the overview no longer infers
+  freshness from timestamp presence alone.
 ```
 
 ## Validation Baseline
@@ -320,14 +324,14 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Control Room freshness staleness thresholds
-   - Classify rail freshness as fresh/stale/missing rather than only exposing
-     latest timestamps.
-
-2. System Ops protocol result API detail normalization
+1. System Ops protocol result API detail normalization
    - Promote repeated protocol detail strings toward a structured API shape
      while preserving the current UI evidence rendering contract.
 
-3. Symbol Lab coverage threshold polish
+2. Symbol Lab coverage threshold polish
    - Tune sparse/partial copy after more stored non-fixture symbol histories
      are available in the local DB.
+
+3. Control Room freshness threshold configuration
+   - Move the current three-day market/watchlist threshold into an explicit
+     settings contract if operational cadence starts varying by environment.

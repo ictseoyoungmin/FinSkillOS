@@ -26,6 +26,7 @@ export interface ControlRoomSystemStatus {
 }
 
 export type ControlRoomDataStatus = "OK" | "PARTIAL" | "MISSING";
+export type ControlRoomFreshnessStatus = "FRESH" | "STALE" | "MISSING";
 
 export interface ControlRoomDataState {
   source: "fixture" | "live";
@@ -43,6 +44,10 @@ export interface ControlRoomDataState {
   latestMarketAt: string | null;
   latestEventAt: string | null;
   latestWatchlistAt: string | null;
+  marketFreshnessStatus: ControlRoomFreshnessStatus;
+  catalystFreshnessStatus: ControlRoomFreshnessStatus;
+  watchlistFreshnessStatus: ControlRoomFreshnessStatus;
+  railFreshnessStatus: ControlRoomFreshnessStatus;
   railFreshnessNote: string;
   sourceNote: string;
   refreshNote: string;

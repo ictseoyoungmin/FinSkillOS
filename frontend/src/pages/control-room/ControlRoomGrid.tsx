@@ -116,6 +116,17 @@ function ControlRoomStateBand({
 }: {
   dataState: ControlRoomDataState;
 }) {
+  const catalystDetail = [
+    `${dataState.catalystCount} catalysts`,
+    dataState.catalystFreshnessStatus.toLowerCase(),
+    formatFreshness(dataState.latestEventAt),
+  ].join(" ");
+  const watchlistDetail = [
+    `${dataState.watchlistCount} watchlist`,
+    dataState.watchlistFreshnessStatus.toLowerCase(),
+    formatFreshness(dataState.latestWatchlistAt),
+  ].join(" ");
+
   return (
     <div
       className="fso-control-state-band"
@@ -141,6 +152,7 @@ function ControlRoomStateBand({
         value={dataState.marketTapeStatus}
         detail={[
           `${dataState.marketTapePoints} normalized points`,
+          dataState.marketFreshnessStatus.toLowerCase(),
           formatFreshness(dataState.latestMarketAt),
         ].join(" · ")}
         tone={dataStatusTone(dataState.marketTapeStatus)}
@@ -150,16 +162,16 @@ function ControlRoomStateBand({
         value={moduleStatus(dataState)}
         detail={[
           `${dataState.guardCount} guards`,
-          `${dataState.catalystCount} catalysts ${formatFreshness(dataState.latestEventAt)}`,
-          `${dataState.watchlistCount} watchlist ${formatFreshness(dataState.latestWatchlistAt)}`,
+          catalystDetail,
+          watchlistDetail,
         ].join(" · ")}
         tone={moduleTone(dataState)}
       />
       <ControlRoomStateItem
         label="Rail Freshness"
-        value={freshnessValue(dataState)}
+        value={dataState.railFreshnessStatus}
         detail={dataState.railFreshnessNote}
-        tone={freshnessTone(dataState)}
+        tone={freshnessTone(dataState.railFreshnessStatus)}
       />
     </div>
   );
@@ -172,18 +184,16 @@ function formatFreshness(value: string | null): string {
   return value.slice(0, 10);
 }
 
-function freshnessValue(dataState: ControlRoomDataState): string {
-  return [
-    dataState.latestMarketAt,
-    dataState.latestEventAt,
-    dataState.latestWatchlistAt,
-  ].filter(Boolean).length === 3
-    ? "COMPLETE"
-    : "PARTIAL";
-}
-
-function freshnessTone(dataState: ControlRoomDataState): BadgeTone {
-  return freshnessValue(dataState) === "COMPLETE" ? "success" : "warning";
+function freshnessTone(
+  status: ControlRoomDataState["railFreshnessStatus"],
+): BadgeTone {
+  if (status === "FRESH") {
+    return "success";
+  }
+  if (status === "STALE") {
+    return "warning";
+  }
+  return "danger";
 }
 
 function ControlRoomStateItem({

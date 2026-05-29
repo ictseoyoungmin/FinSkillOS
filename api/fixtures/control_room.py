@@ -61,6 +61,10 @@ def control_room_fixture() -> ControlRoomResponse:
             latest_market_at="2026-05-19T00:00:00+00:00",
             latest_event_at="2026-05-22",
             latest_watchlist_at="2026-05-19T00:00:00+00:00",
+            market_freshness_status="FRESH",
+            catalyst_freshness_status="FRESH",
+            watchlist_freshness_status="FRESH",
+            rail_freshness_status="FRESH",
             rail_freshness_note="Fixture rail timestamps are deterministic.",
             source_note=(
                 "Control Room is a fixture-first operating overview; "

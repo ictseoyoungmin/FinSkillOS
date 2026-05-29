@@ -8,7 +8,7 @@ keeping non-promoted overview rails explicit in ``dataState``.
 
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
@@ -44,6 +44,7 @@ from finskillos.ui.view_models.event_radar_vm import (
 
 router = APIRouter(tags=["control-room"])
 UTC = timezone.utc
+MARKET_RAIL_STALE_AFTER_DAYS = 3
 
 
 @router.get(
@@ -126,6 +127,21 @@ def _data_state(
     market_tape_status = "OK" if payload.market_tape else "MISSING"
     catalyst_status = "OK" if payload.catalyst_watch else "MISSING"
     watchlist_status = "OK" if payload.watchlist else "MISSING"
+    latest_market_at = _latest_market_at(session)
+    latest_event_at = _latest_event_at(event_vm)
+    latest_watchlist_at = _latest_watchlist_at(session)
+    market_freshness_status = _timestamp_freshness_status(
+        latest_market_at,
+        generated_at=vm.generated_at,
+    )
+    catalyst_freshness_status = _event_freshness_status(
+        latest_event_at,
+        generated_at=vm.generated_at,
+    )
+    watchlist_freshness_status = _timestamp_freshness_status(
+        latest_watchlist_at,
+        generated_at=vm.generated_at,
+    )
     overview_status = _overview_status(
         mission_status=mission_status,
         market_tape_status=market_tape_status,
@@ -146,10 +162,22 @@ def _data_state(
         guard_count=len(vm.guard_report),
         catalyst_count=len(payload.catalyst_watch),
         watchlist_count=len(payload.watchlist),
-        latest_market_at=_latest_market_at(session),
-        latest_event_at=_latest_event_at(event_vm),
-        latest_watchlist_at=_latest_watchlist_at(session),
-        rail_freshness_note=_rail_freshness_note(session, payload, event_vm),
+        latest_market_at=latest_market_at,
+        latest_event_at=latest_event_at,
+        latest_watchlist_at=latest_watchlist_at,
+        market_freshness_status=market_freshness_status,  # type: ignore[arg-type]
+        catalyst_freshness_status=catalyst_freshness_status,  # type: ignore[arg-type]
+        watchlist_freshness_status=watchlist_freshness_status,  # type: ignore[arg-type]
+        rail_freshness_status=_rail_freshness_status(
+            market_freshness_status,
+            catalyst_freshness_status,
+            watchlist_freshness_status,
+        ),  # type: ignore[arg-type]
+        rail_freshness_note=_rail_freshness_note(
+            latest_market_at=latest_market_at,
+            latest_event_at=latest_event_at,
+            latest_watchlist_at=latest_watchlist_at,
+        ),
         source_note=(
             "Live mission, portfolio, guard, market, catalyst, and watchlist "
             "rails are composed from DB read models where rows exist."
@@ -515,18 +543,65 @@ def _latest_watchlist_at(session) -> str | None:
 
 
 def _rail_freshness_note(
-    session,
-    payload: ControlRoomResponse,
-    event_vm: EventRadarViewModel,
+    *,
+    latest_market_at: str | None,
+    latest_event_at: str | None,
+    latest_watchlist_at: str | None,
 ) -> str:
     parts = []
-    if payload.market_tape:
-        parts.append(f"market {_latest_market_at(session)}")
-    if payload.catalyst_watch:
-        parts.append(f"events {_latest_event_at(event_vm)}")
-    if payload.watchlist:
-        parts.append(f"watchlist {_latest_watchlist_at(session)}")
+    if latest_market_at:
+        parts.append(f"market {latest_market_at}")
+    if latest_event_at:
+        parts.append(f"events {latest_event_at}")
+    if latest_watchlist_at:
+        parts.append(f"watchlist {latest_watchlist_at}")
     return " · ".join(parts) if parts else "No composed live rail rows yet."
+
+
+def _timestamp_freshness_status(
+    value: str | None,
+    *,
+    generated_at: datetime,
+) -> str:
+    if value is None:
+        return "MISSING"
+    observed_date = _parse_date(value)
+    if observed_date is None:
+        return "MISSING"
+    stale_before = generated_at.date() - timedelta(days=MARKET_RAIL_STALE_AFTER_DAYS)
+    return "STALE" if observed_date < stale_before else "FRESH"
+
+
+def _event_freshness_status(
+    value: str | None,
+    *,
+    generated_at: datetime,
+) -> str:
+    if value is None:
+        return "MISSING"
+    observed_date = _parse_date(value)
+    if observed_date is None:
+        return "MISSING"
+    return "STALE" if observed_date < generated_at.date() else "FRESH"
+
+
+def _parse_date(value: str) -> date | None:
+    try:
+        if "T" in value:
+            return datetime.fromisoformat(value).date()
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _rail_freshness_status(*statuses: str) -> str:
+    if all(status == "FRESH" for status in statuses):
+        return "FRESH"
+    if all(status == "MISSING" for status in statuses):
+        return "MISSING"
+    if any(status == "STALE" for status in statuses):
+        return "STALE"
+    return "MISSING"
 
 
 def _overview_status(

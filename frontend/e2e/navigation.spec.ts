@@ -12,6 +12,12 @@ test.describe("OS shell navigation", () => {
     await expect(page.getByTestId("control-room-state-band")).toContainText(
       /Overview Source/i,
     );
+    await expect(page.getByTestId("control-room-state-band")).toContainText(
+      /Rail Freshness/i,
+    );
+    await expect(page.getByTestId("control-room-state-band")).toContainText(
+      /FRESH|STALE|MISSING/i,
+    );
     await expect(page.getByTestId("os-tray")).toBeVisible();
     await expect(page.getByTestId("ticker-strip")).toBeVisible();
   });

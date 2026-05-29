@@ -123,6 +123,10 @@ class ControlRoomDataState(CamelModel):
     latest_market_at: str | None = None
     latest_event_at: str | None = None
     latest_watchlist_at: str | None = None
+    market_freshness_status: Literal["FRESH", "STALE", "MISSING"] = "MISSING"
+    catalyst_freshness_status: Literal["FRESH", "STALE", "MISSING"] = "MISSING"
+    watchlist_freshness_status: Literal["FRESH", "STALE", "MISSING"] = "MISSING"
+    rail_freshness_status: Literal["FRESH", "STALE", "MISSING"] = "MISSING"
     rail_freshness_note: str = ""
     source_note: str
     refresh_note: str
