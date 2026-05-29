@@ -8,6 +8,7 @@ keeping non-promoted overview rails explicit in ``dataState``.
 
 from __future__ import annotations
 
+from datetime import timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
@@ -42,6 +43,7 @@ from finskillos.ui.view_models.event_radar_vm import (
 )
 
 router = APIRouter(tags=["control-room"])
+UTC = timezone.utc
 
 
 @router.get(
@@ -89,7 +91,7 @@ def _live_response(
         mode="READ_MODE",
         guard_count=guard_count,
     )
-    payload.data_state = _data_state(vm, payload)
+    payload.data_state = _data_state(session, vm, payload, event_vm)
     payload.judgment = _judgment(vm)
     payload.drivers = _drivers(vm)
     payload.conflicts = _conflicts(vm)
@@ -114,8 +116,10 @@ def _live_response(
 
 
 def _data_state(
+    session,
     vm: ControlRoomViewModel,
     payload: ControlRoomResponse,
+    event_vm: EventRadarViewModel,
 ) -> ControlRoomDataState:
     mission_status = "OK" if vm.goal is not None and vm.portfolio is not None else "MISSING"
     guard_status = "OK" if vm.guard_report else "MISSING"
@@ -142,6 +146,10 @@ def _data_state(
         guard_count=len(vm.guard_report),
         catalyst_count=len(payload.catalyst_watch),
         watchlist_count=len(payload.watchlist),
+        latest_market_at=_latest_market_at(session),
+        latest_event_at=_latest_event_at(event_vm),
+        latest_watchlist_at=_latest_watchlist_at(session),
+        rail_freshness_note=_rail_freshness_note(session, payload, event_vm),
         source_note=(
             "Live mission, portfolio, guard, market, catalyst, and watchlist "
             "rails are composed from DB read models where rows exist."
@@ -474,6 +482,53 @@ def _watchlist(session) -> list[WatchlistItem]:
     return rows
 
 
+def _latest_market_at(session) -> str | None:
+    repo = MarketRepository(session)
+    candidates = [
+        bar.bar_time
+        for ticker in ("SPY", "QQQ")
+        if (bar := repo.latest_bar(ticker, DEFAULT_TIMEFRAME)) is not None
+    ]
+    if not candidates:
+        return None
+    return _iso(max(candidates))
+
+
+def _latest_event_at(vm: EventRadarViewModel) -> str | None:
+    dates = [event.start_date for event in vm.upcoming if event.start_date is not None]
+    if not dates:
+        return None
+    return min(dates).isoformat()
+
+
+def _latest_watchlist_at(session) -> str | None:
+    market_repo = MarketRepository(session)
+    candidates = [
+        bar.bar_time
+        for subscription in SymbolSubscriptionRepository(session).list_active()
+        if (bar := market_repo.latest_bar(subscription.ticker, DEFAULT_TIMEFRAME))
+        is not None
+    ]
+    if not candidates:
+        return None
+    return _iso(max(candidates))
+
+
+def _rail_freshness_note(
+    session,
+    payload: ControlRoomResponse,
+    event_vm: EventRadarViewModel,
+) -> str:
+    parts = []
+    if payload.market_tape:
+        parts.append(f"market {_latest_market_at(session)}")
+    if payload.catalyst_watch:
+        parts.append(f"events {_latest_event_at(event_vm)}")
+    if payload.watchlist:
+        parts.append(f"watchlist {_latest_watchlist_at(session)}")
+    return " · ".join(parts) if parts else "No composed live rail rows yet."
+
+
 def _overview_status(
     *,
     mission_status: str,
@@ -518,6 +573,12 @@ def _phase_for(progress_pct: Decimal) -> str:
 
 def _quantize(value: Decimal) -> Decimal:
     return Decimal(value).quantize(Decimal("0.01"))
+
+
+def _iso(value) -> str:
+    if hasattr(value, "tzinfo") and value.tzinfo is None:
+        return value.replace(tzinfo=UTC).isoformat()
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 def _format_decimal(value: Decimal) -> str:

@@ -84,6 +84,10 @@ def test_control_room_endpoint_returns_full_payload() -> None:
     assert body["dataState"]["guardCount"] == len(body["riskFirewall"])
     assert body["dataState"]["catalystCount"] == len(body["catalystWatch"])
     assert body["dataState"]["watchlistCount"] == len(body["watchlist"])
+    assert body["dataState"]["latestMarketAt"]
+    assert body["dataState"]["latestEventAt"]
+    assert body["dataState"]["latestWatchlistAt"]
+    assert body["dataState"]["railFreshnessNote"]
 
 
 def test_control_room_market_tape_is_normalised_and_nonempty() -> None:
@@ -197,6 +201,10 @@ def test_control_room_live_empty_state_when_db_reachable(
     assert body["dataState"]["source"] == "live"
     assert body["dataState"]["overviewStatus"] == "MISSING"
     assert body["dataState"]["missionStatus"] == "MISSING"
+    assert body["dataState"]["latestMarketAt"] is None
+    assert body["dataState"]["latestEventAt"] is None
+    assert body["dataState"]["latestWatchlistAt"] is None
+    assert body["dataState"]["railFreshnessNote"] == "No composed live rail rows yet."
     assert body["mission"]["progressPct"] == Decimal("0")
     assert body["riskFirewall"] == []
     assert body["reviewQueue"][0]["title"] == "Account baseline"
@@ -251,6 +259,10 @@ def test_control_room_promotes_live_overview_rails(
     assert body["dataState"]["catalystStatus"] == "OK"
     assert body["dataState"]["watchlistStatus"] == "OK"
     assert body["dataState"]["marketTapePoints"] == len(body["marketTape"])
+    assert body["dataState"]["latestMarketAt"].startswith("2026-05-30T14:00:00")
+    assert body["dataState"]["latestEventAt"] == "2026-06-03"
+    assert body["dataState"]["latestWatchlistAt"].startswith("2026-05-30T14:00:00")
+    assert "market 2026-05-30" in body["dataState"]["railFreshnessNote"]
     assert body["tickerStrip"][0]["symbol"] == "NVDA"
     assert body["catalystWatch"][0]["title"] == "NVIDIA earnings window"
     assert body["watchlist"][0]["symbol"] == "NVDA"

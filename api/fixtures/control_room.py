@@ -58,6 +58,10 @@ def control_room_fixture() -> ControlRoomResponse:
             guard_count=guard_count,
             catalyst_count=catalyst_count,
             watchlist_count=watchlist_count,
+            latest_market_at="2026-05-19T00:00:00+00:00",
+            latest_event_at="2026-05-22",
+            latest_watchlist_at="2026-05-19T00:00:00+00:00",
+            rail_freshness_note="Fixture rail timestamps are deterministic.",
             source_note=(
                 "Control Room is a fixture-first operating overview; "
                 "underlying tabs expose their own live/fixture evidence."

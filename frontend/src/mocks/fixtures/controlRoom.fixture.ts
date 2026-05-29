@@ -24,6 +24,10 @@ export const controlRoomFixture: ControlRoomData = {
     guardCount: 3,
     catalystCount: 3,
     watchlistCount: 4,
+    latestMarketAt: "2026-05-19T00:00:00+00:00",
+    latestEventAt: "2026-05-22",
+    latestWatchlistAt: "2026-05-19T00:00:00+00:00",
+    railFreshnessNote: "Fixture rail timestamps are deterministic.",
     sourceNote:
       "Control Room is a fixture-first operating overview; underlying tabs expose their own live/fixture evidence.",
     refreshNote:

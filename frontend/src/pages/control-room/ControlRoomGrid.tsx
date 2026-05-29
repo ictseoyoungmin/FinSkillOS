@@ -139,7 +139,10 @@ function ControlRoomStateBand({
       <ControlRoomStateItem
         label="Market Tape"
         value={dataState.marketTapeStatus}
-        detail={`${dataState.marketTapePoints} normalized points`}
+        detail={[
+          `${dataState.marketTapePoints} normalized points`,
+          formatFreshness(dataState.latestMarketAt),
+        ].join(" · ")}
         tone={dataStatusTone(dataState.marketTapeStatus)}
       />
       <ControlRoomStateItem
@@ -147,13 +150,40 @@ function ControlRoomStateBand({
         value={moduleStatus(dataState)}
         detail={[
           `${dataState.guardCount} guards`,
-          `${dataState.catalystCount} catalysts`,
-          `${dataState.watchlistCount} watchlist`,
+          `${dataState.catalystCount} catalysts ${formatFreshness(dataState.latestEventAt)}`,
+          `${dataState.watchlistCount} watchlist ${formatFreshness(dataState.latestWatchlistAt)}`,
         ].join(" · ")}
         tone={moduleTone(dataState)}
       />
+      <ControlRoomStateItem
+        label="Rail Freshness"
+        value={freshnessValue(dataState)}
+        detail={dataState.railFreshnessNote}
+        tone={freshnessTone(dataState)}
+      />
     </div>
   );
+}
+
+function formatFreshness(value: string | null): string {
+  if (!value) {
+    return "missing";
+  }
+  return value.slice(0, 10);
+}
+
+function freshnessValue(dataState: ControlRoomDataState): string {
+  return [
+    dataState.latestMarketAt,
+    dataState.latestEventAt,
+    dataState.latestWatchlistAt,
+  ].filter(Boolean).length === 3
+    ? "COMPLETE"
+    : "PARTIAL";
+}
+
+function freshnessTone(dataState: ControlRoomDataState): BadgeTone {
+  return freshnessValue(dataState) === "COMPLETE" ? "success" : "warning";
 }
 
 function ControlRoomStateItem({

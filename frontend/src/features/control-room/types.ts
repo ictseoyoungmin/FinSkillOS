@@ -40,6 +40,10 @@ export interface ControlRoomDataState {
   guardCount: number;
   catalystCount: number;
   watchlistCount: number;
+  latestMarketAt: string | null;
+  latestEventAt: string | null;
+  latestWatchlistAt: string | null;
+  railFreshnessNote: string;
   sourceNote: string;
   refreshNote: string;
 }

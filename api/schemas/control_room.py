@@ -120,6 +120,10 @@ class ControlRoomDataState(CamelModel):
     guard_count: int = 0
     catalyst_count: int = 0
     watchlist_count: int = 0
+    latest_market_at: str | None = None
+    latest_event_at: str | None = None
+    latest_watchlist_at: str | None = None
+    rail_freshness_note: str = ""
     source_note: str
     refresh_note: str
 
