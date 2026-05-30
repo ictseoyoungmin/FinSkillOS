@@ -30,6 +30,7 @@ from api.schemas.control_room import (
     TickerStripItem,
     WatchlistItem,
 )
+from finskillos.config import get_settings
 from finskillos.data_sources import DEFAULT_TIMEFRAME, DEFAULT_US_TICKER_UNIVERSE
 from finskillos.db.repositories import MarketRepository, SymbolSubscriptionRepository
 from finskillos.ui.view_models.control_room_vm import (
@@ -44,7 +45,6 @@ from finskillos.ui.view_models.event_radar_vm import (
 
 router = APIRouter(tags=["control-room"])
 UTC = timezone.utc
-MARKET_RAIL_STALE_AFTER_DAYS = 3
 
 
 @router.get(
@@ -127,12 +127,16 @@ def _data_state(
     market_tape_status = "OK" if payload.market_tape else "MISSING"
     catalyst_status = "OK" if payload.catalyst_watch else "MISSING"
     watchlist_status = "OK" if payload.watchlist else "MISSING"
+    settings = get_settings()
+    market_stale_after_days = settings.control_room_market_stale_after_days
+    watchlist_stale_after_days = settings.control_room_watchlist_stale_after_days
     latest_market_at = _latest_market_at(session)
     latest_event_at = _latest_event_at(event_vm)
     latest_watchlist_at = _latest_watchlist_at(session)
     market_freshness_status = _timestamp_freshness_status(
         latest_market_at,
         generated_at=vm.generated_at,
+        stale_after_days=market_stale_after_days,
     )
     catalyst_freshness_status = _event_freshness_status(
         latest_event_at,
@@ -141,6 +145,7 @@ def _data_state(
     watchlist_freshness_status = _timestamp_freshness_status(
         latest_watchlist_at,
         generated_at=vm.generated_at,
+        stale_after_days=watchlist_stale_after_days,
     )
     overview_status = _overview_status(
         mission_status=mission_status,
@@ -177,7 +182,11 @@ def _data_state(
             latest_market_at=latest_market_at,
             latest_event_at=latest_event_at,
             latest_watchlist_at=latest_watchlist_at,
+            market_stale_after_days=market_stale_after_days,
+            watchlist_stale_after_days=watchlist_stale_after_days,
         ),
+        market_stale_after_days=market_stale_after_days,
+        watchlist_stale_after_days=watchlist_stale_after_days,
         source_note=(
             "Live mission, portfolio, guard, market, catalyst, and watchlist "
             "rails are composed from DB read models where rows exist."
@@ -547,6 +556,8 @@ def _rail_freshness_note(
     latest_market_at: str | None,
     latest_event_at: str | None,
     latest_watchlist_at: str | None,
+    market_stale_after_days: int,
+    watchlist_stale_after_days: int,
 ) -> str:
     parts = []
     if latest_market_at:
@@ -555,20 +566,31 @@ def _rail_freshness_note(
         parts.append(f"events {latest_event_at}")
     if latest_watchlist_at:
         parts.append(f"watchlist {latest_watchlist_at}")
-    return " · ".join(parts) if parts else "No composed live rail rows yet."
+    if not parts:
+        return "No composed live rail rows yet."
+    if market_stale_after_days == watchlist_stale_after_days:
+        policy = f"stale > {market_stale_after_days}d"
+    else:
+        policy = (
+            f"stale > {market_stale_after_days}d market / "
+            f"{watchlist_stale_after_days}d watchlist"
+        )
+    parts.append(policy)
+    return " · ".join(parts)
 
 
 def _timestamp_freshness_status(
     value: str | None,
     *,
     generated_at: datetime,
+    stale_after_days: int,
 ) -> str:
     if value is None:
         return "MISSING"
     observed_date = _parse_date(value)
     if observed_date is None:
         return "MISSING"
-    stale_before = generated_at.date() - timedelta(days=MARKET_RAIL_STALE_AFTER_DAYS)
+    stale_before = generated_at.date() - timedelta(days=stale_after_days)
     return "STALE" if observed_date < stale_before else "FRESH"
 
 

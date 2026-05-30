@@ -32,6 +32,8 @@ export const controlRoomFixture: ControlRoomData = {
     watchlistFreshnessStatus: "FRESH",
     railFreshnessStatus: "FRESH",
     railFreshnessNote: "Fixture rail timestamps are deterministic.",
+    marketStaleAfterDays: 3,
+    watchlistStaleAfterDays: 3,
     sourceNote:
       "Control Room is a fixture-first operating overview; underlying tabs expose their own live/fixture evidence.",
     refreshNote:

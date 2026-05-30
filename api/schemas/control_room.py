@@ -128,6 +128,8 @@ class ControlRoomDataState(CamelModel):
     watchlist_freshness_status: Literal["FRESH", "STALE", "MISSING"] = "MISSING"
     rail_freshness_status: Literal["FRESH", "STALE", "MISSING"] = "MISSING"
     rail_freshness_note: str = ""
+    market_stale_after_days: int = 3
+    watchlist_stale_after_days: int = 3
     source_note: str
     refresh_note: str
 

@@ -115,6 +115,7 @@ operational protocols.
 75     Control Room Freshness Staleness Thresholds
 76     System Ops Protocol Result API Detail Normalization
 77     Symbol Lab Coverage Threshold Polish
+78     Control Room Freshness Threshold Configuration
 ```
 
 Slice 14 is complete:
@@ -304,6 +305,10 @@ Slice 14 is complete:
   stored bars against a named indicator-warmup threshold (e.g. "12 of 20 stored
   bars; 8 more complete the indicator window") instead of a binary
   "fewer than 20 stored bars" string.
+- Control Room market/watchlist staleness thresholds are now an explicit
+  settings contract (`FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS` base plus
+  per-rail overrides) instead of a hard-coded three-day constant. The active
+  policy is surfaced in `dataState` and the rail freshness note.
 ```
 
 ## Validation Baseline
@@ -333,10 +338,6 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Control Room freshness threshold configuration
-   - Move the current three-day market/watchlist threshold into an explicit
-     settings contract if operational cadence starts varying by environment.
-
-2. System Ops protocol history evidence density
+1. System Ops protocol history evidence density
    - Render recent protocol run `detailEvidence` in the System Ops history
      area once the audit table has accumulated enough varied run examples.

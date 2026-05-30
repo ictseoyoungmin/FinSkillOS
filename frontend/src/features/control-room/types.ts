@@ -49,6 +49,8 @@ export interface ControlRoomDataState {
   watchlistFreshnessStatus: ControlRoomFreshnessStatus;
   railFreshnessStatus: ControlRoomFreshnessStatus;
   railFreshnessNote: string;
+  marketStaleAfterDays: number;
+  watchlistStaleAfterDays: number;
   sourceNote: string;
   refreshNote: string;
 }

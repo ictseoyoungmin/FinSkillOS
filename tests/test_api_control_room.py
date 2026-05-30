@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 from api.fixtures import CONTROL_ROOM_FIXTURE_TIMESTAMP
 from api.main import create_app
 from api.routes.control_room import control_room
+from finskillos.config import reset_settings_cache
 from finskillos.data_sources.dto import MarketBarDTO
 from finskillos.db.repositories import (
     AccountRepository,
@@ -301,6 +302,67 @@ def test_control_room_classifies_stale_market_and_watchlist_rails(
     assert body["dataState"]["watchlistFreshnessStatus"] == "STALE"
     assert body["dataState"]["railFreshnessStatus"] == "STALE"
     assert "market 2026-05-03" in body["dataState"]["railFreshnessNote"]
+    assert body["dataState"]["marketStaleAfterDays"] == 3
+    assert body["dataState"]["watchlistStaleAfterDays"] == 3
+
+
+def test_control_room_freshness_threshold_is_configurable(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    _seed_account_and_portfolio(db_session)
+    stale_ts = datetime(2026, 5, 1, 14, 0, tzinfo=UTC)
+    _seed_market_series(db_session, "SPY", Decimal("670"), stale_ts)
+    _seed_market_series(db_session, "QQQ", Decimal("550"), stale_ts)
+    _seed_market_series(db_session, "NVDA", Decimal("170"), stale_ts)
+    SymbolSubscriptionRepository(db_session).subscribe("NVDA", name="NVIDIA")
+    _patch_session_scope(monkeypatch, db_session)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS", "3650")
+    monkeypatch.delenv("FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS", raising=False)
+    monkeypatch.delenv(
+        "FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS", raising=False
+    )
+    reset_settings_cache()
+
+    try:
+        body = control_room(use_fixture=False).model_dump(by_alias=True)
+
+        # A wide threshold reclassifies the otherwise-stale market rail as FRESH.
+        assert body["dataState"]["marketStaleAfterDays"] == 3650
+        assert body["dataState"]["watchlistStaleAfterDays"] == 3650
+        assert body["dataState"]["marketFreshnessStatus"] == "FRESH"
+        assert "stale > 3650d" in body["dataState"]["railFreshnessNote"]
+    finally:
+        reset_settings_cache()
+
+
+def test_control_room_freshness_threshold_supports_per_rail_override(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    _seed_account_and_portfolio(db_session)
+    stale_ts = datetime(2026, 5, 1, 14, 0, tzinfo=UTC)
+    _seed_market_series(db_session, "SPY", Decimal("670"), stale_ts)
+    SymbolSubscriptionRepository(db_session).subscribe("NVDA", name="NVIDIA")
+    _patch_session_scope(monkeypatch, db_session)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.delenv("FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS", raising=False)
+    monkeypatch.setenv("FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS", "3650")
+    monkeypatch.setenv("FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS", "7")
+    reset_settings_cache()
+
+    try:
+        body = control_room(use_fixture=False).model_dump(by_alias=True)
+
+        assert body["dataState"]["marketStaleAfterDays"] == 3650
+        assert body["dataState"]["watchlistStaleAfterDays"] == 7
+        assert (
+            "stale > 3650d market / 7d watchlist"
+            in body["dataState"]["railFreshnessNote"]
+        )
+    finally:
+        reset_settings_cache()
 
 
 def _patch_session_scope(monkeypatch, db_session: Session) -> None:

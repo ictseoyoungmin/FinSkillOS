@@ -23,6 +23,19 @@ def _env(name: str, default: str, *aliases: str) -> str:
     return default
 
 
+def _positive_int(raw: str, field: str) -> int:
+    """Parse a settings integer that must be >= 1, raising on bad input."""
+    try:
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{field} must be an integer string, got {raw!r}"
+        ) from exc
+    if value < 1:
+        raise ValueError(f"{field} must be >= 1, got {value}")
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     app_env: str
@@ -36,6 +49,11 @@ class Settings:
     default_account_name: str
     logo_provider: str
     logo_dev_token: str
+    # Control Room rail staleness thresholds (days). A market/watchlist
+    # timestamp older than its threshold is classified STALE. Both default to
+    # the shared base and can be overridden per rail by environment.
+    control_room_market_stale_after_days: int
+    control_room_watchlist_stale_after_days: int
 
 
 @lru_cache(maxsize=1)
@@ -50,6 +68,16 @@ def get_settings() -> Settings:
         raise ValueError(
             f"FINSKILLOS_TARGET_VALUE must be a numeric string, got {target_raw!r}"
         ) from exc
+
+    base_stale_raw = _env("FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS", "3")
+    market_stale_days = _positive_int(
+        _env("FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS", base_stale_raw),
+        "FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS",
+    )
+    watchlist_stale_days = _positive_int(
+        _env("FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS", base_stale_raw),
+        "FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS",
+    )
 
     return Settings(
         app_env=_env("FINSKILLOS_ENV", "development", "APP_ENV"),
@@ -72,6 +100,8 @@ def get_settings() -> Settings:
             "",
             "LOGO_DEV_PUBLISHABLE_KEY",
         ),
+        control_room_market_stale_after_days=market_stale_days,
+        control_room_watchlist_stale_after_days=watchlist_stale_days,
     )
 
 
