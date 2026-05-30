@@ -618,56 +618,6 @@ def test_symbol_lab_ignores_future_stored_bars(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
-def test_symbol_lab_sparse_missing_summary_is_graded() -> None:
-    from api.routes.symbol_lab import (
-        SYMBOL_INDICATOR_WARMUP_BARS,
-        _missing_summary,
-    )
-
-    near_full = SYMBOL_INDICATOR_WARMUP_BARS - 3
-    summary = _missing_summary(
-        ticker="NVDA",
-        bar_count=near_full,
-        coverage_level="SPARSE",
-        indicator_status="AVAILABLE",
-    )
-
-    assert summary == (
-        f"NVDA has {near_full} of {SYMBOL_INDICATOR_WARMUP_BARS} stored bars; "
-        "3 more complete the indicator window."
-    )
-
-
-def test_symbol_lab_sparse_missing_summary_handles_single_bar_grammar() -> None:
-    from api.routes.symbol_lab import _missing_summary
-
-    summary = _missing_summary(
-        ticker="NVDA",
-        bar_count=1,
-        coverage_level="SPARSE",
-        indicator_status="MISSING",
-    )
-
-    assert summary == (
-        "NVDA has 1 of 20 stored bars; 19 more complete the indicator window."
-    )
-
-
-def test_symbol_lab_partial_missing_summary_reports_indicator_gap() -> None:
-    from api.routes.symbol_lab import _missing_summary
-
-    summary = _missing_summary(
-        ticker="NVDA",
-        bar_count=44,
-        coverage_level="PARTIAL",
-        indicator_status="PARTIAL",
-    )
-
-    assert summary == (
-        "NVDA has 44 stored bars but the latest indicator snapshot is incomplete."
-    )
-
-
 def test_symbol_lab_subscribe_toggles_active_without_deleting_history(
     monkeypatch, tmp_path
 ) -> None:

@@ -15,6 +15,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from api import coverage as cov
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import symbol_lab_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
@@ -60,9 +61,6 @@ from finskillos.signals import technical
 router = APIRouter(tags=["symbol-lab"])
 UTC = timezone.utc
 SINGLE_POSITION_REVIEW_THRESHOLD = Decimal("10000000")
-# Minimum stored-bar window for a stable Symbol Lab indicator snapshot. Below
-# this count the page reports SPARSE coverage and grades how many bars remain.
-SYMBOL_INDICATOR_WARMUP_BARS = 20
 SUPPORTED_SYMBOL_TIMEFRAMES = {"5m", "15m", "1h", "1d", "1wk", "1mo", "1y"}
 TIMEFRAME_ALIASES = {"1w": "1wk", "1mon": "1mo"}
 
@@ -806,7 +804,7 @@ def _data_state_for(
     else:
         subscription_status = "watch_only"
 
-    coverage_level = _coverage_level(
+    coverage_level = cov.coverage_level(
         bar_count=len(bars),
         indicator_status=indicator_status,
     )
@@ -816,11 +814,12 @@ def _data_state_for(
         chart_evidence=chart_evidence,
         bar_count=len(bars),
         coverage_level=coverage_level,
-        evidence_coverage_percent=_evidence_coverage_percent(
+        evidence_coverage_percent=cov.evidence_coverage_percent(
             bar_count=len(bars),
             indicator_status=indicator_status,
         ),
-        missing_summary=_missing_summary(
+        missing_summary=cov.missing_summary(
+            domain="symbol-lab",
             ticker=identity.ticker,
             bar_count=len(bars),
             coverage_level=coverage_level,
@@ -831,53 +830,6 @@ def _data_state_for(
         subscription_status=subscription_status,
         provider_note=provider_note,
     )
-
-
-def _coverage_level(*, bar_count: int, indicator_status: str) -> str:
-    if bar_count <= 0:
-        return "EMPTY"
-    if bar_count < SYMBOL_INDICATOR_WARMUP_BARS:
-        return "SPARSE"
-    if indicator_status != "AVAILABLE":
-        return "PARTIAL"
-    return "COMPLETE"
-
-
-def _evidence_coverage_percent(*, bar_count: int, indicator_status: str) -> int:
-    if bar_count <= 0:
-        return 0
-    bar_score = min(bar_count / SYMBOL_INDICATOR_WARMUP_BARS, 1.0) * 70
-    indicator_score = {
-        "AVAILABLE": 30,
-        "PARTIAL": 15,
-        "MISSING": 0,
-    }.get(indicator_status, 0)
-    return round(bar_score + indicator_score)
-
-
-def _missing_summary(
-    *,
-    ticker: str,
-    bar_count: int,
-    coverage_level: str,
-    indicator_status: str,
-) -> str:
-    if coverage_level == "COMPLETE":
-        return "No missing symbol-lab evidence."
-    if coverage_level == "EMPTY":
-        return f"{ticker} needs stored bars and indicators."
-    if coverage_level == "SPARSE":
-        remaining = max(SYMBOL_INDICATOR_WARMUP_BARS - bar_count, 0)
-        return (
-            f"{ticker} has {bar_count} of {SYMBOL_INDICATOR_WARMUP_BARS} "
-            f"stored bars; {remaining} more complete the indicator window."
-        )
-    if indicator_status != "AVAILABLE":
-        return (
-            f"{ticker} has {bar_count} stored bars but the latest indicator "
-            "snapshot is incomplete."
-        )
-    return f"{ticker} evidence is partial."
 
 
 def _folder_schema(folder) -> SymbolSubscriptionFolder:

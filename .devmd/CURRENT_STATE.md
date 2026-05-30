@@ -120,6 +120,7 @@ operational protocols.
 80     Reduce DB-Reachable Fixture Fallback (Live-Empty / Live-Error)
 81     Refresh Stale v4.2 Fixture-First Contract List
 82     Explicit DB-Unavailable State for the Offline Path
+83     Market Kernel Coverage Copy Parity with Symbol Lab
 ```
 
 Slice 14 is complete:
@@ -330,6 +331,11 @@ Slice 14 is complete:
   indicator `MISSING` via a shared `mark_db_unavailable` helper instead of
   claiming `db="LIVE"`. The explicit `X-FSO-Use-Fixture` demo override keeps
   `db="LIVE"`, so a DB outage and an intentional fixture stay distinguishable.
+- Market Kernel and Symbol Lab now share one `api/coverage.py` helper for the
+  `coverageLevel` / `evidenceCoveragePercent` / `missingSummary` vocabulary, so
+  Market Kernel's sparse/partial copy is graded identically to Symbol Lab
+  (e.g. "1 of 20 stored bars; 19 more complete the indicator window"); only the
+  COMPLETE line keeps a per-tab domain label.
 ```
 
 ## Validation Baseline
@@ -359,18 +365,12 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Market Kernel coverage copy parity with Symbol Lab
-   - Symbol Lab now grades sparse/partial coverage quantitatively (Slice 77)
-     while Market Kernel keeps the generic "fewer than 20 stored bars" copy.
-     Promote the graded phrasing into a shared helper if the two tabs should
-     read identically.
-
-2. System Ops history sample run examples
+1. System Ops history sample run examples
    - Consider a deterministic fixture set of recent protocol runs (with varied
      `detailEvidence`) so the history evidence chips (Slice 79) are visible in
      fixture mode, regenerating the System Ops visual baseline accordingly.
 
-3. Control Room freshness threshold env propagation
+2. Control Room freshness threshold env propagation
    - Surface the configured `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` values
      in operator-facing docs / System Ops data-source notes if cadence tuning
      becomes a routine operation.

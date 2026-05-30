@@ -94,7 +94,12 @@ def test_market_kernel_bars_are_chronological_and_have_close() -> None:
 
 
 def test_market_kernel_indicators_block_has_required_fields() -> None:
-    body = _client().get("/api/market-kernel?ticker=NVDA").json()
+    # Forced fixture so the indicator block / trendState are deterministic
+    # regardless of whether a seeded DB promotes this route to live.
+    body = _client().get(
+        "/api/market-kernel?ticker=NVDA",
+        headers={"X-FSO-Use-Fixture": "1"},
+    ).json()
     indicators = body["indicators"]
     expected = {
         "rsi14",
@@ -266,7 +271,9 @@ def test_market_kernel_ignores_future_stored_bars(monkeypatch, tmp_path) -> None
         assert body["dataState"]["barCount"] == 1
         assert body["dataState"]["coverageLevel"] == "SPARSE"
         assert body["dataState"]["evidenceCoveragePercent"] == 4
-        assert body["dataState"]["missingSummary"] == "SPY has fewer than 20 stored bars."
+        assert body["dataState"]["missingSummary"] == (
+            "SPY has 1 of 20 stored bars; 19 more complete the indicator window."
+        )
         assert len(body["bars"]) == 1
     finally:
         reset_settings_cache()

@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 
+from api import coverage as cov
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import market_kernel_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
@@ -166,7 +167,7 @@ def _live_response(
     visible_bars = bars[-120:]
     latest_bar = visible_bars[-1]
     indicator_status = _data_state_indicator_status(latest_indicator)
-    coverage_level = _coverage_level(
+    coverage_level = cov.coverage_level(
         bar_count=len(bars),
         indicator_status=indicator_status,
     )
@@ -215,7 +216,7 @@ def _live_response(
         chart_status=payload.header.data_status,
         chart_evidence="stored",
         coverage_level=coverage_level,
-        evidence_coverage_percent=_evidence_coverage_percent(
+        evidence_coverage_percent=cov.evidence_coverage_percent(
             bar_count=len(bars),
             indicator_status=indicator_status,
         ),
@@ -223,8 +224,10 @@ def _live_response(
         latest_bar_at=_iso(latest_bar.bar_time),
         indicator_status=indicator_status,
         event_overlay_status="MISSING",
-        missing_summary=_missing_summary(
+        missing_summary=cov.missing_summary(
+            domain="market-kernel",
             ticker=ticker,
+            bar_count=len(bars),
             coverage_level=coverage_level,
             indicator_status=indicator_status,
         ),
@@ -307,45 +310,6 @@ def _data_state_indicator_status(latest_indicator) -> str:
     if all(value is not None for value in values):
         return "AVAILABLE"
     return "PARTIAL"
-
-
-def _coverage_level(*, bar_count: int, indicator_status: str) -> str:
-    if bar_count <= 0:
-        return "EMPTY"
-    if bar_count < 20:
-        return "SPARSE"
-    if indicator_status != "AVAILABLE":
-        return "PARTIAL"
-    return "COMPLETE"
-
-
-def _evidence_coverage_percent(*, bar_count: int, indicator_status: str) -> int:
-    if bar_count <= 0:
-        return 0
-    bar_score = min(bar_count / 20, 1.0) * 70
-    indicator_score = {
-        "AVAILABLE": 30,
-        "PARTIAL": 15,
-        "MISSING": 0,
-    }.get(indicator_status, 0)
-    return round(bar_score + indicator_score)
-
-
-def _missing_summary(
-    *,
-    ticker: str,
-    coverage_level: str,
-    indicator_status: str,
-) -> str:
-    if coverage_level == "COMPLETE":
-        return "No missing market-kernel evidence."
-    if coverage_level == "EMPTY":
-        return f"{ticker} needs stored bars and indicators."
-    if coverage_level == "SPARSE":
-        return f"{ticker} has fewer than 20 stored bars."
-    if indicator_status != "AVAILABLE":
-        return f"{ticker} needs a complete indicator snapshot."
-    return f"{ticker} evidence is partial."
 
 
 def _trend_title(latest_indicator) -> str:
