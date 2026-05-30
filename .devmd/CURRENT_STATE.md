@@ -117,6 +117,7 @@ operational protocols.
 77     Symbol Lab Coverage Threshold Polish
 78     Control Room Freshness Threshold Configuration
 79     System Ops Protocol History Evidence Density
+80     Reduce DB-Reachable Fixture Fallback (Live-Empty / Live-Error)
 ```
 
 Slice 14 is complete:
@@ -313,6 +314,12 @@ Slice 14 is complete:
 - System Ops history now renders each recent protocol run's structured
   `detailEvidence` as compact chips (falling back to parsing the legacy
   `detail` string), sharing one derivation path with the result card.
+- Risk Firewall, Mission Control, News Intelligence, and Trade Memory no longer
+  fall back to fixture content when a DB session is reachable: missing rows
+  (e.g. no account) return an explicit `source="live"` empty state and runtime
+  errors return an explicit `source="live"` error state (200, exception class
+  name only — never a stack trace or fixture sample). The `use_fixture` opt-in
+  and the fully-offline `session is None` fixture paths are unchanged.
 ```
 
 ## Validation Baseline
@@ -341,6 +348,18 @@ docker compose -f docker-compose.yml --profile e2e run --rm e2e npm run test:vis
 All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
+
+0. Offline `session is None` explicit "DB unavailable" state
+   - Slice 80 removed DB-reachable fixture fallback; the fully-offline path still
+     returns fixture. Promote it to an explicit, labeled "DB unavailable" state
+     so a missing database is never confused with a seeded sample.
+
+0b. Refresh the stale v4.2 fixture-first contract list
+   - `tests/test_api_v42_contract.py::_V42_FIXTURE_FIRST_ENDPOINTS` still lists
+     control-room / analysis-workspace / event-radar / trade-memory as
+     fixture-first, but all are promoted, so the two cross-tab contract tests
+     fail against a seeded Docker DB. Align the list (and judgment-anchor checks)
+     with live reality.
 
 1. Market Kernel coverage copy parity with Symbol Lab
    - Symbol Lab now grades sparse/partial coverage quantitatively (Slice 77)

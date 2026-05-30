@@ -51,9 +51,9 @@ def mission_control(
             return mission_control_fixture()
         try:
             return _build_live_mission_control(session)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
-            return mission_control_fixture()
+            return _error_live_response(datetime.now(tz=timezone.utc), exc)
 
 
 def _build_live_mission_control(session: Session) -> MissionControlResponse:
@@ -198,6 +198,43 @@ def _empty_live_response(now: datetime) -> MissionControlResponse:
         challenge_status_caption="Mission baseline pending · descriptive view only.",
         safety_caption="Read mode — Goal interpretation (not return forecast).",
     )
+
+
+def _error_live_response(now: datetime, exc: Exception) -> MissionControlResponse:
+    """Live read raised — explicit live-error state, never fixture content."""
+    detail = type(exc).__name__
+    payload = _empty_live_response(now)
+    payload.judgment = JudgmentHeader(
+        eyebrow="MISSION RISK JUDGMENT",
+        title="Mission Read Unavailable",
+        accent="",
+        summary=(
+            f"The live mission read model raised {detail}; this is an explicit "
+            "error state, not a fixture sample."
+        ),
+        confidence=0,
+    )
+    payload.drivers = [
+        EvidenceDriver(
+            score=detail,
+            title="Live read error",
+            note="The mission read model could not complete for this request.",
+        ),
+        EvidenceDriver(
+            score="Live",
+            title="Source",
+            note="An error is surfaced instead of falling back to fixture data.",
+        ),
+    ]
+    payload.interpretation = IntegratedInterpretation(
+        verdict=f"Mission Control could not complete a live read ({detail}).",
+        why_it_matters="Errors are surfaced explicitly rather than masked with fixture data.",
+        what_remains_uncertain="Check API and database health, then retry.",
+    )
+    payload.challenge_status_caption = (
+        "Mission read error · descriptive view only."
+    )
+    return payload
 
 
 def _judgment_for(progress_pct: Decimal, goal_mode: str) -> JudgmentHeader:

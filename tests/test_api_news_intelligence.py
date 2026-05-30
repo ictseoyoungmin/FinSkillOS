@@ -209,6 +209,41 @@ def test_news_intelligence_exposes_shared_ticker_logo_identities(
         engine.dispose()
 
 
+def test_news_intelligence_live_error_state_does_not_fall_back_to_fixture(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "news-error.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    def _boom(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise RuntimeError("news read failed")
+
+    monkeypatch.setattr(
+        "finskillos.ui.view_models.news_intelligence_vm."
+        "build_news_intelligence_view_model",
+        _boom,
+    )
+
+    try:
+        body = _client().get("/api/news-intelligence").json()
+        assert body["source"] == "live"
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert "RuntimeError" in body["judgment"]["headline"]
+        assert body["latestNews"] == []
+        assert body["sourceCoverage"]["articleCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def _dt(value: str):
     from datetime import datetime
 

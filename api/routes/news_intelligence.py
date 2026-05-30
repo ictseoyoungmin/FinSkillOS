@@ -59,9 +59,9 @@ def news_intelligence(
                 generated_at=datetime.now(tz=UTC),
             )
             return _live_response_from_vm(vm, session=session)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
-            return news_intelligence_fixture()
+            return _error_live_response(exc)
 
 
 def _live_response_from_vm(vm, session=None) -> NewsIntelligenceResponse:
@@ -176,6 +176,74 @@ def _live_response_from_vm(vm, session=None) -> NewsIntelligenceResponse:
                     "explicitly instead of assuming market-wide coverage."
                 ),
                 tone="info",
+            ),
+        ],
+    )
+
+
+def _error_live_response(exc: Exception) -> NewsIntelligenceResponse:
+    """Live news read raised — explicit live-error state, never fixture content."""
+    detail = type(exc).__name__
+    return NewsIntelligenceResponse(
+        generated_at=datetime.now(tz=UTC).isoformat(),
+        source="live",
+        system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        judgment=NewsJudgmentHeader(
+            headline=(
+                f"Live news read failed ({detail}); showing an explicit error state."
+            ),
+            confidence="LOW",
+            dominant_theme="—",
+            portfolio_relevance="No stored news could be read for this request.",
+            event_linkage="0 event-linked articles",
+            sentiment_tone="UNKNOWN",
+            risk_tone="UNKNOWN",
+            tone="warning",
+        ),
+        drivers=[
+            NewsDriver(
+                label="Live read error",
+                value=detail,
+                detail="The news read model could not complete for this request.",
+            ),
+            NewsDriver(
+                label="Source",
+                value="Live",
+                detail="An error is surfaced instead of falling back to fixture data.",
+            ),
+        ],
+        conflicts=[
+            NewsConflict(
+                label="Live DB vs read error",
+                description=(
+                    "The database is reachable, but the news read did not complete."
+                ),
+                tone="warning",
+            )
+        ],
+        holdings_relevant=[],
+        event_linked=[],
+        latest_news=[],
+        impact_map=[],
+        ticker_identities=[],
+        source_coverage=NewsSourceCoverage(
+            article_count=0,
+            source_count=0,
+            latest_published_at=None,
+            confidence="LOW",
+            provider_mix="none",
+            coverage_note=f"Live news read failed ({detail}); no fixture substituted.",
+        ),
+        integrated_interpretation=[
+            f"News Intelligence could not complete a live read ({detail}).",
+            "Errors are surfaced explicitly rather than masked with fixture data.",
+            "Check API and database health, then retry once news rows are stored.",
+        ],
+        watchpoints=[
+            NewsWatchpoint(
+                label="Container health",
+                description="Check API and database status if this error persists.",
+                tone="warning",
             ),
         ],
     )

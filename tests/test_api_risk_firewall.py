@@ -133,7 +133,7 @@ def test_risk_firewall_can_return_live_db_read_model(monkeypatch, tmp_path) -> N
         engine.dispose()
 
 
-def test_risk_firewall_falls_back_to_fixture_when_live_db_has_no_account(
+def test_risk_firewall_live_empty_state_stays_live_when_no_account(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -149,8 +149,54 @@ def test_risk_firewall_falls_back_to_fixture_when_live_db_has_no_account(
         response = TestClient(create_app()).get("/api/risk-firewall")
         assert response.status_code == 200
         body = response.json()
-        assert body["source"] == "fixture"
-        assert body["generatedAt"] == FIXTURE_TIMESTAMP
+        # A reachable DB with no account is an explicit live-empty state,
+        # not a fixture sample.
+        assert body["source"] == "live"
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert body["dataState"]["evaluationSource"] == "live"
+        assert body["dataState"]["guardCount"] == 0
+        assert "no account" in body["dataState"]["sourceNote"].lower()
+        assert body["guards"] == []
+        assert body["activeAlerts"] == []
+    finally:
+        reset_settings_cache()
+        engine.dispose()
+
+
+def test_risk_firewall_live_error_state_does_not_fall_back_to_fixture(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    db_url = f"sqlite+pysqlite:///{tmp_path / 'error_risk_firewall.db'}"
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", db_url)
+    reset_settings_cache()
+
+    engine = create_engine(db_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        seed_default_account(session)
+        session.commit()
+
+    def _boom(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        raise RuntimeError("guard evaluation failed")
+
+    monkeypatch.setattr(
+        "finskillos.services.risk_guard_service.RiskGuardService.evaluate",
+        _boom,
+    )
+
+    try:
+        response = TestClient(create_app()).get("/api/risk-firewall")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["source"] == "live"
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert "RuntimeError" in body["dataState"]["sourceNote"]
+        assert body["guards"] == []
+        assert body["activeAlerts"] == []
     finally:
         reset_settings_cache()
         engine.dispose()

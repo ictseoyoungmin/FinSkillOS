@@ -52,15 +52,123 @@ def risk_firewall(
 
         accounts = AccountRepository(session).list_all()
         if not accounts:
-            return risk_firewall_fixture()
+            return _empty_live_response()
 
         service = RiskGuardService(session)
-        report = service.evaluate(
-            accounts[0].id,
-            generated_at=datetime.now(tz=UTC),
-            persist_alerts=False,
-        )
+        try:
+            report = service.evaluate(
+                accounts[0].id,
+                generated_at=datetime.now(tz=UTC),
+                persist_alerts=False,
+            )
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
+            session.rollback()
+            return _error_live_response(exc)
         return _live_response(report)
+
+
+def _empty_live_response() -> RiskFirewallResponse:
+    """DB reachable but no account baseline — explicit live-empty, not fixture."""
+    payload = risk_firewall_fixture()
+    payload.generated_at = datetime.now(tz=UTC).isoformat()
+    payload.source = "live"
+    payload.system_status = SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0)
+    payload.data_state = RiskFirewallDataState(
+        evaluation_source="live",
+        evaluation_status="INFO",
+        highest_risk_level="UNKNOWN",
+        guard_count=0,
+        flagged_guard_count=0,
+        pass_count=0,
+        alert_count=0,
+        persisted_alerts=False,
+        source_note="Live DB reachable but no account baseline exists yet.",
+        review_note="GET evaluation is read-only and does not persist alert rows.",
+    )
+    payload.judgment = judgment(
+        "RISK PERMISSION JUDGMENT",
+        "Unknown",
+        "Live Empty Mode",
+        "No account baseline is stored, so the guard ladder has nothing to evaluate.",
+        40,
+    )
+    payload.drivers = drivers(
+        ("0", "Guard results", "No account is stored, so no guard ladder ran."),
+        (
+            "Live",
+            "Source",
+            "Built from the local DB; no fixture sample was substituted.",
+        ),
+        (
+            "MISSING",
+            "Account baseline",
+            "Seed a sample account via System Ops to populate this view.",
+        ),
+    )
+    payload.conflicts = conflicts(
+        (
+            "Live DB vs missing account",
+            "The database is reachable, but no account baseline is stored.",
+        ),
+    )
+    payload.interpretation = interpretation(
+        "Risk Firewall has no account to evaluate.",
+        "The guard ladder needs a stored account, portfolio, and regime context.",
+        "Run System Ops -> Seed sample account to activate live risk evaluation.",
+    )
+    payload.watchpoints = watchpoints(
+        (
+            "Account setup",
+            "Seed a sample account or import a portfolio to activate guards.",
+        ),
+        ("Read-only boundary", "GET evaluation does not persist active alerts."),
+    )
+    payload.overall_status = "INFO"
+    payload.overall_risk_level = "UNKNOWN"
+    payload.guards = []
+    payload.active_alerts = []
+    return payload
+
+
+def _error_live_response(exc: Exception) -> RiskFirewallResponse:
+    """Live evaluation raised — explicit live-error state, never fixture content."""
+    detail = type(exc).__name__
+    payload = _empty_live_response()
+    payload.data_state.source_note = (
+        f"Live risk evaluation failed ({detail}); no fixture was substituted."
+    )
+    payload.judgment = judgment(
+        "RISK PERMISSION JUDGMENT",
+        "Unavailable",
+        "Live Error Mode",
+        f"The live risk read model raised {detail}; this is an explicit error state.",
+        30,
+    )
+    payload.drivers = drivers(
+        (detail, "Live read error", "The guard evaluation could not complete."),
+        (
+            "Live",
+            "Source",
+            "An error is surfaced instead of falling back to fixture data.",
+        ),
+        (
+            "0",
+            "Guard results",
+            "No guard ladder output is available for this request.",
+        ),
+    )
+    payload.conflicts = conflicts(
+        (
+            "Live DB vs evaluation error",
+            "The database is reachable, but the live evaluation did not complete.",
+        ),
+    )
+    payload.interpretation = interpretation(
+        f"Risk Firewall could not complete a live evaluation ({detail}).",
+        "Errors are surfaced explicitly rather than masked with fixture data.",
+        "Check API and database health, then retry once inputs are stored.",
+    )
+    return payload
 
 
 def _live_response(report) -> RiskFirewallResponse:

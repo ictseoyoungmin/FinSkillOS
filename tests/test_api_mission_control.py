@@ -202,3 +202,35 @@ def test_mission_control_live_empty_state_stays_live(monkeypatch, tmp_path) -> N
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_mission_control_live_error_state_does_not_fall_back_to_fixture(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "mission-error.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    def _boom(session):  # noqa: ANN001
+        raise RuntimeError("mission read failed")
+
+    monkeypatch.setattr(
+        "api.routes.mission_control._build_live_mission_control", _boom
+    )
+
+    try:
+        body = _client().get("/api/mission-control").json()
+        assert body["source"] == "live"
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert "RuntimeError" in body["judgment"]["summary"]
+        assert body["capitalMap"] == []
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

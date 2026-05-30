@@ -15,6 +15,7 @@ v4.2 Evidence-to-Judgment payload either way.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
@@ -58,9 +59,9 @@ def trade_memory(
             return payload
         try:
             return _live_trade_memory_payload(session)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
-            return payload
+            return _error_live_payload(exc)
 
 
 @router.get(
@@ -81,9 +82,9 @@ def trade_memory_weekly_review(
             return payload.weekly_review
         try:
             return _live_trade_memory_payload(session).weekly_review
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
-            return payload.weekly_review
+            return _error_live_payload(exc).weekly_review
 
 
 @router.post(
@@ -255,6 +256,75 @@ def _scan_entry_text_for_forbidden_wording(
         except AssertionError:
             return "forbidden_wording_in_mistake_tags"
     return None
+
+
+def _error_live_payload(exc: Exception) -> TradeMemoryResponse:
+    """Live reflection read raised — explicit live-error state, never fixture."""
+    detail = type(exc).__name__
+    now = datetime.now(tz=UTC)
+    today = now.date().isoformat()
+    return TradeMemoryResponse(
+        generated_at=_iso(now),
+        today=today,
+        source="live",
+        system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0),
+        judgment=ProcessJudgmentHeader(
+            headline=(
+                f"Live journal read failed ({detail}); showing an explicit error state."
+            ),
+            confidence="LOW",
+            best_condition="—",
+            weakest_condition="—",
+            repeated_mistake="—",
+            review_priority="Check API and database health, then retry.",
+            tone="warning",
+        ),
+        drivers=[
+            TradeDriver(
+                label="Live read error",
+                value=detail,
+                detail="The reflection read model could not complete for this request.",
+            ),
+            TradeDriver(
+                label="Source",
+                value="Live",
+                detail="An error is surfaced instead of falling back to fixture data.",
+            ),
+        ],
+        conflicts=[
+            TradeConflict(
+                label="Live DB vs read error",
+                description=(
+                    "The database is reachable, but the journal read did not complete."
+                ),
+                tone="warning",
+            )
+        ],
+        recent_entries=[],
+        performance_by_regime=[],
+        performance_by_sector_theme=[],
+        performance_by_strategy=[],
+        mistake_frequency=[],
+        weekly_review=WeeklyReviewVM(
+            start_date=today,
+            end_date=today,
+            trade_count=0,
+            total_pnl=Decimal("0"),
+        ),
+        integrated_interpretation=[
+            f"Trade Memory could not complete a live read ({detail}).",
+            "Errors are surfaced explicitly rather than masked with fixture data.",
+            "Check API and database health, then retry once journal rows are stored.",
+        ],
+        watchpoints=[
+            TradeWatchpoint(
+                label="Container health",
+                description="Check API and database status if this error persists.",
+                tone="warning",
+            ),
+        ],
+        form_rules=TradeFormRules(),
+    )
 
 
 def _live_trade_memory_payload(session) -> TradeMemoryResponse:
@@ -469,10 +539,12 @@ def _live_interpretation(vm) -> list[str]:
         return [
             vm.setup_hint
             or "No stored journal entries yet; Trade Memory is ready for reflection input.",
-            "The page will compute regime, sector, strategy, and mistake-tag patterns after entries exist.",
+            "The page will compute regime, sector, strategy, and mistake-tag "
+            "patterns after entries exist.",
         ]
     bullets = [
-        f"Trade Memory is reading {len(vm.recent_entries)} stored journal entries from the live DB.",
+        f"Trade Memory is reading {len(vm.recent_entries)} stored journal "
+        "entries from the live DB.",
         f"Weekly review window contains {vm.weekly_review.trade_count} entries.",
     ]
     bullets.extend(vm.weekly_review.process_notes[:3])

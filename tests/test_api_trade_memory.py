@@ -336,3 +336,36 @@ def test_use_fixture_header_is_accepted_on_weekly_review() -> None:
     )
     assert response.status_code == 200
     assert "markdown" in response.json()
+
+
+def test_trade_memory_live_error_state_does_not_fall_back_to_fixture(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "trade-error.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    def _boom(session):  # noqa: ANN001
+        raise RuntimeError("journal read failed")
+
+    monkeypatch.setattr("api.routes.trade_memory._live_trade_memory_payload", _boom)
+
+    try:
+        body = _client().get("/api/trade-memory").json()
+        assert body["source"] == "live"
+        assert body["generatedAt"] != FIXTURE_TIMESTAMP
+        assert body["systemStatus"]["db"] == "LIVE"
+        assert "RuntimeError" in body["judgment"]["headline"]
+        assert body["recentEntries"] == []
+
+        weekly = _client().get("/api/trade-memory/weekly-review").json()
+        assert weekly["tradeCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
