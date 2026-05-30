@@ -118,6 +118,7 @@ operational protocols.
 78     Control Room Freshness Threshold Configuration
 79     System Ops Protocol History Evidence Density
 80     Reduce DB-Reachable Fixture Fallback (Live-Empty / Live-Error)
+81     Refresh Stale v4.2 Fixture-First Contract List
 ```
 
 Slice 14 is complete:
@@ -320,6 +321,10 @@ Slice 14 is complete:
   errors return an explicit `source="live"` error state (200, exception class
   name only — never a stack trace or fixture sample). The `use_fixture` opt-in
   and the fully-offline `session is None` fixture paths are unchanged.
+- The cross-tab v4.2 contract test now matches the all-promoted reality: a
+  DB-state-independent structural check (no header) plus deterministic fixture
+  anchor checks (forced `X-FSO-Use-Fixture`), with the fixture-override check
+  covering all ten tabs. The stale `fixture-first` list/test was removed.
 ```
 
 ## Validation Baseline
@@ -353,13 +358,6 @@ All development and verification for this workspace should run through Docker.
    - Slice 80 removed DB-reachable fixture fallback; the fully-offline path still
      returns fixture. Promote it to an explicit, labeled "DB unavailable" state
      so a missing database is never confused with a seeded sample.
-
-0b. Refresh the stale v4.2 fixture-first contract list
-   - `tests/test_api_v42_contract.py::_V42_FIXTURE_FIRST_ENDPOINTS` still lists
-     control-room / analysis-workspace / event-radar / trade-memory as
-     fixture-first, but all are promoted, so the two cross-tab contract tests
-     fail against a seeded Docker DB. Align the list (and judgment-anchor checks)
-     with live reality.
 
 1. Market Kernel coverage copy parity with Symbol Lab
    - Symbol Lab now grades sparse/partial coverage quantitatively (Slice 77)

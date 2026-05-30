@@ -43,33 +43,20 @@ _V42_ENDPOINTS = (
     ("/api/system-ops", "SYSTEM TRUST JUDGMENT", "Operational protocols only"),
 )
 
-_V42_FIXTURE_FIRST_ENDPOINTS = tuple(
-    path
-    for path, _, _ in _V42_ENDPOINTS
-    if path
-    not in {
-        "/api/market-kernel",
-        "/api/symbol-lab",
-        "/api/risk-firewall",
-        "/api/mission-control",
-        "/api/news-intelligence",
-        "/api/system-ops",
-    }
-)
-_V42_LIVE_CAPABLE_ENDPOINTS = (
-    "/api/market-kernel",
-    "/api/symbol-lab",
-    "/api/risk-firewall",
-    "/api/mission-control",
-    "/api/news-intelligence",
-    "/api/system-ops",
-)
+# Every v4.2 tab is now a DB-backed read model that honours the
+# X-FSO-Use-Fixture override (Slices 21–80). No tab is fixture-first-only
+# anymore, so the cross-tab contract splits into a DB-state-independent
+# structural check (no header) and deterministic fixture anchor checks
+# (forced fixture). The override is verified across every endpoint.
+_V42_LIVE_CAPABLE_ENDPOINTS = tuple(path for path, _, _ in _V42_ENDPOINTS)
+_FIXTURE_HEADER = {"X-FSO-Use-Fixture": "1"}
 
 
 def test_all_v42_tabs_expose_core_read_model_contract() -> None:
+    """Shared structural contract — holds for both fixture and live (DB) state."""
     client = _client()
 
-    for path, judgment_anchor, safety_category in _V42_ENDPOINTS:
+    for path, _judgment_anchor, _safety_category in _V42_ENDPOINTS:
         response = client.get(path)
         assert response.status_code == 200, path
         body = response.json()
@@ -77,15 +64,7 @@ def test_all_v42_tabs_expose_core_read_model_contract() -> None:
         assert "generatedAt" in body
         assert body["source"] in {"fixture", "live"}
         assert body["systemStatus"]["mode"] == "READ_MODE"
-        assert safety_category in body["safetyCaption"]
-
-        judgment_blob = _joined_strings(body["judgment"])
-        anchors = (
-            judgment_anchor
-            if isinstance(judgment_anchor, tuple)
-            else (judgment_anchor,)
-        )
-        assert any(anchor in judgment_blob for anchor in anchors), path
+        assert body["safetyCaption"]
         assert "confidence" in body["judgment"]
 
         assert len(body["drivers"]) >= 1
@@ -118,6 +97,24 @@ def test_all_v42_tabs_expose_core_read_model_contract() -> None:
             assert all(isinstance(item, str) and item for item in interpretation)
 
 
+def test_all_v42_tabs_expose_fixture_judgment_and_safety_anchors() -> None:
+    """Deterministic fixture anchors — judgment vocabulary + safety category."""
+    client = _client()
+
+    for path, judgment_anchor, safety_category in _V42_ENDPOINTS:
+        body = client.get(path, headers=_FIXTURE_HEADER).json()
+        assert body["source"] == "fixture", path
+
+        assert safety_category in body["safetyCaption"], path
+        judgment_blob = _joined_strings(body["judgment"])
+        anchors = (
+            judgment_anchor
+            if isinstance(judgment_anchor, tuple)
+            else (judgment_anchor,)
+        )
+        assert any(anchor in judgment_blob for anchor in anchors), path
+
+
 def test_all_v42_tabs_use_camelcase_public_fields() -> None:
     client = _client()
 
@@ -131,20 +128,11 @@ def test_all_v42_tabs_use_camelcase_public_fields() -> None:
         assert "system_status" not in body
 
 
-def test_all_v42_tabs_remain_fixture_first_until_promoted() -> None:
-    client = _client()
-
-    for path in _V42_FIXTURE_FIRST_ENDPOINTS:
-        body = client.get(path).json()
-        assert body["source"] == "fixture", path
-        assert "dataCompleteness" not in body, path
-
-
-def test_promoted_v42_tabs_keep_fixture_override() -> None:
+def test_all_v42_tabs_keep_fixture_override() -> None:
     client = _client()
 
     for path in _V42_LIVE_CAPABLE_ENDPOINTS:
-        body = client.get(path, headers={"X-FSO-Use-Fixture": "1"}).json()
+        body = client.get(path, headers=_FIXTURE_HEADER).json()
         assert body["source"] == "fixture", path
         assert "dataCompleteness" not in body, path
 
