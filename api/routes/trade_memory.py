@@ -21,6 +21,11 @@ from fastapi import APIRouter, Depends
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import trade_memory_fixture
+from api.live_state import (
+    LIVE_ERROR_DRIVER_NOTE,
+    LIVE_ERROR_WHY_IT_MATTERS,
+    exc_detail,
+)
 from api.schemas.common import SystemStatus
 from api.schemas.trade_memory import (
     MistakeFrequencyVM,
@@ -261,7 +266,7 @@ def _scan_entry_text_for_forbidden_wording(
 
 def _error_live_payload(exc: Exception) -> TradeMemoryResponse:
     """Live reflection read raised — explicit live-error state, never fixture."""
-    detail = type(exc).__name__
+    detail = exc_detail(exc)
     now = datetime.now(tz=UTC)
     today = now.date().isoformat()
     return TradeMemoryResponse(
@@ -289,7 +294,7 @@ def _error_live_payload(exc: Exception) -> TradeMemoryResponse:
             TradeDriver(
                 label="Source",
                 value="Live",
-                detail="An error is surfaced instead of falling back to fixture data.",
+                detail=LIVE_ERROR_DRIVER_NOTE,
             ),
         ],
         conflicts=[
@@ -314,7 +319,7 @@ def _error_live_payload(exc: Exception) -> TradeMemoryResponse:
         ),
         integrated_interpretation=[
             f"Trade Memory could not complete a live read ({detail}).",
-            "Errors are surfaced explicitly rather than masked with fixture data.",
+            LIVE_ERROR_WHY_IT_MATTERS,
             "Check API and database health, then retry once journal rows are stored.",
         ],
         watchpoints=[

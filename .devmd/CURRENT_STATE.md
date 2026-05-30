@@ -129,6 +129,7 @@ operational protocols.
 89     Event Risk Guard Live Wiring
 90     Docker Env-State Test Audit (deterministic run ordering)
 91     Shared api/timeutil (dedup _as_utc / _iso)
+92     Shared Live-Error Helper + Copy (api/live_state)
 ```
 
 Slice 14 is complete:
@@ -390,11 +391,10 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 ### P1 — correctness / trust
 - _All P1 items complete (Slices 86–90); the full Docker suite is green._
 
-### P2 — shared refactor (next up)
-- [~] **shared live-empty / live-error builder** — dedup the per-route Slice-80
-  builders into one factory.
+### P2 — shared refactor
+- _Complete (Slices 91–92): shared `api/timeutil.py` + `api/live_state.py`._
 
-### P2 — tab features
+### P2 — tab features (next up)
 - [ ] **Catalyst Watch live event calendar provider** (L) — promote beyond the
   System Ops seed catalogue; ties into the event-risk guard above.
 - [ ] **Market Kernel event overlay + multi-timeframe** — live event overlay on
@@ -427,3 +427,6 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   Full Docker suite now green.
 - [x] **91 shared `api/timeutil.py`** — dedup `_as_utc`/`_iso` across six routes
   into `to_utc` / `iso`; no behaviour change, contract unit-tested.
+- [x] **92 shared live-error helper/copy** — `api/live_state.py` centralises
+  `exc_detail` + the two shared live-error sentences used by the four Slice-80
+  builders; byte-identical responses.

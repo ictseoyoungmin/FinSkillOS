@@ -15,6 +15,11 @@ from fastapi import APIRouter, Depends
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import risk_firewall_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
+from api.live_state import (
+    LIVE_ERROR_DRIVER_NOTE,
+    LIVE_ERROR_WHY_IT_MATTERS,
+    exc_detail,
+)
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import GuardSummaryVM
 from api.schemas.risk_firewall import (
@@ -132,7 +137,7 @@ def _empty_live_response() -> RiskFirewallResponse:
 
 def _error_live_response(exc: Exception) -> RiskFirewallResponse:
     """Live evaluation raised — explicit live-error state, never fixture content."""
-    detail = type(exc).__name__
+    detail = exc_detail(exc)
     payload = _empty_live_response()
     payload.data_state.source_note = (
         f"Live risk evaluation failed ({detail}); no fixture was substituted."
@@ -149,7 +154,7 @@ def _error_live_response(exc: Exception) -> RiskFirewallResponse:
         (
             "Live",
             "Source",
-            "An error is surfaced instead of falling back to fixture data.",
+            LIVE_ERROR_DRIVER_NOTE,
         ),
         (
             "0",
@@ -165,7 +170,7 @@ def _error_live_response(exc: Exception) -> RiskFirewallResponse:
     )
     payload.interpretation = interpretation(
         f"Risk Firewall could not complete a live evaluation ({detail}).",
-        "Errors are surfaced explicitly rather than masked with fixture data.",
+        LIVE_ERROR_WHY_IT_MATTERS,
         "Check API and database health, then retry once inputs are stored.",
     )
     return payload

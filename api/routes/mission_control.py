@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import mission_control_fixture
+from api.live_state import (
+    LIVE_ERROR_DRIVER_NOTE,
+    LIVE_ERROR_WHY_IT_MATTERS,
+    exc_detail,
+)
 from api.schemas.common import (
     EvidenceConflict,
     EvidenceDriver,
@@ -202,7 +207,7 @@ def _empty_live_response(now: datetime) -> MissionControlResponse:
 
 def _error_live_response(now: datetime, exc: Exception) -> MissionControlResponse:
     """Live read raised — explicit live-error state, never fixture content."""
-    detail = type(exc).__name__
+    detail = exc_detail(exc)
     payload = _empty_live_response(now)
     payload.judgment = JudgmentHeader(
         eyebrow="MISSION RISK JUDGMENT",
@@ -223,12 +228,12 @@ def _error_live_response(now: datetime, exc: Exception) -> MissionControlRespons
         EvidenceDriver(
             score="Live",
             title="Source",
-            note="An error is surfaced instead of falling back to fixture data.",
+            note=LIVE_ERROR_DRIVER_NOTE,
         ),
     ]
     payload.interpretation = IntegratedInterpretation(
         verdict=f"Mission Control could not complete a live read ({detail}).",
-        why_it_matters="Errors are surfaced explicitly rather than masked with fixture data.",
+        why_it_matters=LIVE_ERROR_WHY_IT_MATTERS,
         what_remains_uncertain="Check API and database health, then retry.",
     )
     payload.challenge_status_caption = (
