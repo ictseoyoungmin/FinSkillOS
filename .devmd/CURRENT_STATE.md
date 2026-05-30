@@ -123,6 +123,7 @@ operational protocols.
 83     Market Kernel Coverage Copy Parity with Symbol Lab
 84     State Vocabulary / Data Source Contract Doc (+ refresh stale doc 12)
 85     System Ops Protocol History Samples in Fixture Mode
+86     db-unavailable Distinct State (global banner)
 ```
 
 Slice 14 is complete:
@@ -375,16 +376,43 @@ docker compose -f docker-compose.yml --profile e2e run --rm e2e npm run test:vis
 
 All development and verification for this workspace should run through Docker.
 
-## Next Useful Slices
+## Work Queue
 
-1. Control Room freshness threshold env propagation
-   - Surface the configured `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` values
-     in operator-facing docs / System Ops data-source notes if cadence tuning
-     becomes a routine operation.
+Active, importance-ordered queue (derived from
+`.devmd/TAB_REVIEW_AND_BACKLOG.md`). Work top-down; mark `[x]` and append the
+slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 
-2. db-unavailable: distinct content state (Slice 82 target)
-   - Slice 82 added the `db="MISSING"` label, but the offline body is still the
-     fixture shape. Promote it to a distinct minimal "connect a database" state
-     (per-tab body or a shared React banner keyed on `source="fixture"` +
-     `db="MISSING"`), so a DB outage is never read as real sample data. See
-     `docs/v2_1/13_*.md` §1.3.
+### P1 — correctness / trust
+- [~] **`get_session_scope` error vs no-config** — `api/dependencies.py:27` TODO:
+  `except: yield None` conflates "DB unconfigured" and "DB error/unreachable".
+  Distinguish them so a genuine DB error can surface explicitly.
+- [ ] **frontend silent-fallback → failure pill** — `features/market/api.ts:14`,
+  `features/analysis/api.ts:12` TODOs: replace silent fixture fallback with an
+  explicit live-failure indicator (backend already returns live-error).
+- [ ] **`EVENT_PLACEHOLDER_GUARD` live wiring** — Risk Firewall still ships an
+  Event Placeholder guard; wire event-risk to live Catalyst Watch exposure.
+- [ ] **Docker env-state test audit** — sweep remaining no-header tests that
+  assume fixture values but get live against a seeded DB (Slice 81/83 fixed two);
+  pin to fixture or seed deterministically.
+
+### P2 — shared refactor
+- [ ] **shared `api/timeutil.py`** — dedup `_as_utc` (4 routes) / `_iso` (6).
+- [ ] **shared live-empty / live-error builder** — dedup the per-route Slice-80
+  builders into one factory.
+
+### P2 — tab features
+- [ ] **Catalyst Watch live event calendar provider** (L) — promote beyond the
+  System Ops seed catalogue; ties into the event-risk guard above.
+- [ ] **Market Kernel event overlay + multi-timeframe** — live event overlay on
+  candles; timeframe query like Symbol Lab.
+- [ ] **Trade Memory edit/delete + export** — entry edit/delete UI, CSV export.
+
+### P3 — UI/UX polish (batch)
+- [ ] Chart tooltips/crosshair + SVG accessibility; state-band density; remove
+  unused `frontend/src/pages/PlaceholderPage.tsx`; Control Room freshness env
+  propagation to operator notes.
+
+### Done (this queue)
+- [x] **86 db-unavailable distinct state** — global "DB unavailable" banner
+  (`OsDbUnavailableBanner`) keyed on system-status `dbStatus="MISSING"`, so
+  offline sample shape is never read as live data. Visual baselines unaffected.

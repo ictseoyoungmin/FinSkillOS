@@ -26,6 +26,23 @@
   flex-direction: column;
 }
 
+.fso-db-unavailable-banner {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: -16px -16px 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--fso-amber);
+  background: color-mix(in srgb, var(--fso-amber) 22%, var(--fso-panel));
+  color: var(--fso-text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.fso-db-unavailable-banner strong {
+  color: var(--fso-amber);
+}
+
 @media (max-width: 980px) {
   .fso-os-shell {
     grid-template-rows: auto auto auto auto;

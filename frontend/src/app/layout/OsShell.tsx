@@ -6,6 +6,7 @@ import { fetchSystemStatus } from "@/features/system-ops/api";
 import { controlRoomFixture } from "@/mocks/fixtures/controlRoom.fixture";
 import { OsTopTray } from "./OsTopTray";
 import { OsTickerStrip } from "./OsTickerStrip";
+import { OsDbUnavailableBanner } from "./OsDbUnavailableBanner";
 import { OsStatusBar } from "./OsStatusBar";
 import { OsCommandPalette } from "./OsCommandPalette";
 import { navItemForPath } from "./nav-config";
@@ -70,6 +71,7 @@ export function OsShell({ children }: OsShellProps) {
       />
       <OsTickerStrip items={data?.tickerStrip ?? []} />
       <main className="fso-os-workspace" data-testid="os-workspace">
+        <OsDbUnavailableBanner dbStatus={systemStatus?.dbStatus} />
         {children}
       </main>
       <OsStatusBar
