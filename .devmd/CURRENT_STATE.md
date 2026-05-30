@@ -124,6 +124,7 @@ operational protocols.
 84     State Vocabulary / Data Source Contract Doc (+ refresh stale doc 12)
 85     System Ops Protocol History Samples in Fixture Mode
 86     db-unavailable Distinct State (global banner)
+87     get_session_scope DB-outage vs config-bug hardening
 ```
 
 Slice 14 is complete:
@@ -383,10 +384,7 @@ Active, importance-ordered queue (derived from
 slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 
 ### P1 — correctness / trust
-- [~] **`get_session_scope` error vs no-config** — `api/dependencies.py:27` TODO:
-  `except: yield None` conflates "DB unconfigured" and "DB error/unreachable".
-  Distinguish them so a genuine DB error can surface explicitly.
-- [ ] **frontend silent-fallback → failure pill** — `features/market/api.ts:14`,
+- [~] **frontend silent-fallback → failure pill** — `features/market/api.ts:14`,
   `features/analysis/api.ts:12` TODOs: replace silent fixture fallback with an
   explicit live-failure indicator (backend already returns live-error).
 - [ ] **`EVENT_PLACEHOLDER_GUARD` live wiring** — Risk Firewall still ships an
@@ -416,3 +414,7 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner
   (`OsDbUnavailableBanner`) keyed on system-status `dbStatus="MISSING"`, so
   offline sample shape is never read as live data. Visual baselines unaffected.
+- [x] **87 `get_session_scope` error vs config** — only a real DB-availability
+  failure (`SQLAlchemyError`/missing driver) yields the db-unavailable state and
+  it is logged; config errors propagate; route errors after yield surface
+  normally instead of being swallowed.
