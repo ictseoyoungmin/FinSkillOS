@@ -86,3 +86,50 @@ watchlist freshness classification with no way to tune it without a code edit.
   `tests/test_api_system_ops.py::test_seed_sample_events_protocol_is_audited_and_preserves_uncertain_statuses`
   failure noted in Slice 77 persists on the local persistent postgres. It is
   unrelated to this slice.
+
+## Post-Slice-78 Cleanup — Docker Compose Env Propagation
+
+Status: DONE (2026-05-30)
+
+### Implemented files
+
+- `docker-compose.yml`
+  - Added `FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS`,
+    `FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS`, and
+    `FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS` to the `api` service
+    environment so the documented threshold settings are passed into the
+    Docker runtime.
+
+### Verification
+
+- `docker compose -f docker-compose.yml config`
+  ✅ config renders the default API threshold environment
+  (`3`, empty per-rail overrides).
+- `env FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS=9
+  FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS=11
+  FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS=7 docker compose -f
+  docker-compose.yml config`
+  ✅ config renders the overridden API threshold environment (`9`, `11`, `7`).
+- `docker compose -f docker-compose.yml build api web`
+  ✅ api and web images rebuilt after source/config edits.
+- `docker compose -f docker-compose.yml run --rm api python -m ruff check
+  finskillos/config.py api/routes/control_room.py
+  api/schemas/control_room.py tests/test_api_control_room.py
+  tests/test_config.py`
+  ✅ All checks passed.
+- `docker compose -f docker-compose.yml run --rm api timeout 300 env
+  FINSKILLOS_SKIP_DOTENV=1 python -m pytest tests/test_api_control_room.py
+  tests/test_config.py -q`
+  ✅ 22 passed.
+- `docker compose -f docker-compose.yml run --rm --no-deps web npm run build`
+  ✅ build succeeds.
+
+### Known issues
+
+- `docker compose -f docker-compose.yml run --rm api timeout 300 env
+  FINSKILLOS_SKIP_DOTENV=1 python -m pytest tests/test_api_control_room.py
+  tests/test_config.py tests/test_api_v42_contract.py -q` currently fails in
+  `tests/test_api_v42_contract.py` because the local persistent Postgres state
+  promotes `/api/control-room` and changes `/api/event-radar` fixture-contract
+  expectations. The direct Slice 78 tests pass, and the failure is not caused
+  by the compose env propagation change.
