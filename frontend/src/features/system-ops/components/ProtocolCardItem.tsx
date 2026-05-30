@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/shared/ui";
-import type {
-  ProtocolCard,
-  ProtocolDetailEvidence,
-  ProtocolRunResult,
-  ProtocolTone,
-} from "../types";
+import { deriveProtocolEvidence } from "../detailEvidence";
+import type { ProtocolCard, ProtocolRunResult, ProtocolTone } from "../types";
 import "./protocol-card-item.css";
 
 export interface ProtocolCardItemProps {
@@ -59,11 +55,7 @@ export function ProtocolCardItem({ protocol, onRun }: ProtocolCardItemProps) {
     }
   };
 
-  const evidence = result
-    ? (result.detailEvidence?.length ?? 0) > 0
-      ? result.detailEvidence
-      : parseProtocolDetail(result.detail)
-    : [];
+  const evidence = result ? deriveProtocolEvidence(result) : [];
 
   return (
     <Card testId={testId}>
@@ -180,19 +172,4 @@ export function ProtocolCardItem({ protocol, onRun }: ProtocolCardItemProps) {
       </div>
     </Card>
   );
-}
-
-function parseProtocolDetail(detail: string): ProtocolDetailEvidence[] {
-  return detail
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => {
-      const [key, ...valueParts] = item.split("=");
-      const value = valueParts.join("=").trim();
-      if (!value) {
-        return { key: "detail", value: key.trim() };
-      }
-      return { key: key.trim(), value };
-    });
 }

@@ -116,6 +116,7 @@ operational protocols.
 76     System Ops Protocol Result API Detail Normalization
 77     Symbol Lab Coverage Threshold Polish
 78     Control Room Freshness Threshold Configuration
+79     System Ops Protocol History Evidence Density
 ```
 
 Slice 14 is complete:
@@ -309,6 +310,9 @@ Slice 14 is complete:
   settings contract (`FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS` base plus
   per-rail overrides) instead of a hard-coded three-day constant. The active
   policy is surfaced in `dataState` and the rail freshness note.
+- System Ops history now renders each recent protocol run's structured
+  `detailEvidence` as compact chips (falling back to parsing the legacy
+  `detail` string), sharing one derivation path with the result card.
 ```
 
 ## Validation Baseline
@@ -338,6 +342,18 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. System Ops protocol history evidence density
-   - Render recent protocol run `detailEvidence` in the System Ops history
-     area once the audit table has accumulated enough varied run examples.
+1. Market Kernel coverage copy parity with Symbol Lab
+   - Symbol Lab now grades sparse/partial coverage quantitatively (Slice 77)
+     while Market Kernel keeps the generic "fewer than 20 stored bars" copy.
+     Promote the graded phrasing into a shared helper if the two tabs should
+     read identically.
+
+2. System Ops history sample run examples
+   - Consider a deterministic fixture set of recent protocol runs (with varied
+     `detailEvidence`) so the history evidence chips (Slice 79) are visible in
+     fixture mode, regenerating the System Ops visual baseline accordingly.
+
+3. Control Room freshness threshold env propagation
+   - Surface the configured `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` values
+     in operator-facing docs / System Ops data-source notes if cadence tuning
+     becomes a routine operation.

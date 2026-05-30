@@ -26,6 +26,61 @@
   gap: 12px;
 }
 
+.fso-system-ops-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.fso-system-ops-history-run {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-panel) 70%, transparent);
+}
+
+.fso-system-ops-history-summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fso-text-muted);
+}
+
+.fso-system-ops-history-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.fso-system-ops-history-chip {
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px;
+  align-items: center;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-panel) 82%, transparent);
+  font-size: 11px;
+}
+
+.fso-system-ops-history-chip dt {
+  min-width: 0;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-system-ops-history-chip dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--fso-text);
+}
+
 .fso-health-summary {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

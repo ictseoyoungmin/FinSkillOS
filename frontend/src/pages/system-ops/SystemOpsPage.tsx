@@ -7,6 +7,7 @@ import {
 } from "@/features/system-ops/api";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
+import { deriveProtocolEvidence } from "@/features/system-ops/detailEvidence";
 import type {
   DataCompleteness,
   SystemStatusData,
@@ -162,11 +163,37 @@ export function SystemOpsPage() {
                   className="fso-system-ops-history"
                   data-testid="recent-protocol-runs"
                 >
-                  {payload.recentProtocolRuns.map((run) => (
-                    <p key={`${run.protocol}-${run.ranAt}`}>
-                      {run.ranAt} · {run.protocol} · {run.status} · {run.dbStatus}
-                    </p>
-                  ))}
+                  {payload.recentProtocolRuns.map((run) => {
+                    const evidence = deriveProtocolEvidence(run);
+                    const runTestId = run.protocol.replace(/_/g, "-");
+                    return (
+                      <div
+                        className="fso-system-ops-history-run"
+                        key={`${run.protocol}-${run.ranAt}`}
+                      >
+                        <p className="fso-system-ops-history-summary">
+                          {run.ranAt} · {run.protocol} · {run.status} ·{" "}
+                          {run.dbStatus}
+                        </p>
+                        {evidence.length > 0 ? (
+                          <dl
+                            className="fso-system-ops-history-evidence"
+                            data-testid={`recent-protocol-run-evidence-${runTestId}`}
+                          >
+                            {evidence.map((item) => (
+                              <div
+                                className="fso-system-ops-history-chip"
+                                key={`${item.key}-${item.value}`}
+                              >
+                                <dt>{item.key}</dt>
+                                <dd>{item.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : null}
             </Panel>

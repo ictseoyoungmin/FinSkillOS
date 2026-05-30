@@ -146,6 +146,64 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await expect(evidence).toContainText("system_ops");
   });
 
+  test("System Ops history renders structured detail evidence per run", async ({
+    page,
+  }) => {
+    await page.route("**/api/system-ops", async (route) => {
+      const response = await route.fetch();
+      const json = await response.json();
+      json.recentProtocolRuns = [
+        {
+          protocol: "seed_sample_events",
+          status: "OK",
+          message: "3 event catalog rows loaded through System Ops.",
+          detail: "events_seeded",
+          detailEvidence: [
+            { key: "created_count", value: "3" },
+            { key: "date_statuses", value: "TENTATIVE+WINDOW" },
+            { key: "boundary", value: "system_ops" },
+          ],
+          ranAt: "2026-05-29T10:00:00+09:00",
+          dbStatus: "LIVE",
+          source: "live",
+        },
+        {
+          protocol: "refresh_market_data",
+          status: "OK",
+          message: "Stored bars refreshed.",
+          detail: "bars=120",
+          detailEvidence: [],
+          ranAt: "2026-05-29T09:00:00+09:00",
+          dbStatus: "LIVE",
+          source: "live",
+        },
+      ];
+      await route.fulfill({ json });
+    });
+
+    await page.goto("/system-ops");
+
+    const history = page.getByTestId("recent-protocol-runs");
+    await expect(history).toBeVisible();
+
+    const seededEvidence = page.getByTestId(
+      "recent-protocol-run-evidence-seed-sample-events",
+    );
+    await expect(seededEvidence).toContainText("created_count");
+    await expect(seededEvidence).toContainText("3");
+    await expect(seededEvidence).toContainText("date_statuses");
+    await expect(seededEvidence).toContainText("boundary");
+    await expect(seededEvidence).toContainText("system_ops");
+
+    // The legacy `detail` string is parsed into chips when detailEvidence is
+    // empty, so older audit rows still render structured evidence.
+    const refreshEvidence = page.getByTestId(
+      "recent-protocol-run-evidence-refresh-market-data",
+    );
+    await expect(refreshEvidence).toContainText("bars");
+    await expect(refreshEvidence).toContainText("120");
+  });
+
   test("Slice 13.8 routes never expose forbidden execution captions", async ({
     page,
   }) => {
