@@ -30,6 +30,7 @@ from api.schemas.control_room import (
     TickerStripItem,
     WatchlistItem,
 )
+from api.timeutil import iso as _iso
 from finskillos.config import get_settings
 from finskillos.data_sources import DEFAULT_TIMEFRAME, DEFAULT_US_TICKER_UNIVERSE
 from finskillos.db.repositories import MarketRepository, SymbolSubscriptionRepository
@@ -672,10 +673,6 @@ def _quantize(value: Decimal) -> Decimal:
     return Decimal(value).quantize(Decimal("0.01"))
 
 
-def _iso(value) -> str:
-    if hasattr(value, "tzinfo") and value.tzinfo is None:
-        return value.replace(tzinfo=UTC).isoformat()
-    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 def _format_decimal(value: Decimal) -> str:

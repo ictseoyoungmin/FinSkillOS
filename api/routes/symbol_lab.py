@@ -36,6 +36,8 @@ from api.schemas.symbol_lab import (
     SymbolSubscriptionFolderMember,
     SymbolSubscriptionState,
 )
+from api.timeutil import iso as _iso
+from api.timeutil import to_utc as _as_utc
 from finskillos.data_sources import (
     DEFAULT_TIMEFRAME,
     DEFAULT_US_TICKER_UNIVERSE,
@@ -965,18 +967,6 @@ def _normalize_timeframe(timeframe: str | None) -> str:
     return normalized
 
 
-def _iso(value) -> str:
-    if isinstance(value, datetime):
-        if value.tzinfo is None:
-            return value.replace(tzinfo=UTC).isoformat()
-        return value.isoformat()
-    return str(value)
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
 
 
 def _indicator_status(latest_indicator) -> str:

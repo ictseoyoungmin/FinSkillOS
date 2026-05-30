@@ -36,6 +36,7 @@ from api.schemas.trade_memory import (
     TradeWatchpoint,
     WeeklyReviewVM,
 )
+from api.timeutil import iso as _iso
 
 router = APIRouter(tags=["trade-memory"])
 UTC = timezone.utc
@@ -377,10 +378,6 @@ def _live_trade_memory_payload(session) -> TradeMemoryResponse:
     )
 
 
-def _iso(value: datetime) -> str:
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=UTC)
-    return value.astimezone(UTC).isoformat()
 
 
 def _entry_from_vm(entry) -> TradeEntryVM:

@@ -128,6 +128,7 @@ operational protocols.
 88     Frontend Live-Fetch Failure Pill (Market Kernel / Analysis)
 89     Event Risk Guard Live Wiring
 90     Docker Env-State Test Audit (deterministic run ordering)
+91     Shared api/timeutil (dedup _as_utc / _iso)
 ```
 
 Slice 14 is complete:
@@ -390,8 +391,7 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - _All P1 items complete (Slices 86–90); the full Docker suite is green._
 
 ### P2 — shared refactor (next up)
-- [ ] **shared `api/timeutil.py`** — dedup `_as_utc` (4 routes) / `_iso` (6).
-- [ ] **shared live-empty / live-error builder** — dedup the per-route Slice-80
+- [~] **shared live-empty / live-error builder** — dedup the per-route Slice-80
   builders into one factory.
 
 ### P2 — tab features
@@ -425,3 +425,5 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   remaining failure was an unstable run-ordering bug (same-second `ran_at` +
   second-precision `created_at`), fixed with a microsecond `created_at` default.
   Full Docker suite now green.
+- [x] **91 shared `api/timeutil.py`** — dedup `_as_utc`/`_iso` across six routes
+  into `to_utc` / `iso`; no behaviour change, contract unit-tested.

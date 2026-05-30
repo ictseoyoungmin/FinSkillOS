@@ -25,6 +25,7 @@ from api.schemas.analysis_workspace import (
     TapeStrengthEntry,
 )
 from api.schemas.common import SystemStatus
+from api.timeutil import to_utc as _as_utc
 from finskillos.ui.view_models.index_lab_vm import (
     DATA_STATUS_MISSING,
     DATA_STATUS_OK,
@@ -299,10 +300,6 @@ def _latest_snapshot_at(vm: IndexLabViewModel) -> str | None:
     return max(_as_utc(value) for value in candidates).isoformat()
 
 
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
 
 
 def _judgment(

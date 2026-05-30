@@ -23,6 +23,8 @@ from api.schemas.market_kernel import (
     MarketKernelDataState,
     MarketKernelResponse,
 )
+from api.timeutil import iso as _iso
+from api.timeutil import to_utc as _as_utc
 from finskillos.data_sources import DEFAULT_TIMEFRAME
 from finskillos.db.repositories import IndicatorRepository, MarketRepository
 
@@ -272,20 +274,6 @@ def _live_response(
 def _normalize_ticker(ticker: str | None) -> str:
     normalized = (ticker or "NVDA").strip().upper()
     return normalized or "NVDA"
-
-
-def _iso(value) -> str:
-    if isinstance(value, datetime):
-        if value.tzinfo is None:
-            return value.replace(tzinfo=UTC).isoformat()
-        return value.isoformat()
-    return str(value)
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
 
 
 def _indicator_status(latest_indicator) -> str:

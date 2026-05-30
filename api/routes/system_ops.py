@@ -45,6 +45,7 @@ from api.schemas.system_ops import (
     WorkerCycleRecord,
     WorkerStatusSummary,
 )
+from api.timeutil import to_utc as _as_utc
 from finskillos.data_sources import DEFAULT_US_TICKER_UNIVERSE
 from finskillos.db.repositories import (
     SystemOpsProtocolRunRepository,
@@ -616,10 +617,6 @@ def _positive_int_env(name: str, default: int) -> int:
     return max(0, value)
 
 
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
 
 
 def _worker_cycle_detail(row) -> str:
