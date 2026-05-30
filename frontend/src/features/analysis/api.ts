@@ -1,28 +1,20 @@
-import { ApiError, getJson } from "@/shared/api/client";
+import { getJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
-import { analysisWorkspaceFixture } from "@/mocks/fixtures/analysisWorkspace.fixture";
 import type { AnalysisWorkspaceData } from "./types";
 
 /**
  * Read the Analysis Workspace / Index Lab snapshot.
  *
- * Same fixture-fallback contract as the Control Room: 5xx errors
- * surface, 4xx / network errors degrade to the deterministic fixture
- * so the cockpit always renders. Track removal of the silent fallback
- * with the 13.6 cleanup §7 TODO.
+ * Slice 88: errors surface to React Query instead of degrading silently to the
+ * fixture. The page renders the deterministic fixture *shape* with an explicit
+ * "live data unavailable" pill so sample data is never shown as if it were
+ * live. The backend already returns explicit live/empty/error states, so a
+ * thrown error here means the API itself is unreachable.
  */
 export async function fetchAnalysisWorkspace(
   signal?: AbortSignal,
 ): Promise<AnalysisWorkspaceData> {
-  try {
-    return await getJson<AnalysisWorkspaceData>(
-      apiEndpoints.analysisWorkspace,
-      { signal },
-    );
-  } catch (error) {
-    if (error instanceof ApiError && error.status >= 500) {
-      throw error;
-    }
-    return analysisWorkspaceFixture;
-  }
+  return await getJson<AnalysisWorkspaceData>(apiEndpoints.analysisWorkspace, {
+    signal,
+  });
 }

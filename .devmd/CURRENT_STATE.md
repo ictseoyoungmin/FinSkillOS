@@ -125,6 +125,7 @@ operational protocols.
 85     System Ops Protocol History Samples in Fixture Mode
 86     db-unavailable Distinct State (global banner)
 87     get_session_scope DB-outage vs config-bug hardening
+88     Frontend Live-Fetch Failure Pill (Market Kernel / Analysis)
 ```
 
 Slice 14 is complete:
@@ -384,10 +385,7 @@ Active, importance-ordered queue (derived from
 slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 
 ### P1 — correctness / trust
-- [~] **frontend silent-fallback → failure pill** — `features/market/api.ts:14`,
-  `features/analysis/api.ts:12` TODOs: replace silent fixture fallback with an
-  explicit live-failure indicator (backend already returns live-error).
-- [ ] **`EVENT_PLACEHOLDER_GUARD` live wiring** — Risk Firewall still ships an
+- [~] **`EVENT_PLACEHOLDER_GUARD` live wiring** — Risk Firewall still ships an
   Event Placeholder guard; wire event-risk to live Catalyst Watch exposure.
 - [ ] **Docker env-state test audit** — sweep remaining no-header tests that
   assume fixture values but get live against a seeded DB (Slice 81/83 fixed two);
@@ -418,3 +416,7 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   failure (`SQLAlchemyError`/missing driver) yields the db-unavailable state and
   it is logged; config errors propagate; route errors after yield surface
   normally instead of being swallowed.
+- [x] **88 frontend live-fetch failure pill** — Market Kernel / Analysis
+  Workspace no longer swallow fetch errors into a silent fixture; they render
+  the fixture shape with an explicit "Live data unavailable" `StatusPill`.
+  (Other seven tabs share the pattern — follow-up.)

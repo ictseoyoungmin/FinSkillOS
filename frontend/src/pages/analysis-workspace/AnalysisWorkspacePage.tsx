@@ -9,11 +9,11 @@ import {
   Badge,
   ConflictsPanel,
   DriversPanel,
-  EmptyState,
   InterpretationPanel,
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
   WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
@@ -27,19 +27,6 @@ export function AnalysisWorkspacePage() {
     placeholderData: analysisWorkspaceFixture,
   });
 
-  if (error && !data) {
-    return (
-      <EmptyState
-        testId="analysis-workspace-error"
-        title="Analysis Workspace is unavailable"
-        message={
-          "The API is unreachable and no fixture is cached. " +
-          "Check the FastAPI container and reload."
-        }
-      />
-    );
-  }
-
   const payload = data ?? analysisWorkspaceFixture;
 
   return (
@@ -47,6 +34,13 @@ export function AnalysisWorkspacePage() {
       className="fso-analysis-workspace"
       data-testid="analysis-workspace-page"
     >
+      {error ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="analysis-workspace-live-failed"
+        />
+      ) : null}
       <SectionHeader
         eyebrow="FinSkillOS · Module"
         title="Analysis Workspace"

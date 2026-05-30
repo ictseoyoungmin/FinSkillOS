@@ -18,6 +18,7 @@ import {
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
   WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
@@ -44,23 +45,17 @@ export function MarketKernelPage() {
     setSearchParams(next, { replace: false });
   };
 
-  if (error && !data) {
-    return (
-      <EmptyState
-        testId="market-kernel-error"
-        title="Market Kernel is unavailable"
-        message={
-          "The API is unreachable and no fixture is cached. " +
-          "Check the FastAPI container and reload."
-        }
-      />
-    );
-  }
-
   const payload = data ?? marketKernelFixture(ticker);
 
   return (
     <div className="fso-market-kernel" data-testid="market-kernel-page">
+      {error ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="market-kernel-live-failed"
+        />
+      ) : null}
       <SectionHeader
         eyebrow="FinSkillOS · Module"
         title="Market Kernel"
