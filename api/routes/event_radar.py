@@ -12,7 +12,7 @@ from datetime import timezone
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import event_radar_fixture
 from api.schemas.common import SystemStatus
 from api.schemas.event_radar import (
@@ -54,7 +54,7 @@ def event_radar(
 
     with get_session_scope() as session:
         if session is None:
-            return event_radar_fixture()
+            return mark_db_unavailable(event_radar_fixture())
 
         vm = build_event_radar_view_model(session)
         return _live_event_radar_response(vm)

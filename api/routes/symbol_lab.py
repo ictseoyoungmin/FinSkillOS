@@ -15,7 +15,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import symbol_lab_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.fixtures.symbol_lab import symbol_identity
@@ -102,9 +102,11 @@ def _read_symbol_lab(
 ) -> SymbolLabResponse:
     with get_session_scope() as session:
         if session is None:
-            return symbol_lab_fixture(
-                ticker,
-                timeframe=_normalize_timeframe(timeframe),
+            return mark_db_unavailable(
+                symbol_lab_fixture(
+                    ticker,
+                    timeframe=_normalize_timeframe(timeframe),
+                )
             )
 
         resolved_ticker = _normalize_ticker(ticker)
@@ -197,7 +199,7 @@ def subscribe_symbol(
     resolved_ticker = _normalize_ticker(ticker)
     with get_session_scope() as session:
         if session is None:
-            return symbol_lab_fixture(resolved_ticker)
+            return mark_db_unavailable(symbol_lab_fixture(resolved_ticker))
 
         repo = SymbolSubscriptionRepository(session)
         repo.subscribe(
@@ -224,7 +226,7 @@ def unsubscribe_symbol(
     resolved_ticker = _normalize_ticker(ticker)
     with get_session_scope() as session:
         if session is None:
-            return symbol_lab_fixture(resolved_ticker)
+            return mark_db_unavailable(symbol_lab_fixture(resolved_ticker))
         SymbolSubscriptionRepository(session).unsubscribe(resolved_ticker)
 
     return _read_symbol_lab(resolved_ticker, timeframe=timeframe)

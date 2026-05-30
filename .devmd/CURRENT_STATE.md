@@ -119,6 +119,7 @@ operational protocols.
 79     System Ops Protocol History Evidence Density
 80     Reduce DB-Reachable Fixture Fallback (Live-Empty / Live-Error)
 81     Refresh Stale v4.2 Fixture-First Contract List
+82     Explicit DB-Unavailable State for the Offline Path
 ```
 
 Slice 14 is complete:
@@ -325,6 +326,10 @@ Slice 14 is complete:
   DB-state-independent structural check (no header) plus deterministic fixture
   anchor checks (forced `X-FSO-Use-Fixture`), with the fixture-override check
   covering all ten tabs. The stale `fixture-first` list/test was removed.
+- The fully-offline (`session is None`) path now labels every tab's per-tab DB
+  indicator `MISSING` via a shared `mark_db_unavailable` helper instead of
+  claiming `db="LIVE"`. The explicit `X-FSO-Use-Fixture` demo override keeps
+  `db="LIVE"`, so a DB outage and an intentional fixture stay distinguishable.
 ```
 
 ## Validation Baseline
@@ -353,11 +358,6 @@ docker compose -f docker-compose.yml --profile e2e run --rm e2e npm run test:vis
 All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
-
-0. Offline `session is None` explicit "DB unavailable" state
-   - Slice 80 removed DB-reachable fixture fallback; the fully-offline path still
-     returns fixture. Promote it to an explicit, labeled "DB unavailable" state
-     so a missing database is never confused with a seeded sample.
 
 1. Market Kernel coverage copy parity with Symbol Lab
    - Symbol Lab now grades sparse/partial coverage quantitatively (Slice 77)

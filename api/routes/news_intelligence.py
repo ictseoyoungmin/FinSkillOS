@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import news_intelligence_fixture
 from api.fixtures.symbol_lab import symbol_identity
 from api.schemas.common import SystemStatus
@@ -48,7 +48,7 @@ def news_intelligence(
 
     with get_session_scope() as session:
         if session is None:
-            return news_intelligence_fixture()
+            return mark_db_unavailable(news_intelligence_fixture())
         try:
             from finskillos.ui.view_models.news_intelligence_vm import (
                 build_news_intelligence_view_model,

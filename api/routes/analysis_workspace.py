@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import analysis_workspace_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.analysis_workspace import (
@@ -54,7 +54,7 @@ def analysis_workspace(
 
     with get_session_scope() as session:
         if session is None:
-            return analysis_workspace_fixture()
+            return mark_db_unavailable(analysis_workspace_fixture())
 
         vm = build_index_lab_view_model(session)
         assert_index_lab_view_model_is_safe(vm)

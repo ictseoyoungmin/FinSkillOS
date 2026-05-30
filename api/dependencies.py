@@ -62,6 +62,26 @@ def get_session_scope() -> Iterator[object]:
         yield None
 
 
+DB_UNAVAILABLE = "MISSING"
+
+
+def mark_db_unavailable(payload):
+    """Label a fixture payload that is served because the DB is unreachable.
+
+    The ``session is None`` path still returns the deterministic fixture *shape*
+    so the cockpit renders while offline, but the per-tab DB indicator must read
+    ``MISSING`` — never ``LIVE`` — so a down or unconfigured database is never
+    shown as a live snapshot. This is the per-tab counterpart of
+    ``/api/system-status`` already reporting ``dbStatus="MISSING"`` offline. The
+    explicit ``X-FSO-Use-Fixture`` opt-in keeps the fixture's own ``db`` label
+    (an intentional demo), so the two cases stay distinguishable.
+    """
+    status = getattr(payload, "system_status", None)
+    if status is not None:
+        status.db = DB_UNAVAILABLE
+    return payload
+
+
 def use_fixture_flag(
     x_fso_use_fixture: str | None = Header(default=None, alias="X-FSO-Use-Fixture"),
 ) -> bool:
@@ -78,4 +98,4 @@ def use_fixture_flag(
     return x_fso_use_fixture.strip().lower() in {"1", "true", "yes", "on"}
 
 
-__all__ = ["get_session_scope", "use_fixture_flag"]
+__all__ = ["get_session_scope", "mark_db_unavailable", "use_fixture_flag"]

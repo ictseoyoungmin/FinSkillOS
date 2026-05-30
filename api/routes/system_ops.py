@@ -26,7 +26,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import system_ops_fixture
 from api.schemas.common import (
     EvidenceConflict,
@@ -73,7 +73,7 @@ def system_ops(
     with get_session_scope() as session:
         if session is None:
             payload.recent_protocol_runs = _read_recent_protocol_runs()
-            return payload
+            return mark_db_unavailable(payload)
         try:
             payload.recent_protocol_runs = _read_recent_protocol_runs(session=session)
             payload.worker_status = _read_worker_status(session=session)

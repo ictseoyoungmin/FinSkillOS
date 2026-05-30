@@ -19,7 +19,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import trade_memory_fixture
 from api.schemas.common import SystemStatus
 from api.schemas.trade_memory import (
@@ -56,7 +56,7 @@ def trade_memory(
 
     with get_session_scope() as session:
         if session is None:
-            return payload
+            return mark_db_unavailable(payload)
         try:
             return _live_trade_memory_payload(session)
         except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture

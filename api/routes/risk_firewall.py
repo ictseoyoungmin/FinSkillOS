@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import risk_firewall_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
@@ -48,7 +48,7 @@ def risk_firewall(
 
     with get_session_scope() as session:
         if session is None:
-            return risk_firewall_fixture()
+            return mark_db_unavailable(risk_firewall_fixture())
 
         accounts = AccountRepository(session).list_all()
         if not accounts:

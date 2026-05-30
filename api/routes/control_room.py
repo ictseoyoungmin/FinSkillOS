@@ -13,7 +13,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import control_room_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
@@ -62,7 +62,7 @@ def control_room(
 
     with get_session_scope() as session:
         if session is None:
-            return control_room_fixture()
+            return mark_db_unavailable(control_room_fixture())
 
         vm = build_control_room_view_model(session, persist_alerts=False)
         assert_view_model_is_safe(vm)

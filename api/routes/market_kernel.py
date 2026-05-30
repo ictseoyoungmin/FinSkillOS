@@ -13,7 +13,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import market_kernel_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
@@ -50,7 +50,7 @@ def market_kernel(
 
     with get_session_scope() as session:
         if session is None:
-            return market_kernel_fixture(ticker)
+            return mark_db_unavailable(market_kernel_fixture(ticker))
 
         resolved_ticker = _normalize_ticker(ticker)
         now = datetime.now(tz=UTC)

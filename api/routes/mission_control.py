@@ -8,7 +8,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from api.dependencies import get_session_scope, use_fixture_flag
+from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import mission_control_fixture
 from api.schemas.common import (
     EvidenceConflict,
@@ -48,7 +48,7 @@ def mission_control(
 
     with get_session_scope() as session:
         if session is None:
-            return mission_control_fixture()
+            return mark_db_unavailable(mission_control_fixture())
         try:
             return _build_live_mission_control(session)
         except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
