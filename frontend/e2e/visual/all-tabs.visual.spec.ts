@@ -209,6 +209,7 @@ const ROUTES: readonly RouteSpec[] = [
       "migration-status",
       "protocol-cards",
       "data-source-strip",
+      "recent-protocol-runs",
       "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",

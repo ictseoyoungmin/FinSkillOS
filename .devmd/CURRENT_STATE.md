@@ -122,6 +122,7 @@ operational protocols.
 82     Explicit DB-Unavailable State for the Offline Path
 83     Market Kernel Coverage Copy Parity with Symbol Lab
 84     State Vocabulary / Data Source Contract Doc (+ refresh stale doc 12)
+85     System Ops Protocol History Samples in Fixture Mode
 ```
 
 Slice 14 is complete:
@@ -342,6 +343,11 @@ Slice 14 is complete:
   contract, thresholds, and which test enforces each). The stale
   `docs/v2_1/12_Live_Adapter_Boundary.md` boundary table and test rule were
   refreshed to the all-promoted reality.
+- System Ops fixture mode now ships a deterministic sample protocol-run history
+  (`sample_protocol_runs()`), so the Slice-79 history evidence chips are visible
+  in fixture / visual mode without a populated audit log. Forced fixture stays
+  deterministic; offline falls back to the samples; the live path stays honest
+  (real runs, empty if none). System Ops visual baseline regenerated.
 ```
 
 ## Validation Baseline
@@ -371,17 +377,12 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. System Ops history sample run examples
-   - Consider a deterministic fixture set of recent protocol runs (with varied
-     `detailEvidence`) so the history evidence chips (Slice 79) are visible in
-     fixture mode, regenerating the System Ops visual baseline accordingly.
-
-2. Control Room freshness threshold env propagation
+1. Control Room freshness threshold env propagation
    - Surface the configured `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` values
      in operator-facing docs / System Ops data-source notes if cadence tuning
      becomes a routine operation.
 
-3. db-unavailable: distinct content state (Slice 82 target)
+2. db-unavailable: distinct content state (Slice 82 target)
    - Slice 82 added the `db="MISSING"` label, but the offline body is still the
      fixture shape. Promote it to a distinct minimal "connect a database" state
      (per-tab body or a shared React banner keyed on `source="fixture"` +

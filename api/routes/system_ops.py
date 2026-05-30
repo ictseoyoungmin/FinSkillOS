@@ -66,13 +66,18 @@ def system_ops(
 ) -> SystemOpsResponse:
     payload = system_ops_fixture()
     if use_fixture:
-        payload.recent_protocol_runs = _read_recent_protocol_runs()
+        # Forced fixture stays deterministic (demos / visual baselines): keep the
+        # fixture's sample run history instead of reading the local audit log.
         payload.source = "fixture"
         return payload
 
     with get_session_scope() as session:
         if session is None:
-            payload.recent_protocol_runs = _read_recent_protocol_runs()
+            # Offline: prefer real local audit runs, else show the deterministic
+            # samples so the history evidence chips remain visible.
+            payload.recent_protocol_runs = (
+                _read_recent_protocol_runs() or payload.recent_protocol_runs
+            )
             return mark_db_unavailable(payload)
         try:
             payload.recent_protocol_runs = _read_recent_protocol_runs(session=session)

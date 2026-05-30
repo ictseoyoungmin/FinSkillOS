@@ -288,6 +288,31 @@ def test_system_ops_protocol_runs_are_audited_to_jsonl(monkeypatch, tmp_path) ->
     assert get_body["recentProtocolRuns"][0]["ranAt"] == post_body["ranAt"]
 
 
+def test_fixture_mode_shows_deterministic_protocol_history() -> None:
+    body = _client().get(
+        "/api/system-ops", headers={"X-FSO-Use-Fixture": "1"}
+    ).json()
+    assert body["source"] == "fixture"
+
+    runs = body["recentProtocolRuns"]
+    # Deterministic sample history so the evidence chips (Slice 79) are visible
+    # in fixture / visual mode without depending on the local audit log.
+    assert len(runs) == 3
+    assert {run["protocol"] for run in runs} == {
+        "calculate_indicators",
+        "refresh_market_data",
+        "seed_sample_events",
+    }
+    for run in runs:
+        assert run["detailEvidence"]
+        assert {"key", "value"}.issubset(run["detailEvidence"][0].keys())
+    assert any(
+        item["key"] == "snapshots"
+        for run in runs
+        for item in run["detailEvidence"]
+    )
+
+
 def test_system_ops_protocol_runs_are_audited_to_db(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"

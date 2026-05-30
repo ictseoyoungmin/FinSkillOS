@@ -14,14 +14,67 @@ from api.schemas.common import SystemStatus
 from api.schemas.system_ops import (
     DataSourcePill,
     ProtocolCard,
+    ProtocolDetailEvidence,
+    ProtocolRunRecord,
     SystemOpsResponse,
 )
+
+
+def sample_protocol_runs() -> list[ProtocolRunRecord]:
+    """Deterministic recent-run history so the System Ops history evidence chips
+    are visible in fixture/visual mode even with an empty local audit log.
+
+    These are demo records (``source="fixture"``); a live or populated-audit
+    response replaces them with real ``ProtocolRunRecord`` rows.
+    """
+    return [
+        ProtocolRunRecord(
+            protocol="calculate_indicators",
+            status="OK",
+            message="Descriptive indicator snapshots computed from stored bars.",
+            detail="snapshots=12, tickers=12",
+            detail_evidence=[
+                ProtocolDetailEvidence(key="snapshots", value="12"),
+                ProtocolDetailEvidence(key="tickers", value="12"),
+            ],
+            ran_at="2026-05-20T11:40:00+09:00",
+            db_status="LIVE",
+            source="fixture",
+        ),
+        ProtocolRunRecord(
+            protocol="refresh_market_data",
+            status="OK",
+            message="Stored OHLCV bars refreshed for the focus universe.",
+            detail="bars=120, tickers=12",
+            detail_evidence=[
+                ProtocolDetailEvidence(key="bars", value="120"),
+                ProtocolDetailEvidence(key="tickers", value="12"),
+            ],
+            ran_at="2026-05-20T11:20:00+09:00",
+            db_status="LIVE",
+            source="fixture",
+        ),
+        ProtocolRunRecord(
+            protocol="seed_sample_events",
+            status="NOOP",
+            message="Event catalog already present; no new rows seeded.",
+            detail="noop_existing, boundary=system_ops",
+            detail_evidence=[
+                ProtocolDetailEvidence(key="detail", value="noop_existing"),
+                ProtocolDetailEvidence(key="boundary", value="system_ops"),
+            ],
+            ran_at="2026-05-20T10:55:00+09:00",
+            db_status="LIVE",
+            source="fixture",
+        ),
+    ]
 
 
 def system_ops_fixture() -> SystemOpsResponse:
     return SystemOpsResponse(
         generated_at=FIXTURE_TIMESTAMP,
         source="fixture",
+        recent_protocol_runs=sample_protocol_runs(),
         system_status=SystemStatus(db="LIVE", mode="READ_MODE", guard_count=3),
         judgment=judgment(
             "SYSTEM TRUST JUDGMENT",

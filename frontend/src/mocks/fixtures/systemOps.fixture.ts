@@ -123,7 +123,47 @@ export const systemOpsFixture: SystemOpsData = {
       lastRunAt: null,
     },
   ],
-  recentProtocolRuns: [],
+  recentProtocolRuns: [
+    {
+      protocol: "calculate_indicators",
+      status: "OK",
+      message: "Descriptive indicator snapshots computed from stored bars.",
+      detail: "snapshots=12, tickers=12",
+      detailEvidence: [
+        { key: "snapshots", value: "12" },
+        { key: "tickers", value: "12" },
+      ],
+      ranAt: "2026-05-20T11:40:00+09:00",
+      dbStatus: "LIVE",
+      source: "fixture",
+    },
+    {
+      protocol: "refresh_market_data",
+      status: "OK",
+      message: "Stored OHLCV bars refreshed for the focus universe.",
+      detail: "bars=120, tickers=12",
+      detailEvidence: [
+        { key: "bars", value: "120" },
+        { key: "tickers", value: "12" },
+      ],
+      ranAt: "2026-05-20T11:20:00+09:00",
+      dbStatus: "LIVE",
+      source: "fixture",
+    },
+    {
+      protocol: "seed_sample_events",
+      status: "NOOP",
+      message: "Event catalog already present; no new rows seeded.",
+      detail: "noop_existing, boundary=system_ops",
+      detailEvidence: [
+        { key: "detail", value: "noop_existing" },
+        { key: "boundary", value: "system_ops" },
+      ],
+      ranAt: "2026-05-20T10:55:00+09:00",
+      dbStatus: "LIVE",
+      source: "fixture",
+    },
+  ],
   workerStatus: {
     status: "MISSING",
     cadenceStatus: "MISSING",
