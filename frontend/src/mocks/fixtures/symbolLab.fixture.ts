@@ -66,7 +66,8 @@ const TSLA: SymbolLabData = {
     barCount: 12,
     coverageLevel: "SPARSE",
     evidenceCoveragePercent: 72,
-    missingSummary: "TSLA has fewer than 20 stored bars.",
+    missingSummary:
+      "TSLA has 12 of 20 stored bars; 8 more complete the indicator window.",
     indicatorStatus: "AVAILABLE",
     logoSource: "local_fallback",
     subscriptionStatus: "subscribed",

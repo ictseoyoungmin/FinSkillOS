@@ -60,6 +60,9 @@ from finskillos.signals import technical
 router = APIRouter(tags=["symbol-lab"])
 UTC = timezone.utc
 SINGLE_POSITION_REVIEW_THRESHOLD = Decimal("10000000")
+# Minimum stored-bar window for a stable Symbol Lab indicator snapshot. Below
+# this count the page reports SPARSE coverage and grades how many bars remain.
+SYMBOL_INDICATOR_WARMUP_BARS = 20
 SUPPORTED_SYMBOL_TIMEFRAMES = {"5m", "15m", "1h", "1d", "1wk", "1mo", "1y"}
 TIMEFRAME_ALIASES = {"1w": "1wk", "1mon": "1mo"}
 
@@ -817,6 +820,7 @@ def _data_state_for(
         ),
         missing_summary=_missing_summary(
             ticker=identity.ticker,
+            bar_count=len(bars),
             coverage_level=coverage_level,
             indicator_status=indicator_status,
         ),
@@ -830,7 +834,7 @@ def _data_state_for(
 def _coverage_level(*, bar_count: int, indicator_status: str) -> str:
     if bar_count <= 0:
         return "EMPTY"
-    if bar_count < 20:
+    if bar_count < SYMBOL_INDICATOR_WARMUP_BARS:
         return "SPARSE"
     if indicator_status != "AVAILABLE":
         return "PARTIAL"
@@ -840,7 +844,7 @@ def _coverage_level(*, bar_count: int, indicator_status: str) -> str:
 def _evidence_coverage_percent(*, bar_count: int, indicator_status: str) -> int:
     if bar_count <= 0:
         return 0
-    bar_score = min(bar_count / 20, 1.0) * 70
+    bar_score = min(bar_count / SYMBOL_INDICATOR_WARMUP_BARS, 1.0) * 70
     indicator_score = {
         "AVAILABLE": 30,
         "PARTIAL": 15,
@@ -852,6 +856,7 @@ def _evidence_coverage_percent(*, bar_count: int, indicator_status: str) -> int:
 def _missing_summary(
     *,
     ticker: str,
+    bar_count: int,
     coverage_level: str,
     indicator_status: str,
 ) -> str:
@@ -860,9 +865,16 @@ def _missing_summary(
     if coverage_level == "EMPTY":
         return f"{ticker} needs stored bars and indicators."
     if coverage_level == "SPARSE":
-        return f"{ticker} has fewer than 20 stored bars."
+        remaining = max(SYMBOL_INDICATOR_WARMUP_BARS - bar_count, 0)
+        return (
+            f"{ticker} has {bar_count} of {SYMBOL_INDICATOR_WARMUP_BARS} "
+            f"stored bars; {remaining} more complete the indicator window."
+        )
     if indicator_status != "AVAILABLE":
-        return f"{ticker} needs a complete indicator snapshot."
+        return (
+            f"{ticker} has {bar_count} stored bars but the latest indicator "
+            "snapshot is incomplete."
+        )
     return f"{ticker} evidence is partial."
 
 

@@ -1,6 +1,6 @@
 # Current State — FinSkillOS v2.1 / v4.2 Cockpit
 
-Updated: 2026-05-28
+Updated: 2026-05-30
 
 ## Architecture
 
@@ -114,6 +114,7 @@ operational protocols.
 74     Symbol Lab Market Kernel Coverage Parity
 75     Control Room Freshness Staleness Thresholds
 76     System Ops Protocol Result API Detail Normalization
+77     Symbol Lab Coverage Threshold Polish
 ```
 
 Slice 14 is complete:
@@ -299,6 +300,10 @@ Slice 14 is complete:
 - System Ops protocol results now expose `detailEvidence` key/value rows in
   the API contract while preserving the legacy `detail` string for audit and
   DB-history compatibility.
+- Symbol Lab now grades sparse/partial coverage copy quantitatively, reporting
+  stored bars against a named indicator-warmup threshold (e.g. "12 of 20 stored
+  bars; 8 more complete the indicator window") instead of a binary
+  "fewer than 20 stored bars" string.
 ```
 
 ## Validation Baseline
@@ -328,14 +333,10 @@ All development and verification for this workspace should run through Docker.
 
 ## Next Useful Slices
 
-1. Symbol Lab coverage threshold polish
-   - Tune sparse/partial copy after more stored non-fixture symbol histories
-     are available in the local DB.
-
-2. Control Room freshness threshold configuration
+1. Control Room freshness threshold configuration
    - Move the current three-day market/watchlist threshold into an explicit
      settings contract if operational cadence starts varying by environment.
 
-3. System Ops protocol history evidence density
+2. System Ops protocol history evidence density
    - Render recent protocol run `detailEvidence` in the System Ops history
      area once the audit table has accumulated enough varied run examples.
