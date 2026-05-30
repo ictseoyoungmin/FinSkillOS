@@ -447,6 +447,44 @@ def test_event_risk_guard_is_informational_placeholder() -> None:
     assert result.guard_name == GUARD_EVENT_PLACEHOLDER
     assert result.status == STATUS_INFO
     assert result.risk_level == RISK_GREEN
+    assert result.evidence["events_table_connected"] is False
+    _check_safety(result)
+
+
+def test_event_risk_guard_reports_live_exposure_when_connected() -> None:
+    from finskillos.guards.base import EventRiskSummary
+
+    summary = EventRiskSummary(
+        connected=True,
+        upcoming_count=3,
+        holdings_relevant_count=1,
+        highest_label="HIGH",
+        highest_score=Decimal("5.50"),
+        nearest_days=4,
+        affected_tickers=("NVDA", "TSLA"),
+    )
+    result = event_risk_guard.evaluate(_base_input(event_risk=summary))
+
+    assert result.guard_name == GUARD_EVENT_PLACEHOLDER
+    # INFO-only by design: live exposure never changes the WARN/FAIL ladder.
+    assert result.status == STATUS_INFO
+    assert result.risk_level == RISK_GREEN
+    assert "3" in result.title
+    assert result.evidence["events_table_connected"] is True
+    assert result.evidence["upcoming_count"] == 3
+    assert result.evidence["highest_label"] == "HIGH"
+    _check_safety(result)
+
+
+def test_event_risk_guard_connected_with_no_events_is_neutral() -> None:
+    from finskillos.guards.base import EventRiskSummary
+
+    result = event_risk_guard.evaluate(
+        _base_input(event_risk=EventRiskSummary(connected=True, upcoming_count=0))
+    )
+    assert result.status == STATUS_INFO
+    assert result.evidence["events_table_connected"] is True
+    assert result.evidence["upcoming_count"] == 0
     _check_safety(result)
 
 

@@ -126,6 +126,7 @@ operational protocols.
 86     db-unavailable Distinct State (global banner)
 87     get_session_scope DB-outage vs config-bug hardening
 88     Frontend Live-Fetch Failure Pill (Market Kernel / Analysis)
+89     Event Risk Guard Live Wiring
 ```
 
 Slice 14 is complete:
@@ -385,9 +386,7 @@ Active, importance-ordered queue (derived from
 slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 
 ### P1 — correctness / trust
-- [~] **`EVENT_PLACEHOLDER_GUARD` live wiring** — Risk Firewall still ships an
-  Event Placeholder guard; wire event-risk to live Catalyst Watch exposure.
-- [ ] **Docker env-state test audit** — sweep remaining no-header tests that
+- [~] **Docker env-state test audit** — sweep remaining no-header tests that
   assume fixture values but get live against a seeded DB (Slice 81/83 fixed two);
   pin to fixture or seed deterministically.
 
@@ -420,3 +419,6 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   Workspace no longer swallow fetch errors into a silent fixture; they render
   the fixture shape with an explicit "Live data unavailable" `StatusPill`.
   (Other seven tabs share the pattern — follow-up.)
+- [x] **89 event risk guard live wiring** — `EVENT_PLACEHOLDER_GUARD` now reports
+  live Catalyst Watch exposure (`EventRiskSummary` from EventService +
+  EventRiskService), staying INFO-only so the WARN/FAIL ladder is unchanged.

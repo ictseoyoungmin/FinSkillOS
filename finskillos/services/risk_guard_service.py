@@ -35,6 +35,7 @@ from finskillos.db.repositories import (
     PositionRepository,
 )
 from finskillos.guards import (
+    EventRiskSummary,
     GuardInput,
     GuardResult,
     PositionRiskInput,
@@ -53,6 +54,8 @@ from finskillos.guards import (
     worst_status,
 )
 from finskillos.guards.base import STATUS_BLOCKED, STATUS_FAIL, STATUS_WARN
+from finskillos.services.event_risk_service import EventRiskService
+from finskillos.services.event_service import EventService
 from finskillos.services.goal_service import GoalService
 
 log = logging.getLogger(__name__)
@@ -120,6 +123,50 @@ class RiskGuardService:
             regime_risk_level=regime_payload[1],
             decision_mode=regime_payload[2],
             goal_progress_pct=goal_status.progress_pct,
+            event_risk=self._build_event_risk_summary(account_id),
+        )
+
+    def _build_event_risk_summary(
+        self, account_id: uuid.UUID
+    ) -> EventRiskSummary:
+        """Live Catalyst Watch exposure for the event risk guard (Slice 89).
+
+        Reads upcoming events via ``EventService`` and scores each with the
+        Slice-11 ``EventRiskService``. INFO-only context — it does not change
+        the WARN/FAIL ladder.
+        """
+
+        today = datetime.now(tz=UTC).date()
+        event_service = EventService(self.session)
+        risk_service = EventRiskService(self.session)
+
+        upcoming = event_service.list_upcoming(today=today, limit=25)
+        if not upcoming:
+            return EventRiskSummary(connected=True, upcoming_count=0)
+
+        holdings = event_service.list_holdings_relevant(
+            today=today, account_id=account_id, limit=25
+        )
+        breakdowns = [
+            risk_service.score(event, today=today, account_id=account_id)
+            for event in upcoming
+        ]
+        top = max(breakdowns, key=lambda b: b.event_risk_score)
+        affected = tuple(
+            sorted({t for b in breakdowns for t in b.affected_tickers})
+        )[:8]
+        nearest = min(
+            (b.days_to_event for b in breakdowns if b.days_to_event is not None),
+            default=None,
+        )
+        return EventRiskSummary(
+            connected=True,
+            upcoming_count=len(upcoming),
+            holdings_relevant_count=len(holdings),
+            highest_label=top.risk_label,
+            highest_score=top.event_risk_score,
+            nearest_days=nearest,
+            affected_tickers=affected,
         )
 
     # ------------------------------------------------------------------

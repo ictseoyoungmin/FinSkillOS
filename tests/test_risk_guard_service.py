@@ -178,6 +178,29 @@ def test_build_input_from_existing_services(
     assert inputs.goal_progress_pct == Decimal("57.00")
 
 
+def test_event_risk_guard_reflects_seeded_catalysts(
+    db_session: Session, account_id: uuid.UUID
+) -> None:
+    from datetime import date as _date
+
+    from finskillos.services.event_service import EventService
+
+    _seed_overheat_portfolio(db_session, account_id)
+    EventService(db_session).seed_sample_events(today=_date.today())
+    db_session.flush()
+
+    report = RiskGuardService(db_session).evaluate(
+        account_id, persist_alerts=False
+    )
+    event_result = report.by_name("EVENT_PLACEHOLDER_GUARD")
+
+    # Live wiring: the guard now reflects the seeded Catalyst Watch events,
+    # but stays INFO so the overall WARN/FAIL ladder is unchanged.
+    assert event_result.status == "INFO"
+    assert event_result.evidence["events_table_connected"] is True
+    assert event_result.evidence["upcoming_count"] >= 1
+
+
 def test_evaluate_produces_full_report(
     db_session: Session, account_id: uuid.UUID
 ) -> None:

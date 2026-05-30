@@ -154,6 +154,24 @@ class PositionRiskInput:
 
 
 @dataclass(frozen=True)
+class EventRiskSummary:
+    """Live Catalyst Watch exposure summary fed into the event risk guard.
+
+    Built by ``RiskGuardService`` from ``EventService`` + ``EventRiskService``
+    (Slice 11). ``connected=False`` reproduces the original deferred placeholder
+    so callers that do not supply event context stay back-compatible.
+    """
+
+    connected: bool = False
+    upcoming_count: int = 0
+    holdings_relevant_count: int = 0
+    highest_label: str | None = None
+    highest_score: Decimal | None = None
+    nearest_days: int | None = None
+    affected_tickers: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class GuardInput:
     """Read-model snapshot the orchestrator builds for the guard ladder."""
 
@@ -170,6 +188,7 @@ class GuardInput:
     goal_progress_pct: Decimal | None = None
     single_position_limit: Decimal = DEFAULT_SINGLE_POSITION_LIMIT_KRW
     min_cash_ratio: Decimal = DEFAULT_MIN_CASH_RATIO
+    event_risk: EventRiskSummary | None = None
 
 
 @dataclass(frozen=True)
