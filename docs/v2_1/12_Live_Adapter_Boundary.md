@@ -3,6 +3,11 @@
 > Current status: v2.1 / v4.2 boundary contract.
 > This document defines which surfaces may become DB-backed first and which
 > surfaces remain deterministic fixture snapshots for visual and product safety.
+> For the precise state vocabulary (fixture / live / live-empty / live-error /
+> db-unavailable) and field contract, see `13_State_Vocabulary_And_Data_Source_Contract.md`.
+>
+> As of Slice 80–83 **all ten product GET tabs are promoted** to DB-backed read
+> models; the tables below are kept as the promotion history.
 
 ## 1. Principle
 
@@ -24,28 +29,31 @@ own their own snapshot source.
 | Endpoint | Current source | Live promotion status | Notes |
 |---|---|---|---|
 | `/api/system-status` | live when DB reachable | promoted | Reports `dbStatus`, `source`, `dataCompleteness`, `staleFlags`. |
-| `/api/system-ops` | fixture catalogue | partial | Protocol runs can be live/NOOP; catalogue remains stable. |
-| `/api/control-room` | fixture | deferred | Promote only after a DB-backed aggregate read model exists. |
-| `/api/market-kernel` | fixture or live | promoted | Live when DB is reachable; missing ticker bars stay explicit. |
-| `/api/analysis-workspace` | fixture | deferred | Requires index/ETF universe freshness contract. |
-| `/api/symbol-lab` | fixture or live | promoted | Live when stored bars exist; position/alert context attaches from DB. |
-| `/api/risk-firewall` | fixture or live | promoted first | Live when DB session and account exist; fixture fallback remains explicit. |
-| `/api/mission-control` | fixture | deferred | Promote after portfolio snapshot freshness is reliable. |
-| `/api/news-intelligence` | fixture/manual POST | deferred | Live polling is not enabled; manual writes may be DB-backed. |
-| `/api/event-radar` | fixture/manual POST | deferred | Manual writes may be DB-backed; uncertain statuses stay explicit. |
-| `/api/trade-memory` | fixture/manual POST | deferred | Reflection writes may be DB-backed; product view remains fixture-first. |
+| `/api/system-ops` | live/fixture | promoted (partial) | Protocol runs + worker status live; catalogue stable. DB-reachable error still falls back to fixture (open cleanup). |
+| `/api/control-room` | live or fixture | promoted | DB-backed operating overview; non-composed rails marked partial in `dataState`. |
+| `/api/market-kernel` | live or fixture | promoted | Live when DB is reachable; missing ticker bars stay explicit. |
+| `/api/analysis-workspace` | live or fixture | promoted | DB-backed Index Lab read model; coverage levels explicit. |
+| `/api/symbol-lab` | live or fixture | promoted | Live when stored bars exist; position/alert context attaches from DB. |
+| `/api/risk-firewall` | live or fixture | promoted | Live when DB session and account exist; live-empty/live-error explicit (Slice 80). |
+| `/api/mission-control` | live or fixture | promoted | DB-backed goal/portfolio/exposure read model; live-empty/live-error explicit. |
+| `/api/news-intelligence` | live or fixture | promoted | DB-backed stored RSS news; manual registration removed; live-error explicit. |
+| `/api/event-radar` | live or fixture | promoted | DB-backed read-only event catalog; seeding only via System Ops. |
+| `/api/trade-memory` | live or fixture | promoted | DB-backed Slice-12 reflection read model; live-error explicit. |
+
+All tabs honour the `X-FSO-Use-Fixture` override (fixture state) and the offline
+`session is None` path (db-unavailable state). See doc 13 §1.
 
 ## 3. Promotion Order
 
-Recommended order:
+This was the recommended order; **all steps are now complete** (Slices 21–66).
 
-1. System Ops status and protocol audit evidence.
+1. System Ops status and protocol audit evidence. `DONE`.
 2. Risk Firewall read model, because guard contracts are explicit. `DONE`.
-3. Mission Control, because portfolio snapshots are already operationally central.
+3. Mission Control, because portfolio snapshots are already operationally central. `DONE`.
 4. Market Kernel for stored bars and indicators. `DONE`.
 5. Symbol Lab for stored bars, indicators, and arbitrary ticker context. `DONE`.
-6. News/Event/Trade Memory read models after manual-write behavior is stable.
-7. Control Room last, because it aggregates every other module.
+6. News / Event / Trade Memory read models after manual-write behaviour is stable. `DONE`.
+7. Control Room last, because it aggregates every other module. `DONE`.
 
 ## 3.1 Provider Adapter Status
 
@@ -90,20 +98,29 @@ does not delete historical bars or indicator snapshots.
 ## 4. UI Rule
 
 Every page must keep source/completeness visible through the global OS status
-bar. A tab can show fixture content while system status is live; that is not
-a contradiction. It means:
+bar. With all tabs promoted, the default (no-header) response is **live** when a
+DB is reachable. The remaining fixture cases are explicit:
 
 ```text
-DB is reachable
-the product tab still uses deterministic snapshot data
-freshness/completeness is reported separately
+X-FSO-Use-Fixture: 1   -> fixture state (db stays LIVE) — demos / visual baselines
+session is None        -> db-unavailable state (db=MISSING) — DB down/unconfigured
 ```
+
+A live tab with no rows shows live-empty (not fixture); a live read that raises
+shows live-error (not fixture). See doc 13 §1 for the full state model.
 
 ## 5. Test Rule
 
-Until a dedicated live-adapter slice promotes a tab, tests should assert:
+The cross-tab contract (`tests/test_api_v42_contract.py`) now reflects the
+all-promoted reality:
 
-- all ten v4.2 GET tabs expose `source`;
-- fixture-first tabs return `source=fixture`;
+- all ten v4.2 GET tabs expose `source` and the shared structural contract,
+  for **both** fixture and live (no header, DB-state-independent);
+- fixture **anchors** (judgment vocabulary + safety category) are pinned with
+  the `X-FSO-Use-Fixture` override (deterministic), not the default response;
+- every one of the ten tabs honours the fixture override;
 - only `/api/system-status` exposes `dataCompleteness`;
-- visual baselines remain deterministic fixture captures.
+- visual baselines remain deterministic fixture captures (forced fixture).
+
+There is no longer a "fixture-first-only" tab list; the previous
+`_V42_FIXTURE_FIRST_ENDPOINTS` assumption was removed in Slice 81.

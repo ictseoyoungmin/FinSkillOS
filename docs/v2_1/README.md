@@ -7,6 +7,9 @@ Start with `CONTEXT_INDEX.md`, then open only the documents needed for the imple
 Current operations addenda:
 
 - `11_Scheduler_Refresh_Policy.md` — manual-first, cron-compatible refresh policy.
-- `12_Live_Adapter_Boundary.md` — fixture/live promotion boundary.
-  Includes the current `--adapter yahoo` market-bar refresh path and the
-  remaining news-provider deferral.
+- `12_Live_Adapter_Boundary.md` — fixture/live promotion boundary (all tabs
+  promoted). Includes the current `--adapter yahoo` market-bar refresh path and
+  the remaining news-provider deferral.
+- `13_State_Vocabulary_And_Data_Source_Contract.md` — authoritative state
+  glossary (fixture / live / live-empty / live-error / db-unavailable), field
+  contract, thresholds, and drift-guard tests.

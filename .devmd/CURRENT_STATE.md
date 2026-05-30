@@ -121,6 +121,7 @@ operational protocols.
 81     Refresh Stale v4.2 Fixture-First Contract List
 82     Explicit DB-Unavailable State for the Offline Path
 83     Market Kernel Coverage Copy Parity with Symbol Lab
+84     State Vocabulary / Data Source Contract Doc (+ refresh stale doc 12)
 ```
 
 Slice 14 is complete:
@@ -336,6 +337,11 @@ Slice 14 is complete:
   Market Kernel's sparse/partial copy is graded identically to Symbol Lab
   (e.g. "1 of 20 stored bars; 19 more complete the indicator window"); only the
   COMPLETE line keeps a per-tab domain label.
+- The state model is now pinned in `docs/v2_1/13_State_Vocabulary_And_Data_Source_Contract.md`
+  (fixture / live / live-empty / live-error / db-unavailable, the per-field
+  contract, thresholds, and which test enforces each). The stale
+  `docs/v2_1/12_Live_Adapter_Boundary.md` boundary table and test rule were
+  refreshed to the all-promoted reality.
 ```
 
 ## Validation Baseline
@@ -374,3 +380,10 @@ All development and verification for this workspace should run through Docker.
    - Surface the configured `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` values
      in operator-facing docs / System Ops data-source notes if cadence tuning
      becomes a routine operation.
+
+3. db-unavailable: distinct content state (Slice 82 target)
+   - Slice 82 added the `db="MISSING"` label, but the offline body is still the
+     fixture shape. Promote it to a distinct minimal "connect a database" state
+     (per-tab body or a shared React banner keyed on `source="fixture"` +
+     `db="MISSING"`), so a DB outage is never read as real sample data. See
+     `docs/v2_1/13_*.md` §1.3.

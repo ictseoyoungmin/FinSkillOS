@@ -34,7 +34,10 @@ Deployment and operations:
   - Current manual-first, cron-compatible refresh policy for market bars,
     indicators, regime scans, risk guards, news/events, and visual QA.
 - `12_Live_Adapter_Boundary.md`
-  - Current fixture/live promotion boundary for v4.2 endpoints.
+  - Current fixture/live promotion boundary for v4.2 endpoints (all tabs promoted).
+- `13_State_Vocabulary_And_Data_Source_Contract.md`
+  - Authoritative state glossary: fixture / live / live-empty / live-error /
+    db-unavailable, the per-field contract, thresholds, and drift-guard tests.
 - `.devmd/14_Deployment_Operations.md`
   - Current deployment slice target. Treat this as the live operations workplan
     before editing the older design document.
