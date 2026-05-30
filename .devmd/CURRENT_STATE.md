@@ -127,6 +127,7 @@ operational protocols.
 87     get_session_scope DB-outage vs config-bug hardening
 88     Frontend Live-Fetch Failure Pill (Market Kernel / Analysis)
 89     Event Risk Guard Live Wiring
+90     Docker Env-State Test Audit (deterministic run ordering)
 ```
 
 Slice 14 is complete:
@@ -386,11 +387,9 @@ Active, importance-ordered queue (derived from
 slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 
 ### P1 — correctness / trust
-- [~] **Docker env-state test audit** — sweep remaining no-header tests that
-  assume fixture values but get live against a seeded DB (Slice 81/83 fixed two);
-  pin to fixture or seed deterministically.
+- _All P1 items complete (Slices 86–90); the full Docker suite is green._
 
-### P2 — shared refactor
+### P2 — shared refactor (next up)
 - [ ] **shared `api/timeutil.py`** — dedup `_as_utc` (4 routes) / `_iso` (6).
 - [ ] **shared live-empty / live-error builder** — dedup the per-route Slice-80
   builders into one factory.
@@ -422,3 +421,7 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - [x] **89 event risk guard live wiring** — `EVENT_PLACEHOLDER_GUARD` now reports
   live Catalyst Watch exposure (`EventRiskSummary` from EventService +
   EventRiskService), staying INFO-only so the WARN/FAIL ladder is unchanged.
+- [x] **90 Docker env-state test audit** — full Docker suite swept; the lone
+  remaining failure was an unstable run-ordering bug (same-second `ran_at` +
+  second-precision `created_at`), fixed with a microsecond `created_at` default.
+  Full Docker suite now green.

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import JSON, DateTime, Index, String, Text, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -12,6 +12,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from finskillos.db.base import Base
 
 JSONPayload = JSON().with_variant(JSONB(), "postgresql")
+
+
+def _utcnow() -> datetime:
+    """Microsecond-precision insert time.
+
+    Used as the ORM-side ``created_at`` default so two audit rows written within
+    the same second (``ran_at`` / ``started_at`` are stored at second precision)
+    still order deterministically by insertion time in ``list_recent``.
+    """
+    return datetime.now(timezone.utc)
 
 
 class SystemOpsProtocolRun(Base):
@@ -33,7 +43,10 @@ class SystemOpsProtocolRun(Base):
     )
     ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True),
+        default=_utcnow,
+        server_default=func.now(),
+        nullable=False,
     )
 
 
@@ -61,5 +74,8 @@ class WorkerCycleRun(Base):
     )
     summary: Mapped[dict | None] = mapped_column(JSONPayload)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True),
+        default=_utcnow,
+        server_default=func.now(),
+        nullable=False,
     )
