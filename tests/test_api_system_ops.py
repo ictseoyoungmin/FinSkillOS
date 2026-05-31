@@ -840,3 +840,43 @@ def test_refresh_events_protocol_csv_without_path_is_error(monkeypatch, tmp_path
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_event_calendar_adapter_selects_http(monkeypatch) -> None:
+    """Slice 107 — http branch builds the HttpEventCalendarAdapter from env.
+
+    Construction only; no fetch, so no network is touched."""
+    from api.routes.system_ops import _event_calendar_adapter
+    from finskillos.data_sources.event_adapter import HttpEventCalendarAdapter
+
+    monkeypatch.setenv("FINSKILLOS_EVENT_CALENDAR_ADAPTER", "http")
+    monkeypatch.setenv(
+        "FINSKILLOS_EVENT_CALENDAR_URL", "https://vendorx.example/calendar"
+    )
+    adapter = _event_calendar_adapter()
+    assert isinstance(adapter, HttpEventCalendarAdapter)
+    assert adapter.url == "https://vendorx.example/calendar"
+
+
+def test_refresh_events_protocol_http_without_url_is_error(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_EVENT_CALENDAR_ADAPTER", "http")
+    monkeypatch.delenv("FINSKILLOS_EVENT_CALENDAR_URL", raising=False)
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-events").json()
+        # Missing URL surfaces as a structured ERROR, not a raw 500 / network call.
+        assert body["status"] == "ERROR"
+        assert body["detail"] == "ValueError"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

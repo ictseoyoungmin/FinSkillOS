@@ -1,0 +1,39 @@
+{
+  "events": [
+    {
+      "title": "NVDA quarterly earnings (vendor)",
+      "event_type": "EARNINGS",
+      "date_status": "TENTATIVE",
+      "start_date": "2026-06-05",
+      "source": "vendorx_calendar",
+      "source_url": "https://vendorx.example/calendar/nvda",
+      "description": "Tentative earnings date from VendorX.",
+      "importance_score": 3.5,
+      "links": [{ "ticker": "NVDA", "theme": "AI" }]
+    },
+    {
+      "title": "FOMC rate decision (vendor)",
+      "event_type": "CENTRAL_BANK",
+      "date_status": "CONFIRMED",
+      "start_date": "2026-06-17",
+      "end_date": "2026-06-18",
+      "source": "vendorx_calendar",
+      "importance_score": "4.0",
+      "links": [{ "event_key": "FOMC" }]
+    },
+    {
+      "title": "Semiconductor regulation review (vendor)",
+      "event_type": "REGULATORY",
+      "date_status": "WINDOW",
+      "start_date": "2026-06-24",
+      "ticker": "SMH",
+      "sector": "Semiconductors"
+    },
+    {
+      "title": "",
+      "event_type": "OTHER",
+      "date_status": "WINDOW",
+      "start_date": "2026-06-30"
+    }
+  ]
+}

@@ -867,11 +867,11 @@ def _event_calendar_adapter():
 
     * ``mock`` (default) — offline-safe deterministic calendar.
     * ``csv`` — operator-curated calendar from ``FINSKILLOS_EVENT_CALENDAR_CSV``.
-
-    A real vendor HTTP provider can plug in here later as another branch.
+    * ``http`` — vendor JSON calendar from ``FINSKILLOS_EVENT_CALENDAR_URL``.
     """
     from finskillos.data_sources.event_adapter import (
         CsvEventCalendarAdapter,
+        HttpEventCalendarAdapter,
         MockEventCalendarAdapter,
     )
 
@@ -886,6 +886,14 @@ def _event_calendar_adapter():
                 "calendar adapter"
             )
         return CsvEventCalendarAdapter(path)
+    if name == "http":
+        url = os.environ.get("FINSKILLOS_EVENT_CALENDAR_URL", "").strip()
+        if not url:
+            raise ValueError(
+                "FINSKILLOS_EVENT_CALENDAR_URL must be set for the http event "
+                "calendar adapter"
+            )
+        return HttpEventCalendarAdapter(url=url)
     raise ValueError(f"unsupported event calendar adapter: {name}")
 
 

@@ -144,6 +144,7 @@ operational protocols.
 104    LineChart Crosshair Readout + SVG Accessibility
 105    Control Room Freshness Env → Operator Watchpoints
 106    Control Room State-Band Density
+107    Vendor HTTP Event Calendar Provider
 ```
 
 Slice 14 is complete:
@@ -417,6 +418,13 @@ Slice 14 is complete:
   cites the exact `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` threshold it was
   judged against plus refresh guidance. FRESH/MISSING rails add nothing; the
   fixture/visual path is unchanged.
+- Catalyst Watch can now ingest a real vendor feed: `HttpEventCalendarAdapter`
+  (env-gated `FINSKILLOS_EVENT_CALENDAR_ADAPTER=http` + `..._URL`) fetches a
+  vendor-agnostic JSON calendar over HTTP behind the existing adapter boundary,
+  so the read models / event-risk guard are untouched. Offline-testable via an
+  injected transport (the default `httpx` path is never exercised in the suite);
+  fetch/decode/shape errors raise `EventCalendarFetchError` and a refresh
+  surfaces a structured ERROR. Completes the mock → csv → http provider ladder.
 ```
 
 ## Validation Baseline
@@ -468,8 +476,10 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
     env-gated adapter selection).
   - [x] **95** `CsvEventCalendarAdapter` (operator-curated calendar, env-gated
     `FINSKILLOS_EVENT_CALENDAR_ADAPTER=csv`).
-  - [ ] _optional:_ real vendor HTTP calendar provider (needs a chosen source;
-    not offline-testable) — another `_event_calendar_adapter` branch.
+  - [x] **107** vendor HTTP calendar provider (`HttpEventCalendarAdapter`,
+    env-gated `FINSKILLOS_EVENT_CALENDAR_ADAPTER=http` + `..._URL`). Offline-
+    testable via an injected transport + `tests/fixtures/events/vendor_calendar.json`;
+    vendor-agnostic JSON contract, errors raise `EventCalendarFetchError`.
 
 #### next up
 - [x] **97/98 Market Kernel event overlay + multi-timeframe** — live event overlay
@@ -490,7 +500,30 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   configured `..._STALE_AFTER_DAYS` threshold + refresh guidance.
 - [x] **106** state-band density — Control Room data-state band tightened
   (smaller padding/gap/min-width) and its detail wraps to 2 lines instead of a
-  single-line ellipsis. _P3 batch complete._
+  single-line ellipsis. _Original P3 batch complete._
+
+### P3b — density / visual-efficiency (queued from the 2026-05-31 UI survey)
+Importance-ordered. Each is a bounded, offline-verifiable slice; the only
+visual risk is the per-tab screenshot baseline (regen the changed tab).
+- [ ] **Chart axis-label thinning** (highest visual-efficiency win) —
+  `LineChart` axis labels render every point (`labels.map`), so a 255-bar daily
+  chart shows an unreadable crammed strip. Show ~6–8 evenly-spaced labels
+  (first/last + interior, deterministic) and keep the full set in the
+  visually-hidden data table (Slice 104). Affects Market Kernel + Control Room
+  tape; regen those two baselines.
+- [ ] **State-band density parity** — apply the Slice-106 treatment (tighter
+  tiles + 2-line detail clamp) to the Analysis Workspace / Symbol Lab / Market
+  Kernel data-state bands, which still use the pre-106 180px + single-line
+  ellipsis pattern. Regen those baselines.
+- [ ] **RegimeStateVector honest values** — `derive()` returns hard-coded
+  "Elevated/Compressed/Neutral/Cluster" regardless of state (a placeholder).
+  Either wire each cell to real indicator/regime evidence (RSI zone, vol proxy,
+  macro, event cluster from the live read models) or drop the cells that have no
+  backing signal. Descriptive only; no execution wording.
+- [ ] **Indicator snapshot grid density** — audit the Market Kernel indicator
+  tiles (`repeat(auto-fit, minmax(120px,1fr))`) and the coverage/timeframe rows
+  for wasted vertical space vs. the v4.2 mockup; tighten to a denser readout if
+  warranted.
 
 ### Done (this queue)
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner

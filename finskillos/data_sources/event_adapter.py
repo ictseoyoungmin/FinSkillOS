@@ -16,11 +16,12 @@ stored as a fact.
 from __future__ import annotations
 
 import csv
-from collections.abc import Sequence
+import json
+from collections.abc import Callable, Sequence
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from finskillos.db.models.event import (
     DATE_STATUS_TENTATIVE,
@@ -37,6 +38,7 @@ from finskillos.services.event_service import (
 
 _CALENDAR_MOCK_SOURCE = "calendar_mock"
 _CALENDAR_CSV_SOURCE = "calendar_csv"
+_CALENDAR_HTTP_SOURCE = "calendar_http"
 
 
 class EventCalendarFetchError(RuntimeError):
@@ -165,6 +167,168 @@ class CsvEventCalendarAdapter:
         return items
 
 
+class HttpEventCalendarAdapter:
+    """Fetch a vendor event calendar over HTTP and map it to ``SeededEvent``.
+
+    Vendor-agnostic JSON contract. The endpoint returns either a JSON array of
+    event objects or an object with an ``"events"`` array. Each object:
+
+    ``{"title", "event_type", "date_status", "start_date" (ISO),
+       "end_date"?, "source"?, "source_url"?, "description"?,
+       "importance_score"?, "links": [{"ticker"?, "sector"?, "theme"?,
+       "event_key"?}, ...]}``
+
+    Top-level ``ticker`` / ``sector`` / ``theme`` / ``event_key`` are accepted as
+    a single link when no ``links`` array is present. ``event_type`` and
+    ``date_status`` are validated downstream by ``EventService.create_event``
+    (so a vendor ``CONFIRMED`` row must cite its non-seed ``source``). Network /
+    decode / shape problems raise ``EventCalendarFetchError`` so a refresh fails
+    loudly rather than silently ingesting junk.
+
+    Offline-safe by injection: pass ``transport=callable(url) -> str`` (the raw
+    response body) in tests; the default transport lazily uses ``httpx`` and is
+    never exercised offline.
+    """
+
+    source_name = _CALENDAR_HTTP_SOURCE
+
+    def __init__(
+        self,
+        *,
+        url: str,
+        transport: Callable[[str], str] | None = None,
+        timeout: float = 10.0,
+        default_importance: Decimal = Decimal("2.0"),
+    ) -> None:
+        if not url:
+            raise EventCalendarFetchError(
+                "HTTP event calendar adapter requires a URL"
+            )
+        self.url = url
+        self._transport = transport
+        self.timeout = timeout
+        self.default_importance = default_importance
+
+    def fetch_events(self, *, today: date) -> Sequence[SeededEvent]:
+        # Vendor rows carry absolute dates; ``today`` is part of the protocol
+        # but unused here (the read model filters upcoming events).
+        del today
+        raw = self._fetch_raw()
+        try:
+            payload = json.loads(raw)
+        except (TypeError, ValueError) as exc:
+            raise EventCalendarFetchError(
+                f"event calendar response was not valid JSON: {exc}"
+            ) from exc
+        if isinstance(payload, dict):
+            records = payload.get("events", [])
+        else:
+            records = payload
+        if not isinstance(records, list):
+            raise EventCalendarFetchError(
+                "event calendar JSON must be a list or an object with an "
+                "'events' list"
+            )
+        items: list[SeededEvent] = []
+        for record in records:
+            seeded = self._parse_record(record)
+            if seeded is not None:
+                items.append(seeded)
+        return items
+
+    def _fetch_raw(self) -> str:
+        if self._transport is not None:
+            return self._transport(self.url)
+        return self._http_get(self.url)
+
+    def _http_get(self, url: str) -> str:  # pragma: no cover - network path
+        try:
+            import httpx
+        except ImportError as exc:
+            raise EventCalendarFetchError(
+                "httpx is required for the HTTP event calendar adapter"
+            ) from exc
+        try:
+            response = httpx.get(
+                url, timeout=self.timeout, headers={"Accept": "application/json"}
+            )
+            response.raise_for_status()
+            return response.text
+        except httpx.HTTPError as exc:
+            raise EventCalendarFetchError(
+                f"event calendar request failed: {exc}"
+            ) from exc
+
+    def _parse_record(self, raw: Any) -> SeededEvent | None:
+        if not isinstance(raw, dict):
+            raise EventCalendarFetchError(
+                "each event calendar record must be a JSON object"
+            )
+        title = str(raw.get("title") or "").strip()
+        if not title:
+            return None
+        start_date = _parse_iso_date(raw.get("start_date"), field="start_date", title=title)
+        end_date = (
+            _parse_iso_date(raw.get("end_date"), field="end_date", title=title)
+            if str(raw.get("end_date") or "").strip()
+            else None
+        )
+        event = EventInput(
+            title=title,
+            event_type=str(raw.get("event_type") or "").strip(),
+            date_status=str(raw.get("date_status") or "").strip(),
+            start_date=start_date,
+            end_date=end_date,
+            source=str(raw.get("source") or "").strip() or self.source_name,
+            source_url=str(raw.get("source_url") or "").strip() or None,
+            description=str(raw.get("description") or "").strip() or None,
+            importance_score=self._coerce_importance(raw.get("importance_score")),
+        )
+        return SeededEvent(event=event, links=self._links(raw))
+
+    def _coerce_importance(self, value: Any) -> Decimal:
+        if value in (None, ""):
+            return self.default_importance
+        try:
+            return Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            return self.default_importance
+
+    def _links(self, raw: dict[str, Any]) -> tuple[EventLinkInput, ...]:
+        raw_links = raw.get("links")
+        if isinstance(raw_links, list):
+            links = [
+                link
+                for item in raw_links
+                if isinstance(item, dict)
+                and (link := _link_from_mapping(item)) is not None
+            ]
+            if links:
+                return tuple(links)
+        return _links_from_row(
+            {key: str(raw.get(key) or "") for key in ("ticker", "sector", "theme", "event_key")}
+        )
+
+
+def _parse_iso_date(value: Any, *, field: str, title: str) -> date:
+    try:
+        return date.fromisoformat(str(value or "").strip())
+    except ValueError as exc:
+        raise EventCalendarFetchError(
+            f"event {title!r} has an invalid {field} {value!r}"
+        ) from exc
+
+
+def _link_from_mapping(item: dict[str, Any]) -> EventLinkInput | None:
+    fields = {
+        key: (str(item.get(key) or "").strip() or None)
+        for key in ("ticker", "sector", "theme", "event_key")
+    }
+    if not any(fields.values()):
+        return None
+    return EventLinkInput(**fields)
+
+
 def _links_from_row(raw: dict[str, str]) -> tuple[EventLinkInput, ...]:
     ticker = (raw.get("ticker") or "").strip() or None
     sector = (raw.get("sector") or "").strip() or None
@@ -183,5 +347,6 @@ __all__ = [
     "BaseEventCalendarAdapter",
     "CsvEventCalendarAdapter",
     "EventCalendarFetchError",
+    "HttpEventCalendarAdapter",
     "MockEventCalendarAdapter",
 ]
