@@ -171,7 +171,21 @@ class EventService:
         today: date,
         limit: int | None = None,
     ) -> list[Event]:
-        return self.events.list_upcoming(today=today, limit=limit)
+        """Upcoming events, de-duplicated by title.
+
+        Title is the catalyst identity key (ingestion via ``seed_sample_events``
+        / ``refresh_events`` is idempotent by title). Legacy or externally
+        inserted duplicate-title rows must never surface as repeated rows in
+        Catalyst Watch, the Control Room rail, or the event-risk guard, so the
+        read collapses them here — keeping the earliest occurrence — before
+        applying ``limit``.
+        """
+
+        rows = self.events.list_upcoming(today=today, limit=None)
+        deduped = _dedupe_events_by_title(rows)
+        if limit is not None:
+            return deduped[:limit]
+        return deduped
 
     def list_for_event_key(self, event_key: str) -> list[Event]:
         """Return events linked to ``event_key`` via the repository layer.
@@ -471,6 +485,23 @@ def _offset(day: date, delta_days: int) -> date:
     from datetime import timedelta
 
     return day + timedelta(days=delta_days)
+
+
+# ---------------------------------------------------------------------------
+# Read helpers
+# ---------------------------------------------------------------------------
+
+
+def _dedupe_events_by_title(events: list[Event]) -> list[Event]:
+    """Keep the first event per title, preserving input order."""
+    seen: set[str] = set()
+    result: list[Event] = []
+    for event in events:
+        if event.title in seen:
+            continue
+        seen.add(event.title)
+        result.append(event)
+    return result
 
 
 # ---------------------------------------------------------------------------

@@ -133,6 +133,7 @@ operational protocols.
 93     Event Calendar Provider Adapter (+ EventService.refresh_events)
 94     System Ops Event Refresh Protocol
 95     CSV Event Calendar Adapter (operator-curated provider)
+96     Catalyst Watch Event De-duplication (read model)
 ```
 
 Slice 14 is complete:
@@ -393,6 +394,10 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 
 ### P1 — correctness / trust
 - _All P1 items complete (Slices 86–90); the full Docker suite is green._
+- [x] **96 Catalyst event de-duplication** (spotted in the live UI, prioritized):
+  `EventService.list_upcoming` de-dupes by title, so duplicate-title rows never
+  surface in Catalyst Watch / Control Room rail / event-risk guard. Verified live
+  (upcoming 16 → 13, "Probe Tentative" 4 → 1).
 
 ### P2 — shared refactor
 - _Complete (Slices 91–92): shared `api/timeutil.py` + `api/live_state.py`._
