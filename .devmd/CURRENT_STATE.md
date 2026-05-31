@@ -141,6 +141,7 @@ operational protocols.
 101    Market Bar Same-Day Source Dedup (read model)
 102    Market Kernel Indicator Backing-Bar Guard
 103    Remove Unused PlaceholderPage (P3 cleanup)
+104    LineChart Crosshair Readout + SVG Accessibility
 ```
 
 Slice 14 is complete:
@@ -402,6 +403,13 @@ Slice 14 is complete:
   with a backing (deduped) bar; the 770 orphaned snapshots were deleted under the
   same authorization, restoring the "every snapshot has a backing bar" invariant.
   NVDA's panel reverts to the real 2026-05-29 values (RSI 46.30 / EMA20 228.06).
+- The shared `LineChart` (Market Kernel + Control Room) is now interactive and
+  accessible: hover or arrow-key a crosshair to read the stored value at a point
+  (crosshair + per-series dots + tooltip), with an `aria-live` readout and a
+  visually-hidden data table for screen readers (SVG itself is `aria-hidden`
+  behind an enriched `role="img"` wrapper). At rest the render is unchanged; four
+  text-dense baselines (control-room/risk-firewall/mission-control/news-intel)
+  were refreshed for unrelated font-raster drift, not chart content.
 ```
 
 ## Validation Baseline
@@ -466,8 +474,12 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 ### P3 — UI/UX polish (batch)
 - [x] **103** remove unused `frontend/src/pages/PlaceholderPage.tsx` (dead shell;
   all 10 routes are real v4.2 pages).
-- [ ] Chart tooltips/crosshair + SVG accessibility; state-band density; Control
-  Room freshness env propagation to operator notes.
+- [x] **104** chart crosshair/tooltip + SVG accessibility — shared `LineChart`
+  gains a hover/keyboard value readout (crosshair + dots + tooltip), an
+  `aria-live` readout, and a visually-hidden data table; SVG is `aria-hidden`
+  behind an enriched `role="img"` wrapper.
+- [ ] state-band density; Control Room freshness env propagation to operator
+  notes.
 
 ### Done (this queue)
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner

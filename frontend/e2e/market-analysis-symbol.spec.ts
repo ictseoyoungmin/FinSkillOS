@@ -29,6 +29,27 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(header).toContainText("TSLA");
   });
 
+  test("Market Kernel chart exposes a keyboard value readout (a11y)", async ({
+    page,
+  }) => {
+    await page.goto("/market-kernel");
+    const chart = page.getByTestId("market-kernel-line-chart");
+    await expect(chart).toBeVisible();
+    const plot = chart.getByRole("img");
+    await expect(plot).toHaveAttribute("aria-label", /Line chart/);
+    // Focusing the plot reveals the value tooltip at the latest point.
+    await plot.focus();
+    const tooltip = chart.locator(".fso-linechart-tooltip");
+    await expect(tooltip).toBeVisible();
+    const firstReadout = (await tooltip.innerText()).trim();
+    // Arrow keys move the crosshair to an earlier point with a new value.
+    await plot.press("ArrowLeft");
+    await expect(tooltip).toBeVisible();
+    await expect
+      .poll(async () => (await tooltip.innerText()).trim() !== firstReadout)
+      .toBeTruthy();
+  });
+
   test("Analysis Workspace renders Index Lab table + strongest entries", async ({
     page,
   }) => {

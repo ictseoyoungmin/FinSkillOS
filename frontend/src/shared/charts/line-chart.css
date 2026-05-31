@@ -4,6 +4,17 @@
   gap: 8px;
 }
 
+.fso-linechart-plot {
+  position: relative;
+  display: block;
+  border-radius: var(--fso-radius-sm);
+}
+
+.fso-linechart-plot:focus-visible {
+  outline: 2px solid var(--fso-cyan-2);
+  outline-offset: 2px;
+}
+
 .fso-linechart-svg {
   width: 100%;
   height: 240px;
@@ -14,6 +25,44 @@
     transparent
   );
   border-radius: var(--fso-radius-sm);
+}
+
+.fso-linechart-crosshair {
+  stroke: var(--fso-text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.fso-linechart-dot {
+  fill: var(--fso-cyan);
+  stroke: var(--fso-bg-3);
+  stroke-width: 1.5;
+}
+
+.fso-linechart-tooltip {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--fso-bg-2) 94%, transparent);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  color: var(--fso-text);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.fso-linechart-tooltip strong {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
 }
 
 .fso-linechart-axis {
