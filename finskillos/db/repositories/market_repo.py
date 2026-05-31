@@ -19,6 +19,45 @@ from sqlalchemy.orm import Session
 from finskillos.data_sources.dto import MarketBarDTO
 from finskillos.db.models import MarketBar
 
+# Sub-daily timeframes carry several legitimate bars per calendar day, so
+# they are never collapsed. Daily-or-coarser timeframes expect at most one
+# bar per day; two bars on the same date are a source collision (e.g. a mock
+# seed bar at 00:00 UTC alongside a real vendor bar at 04:00 UTC) and must
+# render as one point, otherwise the chart sawtooths between the two series.
+_INTRADAY_TIMEFRAMES = frozenset(
+    {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "4h"}
+)
+
+
+def _source_rank(source: str | None) -> int:
+    """Real vendor data outranks the deterministic ``mock`` seed."""
+    return 0 if (source or "").lower() == "mock" else 1
+
+
+def _prefer(candidate: MarketBar, incumbent: MarketBar) -> bool:
+    candidate_rank = _source_rank(candidate.source)
+    incumbent_rank = _source_rank(incumbent.source)
+    if candidate_rank != incumbent_rank:
+        return candidate_rank > incumbent_rank
+    return candidate.bar_time > incumbent.bar_time
+
+
+def _dedupe_period_bars(bars: list[MarketBar], timeframe: str) -> list[MarketBar]:
+    """Collapse same-period bars for daily-or-coarser timeframes.
+
+    Keeps one bar per calendar day, preferring a real source over ``mock``
+    and then the most recent ``bar_time``. Intraday series pass through
+    untouched. Tolerates legacy mixed-source rows without a migration."""
+    if timeframe in _INTRADAY_TIMEFRAMES:
+        return bars
+    chosen: dict[object, MarketBar] = {}
+    for bar in bars:
+        key = bar.bar_time.date()
+        incumbent = chosen.get(key)
+        if incumbent is None or _prefer(bar, incumbent):
+            chosen[key] = bar
+    return sorted(chosen.values(), key=lambda bar: bar.bar_time)
+
 
 class MarketRepository:
     def __init__(self, session: Session) -> None:
@@ -79,9 +118,10 @@ class MarketRepository:
         if end is not None:
             stmt = stmt.where(MarketBar.bar_time <= end)
         stmt = stmt.order_by(MarketBar.bar_time)
+        bars = _dedupe_period_bars(list(self.session.scalars(stmt)), timeframe)
         if limit is not None:
-            stmt = stmt.limit(limit)
-        return list(self.session.scalars(stmt))
+            bars = bars[:limit]
+        return bars
 
     def latest_bar(self, ticker: str, timeframe: str) -> MarketBar | None:
         stmt = (

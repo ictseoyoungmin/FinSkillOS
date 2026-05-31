@@ -138,6 +138,7 @@ operational protocols.
 98     Market Kernel Multi-Timeframe Query
 99     Trade Memory Entry Edit / Delete / CSV Export (API)
 100    Trade Memory Entry Edit / Delete / Export (UI)
+101    Market Bar Same-Day Source Dedup (read model)
 ```
 
 Slice 14 is complete:
@@ -384,6 +385,15 @@ Slice 14 is complete:
   appends, and an always-available "Export entries (CSV)" link downloads the
   snapshot. The trade-memory visual baseline was regenerated for the new
   controls; the structural contract test and full visual suite stay green.
+- Market Kernel charts no longer sawtooth from mixed-source bars. A mock seed
+  bar (00:00 UTC) and a real yfinance bar (04:00 UTC) could share a calendar day
+  without colliding on the `(ticker, timeframe, bar_time)` key, so the chart
+  plotted both divergent series. `MarketRepository.list_bars` now collapses
+  daily-or-coarser bars to one per calendar day (real source over `mock`, then
+  latest), leaving intraday untouched; every `len(bars)` coverage number follows.
+  The superseded mock seed (941 rows, zero mock-only pairs) was deleted from the
+  live DB under user authorization, so the header's latest reverts to the real
+  last trading day.
 ```
 
 ## Validation Baseline
