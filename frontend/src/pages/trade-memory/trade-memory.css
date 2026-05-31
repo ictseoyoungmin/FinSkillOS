@@ -117,3 +117,26 @@
   letter-spacing: 0.1em;
   color: var(--fso-text-muted-2);
 }
+
+.fso-trade-memory-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.fso-trade-export-link {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  text-decoration: none;
+}
+
+.fso-trade-export-link:hover {
+  background: color-mix(in srgb, var(--fso-cyan) 22%, transparent);
+}

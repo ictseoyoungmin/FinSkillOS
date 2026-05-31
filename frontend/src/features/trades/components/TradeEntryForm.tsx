@@ -1,10 +1,11 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Panel } from "@/shared/ui";
-import { submitTradeEntry } from "../api";
+import { submitTradeEntry, updateTradeEntry } from "../api";
 import type {
   TradeEntryInput,
   TradeEntryResult,
+  TradeEntryVM,
   TradeFormRules,
   TradeSide,
 } from "../types";
@@ -13,6 +14,9 @@ import "./trade-entry-form.css";
 export interface TradeEntryFormProps {
   rules: TradeFormRules;
   onSaved?: (result: TradeEntryResult) => void | Promise<void>;
+  /** When set, the form edits this entry (PUT) instead of appending (POST). */
+  editEntry?: TradeEntryVM | null;
+  onCancelEdit?: () => void;
 }
 
 interface FormState {
@@ -57,16 +61,55 @@ const empty = (rules: TradeFormRules): FormState => ({
   mistakeTags: [],
 });
 
+const numericToString = (value: TradeEntryVM["amount"]): string =>
+  value === null || value === undefined ? "" : String(value);
+
+const fromEntry = (entry: TradeEntryVM, rules: TradeFormRules): FormState => ({
+  tradeDate: entry.tradeDate,
+  ticker: entry.ticker,
+  side: (rules.allowedSides.includes(entry.side as TradeSide)
+    ? (entry.side as TradeSide)
+    : rules.allowedSides[0] ?? "LONG") as TradeSide,
+  strategyType: entry.strategyType ?? "",
+  amount: numericToString(entry.amount),
+  marketRegime: entry.marketRegime ?? "",
+  emotionState: entry.emotionState ?? "",
+  resultPnl: numericToString(entry.resultPnl),
+  resultPnlPct: numericToString(entry.resultPnlPct),
+  rMultiple: numericToString(entry.rMultiple),
+  catalyst: entry.catalyst ?? "",
+  thesis: entry.thesis ?? "",
+  reason: entry.reason ?? "",
+  notes: entry.notes ?? "",
+  sector: entry.sector ?? "",
+  theme: entry.theme ?? "",
+  eventKey: "",
+  mistakeTags: [...entry.mistakeTags],
+});
+
 /**
  * Trade journal entry form. The side selector is restricted to the
  * Slice-12 reflection vocabulary; the disclaimer reinforces that this
  * is a process-review surface, not an execution control.
  */
-export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
+export function TradeEntryForm({
+  rules,
+  onSaved,
+  editEntry,
+  onCancelEdit,
+}: TradeEntryFormProps) {
   const [form, setForm] = useState<FormState>(() => empty(rules));
   const [result, setResult] = useState<TradeEntryResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isEditing = Boolean(editEntry);
   const requiredReady = form.tradeDate.trim() !== "" && form.ticker.trim() !== "";
+
+  useEffect(() => {
+    if (editEntry) {
+      setForm(fromEntry(editEntry, rules));
+      setResult(null);
+    }
+  }, [editEntry, rules]);
 
   const onChange =
     (key: keyof Omit<FormState, "mistakeTags">) =>
@@ -125,11 +168,14 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
       mistakeTags: form.mistakeTags,
     };
     try {
-      const next = await submitTradeEntry(payload);
+      const next = editEntry
+        ? await updateTradeEntry(editEntry.id, payload)
+        : await submitTradeEntry(payload);
       setResult(next);
       if (next.status === "OK") {
         setForm(empty(rules));
         await onSaved?.(next);
+        onCancelEdit?.();
       }
     } catch (error) {
       setResult({
@@ -146,12 +192,13 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
   const resetForm = () => {
     setForm(empty(rules));
     setResult(null);
+    onCancelEdit?.();
   };
 
   return (
     <Panel
-      title="Add Journal Entry"
-      badge="Reflection only"
+      title={isEditing ? "Edit Journal Entry" : "Add Journal Entry"}
+      badge={isEditing ? "Editing" : "Reflection only"}
       badgeTone="info"
       testId="trade-entry-form"
     >
@@ -350,14 +397,18 @@ export function TradeEntryForm({ rules, onSaved }: TradeEntryFormProps) {
         </fieldset>
         <div className="fso-trade-entry-actions">
           <button type="button" onClick={resetForm} disabled={submitting}>
-            Reset
+            {isEditing ? "Cancel edit" : "Reset"}
           </button>
           <button
             type="submit"
             disabled={submitting || !requiredReady}
             data-testid="trade-entry-form-submit"
           >
-            {submitting ? "Saving…" : "Save entry"}
+            {submitting
+              ? "Saving…"
+              : isEditing
+                ? "Update entry"
+                : "Save entry"}
           </button>
         </div>
       </form>

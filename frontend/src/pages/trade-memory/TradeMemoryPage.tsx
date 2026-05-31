@@ -1,5 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchTradeMemory } from "@/features/trades/api";
+import { useState } from "react";
+import {
+  deleteTradeEntry,
+  fetchTradeMemory,
+  tradeMemoryCsvUrl,
+} from "@/features/trades/api";
+import type { TradeEntryVM } from "@/features/trades/types";
 import { MistakeFrequencyPanel } from "@/features/trades/components/MistakeFrequencyPanel";
 import { PerformanceByRegime } from "@/features/trades/components/PerformanceByRegime";
 import { PerformanceBySectorTheme } from "@/features/trades/components/PerformanceBySectorTheme";
@@ -23,11 +29,32 @@ import "./trade-memory.css";
 
 export function TradeMemoryPage() {
   const queryClient = useQueryClient();
+  const [editEntry, setEditEntry] = useState<TradeEntryVM | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { data, error } = useQuery({
     queryKey: ["trade-memory"],
     queryFn: ({ signal }) => fetchTradeMemory(signal),
     placeholderData: tradeMemoryFixture,
   });
+
+  const refreshTradeMemory = () =>
+    queryClient.invalidateQueries({ queryKey: ["trade-memory"] });
+
+  const onDeleteEntry = async (entry: TradeEntryVM) => {
+    if (!window.confirm(`Delete the ${entry.ticker} entry from ${entry.tradeDate}?`)) {
+      return;
+    }
+    setDeletingId(entry.id);
+    try {
+      await deleteTradeEntry(entry.id);
+      if (editEntry?.id === entry.id) {
+        setEditEntry(null);
+      }
+      await refreshTradeMemory();
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (error && !data) {
     return (
@@ -43,6 +70,7 @@ export function TradeMemoryPage() {
   }
 
   const payload = data ?? tradeMemoryFixture;
+  const isLive = payload.source === "live";
   const sourceSummary = buildTradeMemorySourceSummary(payload);
 
   return (
@@ -80,7 +108,22 @@ export function TradeMemoryPage() {
       </div>
       <div className="fso-trade-memory-grid">
         <div className="fso-trade-memory-col">
-          <RecentEntriesTable entries={payload.recentEntries} />
+          <div className="fso-trade-memory-toolbar">
+            <a
+              className="fso-trade-export-link"
+              href={tradeMemoryCsvUrl()}
+              download="trade-memory.csv"
+              data-testid="trade-memory-export"
+            >
+              Export entries (CSV)
+            </a>
+          </div>
+          <RecentEntriesTable
+            entries={payload.recentEntries}
+            onEdit={isLive ? setEditEntry : undefined}
+            onDelete={isLive ? onDeleteEntry : undefined}
+            busyId={deletingId}
+          />
           <PerformanceByRegime buckets={payload.performanceByRegime} />
           <PerformanceBySectorTheme
             buckets={payload.performanceBySectorTheme}
@@ -97,10 +140,10 @@ export function TradeMemoryPage() {
           <WeeklyMarkdownExport markdown={payload.weeklyReview.markdown} />
           <TradeEntryForm
             rules={payload.formRules}
+            editEntry={editEntry}
+            onCancelEdit={() => setEditEntry(null)}
             onSaved={async () => {
-              await queryClient.invalidateQueries({
-                queryKey: ["trade-memory"],
-              });
+              await refreshTradeMemory();
             }}
           />
         </div>

@@ -5,6 +5,11 @@ import "./recent-entries-table.css";
 
 export interface RecentEntriesTableProps {
   entries: TradeEntryVM[];
+  /** When provided, renders per-row Edit / Delete actions. */
+  onEdit?: (entry: TradeEntryVM) => void;
+  onDelete?: (entry: TradeEntryVM) => void;
+  /** Id of the entry whose delete is in flight (buttons disabled). */
+  busyId?: string | null;
 }
 
 /**
@@ -13,7 +18,13 @@ export interface RecentEntriesTableProps {
  * read model (LONG / SHORT / WATCH / EXIT_REVIEW / OTHER) — legacy
  * BUY / SELL values are still load-compatible.
  */
-export function RecentEntriesTable({ entries }: RecentEntriesTableProps) {
+export function RecentEntriesTable({
+  entries,
+  onEdit,
+  onDelete,
+  busyId,
+}: RecentEntriesTableProps) {
+  const showActions = Boolean(onEdit || onDelete);
   if (entries.length === 0) {
     return (
       <Panel
@@ -46,6 +57,7 @@ export function RecentEntriesTable({ entries }: RecentEntriesTableProps) {
             <th scope="col">PnL</th>
             <th scope="col">R</th>
             <th scope="col">Tags</th>
+            {showActions ? <th scope="col">Actions</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -72,6 +84,31 @@ export function RecentEntriesTable({ entries }: RecentEntriesTableProps) {
                   ))}
                 </ul>
               </td>
+              {showActions ? (
+                <td className="fso-trade-recent-actions">
+                  {onEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => onEdit(entry)}
+                      disabled={busyId === entry.id}
+                      data-testid={`trade-entry-edit-${entry.id}`}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                  {onDelete ? (
+                    <button
+                      type="button"
+                      className="fso-trade-recent-delete"
+                      onClick={() => onDelete(entry)}
+                      disabled={busyId === entry.id}
+                      data-testid={`trade-entry-delete-${entry.id}`}
+                    >
+                      {busyId === entry.id ? "Removing…" : "Delete"}
+                    </button>
+                  ) : null}
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

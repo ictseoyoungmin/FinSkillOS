@@ -15,6 +15,7 @@ export const apiEndpoints = {
   tradeMemory: "/trade-memory",
   tradeEntries: "/trade-memory/entries",
   tradeWeeklyReview: "/trade-memory/weekly-review",
+  tradeExport: "/trade-memory/export.csv",
 } as const;
 
 export type ApiEndpoint = (typeof apiEndpoints)[keyof typeof apiEndpoints];

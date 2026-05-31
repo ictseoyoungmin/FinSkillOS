@@ -137,6 +137,7 @@ operational protocols.
 97     Market Kernel Live Event Overlay
 98     Market Kernel Multi-Timeframe Query
 99     Trade Memory Entry Edit / Delete / CSV Export (API)
+100    Trade Memory Entry Edit / Delete / Export (UI)
 ```
 
 Slice 14 is complete:
@@ -377,6 +378,12 @@ Slice 14 is complete:
   descriptive CSV of the recent entries, works in every snapshot mode). The
   route also dedups its POST/PUT input build, snapshot resolution, and result
   mapping into shared helpers. Frontend edit/delete/export UI is Slice 100.
+- The Trade Memory cockpit now surfaces that seam: the Recent Entries table
+  shows Edit / Delete actions (live mode only — sample fixture rows stay
+  read-only), the journal form switches into an edit mode that PUTs instead of
+  appends, and an always-available "Export entries (CSV)" link downloads the
+  snapshot. The trade-memory visual baseline was regenerated for the new
+  controls; the structural contract test and full visual suite stay green.
 ```
 
 ## Validation Baseline
@@ -434,7 +441,9 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 #### next up
 - [x] **97/98 Market Kernel event overlay + multi-timeframe** — live event overlay
   on candles (Slice 97); 1D/1W/1M timeframe query wired end to end (Slice 98).
-- [ ] **Trade Memory edit/delete + export** — entry edit/delete UI, CSV export.
+- [x] **99/100 Trade Memory edit/delete + export** — PUT/DELETE entry endpoints
+  + CSV export (Slice 99); Recent Entries Edit/Delete actions, form edit mode,
+  and export download link (Slice 100).
 
 ### P3 — UI/UX polish (batch)
 - [ ] Chart tooltips/crosshair + SVG accessibility; state-band density; remove

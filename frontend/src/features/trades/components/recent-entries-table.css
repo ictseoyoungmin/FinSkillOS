@@ -68,3 +68,37 @@
   font-size: 12px;
   color: var(--fso-text-muted-2);
 }
+
+.fso-trade-recent-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.fso-trade-recent-actions button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  color: var(--fso-text-muted);
+  cursor: pointer;
+}
+
+.fso-trade-recent-actions button:hover:not(:disabled) {
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-text);
+}
+
+.fso-trade-recent-actions .fso-trade-recent-delete:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--fso-red) 64%, var(--fso-line));
+  color: var(--fso-red);
+}
+
+.fso-trade-recent-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
