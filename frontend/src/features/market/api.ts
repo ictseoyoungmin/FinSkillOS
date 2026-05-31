@@ -14,8 +14,15 @@ import type { MarketKernelData } from "./kernel-types";
  */
 export async function fetchMarketKernel(
   ticker: string,
+  timeframe?: string,
   signal?: AbortSignal,
 ): Promise<MarketKernelData> {
-  const path = `${apiEndpoints.marketKernel}?ticker=${encodeURIComponent(ticker)}`;
-  return await getJson<MarketKernelData>(path, { signal });
+  const params = new URLSearchParams({ ticker });
+  if (timeframe) {
+    params.set("timeframe", timeframe);
+  }
+  return await getJson<MarketKernelData>(
+    `${apiEndpoints.marketKernel}?${params.toString()}`,
+    { signal },
+  );
 }

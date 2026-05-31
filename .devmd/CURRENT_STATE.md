@@ -134,6 +134,8 @@ operational protocols.
 94     System Ops Event Refresh Protocol
 95     CSV Event Calendar Adapter (operator-curated provider)
 96     Catalyst Watch Event De-duplication (read model)
+97     Market Kernel Live Event Overlay
+98     Market Kernel Multi-Timeframe Query
 ```
 
 Slice 14 is complete:
@@ -359,6 +361,14 @@ Slice 14 is complete:
   in fixture / visual mode without a populated audit log. Forced fixture stays
   deterministic; offline falls back to the samples; the live path stays honest
   (real runs, empty if none). System Ops visual baseline regenerated.
+- Market Kernel now overlays live Catalyst Watch events relevant to the selected
+  ticker (ticker-linked or market-wide macro, de-duped via Slice 96, tone from
+  the event-risk label, capped at 6) instead of a hard-coded empty overlay, and
+  its 1D/1W/1M selector is now wired end to end: the API takes a `timeframe`
+  query (`1d`/`1wk`/`1mo` + aliases, unsupported → `1d`), reads bars + indicators
+  for that timeframe, and reflects it in `header.timeframe`; the React selector
+  carries the timeframe in the query key and refetches. Read-only — an
+  unstored timeframe shows the explicit MISSING state. Visual baseline unchanged.
 ```
 
 ## Validation Baseline
@@ -414,8 +424,8 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
     not offline-testable) — another `_event_calendar_adapter` branch.
 
 #### next up
-- [ ] **Market Kernel event overlay + multi-timeframe** — live event overlay on
-  candles; timeframe query like Symbol Lab.
+- [x] **97/98 Market Kernel event overlay + multi-timeframe** — live event overlay
+  on candles (Slice 97); 1D/1W/1M timeframe query wired end to end (Slice 98).
 - [ ] **Trade Memory edit/delete + export** — entry edit/delete UI, CSV export.
 
 ### P3 — UI/UX polish (batch)

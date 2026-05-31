@@ -361,3 +361,55 @@ def test_market_kernel_ignores_future_stored_bars(monkeypatch, tmp_path) -> None
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_market_kernel_reads_requested_timeframe(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime.now(tz=timezone.utc)
+    with factory() as session:
+        MarketDataService(session).import_bars(
+            [
+                MarketBarDTO(
+                    ticker="SPY",
+                    timeframe="1wk",
+                    bar_time=now - timedelta(weeks=offset),
+                    open=Decimal("100"),
+                    high=Decimal("101"),
+                    low=Decimal("99"),
+                    close=Decimal("100"),
+                    volume=Decimal("1000000"),
+                    source="test",
+                )
+                for offset in range(1, 6)
+            ]
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        # Requested 1wk timeframe reads the stored weekly bars.
+        weekly = _client().get("/api/market-kernel?ticker=SPY&timeframe=1wk").json()
+        assert weekly["source"] == "live"
+        assert weekly["header"]["timeframe"] == "1wk"
+        assert len(weekly["bars"]) == 5
+        assert weekly["dataState"]["chartStatus"] != "MISSING"
+
+        # 1d has no stored bars -> explicit MISSING (DB-read-only, no provider).
+        daily = _client().get("/api/market-kernel?ticker=SPY&timeframe=1d").json()
+        assert daily["header"]["timeframe"] == "1d"
+        assert daily["dataState"]["chartStatus"] == "MISSING"
+
+        # Unsupported timeframe normalises to the 1d default.
+        bad = _client().get("/api/market-kernel?ticker=SPY&timeframe=bogus").json()
+        assert bad["header"]["timeframe"] == "1d"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

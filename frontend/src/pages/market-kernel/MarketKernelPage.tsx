@@ -27,6 +27,11 @@ import "./market-kernel.css";
 
 const DEFAULT_TICKER = "NVDA";
 const TIMEFRAMES = ["1D", "1W", "1M"] as const;
+const TIMEFRAME_API: Record<(typeof TIMEFRAMES)[number], string> = {
+  "1D": "1d",
+  "1W": "1wk",
+  "1M": "1mo",
+};
 
 export function MarketKernelPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,8 +39,9 @@ export function MarketKernelPage() {
   const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>("1D");
 
   const { data, error } = useQuery({
-    queryKey: ["market-kernel", ticker],
-    queryFn: ({ signal }) => fetchMarketKernel(ticker, signal),
+    queryKey: ["market-kernel", ticker, timeframe],
+    queryFn: ({ signal }) =>
+      fetchMarketKernel(ticker, TIMEFRAME_API[timeframe], signal),
     placeholderData: marketKernelFixture(ticker),
   });
 

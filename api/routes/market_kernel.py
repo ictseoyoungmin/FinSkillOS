@@ -32,6 +32,18 @@ from finskillos.db.repositories import IndicatorRepository, MarketRepository
 router = APIRouter(tags=["market-kernel"])
 UTC = timezone.utc
 
+# Timeframes the Market Kernel chart offers (1D / 1W / 1M in the UI). The route
+# is DB-read-only: a timeframe with no stored bars yields an explicit MISSING
+# state rather than a provider call during render.
+SUPPORTED_MARKET_TIMEFRAMES = {"1d", "1wk", "1mo"}
+_MARKET_TIMEFRAME_ALIASES = {
+    "1w": "1wk",
+    "1week": "1wk",
+    "1m": "1mo",
+    "1mon": "1mo",
+    "1month": "1mo",
+}
+
 
 @router.get(
     "/market-kernel",
@@ -47,6 +59,10 @@ def market_kernel(
             "MISSING-status payload with a setup hint."
         ),
     ),
+    timeframe: str = Query(
+        default=DEFAULT_TIMEFRAME,
+        description="Chart timeframe: 1d, 1wk, or 1mo (1d default).",
+    ),
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> MarketKernelResponse:
     if use_fixture:
@@ -57,16 +73,17 @@ def market_kernel(
             return mark_db_unavailable(market_kernel_fixture(ticker))
 
         resolved_ticker = _normalize_ticker(ticker)
+        resolved_timeframe = _normalize_timeframe(timeframe)
         now = datetime.now(tz=UTC)
         bars = [
             bar
             for bar in MarketRepository(session).list_bars(
-                resolved_ticker, DEFAULT_TIMEFRAME
+                resolved_ticker, resolved_timeframe
             )
             if _as_utc(bar.bar_time) <= now
         ]
         indicator_rows = IndicatorRepository(session).list_for(
-            resolved_ticker, DEFAULT_TIMEFRAME
+            resolved_ticker, resolved_timeframe
         )
         usable_indicators = [
             row for row in indicator_rows if _as_utc(row.snapshot_time) <= now
@@ -75,6 +92,7 @@ def market_kernel(
         return _live_response(
             session=session,
             ticker=resolved_ticker,
+            timeframe=resolved_timeframe,
             bars=bars,
             latest_indicator=latest_indicator,
         )
@@ -84,6 +102,7 @@ def _live_response(
     *,
     session,
     ticker: str,
+    timeframe: str = DEFAULT_TIMEFRAME,
     bars: list,
     latest_indicator,
 ) -> MarketKernelResponse:
@@ -143,7 +162,7 @@ def _live_response(
         )
         payload.header.ticker = ticker
         payload.header.label = ticker
-        payload.header.timeframe = DEFAULT_TIMEFRAME
+        payload.header.timeframe = timeframe
         payload.header.latest_close = None
         payload.header.latest_time = None
         payload.header.data_status = "MISSING"
@@ -215,7 +234,7 @@ def _live_response(
     )
     payload.header.ticker = ticker
     payload.header.label = ticker
-    payload.header.timeframe = DEFAULT_TIMEFRAME
+    payload.header.timeframe = timeframe
     payload.header.latest_close = latest_bar.close
     payload.header.latest_time = _iso(latest_bar.bar_time)
     payload.header.data_status = "OK" if latest_indicator is not None else "PARTIAL"
@@ -279,6 +298,14 @@ def _live_response(
 def _normalize_ticker(ticker: str | None) -> str:
     normalized = (ticker or "NVDA").strip().upper()
     return normalized or "NVDA"
+
+
+def _normalize_timeframe(timeframe: str | None) -> str:
+    normalized = (timeframe or DEFAULT_TIMEFRAME).strip().lower()
+    normalized = _MARKET_TIMEFRAME_ALIASES.get(normalized, normalized)
+    if normalized not in SUPPORTED_MARKET_TIMEFRAMES:
+        return DEFAULT_TIMEFRAME
+    return normalized
 
 
 def _event_overlay(session, ticker: str, *, limit: int = 6) -> list[EventOverlayItem]:
