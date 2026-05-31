@@ -140,6 +140,7 @@ operational protocols.
 100    Trade Memory Entry Edit / Delete / Export (UI)
 101    Market Bar Same-Day Source Dedup (read model)
 102    Market Kernel Indicator Backing-Bar Guard
+103    Remove Unused PlaceholderPage (P3 cleanup)
 ```
 
 Slice 14 is complete:
@@ -463,9 +464,10 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   and export download link (Slice 100).
 
 ### P3 — UI/UX polish (batch)
-- [ ] Chart tooltips/crosshair + SVG accessibility; state-band density; remove
-  unused `frontend/src/pages/PlaceholderPage.tsx`; Control Room freshness env
-  propagation to operator notes.
+- [x] **103** remove unused `frontend/src/pages/PlaceholderPage.tsx` (dead shell;
+  all 10 routes are real v4.2 pages).
+- [ ] Chart tooltips/crosshair + SVG accessibility; state-band density; Control
+  Room freshness env propagation to operator notes.
 
 ### Done (this queue)
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner
