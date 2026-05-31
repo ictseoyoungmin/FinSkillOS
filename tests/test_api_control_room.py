@@ -304,6 +304,13 @@ def test_control_room_classifies_stale_market_and_watchlist_rails(
     assert "market 2026-05-03" in body["dataState"]["railFreshnessNote"]
     assert body["dataState"]["marketStaleAfterDays"] == 3
     assert body["dataState"]["watchlistStaleAfterDays"] == 3
+    # Slice 105: stale rails surface operator watchpoints citing the
+    # configured freshness threshold (env-propagated).
+    watchpoint_titles = [w["title"] for w in body["watchpoints"]]
+    assert "Market data stale" in watchpoint_titles
+    assert "Watchlist stale" in watchpoint_titles
+    watchpoint_text = " ".join(w["note"] for w in body["watchpoints"])
+    assert "3-day freshness window" in watchpoint_text
 
 
 def test_control_room_freshness_threshold_is_configurable(
@@ -363,6 +370,40 @@ def test_control_room_freshness_threshold_supports_per_rail_override(
         )
     finally:
         reset_settings_cache()
+
+
+def test_control_room_freshness_watchpoints_cite_configured_threshold() -> None:
+    """Slice 105 — the operator watchpoint propagates the exact threshold a
+    STALE rail was judged against, and adds nothing for FRESH rails."""
+    from api.routes.control_room import _freshness_watchpoint_rows
+    from api.schemas.control_room import ControlRoomDataState
+
+    rows = _freshness_watchpoint_rows(
+        ControlRoomDataState(
+            source_note="",
+            refresh_note="",
+            market_freshness_status="STALE",
+            market_stale_after_days=9,
+            watchlist_freshness_status="FRESH",
+            watchlist_stale_after_days=4,
+            catalyst_freshness_status="STALE",
+        )
+    )
+    titles = [title for title, _ in rows]
+    notes = " ".join(note for _, note in rows)
+    assert "Market data stale" in titles
+    assert "Catalyst window passed" in titles
+    assert "Watchlist stale" not in titles  # FRESH rail adds no note
+    assert "9-day freshness window" in notes
+    assert "4-day" not in notes  # the FRESH watchlist threshold is not cited
+
+    # Rails that are not STALE produce no operator notes.
+    assert (
+        _freshness_watchpoint_rows(
+            ControlRoomDataState(source_note="", refresh_note="")
+        )
+        == []
+    )
 
 
 def _patch_session_scope(monkeypatch, db_session: Session) -> None:

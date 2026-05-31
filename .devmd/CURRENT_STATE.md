@@ -142,6 +142,7 @@ operational protocols.
 102    Market Kernel Indicator Backing-Bar Guard
 103    Remove Unused PlaceholderPage (P3 cleanup)
 104    LineChart Crosshair Readout + SVG Accessibility
+105    Control Room Freshness Env → Operator Watchpoints
 ```
 
 Slice 14 is complete:
@@ -410,6 +411,11 @@ Slice 14 is complete:
   behind an enriched `role="img"` wrapper). At rest the render is unchanged; four
   text-dense baselines (control-room/risk-firewall/mission-control/news-intel)
   were refreshed for unrelated font-raster drift, not chart content.
+- Control Room operator watchpoints now propagate the configured freshness
+  policy: when the market / watchlist / catalyst rail is STALE, a watchpoint
+  cites the exact `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` threshold it was
+  judged against plus refresh guidance. FRESH/MISSING rails add nothing; the
+  fixture/visual path is unchanged.
 ```
 
 ## Validation Baseline
@@ -478,8 +484,10 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
   gains a hover/keyboard value readout (crosshair + dots + tooltip), an
   `aria-live` readout, and a visually-hidden data table; SVG is `aria-hidden`
   behind an enriched `role="img"` wrapper.
-- [ ] state-band density; Control Room freshness env propagation to operator
-  notes.
+- [x] **105** Control Room freshness env propagation to operator notes — a STALE
+  market/watchlist/catalyst rail now adds an operator watchpoint citing the
+  configured `..._STALE_AFTER_DAYS` threshold + refresh guidance.
+- [ ] state-band density.
 
 ### Done (this queue)
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner

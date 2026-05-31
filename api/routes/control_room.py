@@ -98,7 +98,7 @@ def _live_response(
     payload.drivers = _drivers(vm)
     payload.conflicts = _conflicts(vm)
     payload.interpretation = _interpretation(vm)
-    payload.watchpoints = _watchpoints(vm)
+    payload.watchpoints = _watchpoints(vm, payload.data_state)
     payload.mission = _mission(vm)
     payload.operating_state = _operating_state(vm)
     payload.portfolio_exposure = _portfolio_exposure(vm)
@@ -294,7 +294,7 @@ def _interpretation(vm: ControlRoomViewModel):
     )
 
 
-def _watchpoints(vm: ControlRoomViewModel):
+def _watchpoints(vm: ControlRoomViewModel, data_state: ControlRoomDataState):
     if not vm.has_account:
         return watchpoints(
             ("Account setup", "Seed or import an account snapshot before reviewing posture."),
@@ -307,7 +307,47 @@ def _watchpoints(vm: ControlRoomViewModel):
         rows.append(("Regime recompute", "Run regime recompute when regime context is missing."))
     if vm.alerts:
         rows.append(("Active alerts", "Review unresolved alert context in Risk Firewall."))
+    rows.extend(_freshness_watchpoint_rows(data_state))
     return watchpoints(*rows)
+
+
+def _freshness_watchpoint_rows(
+    data_state: ControlRoomDataState,
+) -> list[tuple[str, str]]:
+    """Operator notes for rails past the configured freshness window.
+
+    Propagates the `FINSKILLOS_CONTROL_ROOM_*_STALE_AFTER_DAYS` thresholds
+    into the watchpoints so the operator sees the exact policy a STALE rail
+    was judged against. Descriptive only — refresh guidance, no execution."""
+
+    rows: list[tuple[str, str]] = []
+    if data_state.market_freshness_status == "STALE":
+        rows.append(
+            (
+                "Market data stale",
+                "Latest market row is past the "
+                f"{data_state.market_stale_after_days}-day freshness window; run a "
+                "System Ops market refresh before relying on the market rail.",
+            )
+        )
+    if data_state.watchlist_freshness_status == "STALE":
+        rows.append(
+            (
+                "Watchlist stale",
+                "Latest watchlist row is past the "
+                f"{data_state.watchlist_stale_after_days}-day freshness window; "
+                "refresh watchlist inputs before relying on the rail.",
+            )
+        )
+    if data_state.catalyst_freshness_status == "STALE":
+        rows.append(
+            (
+                "Catalyst window passed",
+                "The latest catalyst event date is before today; review Catalyst "
+                "Watch for newer events.",
+            )
+        )
+    return rows
 
 
 def _mission(vm: ControlRoomViewModel) -> MissionProgress:
