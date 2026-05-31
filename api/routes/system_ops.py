@@ -861,17 +861,31 @@ def _invoke_seed_sample_events(session) -> tuple[str, str, str]:
 
 
 def _event_calendar_adapter():
-    """Select the event calendar provider. Offline-safe mock by default.
-
-    A future real provider plugs in here, gated by
+    """Select the event calendar provider, gated by
     ``FINSKILLOS_EVENT_CALENDAR_ADAPTER`` (mirrors the market-refresh adapter
     selection), without changing the protocol or read models.
+
+    * ``mock`` (default) — offline-safe deterministic calendar.
+    * ``csv`` — operator-curated calendar from ``FINSKILLOS_EVENT_CALENDAR_CSV``.
+
+    A real vendor HTTP provider can plug in here later as another branch.
     """
-    from finskillos.data_sources.event_adapter import MockEventCalendarAdapter
+    from finskillos.data_sources.event_adapter import (
+        CsvEventCalendarAdapter,
+        MockEventCalendarAdapter,
+    )
 
     name = os.environ.get("FINSKILLOS_EVENT_CALENDAR_ADAPTER", "mock").lower()
     if name == "mock":
         return MockEventCalendarAdapter()
+    if name == "csv":
+        path = os.environ.get("FINSKILLOS_EVENT_CALENDAR_CSV", "").strip()
+        if not path:
+            raise ValueError(
+                "FINSKILLOS_EVENT_CALENDAR_CSV must be set for the csv event "
+                "calendar adapter"
+            )
+        return CsvEventCalendarAdapter(path)
     raise ValueError(f"unsupported event calendar adapter: {name}")
 
 

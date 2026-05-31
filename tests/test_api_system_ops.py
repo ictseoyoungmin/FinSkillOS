@@ -786,3 +786,57 @@ def test_refresh_events_protocol_ingests_calendar(monkeypatch, tmp_path) -> None
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_refresh_events_protocol_uses_csv_adapter(monkeypatch, tmp_path) -> None:
+    from pathlib import Path
+
+    csv_path = (
+        Path(__file__).parent / "fixtures" / "events" / "calendar_sample.csv"
+    )
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_EVENT_CALENDAR_ADAPTER", "csv")
+    monkeypatch.setenv("FINSKILLOS_EVENT_CALENDAR_CSV", str(csv_path))
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-events").json()
+        assert body["protocol"] == "refresh_events"
+        assert body["status"] == "OK"
+        assert "events_ingested" in body["detail"]
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            titles = {event.title for event in EventRepository(session).list_all()}
+            assert "ECB policy decision window" in titles
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_refresh_events_protocol_csv_without_path_is_error(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_EVENT_CALENDAR_ADAPTER", "csv")
+    monkeypatch.delenv("FINSKILLOS_EVENT_CALENDAR_CSV", raising=False)
+    reset_settings_cache()
+
+    try:
+        body = _client().post("/api/system-ops/refresh-events").json()
+        # Misconfiguration surfaces as a structured ERROR, not a raw 500.
+        assert body["status"] == "ERROR"
+        assert body["detail"] == "ValueError"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

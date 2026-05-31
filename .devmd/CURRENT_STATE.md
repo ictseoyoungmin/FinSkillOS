@@ -132,6 +132,7 @@ operational protocols.
 92     Shared Live-Error Helper + Copy (api/live_state)
 93     Event Calendar Provider Adapter (+ EventService.refresh_events)
 94     System Ops Event Refresh Protocol
+95     CSV Event Calendar Adapter (operator-curated provider)
 ```
 
 Slice 14 is complete:
@@ -396,14 +397,18 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 ### P2 — shared refactor
 - _Complete (Slices 91–92): shared `api/timeutil.py` + `api/live_state.py`._
 
-### P2 — tab features (next up)
-- **Catalyst Watch live event calendar provider** (L) — _mostly done_:
+### P2 — tab features
+- **Catalyst Watch live event calendar provider** (L) — _done (offline + curated)_:
   - [x] **93** event-calendar adapter boundary (`BaseEventCalendarAdapter` +
     `MockEventCalendarAdapter`) + `EventService.refresh_events`.
   - [x] **94** System Ops `refresh_events` protocol (card + handler + frontend +
     env-gated adapter selection).
-  - [ ] real external calendar provider (env-gated `FINSKILLOS_EVENT_CALENDAR_ADAPTER`,
-    like the Yahoo market adapter) — final follow-up.
+  - [x] **95** `CsvEventCalendarAdapter` (operator-curated calendar, env-gated
+    `FINSKILLOS_EVENT_CALENDAR_ADAPTER=csv`).
+  - [ ] _optional:_ real vendor HTTP calendar provider (needs a chosen source;
+    not offline-testable) — another `_event_calendar_adapter` branch.
+
+#### next up
 - [ ] **Market Kernel event overlay + multi-timeframe** — live event overlay on
   candles; timeframe query like Symbol Lab.
 - [ ] **Trade Memory edit/delete + export** — entry edit/delete UI, CSV export.
@@ -443,3 +448,6 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - [x] **94 System Ops event refresh protocol** — `POST /system-ops/refresh-events`
   + protocol card ingest the calendar via the adapter (offline-safe mock,
   env-gated for a future real provider); idempotent OK/NOOP.
+- [x] **95 CSV event calendar adapter** — `CsvEventCalendarAdapter` for an
+  operator-curated calendar file (`FINSKILLOS_EVENT_CALENDAR_ADAPTER=csv`);
+  offline-safe, idempotent, structured ERROR on misconfig.

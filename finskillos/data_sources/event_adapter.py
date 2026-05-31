@@ -15,9 +15,11 @@ stored as a fact.
 
 from __future__ import annotations
 
+import csv
 from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 from finskillos.db.models.event import (
@@ -34,6 +36,7 @@ from finskillos.services.event_service import (
 )
 
 _CALENDAR_MOCK_SOURCE = "calendar_mock"
+_CALENDAR_CSV_SOURCE = "calendar_csv"
 
 
 class EventCalendarFetchError(RuntimeError):
@@ -109,8 +112,76 @@ class MockEventCalendarAdapter:
         )
 
 
+class CsvEventCalendarAdapter:
+    """Read a curated event calendar from an operator-supplied CSV file.
+
+    Offline-safe, no network. Columns (header row required):
+    ``title,event_type,date_status,start_date`` plus optional
+    ``end_date,source,importance_score,ticker,sector,theme,event_key``.
+    Dates are ISO ``YYYY-MM-DD``. One link per row (the ticker / sector / theme /
+    event_key columns, when any are present). A missing file raises
+    ``EventCalendarFetchError``; row values are validated downstream by
+    ``EventService.create_event``.
+    """
+
+    source_name = _CALENDAR_CSV_SOURCE
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+
+    def fetch_events(self, *, today: date) -> Sequence[SeededEvent]:
+        # Calendar rows carry absolute dates; ``today`` is part of the protocol
+        # but unused here (the read model filters upcoming events).
+        del today
+        if not self.path.exists():
+            raise EventCalendarFetchError(
+                f"event calendar CSV not found: {self.path}"
+            )
+        items: list[SeededEvent] = []
+        with self.path.open(newline="", encoding="utf-8") as fh:
+            for raw in csv.DictReader(fh):
+                title = (raw.get("title") or "").strip()
+                if not title:
+                    continue
+                end_raw = (raw.get("end_date") or "").strip()
+                importance_raw = (raw.get("importance_score") or "").strip()
+                source = (raw.get("source") or "").strip() or self.source_name
+                event = EventInput(
+                    title=title,
+                    event_type=(raw.get("event_type") or "").strip(),
+                    date_status=(raw.get("date_status") or "").strip(),
+                    start_date=date.fromisoformat(
+                        (raw.get("start_date") or "").strip()
+                    ),
+                    end_date=date.fromisoformat(end_raw) if end_raw else None,
+                    source=source,
+                    importance_score=(
+                        Decimal(importance_raw)
+                        if importance_raw
+                        else Decimal("1.0")
+                    ),
+                )
+                items.append(SeededEvent(event=event, links=_links_from_row(raw)))
+        return items
+
+
+def _links_from_row(raw: dict[str, str]) -> tuple[EventLinkInput, ...]:
+    ticker = (raw.get("ticker") or "").strip() or None
+    sector = (raw.get("sector") or "").strip() or None
+    theme = (raw.get("theme") or "").strip() or None
+    event_key = (raw.get("event_key") or "").strip() or None
+    if not any((ticker, sector, theme, event_key)):
+        return ()
+    return (
+        EventLinkInput(
+            ticker=ticker, sector=sector, theme=theme, event_key=event_key
+        ),
+    )
+
+
 __all__ = [
     "BaseEventCalendarAdapter",
+    "CsvEventCalendarAdapter",
     "EventCalendarFetchError",
     "MockEventCalendarAdapter",
 ]

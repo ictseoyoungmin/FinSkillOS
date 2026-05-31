@@ -1,0 +1,4 @@
+title,event_type,date_status,start_date,end_date,source,importance_score,ticker,sector,theme,event_key
+TSLA delivery report window,EARNINGS,TENTATIVE,2026-06-12,,calendar_csv,3.0,TSLA,,EV,
+ECB policy decision window,CENTRAL_BANK,WINDOW,2026-06-18,,calendar_csv,3.5,,,,ECB
+Semiconductor regulation review,REGULATORY,SPECULATIVE,2026-06-25,2026-06-26,calendar_csv,2.0,,Semiconductors,,
