@@ -193,6 +193,15 @@ class TradeRepository:
         self.session.flush()
         return trade
 
+    def delete(self, trade_id: uuid.UUID) -> None:
+        """Remove one trade row. Raises ``LookupError`` if absent."""
+
+        trade = self.session.get(Trade, trade_id)
+        if trade is None:
+            raise LookupError(f"Trade {trade_id} not found")
+        self.session.delete(trade)
+        self.session.flush()
+
     # ------------------------------------------------------------------
     # Reads
     # ------------------------------------------------------------------

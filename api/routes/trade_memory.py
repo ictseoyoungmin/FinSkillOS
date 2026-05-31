@@ -10,14 +10,21 @@ v4.2 Evidence-to-Judgment payload either way.
   block (used by the copyable markdown export refresh).
 * ``POST /api/trade-memory/entries`` — append one journal entry via
   the service; forbidden wording is rejected at the write seam.
+* ``PUT /api/trade-memory/entries/{id}`` — update one journal entry.
+* ``DELETE /api/trade-memory/entries/{id}`` — remove one journal entry.
+* ``GET /api/trade-memory/export.csv`` — recent entries as a descriptive
+  CSV download (same snapshot the page renders).
 """
 
 from __future__ import annotations
 
+import csv
+import io
+import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import trade_memory_fixture
@@ -55,6 +62,326 @@ UTC = timezone.utc
 def trade_memory(
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> TradeMemoryResponse:
+    return _resolve_payload(use_fixture)
+
+
+@router.get(
+    "/trade-memory/weekly-review",
+    response_model=WeeklyReviewVM,
+    summary="Weekly-review block (the same shape embedded in /trade-memory).",
+)
+def trade_memory_weekly_review(
+    use_fixture: bool = Depends(use_fixture_flag),
+) -> WeeklyReviewVM:
+    return _resolve_payload(use_fixture).weekly_review
+
+
+@router.get(
+    "/trade-memory/export.csv",
+    summary="Recent journal entries as a descriptive CSV download.",
+)
+def export_trade_memory(
+    use_fixture: bool = Depends(use_fixture_flag),
+) -> Response:
+    payload = _resolve_payload(use_fixture)
+    return Response(
+        content=_entries_csv(payload.recent_entries),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": 'attachment; filename="trade-memory.csv"',
+        },
+    )
+
+
+@router.post(
+    "/trade-memory/entries",
+    response_model=TradeEntryResult,
+    summary="Append one journal entry via the Slice-12 TradeJournalService.",
+)
+def post_trade_entry(payload: TradeEntryInput) -> TradeEntryResult:
+    trade_date = _parse_iso_date(payload.trade_date)
+    if trade_date is None:
+        return _invalid_trade_date_result()
+
+    safety_error = _scan_entry_text_for_forbidden_wording(payload)
+    if safety_error is not None:
+        return _forbidden_wording_result(safety_error)
+
+    with get_session_scope() as session:
+        if session is None:
+            return _no_session_result(
+                "Journal entry accepted in fixture-first shell. No "
+                "database session was available; persistence will "
+                "occur once the live wiring lands."
+            )
+        from finskillos.services.trade_journal_service import TradeJournalService
+
+        service = TradeJournalService(session)
+        return _entry_write_result(
+            session,
+            lambda: service.create_entry(_journal_input(payload, trade_date)),
+            ok_message=(
+                "Journal entry stored. Reflection buckets refresh on "
+                "the next page load."
+            ),
+            ok_detail="entry_persisted",
+        )
+
+
+@router.put(
+    "/trade-memory/entries/{entry_id}",
+    response_model=TradeEntryResult,
+    summary="Update one journal entry via the Slice-12 TradeJournalService.",
+)
+def put_trade_entry(entry_id: str, payload: TradeEntryInput) -> TradeEntryResult:
+    trade_uuid = _parse_uuid(entry_id)
+    if trade_uuid is None:
+        return _invalid_entry_id_result()
+
+    trade_date = _parse_iso_date(payload.trade_date)
+    if trade_date is None:
+        return _invalid_trade_date_result()
+
+    safety_error = _scan_entry_text_for_forbidden_wording(payload)
+    if safety_error is not None:
+        return _forbidden_wording_result(safety_error)
+
+    with get_session_scope() as session:
+        if session is None:
+            return _no_session_result(
+                "Entry update accepted in fixture-first shell. No "
+                "database session was available; persistence will "
+                "occur once the live wiring lands."
+            )
+        from finskillos.services.trade_journal_service import TradeJournalService
+
+        service = TradeJournalService(session)
+        return _entry_write_result(
+            session,
+            lambda: service.update_entry(
+                trade_uuid, _journal_input(payload, trade_date)
+            ),
+            ok_message=(
+                "Journal entry updated. Reflection buckets refresh on "
+                "the next page load."
+            ),
+            ok_detail="entry_updated",
+        )
+
+
+@router.delete(
+    "/trade-memory/entries/{entry_id}",
+    response_model=TradeEntryResult,
+    summary="Delete one journal entry via the Slice-12 TradeJournalService.",
+)
+def delete_trade_entry(entry_id: str) -> TradeEntryResult:
+    trade_uuid = _parse_uuid(entry_id)
+    if trade_uuid is None:
+        return _invalid_entry_id_result()
+
+    with get_session_scope() as session:
+        if session is None:
+            return _no_session_result(
+                "Entry delete accepted in fixture-first shell. No "
+                "database session was available; persistence will "
+                "occur once the live wiring lands."
+            )
+        from finskillos.services.trade_journal_service import TradeJournalService
+
+        service = TradeJournalService(session)
+
+        def _delete() -> None:
+            service.delete_entry(trade_uuid)
+            return None
+
+        return _entry_write_result(
+            session,
+            _delete,
+            ok_message=(
+                "Journal entry deleted. Reflection buckets refresh on "
+                "the next page load."
+            ),
+            ok_detail="entry_deleted",
+        )
+
+
+def _journal_input(payload: TradeEntryInput, trade_date: date):
+    from finskillos.services.trade_journal_service import TradeJournalInput
+
+    return TradeJournalInput(
+        trade_date=trade_date,
+        ticker=payload.ticker,
+        side=payload.side,
+        strategy_type=payload.strategy_type,
+        amount=payload.amount,
+        quantity=payload.quantity,
+        price=payload.price,
+        fees=payload.fees,
+        reason=payload.reason,
+        thesis=payload.thesis,
+        catalyst=payload.catalyst,
+        market_regime=payload.market_regime,
+        emotion_state=payload.emotion_state,
+        result_pnl=payload.result_pnl,
+        result_pnl_pct=payload.result_pnl_pct,
+        r_multiple=payload.r_multiple,
+        mistake_tags=tuple(payload.mistake_tags),
+        notes=payload.notes,
+        sector=payload.sector,
+        theme=payload.theme,
+        event_key=payload.event_key,
+    )
+
+
+def _entry_write_result(
+    session,
+    operation,
+    *,
+    ok_message: str,
+    ok_detail: str,
+) -> TradeEntryResult:
+    """Run one journal write/delete and map outcomes to ``TradeEntryResult``.
+
+    ``operation`` performs the mutation and returns the affected ``Trade``
+    (or ``None`` for deletes). Forbidden wording -> REJECTED, validation /
+    missing-row -> REJECTED, anything else -> ERROR. Mirrors the POST
+    contract (structured JSON, never a raw stack)."""
+
+    try:
+        trade = operation()
+        session.commit()
+        return TradeEntryResult(
+            status="OK",
+            message=ok_message,
+            detail=ok_detail,
+            entry_id=str(trade.id) if trade is not None else None,
+        )
+    except AssertionError as exc:
+        session.rollback()
+        return _forbidden_wording_result(str(exc) or "forbidden_wording")
+    except (ValueError, LookupError) as exc:
+        session.rollback()
+        return TradeEntryResult(
+            status="REJECTED",
+            message=str(exc),
+            detail="validation_error",
+        )
+    except Exception as exc:  # noqa: BLE001 — structured JSON
+        session.rollback()
+        return TradeEntryResult(
+            status="ERROR",
+            message=(
+                "Journal entry request could not complete. Stored "
+                "data was not modified."
+            ),
+            detail=type(exc).__name__,
+        )
+
+
+def _invalid_trade_date_result() -> TradeEntryResult:
+    return TradeEntryResult(
+        status="REJECTED",
+        message="tradeDate must be a valid ISO-8601 date.",
+        detail="invalid_trade_date",
+    )
+
+
+def _invalid_entry_id_result() -> TradeEntryResult:
+    return TradeEntryResult(
+        status="REJECTED",
+        message="entryId must be a valid identifier.",
+        detail="invalid_entry_id",
+    )
+
+
+def _forbidden_wording_result(detail: str) -> TradeEntryResult:
+    return TradeEntryResult(
+        status="REJECTED",
+        message=(
+            "Entry contains direct-advice or execution wording. "
+            "Journal entries must be descriptive only."
+        ),
+        detail=detail,
+    )
+
+
+def _no_session_result(message: str) -> TradeEntryResult:
+    return TradeEntryResult(
+        status="OK",
+        message=message,
+        detail="no_database_session",
+    )
+
+
+def _parse_uuid(value: str) -> uuid.UUID | None:
+    try:
+        return uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+_CSV_COLUMNS = (
+    "trade_date",
+    "ticker",
+    "side",
+    "strategy_type",
+    "amount",
+    "market_regime",
+    "emotion_state",
+    "result_pnl",
+    "result_pnl_pct",
+    "r_multiple",
+    "mistake_tags",
+    "sector",
+    "theme",
+    "catalyst",
+    "thesis",
+    "reason",
+    "notes",
+)
+
+
+def _entries_csv(entries: list[TradeEntryVM]) -> str:
+    """Serialize recent entries to a deterministic descriptive CSV."""
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(_CSV_COLUMNS)
+    for entry in entries:
+        writer.writerow(
+            [
+                entry.trade_date,
+                entry.ticker,
+                entry.side,
+                entry.strategy_type or "",
+                _csv_decimal(entry.amount),
+                entry.market_regime or "",
+                entry.emotion_state or "",
+                _csv_decimal(entry.result_pnl),
+                _csv_decimal(entry.result_pnl_pct),
+                _csv_decimal(entry.r_multiple),
+                "; ".join(entry.mistake_tags or ()),
+                entry.sector or "",
+                entry.theme or "",
+                entry.catalyst or "",
+                entry.thesis or "",
+                entry.reason or "",
+                entry.notes or "",
+            ]
+        )
+    return buffer.getvalue()
+
+
+def _csv_decimal(value: Decimal | None) -> str:
+    return "" if value is None else str(value)
+
+
+def _resolve_payload(use_fixture: bool) -> TradeMemoryResponse:
+    """Shared snapshot resolution for the read + export endpoints.
+
+    Forced fixture -> fixture; offline -> db-unavailable fixture; live ->
+    the live read model (live-error on a read failure, never fixture)."""
+
     payload = trade_memory_fixture()
     if use_fixture:
         payload.source = "fixture"
@@ -68,136 +395,6 @@ def trade_memory(
         except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
             return _error_live_payload(exc)
-
-
-@router.get(
-    "/trade-memory/weekly-review",
-    response_model=WeeklyReviewVM,
-    summary="Weekly-review block (the same shape embedded in /trade-memory).",
-)
-def trade_memory_weekly_review(
-    use_fixture: bool = Depends(use_fixture_flag),
-) -> WeeklyReviewVM:
-    payload = trade_memory_fixture()
-    if use_fixture:
-        payload.source = "fixture"
-        return payload.weekly_review
-
-    with get_session_scope() as session:
-        if session is None:
-            return payload.weekly_review
-        try:
-            return _live_trade_memory_payload(session).weekly_review
-        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
-            session.rollback()
-            return _error_live_payload(exc).weekly_review
-
-
-@router.post(
-    "/trade-memory/entries",
-    response_model=TradeEntryResult,
-    summary="Append one journal entry via the Slice-12 TradeJournalService.",
-)
-def post_trade_entry(payload: TradeEntryInput) -> TradeEntryResult:
-    trade_date = _parse_iso_date(payload.trade_date)
-    if trade_date is None:
-        return TradeEntryResult(
-            status="REJECTED",
-            message="tradeDate must be a valid ISO-8601 date.",
-            detail="invalid_trade_date",
-        )
-
-    safety_error = _scan_entry_text_for_forbidden_wording(payload)
-    if safety_error is not None:
-        return TradeEntryResult(
-            status="REJECTED",
-            message=(
-                "Entry contains direct-advice or execution wording. "
-                "Journal entries must be descriptive only."
-            ),
-            detail=safety_error,
-        )
-
-    with get_session_scope() as session:
-        if session is None:
-            return TradeEntryResult(
-                status="OK",
-                message=(
-                    "Journal entry accepted in fixture-first shell. No "
-                    "database session was available; persistence will "
-                    "occur once the live wiring lands."
-                ),
-                detail="no_database_session",
-            )
-        try:
-            from finskillos.services.trade_journal_service import (
-                TradeJournalInput,
-                TradeJournalService,
-            )
-
-            service = TradeJournalService(session)
-            trade = service.create_entry(
-                TradeJournalInput(
-                    trade_date=trade_date,
-                    ticker=payload.ticker,
-                    side=payload.side,
-                    strategy_type=payload.strategy_type,
-                    amount=payload.amount,
-                    quantity=payload.quantity,
-                    price=payload.price,
-                    fees=payload.fees,
-                    reason=payload.reason,
-                    thesis=payload.thesis,
-                    catalyst=payload.catalyst,
-                    market_regime=payload.market_regime,
-                    emotion_state=payload.emotion_state,
-                    result_pnl=payload.result_pnl,
-                    result_pnl_pct=payload.result_pnl_pct,
-                    r_multiple=payload.r_multiple,
-                    mistake_tags=tuple(payload.mistake_tags),
-                    notes=payload.notes,
-                    sector=payload.sector,
-                    theme=payload.theme,
-                    event_key=payload.event_key,
-                ),
-            )
-            session.commit()
-            return TradeEntryResult(
-                status="OK",
-                message=(
-                    "Journal entry stored. Reflection buckets refresh on "
-                    "the next page load."
-                ),
-                detail="entry_persisted",
-                entry_id=str(trade.id),
-            )
-        except AssertionError as exc:
-            session.rollback()
-            return TradeEntryResult(
-                status="REJECTED",
-                message=(
-                    "Entry contains direct-advice or execution wording. "
-                    "Journal entries must be descriptive only."
-                ),
-                detail=str(exc) or "forbidden_wording",
-            )
-        except (ValueError, LookupError) as exc:
-            session.rollback()
-            return TradeEntryResult(
-                status="REJECTED",
-                message=str(exc),
-                detail="validation_error",
-            )
-        except Exception as exc:  # noqa: BLE001 — structured JSON
-            session.rollback()
-            return TradeEntryResult(
-                status="ERROR",
-                message=(
-                    "Journal entry request could not complete. Stored "
-                    "data was not modified."
-                ),
-                detail=type(exc).__name__,
-            )
 
 
 def _parse_iso_date(value: str) -> date | None:

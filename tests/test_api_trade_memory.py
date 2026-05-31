@@ -19,6 +19,7 @@ Verifies:
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -365,6 +366,174 @@ def test_trade_memory_live_error_state_does_not_fall_back_to_fixture(
 
         weekly = _client().get("/api/trade-memory/weekly-review").json()
         assert weekly["tradeCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Slice 99 — entry edit / delete / CSV export
+# ---------------------------------------------------------------------------
+
+
+def _seed_live_entry(tmp_path, *, ticker: str = "NVDA"):
+    """Create a sqlite DB with one account + one journal entry.
+
+    Returns ``(engine, database_url, entry_id)`` so the caller can point the
+    app at it via ``DATABASE_URL`` and address the stored entry by id."""
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        account = AccountRepository(session).create(
+            name="Main Trading Account",
+            target_value=100000000,
+        )
+        trade = TradeJournalService(session).create_entry(
+            TradeJournalInput(
+                trade_date=date.today(),
+                ticker=ticker,
+                side="LONG",
+                amount=Decimal("4200000"),
+                market_regime="HEALTHY_BULL",
+                mistake_tags=(),
+                thesis="Data-center demand momentum.",
+                reason="Aligned with regime and checklist.",
+            ),
+            account_id=account.id,
+        )
+        session.commit()
+        entry_id = str(trade.id)
+    return engine, database_url, entry_id
+
+
+def test_put_trade_entry_updates_live_db(monkeypatch, tmp_path) -> None:
+    engine, database_url, entry_id = _seed_live_entry(tmp_path)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        response = _client().put(
+            f"/api/trade-memory/entries/{entry_id}",
+            json={
+                "tradeDate": date.today().isoformat(),
+                "ticker": "AMD",
+                "side": "LONG",
+                "notes": "Revised the calm-process note.",
+                "mistakeTags": [],
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "OK"
+        assert body["detail"] == "entry_updated"
+
+        snapshot = _client().get("/api/trade-memory").json()
+        assert snapshot["recentEntries"][0]["ticker"] == "AMD"
+        assert snapshot["recentEntries"][0]["notes"] == "Revised the calm-process note."
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_put_trade_entry_rejects_invalid_entry_id() -> None:
+    response = _client().put(
+        "/api/trade-memory/entries/not-a-uuid",
+        json={
+            "tradeDate": date.today().isoformat(),
+            "ticker": "AMD",
+            "side": "LONG",
+            "mistakeTags": [],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "REJECTED"
+    assert body["detail"] == "invalid_entry_id"
+
+
+def test_put_trade_entry_rejects_forbidden_wording() -> None:
+    response = _client().put(
+        f"/api/trade-memory/entries/{uuid.uuid4()}",
+        json={
+            "tradeDate": date.today().isoformat(),
+            "ticker": "TSLA",
+            "side": "LONG",
+            "notes": "지금 사라",
+            "mistakeTags": [],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "REJECTED"
+
+
+def test_delete_trade_entry_removes_live_db(monkeypatch, tmp_path) -> None:
+    engine, database_url, entry_id = _seed_live_entry(tmp_path)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        response = _client().delete(f"/api/trade-memory/entries/{entry_id}")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "OK"
+        assert body["detail"] == "entry_deleted"
+
+        snapshot = _client().get("/api/trade-memory").json()
+        assert snapshot["recentEntries"] == []
+        assert snapshot["weeklyReview"]["tradeCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_delete_trade_entry_missing_row_rejected(monkeypatch, tmp_path) -> None:
+    engine, database_url, _entry_id = _seed_live_entry(tmp_path)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        response = _client().delete(f"/api/trade-memory/entries/{uuid.uuid4()}")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "REJECTED"
+        assert body["detail"] == "validation_error"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_export_trade_memory_csv_fixture() -> None:
+    response = _client().get(
+        "/api/trade-memory/export.csv", headers={"X-FSO-Use-Fixture": "1"}
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment" in response.headers["content-disposition"]
+    lines = response.text.splitlines()
+    assert lines[0].startswith("trade_date,ticker,side,")
+    assert len(lines) > 1
+
+
+def test_export_trade_memory_csv_live(monkeypatch, tmp_path) -> None:
+    engine, database_url, _entry_id = _seed_live_entry(tmp_path, ticker="NVDA")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        response = _client().get("/api/trade-memory/export.csv")
+        assert response.status_code == 200
+        body = response.text
+        assert "NVDA" in body
+        for forbidden in _FORBIDDEN_WORDS:
+            assert forbidden not in body.lower()
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

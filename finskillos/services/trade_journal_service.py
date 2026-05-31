@@ -210,6 +210,11 @@ class TradeJournalService:
             event_key=entry.event_key,
         )
 
+    def delete_entry(self, trade_id: uuid.UUID) -> None:
+        """Remove one journal entry. Raises ``LookupError`` if absent."""
+
+        self.trades.delete(trade_id)
+
     # ------------------------------------------------------------------
     # Reads
     # ------------------------------------------------------------------

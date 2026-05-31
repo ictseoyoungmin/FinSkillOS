@@ -136,6 +136,7 @@ operational protocols.
 96     Catalyst Watch Event De-duplication (read model)
 97     Market Kernel Live Event Overlay
 98     Market Kernel Multi-Timeframe Query
+99     Trade Memory Entry Edit / Delete / CSV Export (API)
 ```
 
 Slice 14 is complete:
@@ -369,6 +370,13 @@ Slice 14 is complete:
   for that timeframe, and reflects it in `header.timeframe`; the React selector
   carries the timeframe in the query key and refetches. Read-only — an
   unstored timeframe shows the explicit MISSING state. Visual baseline unchanged.
+- Trade Memory entries can now be edited, deleted, and exported, not just
+  appended. The API gained `PUT`/`DELETE /trade-memory/entries/{id}` (same
+  forbidden-wording guard + structured JSON result as POST; missing row →
+  REJECTED, never a 500) and `GET /trade-memory/export.csv` (deterministic,
+  descriptive CSV of the recent entries, works in every snapshot mode). The
+  route also dedups its POST/PUT input build, snapshot resolution, and result
+  mapping into shared helpers. Frontend edit/delete/export UI is Slice 100.
 ```
 
 ## Validation Baseline
