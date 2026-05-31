@@ -413,3 +413,75 @@ def test_market_kernel_reads_requested_timeframe(monkeypatch, tmp_path) -> None:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_market_kernel_indicator_ignores_snapshot_without_backing_bar(
+    monkeypatch, tmp_path
+) -> None:
+    """Slice 102 — a snapshot with no backing bar must not lead the chart.
+
+    Mirrors the live regression: a mock-derived indicator snapshot survived
+    after its bar was removed, so the snapshot panel showed a stale value
+    ahead of the real last bar. The route now only trusts a snapshot that has
+    a backing (deduped) bar.
+    """
+    from finskillos.data_sources.dto import IndicatorSnapshotDTO
+    from finskillos.db.repositories import IndicatorRepository, MarketRepository
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    base = datetime.now(tz=timezone.utc).replace(
+        hour=4, minute=0, second=0, microsecond=0
+    ) - timedelta(days=6)
+
+    def _bar(day_offset: int, close: str) -> MarketBarDTO:
+        return MarketBarDTO(
+            ticker="SPY",
+            timeframe="1d",
+            bar_time=base + timedelta(days=day_offset),
+            open=Decimal(close),
+            high=Decimal(close),
+            low=Decimal(close),
+            close=Decimal(close),
+            adj_close=Decimal(close),
+            volume=Decimal("1000"),
+            source="yfinance",
+        )
+
+    def _snap(day_offset: int, hour: int, rsi: str) -> IndicatorSnapshotDTO:
+        return IndicatorSnapshotDTO(
+            ticker="SPY",
+            timeframe="1d",
+            snapshot_time=(base + timedelta(days=day_offset)).replace(hour=hour),
+            rsi_14=Decimal(rsi),
+            ema_20=Decimal("100"),
+        )
+
+    with factory() as session:
+        market = MarketRepository(session)
+        indicators = IndicatorRepository(session)
+        for offset, close in ((0, "100"), (1, "101"), (2, "102")):
+            market.upsert_bar(_bar(offset, close))
+            indicators.upsert_snapshot(_snap(offset, 4, "45.0"))
+        # Orphan snapshot: a later day with no backing bar, distinct RSI.
+        indicators.upsert_snapshot(_snap(3, 0, "99.0"))
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = _client().get("/api/market-kernel?ticker=SPY").json()
+        assert body["source"] == "live"
+        # The backed snapshot (45.0) wins, not the orphaned 99.0.
+        assert body["indicators"]["rsi14"] == "45.0000"
+        # Header latest still tracks the last real bar.
+        assert body["header"]["latestClose"] == "102.000000"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

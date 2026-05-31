@@ -88,7 +88,16 @@ def market_kernel(
         usable_indicators = [
             row for row in indicator_rows if _as_utc(row.snapshot_time) <= now
         ]
-        latest_indicator = usable_indicators[-1] if usable_indicators else None
+        # Only trust an indicator snapshot that has a backing (deduped) bar, so
+        # the snapshot panel can never lead the chart with a stale row left over
+        # from removed source data. Fall back to the latest usable row if none
+        # align (edge tickers whose snapshot times differ from bar times).
+        bar_times = {_as_utc(bar.bar_time) for bar in bars}
+        backed_indicators = [
+            row for row in usable_indicators if _as_utc(row.snapshot_time) in bar_times
+        ]
+        candidates = backed_indicators or usable_indicators
+        latest_indicator = candidates[-1] if candidates else None
         return _live_response(
             session=session,
             ticker=resolved_ticker,

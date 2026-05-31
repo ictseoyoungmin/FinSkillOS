@@ -139,6 +139,7 @@ operational protocols.
 99     Trade Memory Entry Edit / Delete / CSV Export (API)
 100    Trade Memory Entry Edit / Delete / Export (UI)
 101    Market Bar Same-Day Source Dedup (read model)
+102    Market Kernel Indicator Backing-Bar Guard
 ```
 
 Slice 14 is complete:
@@ -394,6 +395,12 @@ Slice 14 is complete:
   The superseded mock seed (941 rows, zero mock-only pairs) was deleted from the
   live DB under user authorization, so the header's latest reverts to the real
   last trading day.
+- The Indicator Snapshot panel can no longer lead the chart. `indicator_snapshots`
+  held the same mock-derived rows, so the route's latest-by-time pick surfaced a
+  phantom 2026-05-31 snapshot. The market_kernel route now only trusts a snapshot
+  with a backing (deduped) bar; the 770 orphaned snapshots were deleted under the
+  same authorization, restoring the "every snapshot has a backing bar" invariant.
+  NVDA's panel reverts to the real 2026-05-29 values (RSI 46.30 / EMA20 228.06).
 ```
 
 ## Validation Baseline
