@@ -193,6 +193,88 @@ def test_market_kernel_can_return_live_db_bars(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_market_kernel_event_overlay_includes_relevant_events(
+    monkeypatch, tmp_path
+) -> None:
+    from datetime import date
+
+    from finskillos.db.models.event import (
+        DATE_STATUS_TENTATIVE,
+        DATE_STATUS_WINDOW,
+        EVENT_TYPE_CENTRAL_BANK,
+        EVENT_TYPE_EARNINGS,
+    )
+    from finskillos.services.event_service import (
+        EventInput,
+        EventLinkInput,
+        EventService,
+    )
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    today = date.today()
+    with factory() as session:
+        MarketDataService(
+            session,
+            adapter=MockMarketDataAdapter(default_bars=30),
+            universe=["NVDA"],
+        ).refresh_bars(["NVDA"])
+        SignalService(session).compute_for_universe(["NVDA"])
+        events = EventService(session)
+        events.create_event(
+            EventInput(
+                title="NVDA earnings window",
+                event_type=EVENT_TYPE_EARNINGS,
+                date_status=DATE_STATUS_TENTATIVE,
+                start_date=today + timedelta(days=5),
+            ),
+            links=(EventLinkInput(ticker="NVDA", theme="AI"),),
+        )
+        events.create_event(
+            EventInput(
+                title="FOMC decision window",
+                event_type=EVENT_TYPE_CENTRAL_BANK,
+                date_status=DATE_STATUS_WINDOW,
+                start_date=today + timedelta(days=10),
+            ),
+            links=(EventLinkInput(event_key="FOMC"),),
+        )
+        events.create_event(
+            EventInput(
+                title="TSLA delivery window",
+                event_type=EVENT_TYPE_EARNINGS,
+                date_status=DATE_STATUS_TENTATIVE,
+                start_date=today + timedelta(days=7),
+            ),
+            links=(EventLinkInput(ticker="TSLA"),),
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/market-kernel?ticker=NVDA").json()
+
+        assert body["source"] == "live"
+        assert body["dataState"]["eventOverlayStatus"] == "AVAILABLE"
+        titles = {event["title"] for event in body["events"]}
+        assert "NVDA earnings window" in titles  # ticker-linked
+        assert "FOMC decision window" in titles  # market-wide macro
+        assert "TSLA delivery window" not in titles  # unrelated ticker excluded
+        item = next(e for e in body["events"] if e["title"] == "NVDA earnings window")
+        assert {"daysToEvent", "title", "subtitle", "tag", "tone"}.issubset(item)
+        assert item["tag"] == "Tentative"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_market_kernel_live_db_missing_ticker_is_explicit(
     monkeypatch, tmp_path
 ) -> None:

@@ -19,6 +19,7 @@ from api.fixtures import market_kernel_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import (
+    EventOverlayItem,
     MarketBarPoint,
     MarketKernelDataState,
     MarketKernelResponse,
@@ -72,6 +73,7 @@ def market_kernel(
         ]
         latest_indicator = usable_indicators[-1] if usable_indicators else None
         return _live_response(
+            session=session,
             ticker=resolved_ticker,
             bars=bars,
             latest_indicator=latest_indicator,
@@ -80,6 +82,7 @@ def market_kernel(
 
 def _live_response(
     *,
+    session,
     ticker: str,
     bars: list,
     latest_indicator,
@@ -89,6 +92,8 @@ def _live_response(
     payload.generated_at = generated_at
     payload.source = "live"
     payload.system_status = SystemStatus(db="LIVE", mode="READ_MODE", guard_count=0)
+    events = _event_overlay(session, ticker)
+    overlay_status = "AVAILABLE" if events else "MISSING"
     payload.data_state = MarketKernelDataState(
         chart_status="MISSING",
         chart_evidence="missing",
@@ -97,7 +102,7 @@ def _live_response(
         bar_count=0,
         latest_bar_at=None,
         indicator_status="MISSING",
-        event_overlay_status="MISSING",
+        event_overlay_status=overlay_status,
         missing_summary=f"{ticker} needs stored bars and indicators.",
         source_note=(
             "Live DB is reachable, but no stored market bars exist for "
@@ -151,7 +156,7 @@ def _live_response(
         payload.indicators.volume_z_score = None
         payload.indicators.momentum_score = None
         payload.indicators.trend_state = None
-        payload.events = []
+        payload.events = events
         payload.watchpoints = [
             f"No stored market bars exist for {ticker}.",
             "Use System Ops market-bar refresh before expecting live chart context.",
@@ -225,7 +230,7 @@ def _live_response(
         bar_count=len(bars),
         latest_bar_at=_iso(latest_bar.bar_time),
         indicator_status=indicator_status,
-        event_overlay_status="MISSING",
+        event_overlay_status=overlay_status,
         missing_summary=cov.missing_summary(
             domain="market-kernel",
             ticker=ticker,
@@ -258,7 +263,7 @@ def _live_response(
     payload.indicators.volume_z_score = getattr(latest_indicator, "volume_zscore", None)
     payload.indicators.momentum_score = getattr(latest_indicator, "momentum_score", None)
     payload.indicators.trend_state = getattr(latest_indicator, "trend_state", None)
-    payload.events = []
+    payload.events = events
     payload.watchpoints = [
         "Stored bars are local snapshots, not a streaming quote feed.",
         "Recompute indicators after refreshing market bars for full context.",
@@ -274,6 +279,54 @@ def _live_response(
 def _normalize_ticker(ticker: str | None) -> str:
     normalized = (ticker or "NVDA").strip().upper()
     return normalized or "NVDA"
+
+
+def _event_overlay(session, ticker: str, *, limit: int = 6) -> list[EventOverlayItem]:
+    """Upcoming Catalyst Watch events relevant to ``ticker`` for the chart overlay.
+
+    An event is relevant when the ticker is among its linked tickers, or when it
+    is a market-wide macro event (no ticker link — e.g. FOMC / CPI). Scored via
+    the Slice-11 EventRiskService for the tone; descriptive only.
+    """
+    from finskillos.services.event_risk_service import EventRiskService
+    from finskillos.services.event_service import EventService
+
+    today = datetime.now(tz=UTC).date()
+    upcoming = EventService(session).list_upcoming(today=today, limit=30)
+    if not upcoming:
+        return []
+
+    risk_service = EventRiskService(session)
+    normalized = ticker.upper()
+    items: list[EventOverlayItem] = []
+    for event in upcoming:
+        breakdown = risk_service.score(event, today=today)
+        affected = {tick.upper() for tick in breakdown.affected_tickers}
+        is_market_wide = not affected
+        if normalized not in affected and not is_market_wide:
+            continue
+        scope = "Market-wide" if is_market_wide else f"{breakdown.risk_label.title()} relevance"
+        items.append(
+            EventOverlayItem(
+                days_to_event=breakdown.days_to_event,
+                title=event.title,
+                subtitle=f"{event.event_type.replace('_', ' ').title()} · {scope}",
+                tag=event.date_status.title(),
+                tone=_overlay_tone(breakdown.risk_label),
+            )
+        )
+        if len(items) >= limit:
+            break
+    return items
+
+
+def _overlay_tone(risk_label: str) -> str:
+    return {
+        "CRITICAL": "danger",
+        "HIGH": "warning",
+        "MODERATE": "info",
+        "LOW": "neutral",
+    }.get(risk_label, "neutral")
 
 
 def _indicator_status(latest_indicator) -> str:
