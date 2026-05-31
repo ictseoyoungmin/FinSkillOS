@@ -16,17 +16,17 @@
 
 .fso-control-state-band {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(166px, 1fr));
+  gap: 8px;
 }
 
 .fso-control-state-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 5px 8px;
+  gap: 3px 8px;
   align-items: center;
   min-width: 0;
-  padding: 9px 11px;
+  padding: 7px 10px;
   border: 1px solid var(--fso-line);
   border-radius: var(--fso-radius-sm);
   background:
@@ -42,8 +42,6 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--fso-font-mono);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .fso-control-state-item > span {
@@ -52,12 +50,21 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fso-control-state-item > small {
   grid-column: 1 / -1;
   color: var(--fso-text-muted);
   font-size: 11px;
+  line-height: 1.35;
+  /* Density: show the full state/freshness detail across two lines instead
+     of a single-line ellipsis that hides the freshness note (Slice 105). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .fso-control-grid {

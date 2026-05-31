@@ -143,6 +143,7 @@ operational protocols.
 103    Remove Unused PlaceholderPage (P3 cleanup)
 104    LineChart Crosshair Readout + SVG Accessibility
 105    Control Room Freshness Env → Operator Watchpoints
+106    Control Room State-Band Density
 ```
 
 Slice 14 is complete:
@@ -487,7 +488,9 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - [x] **105** Control Room freshness env propagation to operator notes — a STALE
   market/watchlist/catalyst rail now adds an operator watchpoint citing the
   configured `..._STALE_AFTER_DAYS` threshold + refresh guidance.
-- [ ] state-band density.
+- [x] **106** state-band density — Control Room data-state band tightened
+  (smaller padding/gap/min-width) and its detail wraps to 2 lines instead of a
+  single-line ellipsis. _P3 batch complete._
 
 ### Done (this queue)
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner
