@@ -122,6 +122,18 @@ export const systemOpsFixture: SystemOpsData = {
       tone: "info",
       lastRunAt: null,
     },
+    {
+      key: "refresh_events",
+      title: "Refresh event calendar",
+      description:
+        "Ingests the event calendar from the provider adapter (offline-safe mock by default) through the System Ops ingestion boundary. Catalyst Watch stays read-only.",
+      idempotencyNote:
+        "Idempotent · existing rows are skipped by title; ingested rows keep uncertain TENTATIVE / WINDOW date statuses.",
+      buttonLabel: "Refresh event calendar",
+      confirmLabel: "Refresh event calendar",
+      tone: "info",
+      lastRunAt: null,
+    },
   ],
   recentProtocolRuns: [
     {

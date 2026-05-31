@@ -45,6 +45,7 @@ _PROTOCOL_KEYS = {
     "recompute_regime",
     "run_risk_guards",
     "seed_sample_events",
+    "refresh_events",
 }
 
 _POST_ENDPOINTS = (
@@ -55,6 +56,7 @@ _POST_ENDPOINTS = (
     ("/api/system-ops/recompute-regime", "recompute_regime"),
     ("/api/system-ops/run-risk-guards", "run_risk_guards"),
     ("/api/system-ops/seed-sample-events", "seed_sample_events"),
+    ("/api/system-ops/refresh-events", "refresh_events"),
 )
 
 _FORBIDDEN_WORDS = (
@@ -745,6 +747,41 @@ def test_calculate_indicators_protocol_noops_without_bars(
         assert "failedSymbols=SPY" in body["detail"]
         assert {"key": "failed", "value": "1"} in body["detailEvidence"]
         assert {"key": "failedSymbols", "value": "SPY"} in body["detailEvidence"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_refresh_events_protocol_ingests_calendar(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        first = _client().post("/api/system-ops/refresh-events").json()
+        second = _client().post("/api/system-ops/refresh-events").json()
+
+        assert first["protocol"] == "refresh_events"
+        assert first["status"] == "OK"
+        assert "events_ingested" in first["detail"]
+        assert "created_count=" in first["detail"]
+        assert "CONFIRMED" not in first["detail"]
+        assert {"key": "boundary", "value": "system_ops"} in first["detailEvidence"]
+        # Idempotent — a second run ingests nothing new.
+        assert second["status"] == "NOOP"
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            events = EventRepository(session).list_all()
+            assert events
+            assert {event.date_status for event in events}.issubset(
+                {"TENTATIVE", "WINDOW"}
+            )
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

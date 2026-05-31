@@ -13,7 +13,8 @@ export type ProtocolKey =
   | "calculate_indicators"
   | "recompute_regime"
   | "run_risk_guards"
-  | "seed_sample_events";
+  | "seed_sample_events"
+  | "refresh_events";
 
 export type ProtocolStatus = "OK" | "NOOP" | "ERROR";
 export type WorkerStatus = ProtocolStatus | "MISSING";

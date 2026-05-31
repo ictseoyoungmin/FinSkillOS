@@ -205,6 +205,22 @@ def run_seed_sample_events() -> ProtocolRunResult:
     )
 
 
+@router.post(
+    "/system-ops/refresh-events",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: ingest the event calendar from the provider adapter.",
+)
+def run_refresh_events() -> ProtocolRunResult:
+    return _run_protocol(
+        key="refresh_events",
+        fixture_message=(
+            "Event calendar refresh acknowledged. Fixture-first shell did "
+            "not touch the database."
+        ),
+        runner=_invoke_refresh_events,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -839,6 +855,43 @@ def _invoke_seed_sample_events(session) -> tuple[str, str, str]:
         f"{len(created)} event catalog rows loaded through System Ops.",
         (
             f"events_seeded,created_count={len(created)},"
+            f"date_statuses={'+'.join(statuses)},boundary=system_ops"
+        ),
+    )
+
+
+def _event_calendar_adapter():
+    """Select the event calendar provider. Offline-safe mock by default.
+
+    A future real provider plugs in here, gated by
+    ``FINSKILLOS_EVENT_CALENDAR_ADAPTER`` (mirrors the market-refresh adapter
+    selection), without changing the protocol or read models.
+    """
+    from finskillos.data_sources.event_adapter import MockEventCalendarAdapter
+
+    name = os.environ.get("FINSKILLOS_EVENT_CALENDAR_ADAPTER", "mock").lower()
+    if name == "mock":
+        return MockEventCalendarAdapter()
+    raise ValueError(f"unsupported event calendar adapter: {name}")
+
+
+def _invoke_refresh_events(session) -> tuple[str, str, str]:
+    from finskillos.services.event_service import EventService
+
+    adapter = _event_calendar_adapter()
+    created = EventService(session).refresh_events(adapter, today=date.today())
+    if not created:
+        return (
+            "NOOP",
+            "Event calendar already current · no new rows ingested.",
+            "noop_existing,boundary=system_ops",
+        )
+    statuses = sorted({event.date_status for event in created})
+    return (
+        "OK",
+        f"{len(created)} calendar events ingested through System Ops.",
+        (
+            f"events_ingested,created_count={len(created)},"
             f"date_statuses={'+'.join(statuses)},boundary=system_ops"
         ),
     )

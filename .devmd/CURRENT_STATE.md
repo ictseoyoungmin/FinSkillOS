@@ -131,6 +131,7 @@ operational protocols.
 91     Shared api/timeutil (dedup _as_utc / _iso)
 92     Shared Live-Error Helper + Copy (api/live_state)
 93     Event Calendar Provider Adapter (+ EventService.refresh_events)
+94     System Ops Event Refresh Protocol
 ```
 
 Slice 14 is complete:
@@ -396,12 +397,13 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - _Complete (Slices 91–92): shared `api/timeutil.py` + `api/live_state.py`._
 
 ### P2 — tab features (next up)
-- **Catalyst Watch live event calendar provider** (L) — _in progress_:
+- **Catalyst Watch live event calendar provider** (L) — _mostly done_:
   - [x] **93** event-calendar adapter boundary (`BaseEventCalendarAdapter` +
     `MockEventCalendarAdapter`) + `EventService.refresh_events`.
-  - [~] System Ops `refresh_events` protocol (card + handler + frontend +
-    visual baseline) — mirrors Slice 23.
-  - [ ] real external calendar provider (env-gated, like the Yahoo adapter).
+  - [x] **94** System Ops `refresh_events` protocol (card + handler + frontend +
+    env-gated adapter selection).
+  - [ ] real external calendar provider (env-gated `FINSKILLOS_EVENT_CALENDAR_ADAPTER`,
+    like the Yahoo market adapter) — final follow-up.
 - [ ] **Market Kernel event overlay + multi-timeframe** — live event overlay on
   candles; timeframe query like Symbol Lab.
 - [ ] **Trade Memory edit/delete + export** — entry edit/delete UI, CSV export.
@@ -438,3 +440,6 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - [x] **93 event-calendar provider adapter** — `BaseEventCalendarAdapter` +
   deterministic `MockEventCalendarAdapter` + `EventService.refresh_events`
   (idempotent), establishing the Catalyst Watch ingestion boundary.
+- [x] **94 System Ops event refresh protocol** — `POST /system-ops/refresh-events`
+  + protocol card ingest the calendar via the adapter (offline-safe mock,
+  env-gated for a future real provider); idempotent OK/NOOP.

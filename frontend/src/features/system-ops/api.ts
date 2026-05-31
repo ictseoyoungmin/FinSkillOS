@@ -16,6 +16,7 @@ const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
   recompute_regime: "/system-ops/recompute-regime",
   run_risk_guards: "/system-ops/run-risk-guards",
   seed_sample_events: "/system-ops/seed-sample-events",
+  refresh_events: "/system-ops/refresh-events",
 };
 
 /**

@@ -34,6 +34,7 @@ ProtocolKey = Literal[
     "recompute_regime",
     "run_risk_guards",
     "seed_sample_events",
+    "refresh_events",
 ]
 
 ProtocolStatus = Literal["OK", "NOOP", "ERROR"]

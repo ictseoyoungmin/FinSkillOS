@@ -228,6 +228,23 @@ def system_ops_fixture() -> SystemOpsResponse:
                 tone="info",
                 last_run_at=None,
             ),
+            ProtocolCard(
+                key="refresh_events",
+                title="Refresh event calendar",
+                description=(
+                    "Ingests the event calendar from the provider adapter "
+                    "(offline-safe mock by default) through the System Ops "
+                    "ingestion boundary. Catalyst Watch stays read-only."
+                ),
+                idempotency_note=(
+                    "Idempotent · existing rows are skipped by title; ingested "
+                    "rows keep uncertain TENTATIVE / WINDOW date statuses."
+                ),
+                button_label="Refresh event calendar",
+                confirm_label="Refresh event calendar",
+                tone="info",
+                last_run_at=None,
+            ),
         ],
         data_sources=[
             DataSourcePill(
