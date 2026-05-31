@@ -130,6 +130,7 @@ operational protocols.
 90     Docker Env-State Test Audit (deterministic run ordering)
 91     Shared api/timeutil (dedup _as_utc / _iso)
 92     Shared Live-Error Helper + Copy (api/live_state)
+93     Event Calendar Provider Adapter (+ EventService.refresh_events)
 ```
 
 Slice 14 is complete:
@@ -395,8 +396,12 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - _Complete (Slices 91–92): shared `api/timeutil.py` + `api/live_state.py`._
 
 ### P2 — tab features (next up)
-- [ ] **Catalyst Watch live event calendar provider** (L) — promote beyond the
-  System Ops seed catalogue; ties into the event-risk guard above.
+- **Catalyst Watch live event calendar provider** (L) — _in progress_:
+  - [x] **93** event-calendar adapter boundary (`BaseEventCalendarAdapter` +
+    `MockEventCalendarAdapter`) + `EventService.refresh_events`.
+  - [~] System Ops `refresh_events` protocol (card + handler + frontend +
+    visual baseline) — mirrors Slice 23.
+  - [ ] real external calendar provider (env-gated, like the Yahoo adapter).
 - [ ] **Market Kernel event overlay + multi-timeframe** — live event overlay on
   candles; timeframe query like Symbol Lab.
 - [ ] **Trade Memory edit/delete + export** — entry edit/delete UI, CSV export.
@@ -430,3 +435,6 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 - [x] **92 shared live-error helper/copy** — `api/live_state.py` centralises
   `exc_detail` + the two shared live-error sentences used by the four Slice-80
   builders; byte-identical responses.
+- [x] **93 event-calendar provider adapter** — `BaseEventCalendarAdapter` +
+  deterministic `MockEventCalendarAdapter` + `EventService.refresh_events`
+  (idempotent), establishing the Catalyst Watch ingestion boundary.

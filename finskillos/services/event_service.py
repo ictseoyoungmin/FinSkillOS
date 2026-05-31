@@ -22,8 +22,12 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from finskillos.data_sources.event_adapter import BaseEventCalendarAdapter
 
 from finskillos.db.models import Event, EventLink
 from finskillos.db.models.event import (
@@ -233,6 +237,27 @@ class EventService:
                 continue
             event = self.create_event(sample.event, links=sample.links)
             created.append(event)
+        return created
+
+    def refresh_events(
+        self,
+        adapter: BaseEventCalendarAdapter,
+        *,
+        today: date,
+    ) -> list[Event]:
+        """Ingest events from a calendar provider adapter, idempotent by title.
+
+        Mirrors ``seed_sample_events`` but sources rows from a provider adapter
+        instead of the hard-coded catalog, so a live calendar provider can
+        replace the offline mock without changing the Catalyst Watch read model
+        or the event-risk guard. Existing rows are skipped by title.
+        """
+
+        created: list[Event] = []
+        for item in adapter.fetch_events(today=today):
+            if self._find_by_title(item.event.title) is not None:
+                continue
+            created.append(self.create_event(item.event, links=item.links))
         return created
 
     # ------------------------------------------------------------------
