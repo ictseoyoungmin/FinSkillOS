@@ -19,16 +19,34 @@ from decimal import Decimal
 DEFAULT_TIMEFRAME = "1d"
 
 # Slice-04 default US-market focus universe (docs/v2_1/08 §5.1).
+# The default refresh universe is the union of every cockpit tab's tickers so a
+# single worker refresh populates all of them (no permanently-MISSING rows):
+# Analysis Workspace index + sector ETFs, Market Kernel / Symbol Lab mega-caps,
+# and the macro proxies.
 DEFAULT_US_TICKER_UNIVERSE: tuple[str, ...] = (
+    # Index ETFs
     "SPY",
     "QQQ",
+    "DIA",
+    "IWM",
+    # Sector ETFs (+ semis)
+    "SMH",
+    "SOXX",
+    "XLK",
+    "XLF",
+    "XLE",
+    "XLV",
+    "XLI",
+    "XLY",
+    "XLP",
+    "XLU",
+    # Mega-cap stocks
     "NVDA",
     "TSLA",
     "AAPL",
     "MSFT",
     "AMZN",
-    "SMH",
-    "SOXX",
+    # Macro proxies
     "VIX",
     "US10Y",
     "DXY",

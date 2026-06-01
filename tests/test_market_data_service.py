@@ -428,6 +428,18 @@ def test_default_universe_is_us_market_focused() -> None:
     assert required.issubset(universe)
 
 
+def test_default_universe_covers_analysis_index_universe() -> None:
+    """Slice 116 — a single refresh must populate every Analysis Workspace row,
+    so the refresh universe is a superset of the Index Lab universe (no
+    permanently-MISSING sector ETFs)."""
+    from finskillos.ui.view_models.index_lab_vm import DEFAULT_INDEX_UNIVERSE
+
+    refresh = set(DEFAULT_US_TICKER_UNIVERSE)
+    index_universe = {entry.ticker for entry in DEFAULT_INDEX_UNIVERSE}
+    missing = index_universe - refresh
+    assert not missing, f"refresh universe omits Analysis tickers: {sorted(missing)}"
+
+
 def test_import_bars_bypasses_adapter(db_session: Session) -> None:
     from finskillos.data_sources.dto import MarketBarDTO
 

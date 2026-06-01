@@ -153,6 +153,7 @@ operational protocols.
 113    Postgres Worker Job Queue (request-driven worker)
 114    System Ops Refresh Enqueues Jobs (request path)
 115    Reachable-Empty → Live(-empty) Guard + Sample Cleanup
+116    Full Cockpit Refresh Universe (no permanently-MISSING tabs)
 ```
 
 Slice 14 is complete:

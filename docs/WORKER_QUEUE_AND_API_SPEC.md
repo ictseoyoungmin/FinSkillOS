@@ -113,7 +113,7 @@ return the same job. When no DB session is reachable, protocols return `NOOP`
 | `FINSKILLOS_WORKER_POLL_SECONDS` | `5` | queue drain interval |
 | `FINSKILLOS_WORKER_RUN_ON_START` | `1` | enqueue a refresh on start |
 | `FINSKILLOS_WORKER_{MARKET,NEWS,INDICATOR}_ENABLED` | `1` | per-section toggles |
-| `FINSKILLOS_MARKET_REFRESH_TICKERS` / `…_INDICATOR_REFRESH_TICKERS` | universe | refresh scope |
+| `FINSKILLOS_MARKET_REFRESH_TICKERS` / `…_INDICATOR_REFRESH_TICKERS` | full 22-ticker cockpit universe | refresh scope — superset of the Analysis index universe so no tab stays MISSING (Slice 116). A present `.env` overrides this. |
 | `FINSKILLOS_EVENT_CALENDAR_ADAPTER` | `mock` | `mock` / `csv` / `http` (+ `…_CSV` / `…_URL`) |
 
 ---
@@ -153,4 +153,5 @@ remove them to make the tabs show MISSING until real data exists.
 - **111** real-data default + test isolation; **112** orchestration (migrate +
   worker auto-start); **113** `worker_jobs` queue + queue-driven worker; **114**
   System Ops refresh protocols enqueue jobs (request path) + cockpit `QUEUED`;
-  **115** reachable-empty → live(-empty) guard + sample-data cleanup.
+  **115** reachable-empty → live(-empty) guard + sample-data cleanup; **116**
+  refresh universe broadened to the full cockpit universe (no MISSING tabs).
