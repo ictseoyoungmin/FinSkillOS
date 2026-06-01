@@ -43,6 +43,8 @@ from api.schemas.system_ops import (
     ProtocolRunResult,
     SystemOpsResponse,
     WorkerCycleRecord,
+    WorkerLiveModeInput,
+    WorkerLiveModeResult,
     WorkerStatusSummary,
 )
 from api.timeutil import to_utc as _as_utc
@@ -224,6 +226,46 @@ def run_refresh_events() -> ProtocolRunResult:
         ),
         runner=_invoke_refresh_events,
     )
+
+
+@router.post(
+    "/system-ops/worker-live-mode",
+    response_model=WorkerLiveModeResult,
+    summary="Turn the worker's automatic live refresh on or off.",
+)
+def set_worker_live_mode(payload: WorkerLiveModeInput) -> WorkerLiveModeResult:
+    with get_session_scope() as session:
+        if session is None:
+            return WorkerLiveModeResult(
+                live_mode=payload.live_mode,
+                message="No database session is reachable; worker live mode is unchanged.",
+            )
+        try:
+            from finskillos.db.repositories import WorkerControlRepository
+
+            row = WorkerControlRepository(session).set_live_mode(
+                payload.live_mode, updated_by="system_ops"
+            )
+            session.commit()
+            return WorkerLiveModeResult(
+                live_mode=row.live_mode,
+                message=(
+                    "Worker live mode ON — automatic refresh resumes on the next cycle."
+                    if row.live_mode
+                    else "Worker live mode OFF — automatic refresh paused. Manual "
+                    "refresh protocols still work."
+                ),
+                updated_at=row.updated_at.isoformat(),
+            )
+        except Exception as exc:  # noqa: BLE001 — structured JSON, never a raw stack
+            session.rollback()
+            return WorkerLiveModeResult(
+                live_mode=payload.live_mode,
+                message=(
+                    "Worker live mode could not be updated "
+                    f"({type(exc).__name__}). Stored state is unchanged."
+                ),
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -533,15 +575,17 @@ def _read_worker_status(
 ) -> WorkerStatusSummary:
     if session is None:
         return WorkerStatusSummary()
+    live_mode = _read_worker_live_mode(session)
     try:
         rows = WorkerCycleRunRepository(session).list_recent(limit=limit)
     except Exception:
         session.rollback()
         return WorkerStatusSummary(
-            latest_detail="Worker cycle history is unavailable."
+            live_mode=live_mode,
+            latest_detail="Worker cycle history is unavailable.",
         )
     if not rows:
-        return WorkerStatusSummary()
+        return WorkerStatusSummary(live_mode=live_mode)
     latest = rows[0]
     cadence_status, expected_next_cycle_at, cadence_detail = _worker_cadence(latest)
     return WorkerStatusSummary(
@@ -554,8 +598,19 @@ def _read_worker_status(
         ),
         latest_detail=_worker_cycle_detail(latest),
         cadence_detail=cadence_detail,
+        live_mode=live_mode,
         recent_cycles=[_worker_cycle_record_from_db(row) for row in rows],
     )
+
+
+def _read_worker_live_mode(session) -> bool:
+    from finskillos.db.repositories import WorkerControlRepository
+
+    try:
+        return WorkerControlRepository(session).is_live_mode()
+    except Exception:
+        session.rollback()
+        return True
 
 
 def _worker_cycle_record_from_db(row) -> WorkerCycleRecord:

@@ -123,7 +123,22 @@ class WorkerStatusSummary(CamelModel):
     cadence_detail: str = (
         "Worker cadence cannot be assessed until a cycle exists."
     )
+    live_mode: bool = True
     recent_cycles: list[WorkerCycleRecord] = Field(default_factory=list)
+
+
+class WorkerLiveModeInput(CamelModel):
+    """Request body for the worker live-mode toggle."""
+
+    live_mode: bool
+
+
+class WorkerLiveModeResult(CamelModel):
+    """Result of toggling the worker's automatic live-refresh mode."""
+
+    live_mode: bool
+    message: str
+    updated_at: str | None = None
 
 
 class SystemOpsResponse(CamelModel):

@@ -154,6 +154,7 @@ operational protocols.
 114    System Ops Refresh Enqueues Jobs (request path)
 115    Reachable-Empty → Live(-empty) Guard + Sample Cleanup
 116    Full Cockpit Refresh Universe (no permanently-MISSING tabs)
+117    Worker Live-Mode On/Off Toggle
 ```
 
 Slice 14 is complete:

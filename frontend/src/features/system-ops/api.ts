@@ -6,6 +6,7 @@ import type {
   ProtocolRunResult,
   SystemOpsData,
   SystemStatusData,
+  WorkerLiveModeResult,
 } from "./types";
 
 const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
@@ -74,6 +75,29 @@ export async function runSystemOpsProtocol(
     );
   }
   return (await response.json()) as ProtocolRunResult;
+}
+
+/** Toggle the worker's automatic live refresh on/off. */
+export async function setWorkerLiveMode(
+  liveMode: boolean,
+  signal?: AbortSignal,
+): Promise<WorkerLiveModeResult> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}/system-ops/worker-live-mode`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ liveMode }),
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText} for ${url}`,
+    );
+  }
+  return (await response.json()) as WorkerLiveModeResult;
 }
 
 function systemStatusFallback(): SystemStatusData {

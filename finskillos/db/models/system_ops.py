@@ -6,7 +6,17 @@ import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import JSON, DateTime, Index, String, Text, Uuid, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -149,3 +159,36 @@ class WorkerJob(Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# Worker control (Slice 117) --------------------------------------------------
+
+WORKER_CONTROL_SINGLETON_ID = 1
+
+
+class WorkerControl(Base):
+    """Single-row runtime control for the worker's automatic live refresh.
+
+    ``live_mode`` gates the worker's auto-enqueue (on start + interval). When
+    off, the worker idles and only processes explicitly-requested jobs (System
+    Ops refresh buttons still work). Toggled from the cockpit; read by the
+    worker each cycle so the change takes effect without a restart.
+    """
+
+    __tablename__ = "worker_control"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, default=WORKER_CONTROL_SINGLETON_ID
+    )
+    live_mode: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=func.true(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_by: Mapped[str] = mapped_column(
+        String(32), default="system", nullable=False
+    )

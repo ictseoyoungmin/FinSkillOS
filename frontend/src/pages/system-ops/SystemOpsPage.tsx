@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchSystemOps,
   fetchSystemStatus,
   runSystemOpsProtocol,
+  setWorkerLiveMode,
 } from "@/features/system-ops/api";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
@@ -331,6 +332,13 @@ function WorkerStatusDashboard({
 }: {
   workerStatus: WorkerStatusSummary;
 }) {
+  const queryClient = useQueryClient();
+  const liveModeMutation = useMutation({
+    mutationFn: (enabled: boolean) => setWorkerLiveMode(enabled),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["system-ops"] }),
+  });
+  const liveMode = workerStatus.liveMode;
   const latest = workerStatus.recentCycles[0] ?? null;
   const components = latest
     ? [
@@ -382,6 +390,33 @@ function WorkerStatusDashboard({
             <strong>{workerStatus.status}</strong>
             <small>{workerStatus.latestDetail}</small>
             <small>{workerStatus.cadenceDetail}</small>
+            <div
+              className="fso-worker-livemode"
+              data-testid="worker-live-mode"
+              data-live={liveMode}
+            >
+              <span className="fso-worker-livemode-label">
+                Live mode · {liveMode ? "ON" : "OFF"}
+              </span>
+              <button
+                type="button"
+                className="fso-worker-livemode-toggle"
+                onClick={() => liveModeMutation.mutate(!liveMode)}
+                disabled={liveModeMutation.isPending}
+                data-testid="worker-live-mode-toggle"
+              >
+                {liveModeMutation.isPending
+                  ? "Updating…"
+                  : liveMode
+                    ? "Turn off"
+                    : "Turn on"}
+              </button>
+            </div>
+            <small className="fso-worker-livemode-hint">
+              {liveMode
+                ? "Worker auto-refreshes on its interval. Manual refresh always works."
+                : "Auto-refresh paused. Use a System Ops refresh to update on demand."}
+            </small>
           </div>
           <div className="fso-worker-metrics">
             <WorkerMetric

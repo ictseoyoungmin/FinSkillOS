@@ -46,6 +46,14 @@ Two modes:
 A failed cycle is logged and the loop continues; **nothing is written on
 failure**, so a provider/network error never corrupts or duplicates data.
 
+### Live-mode toggle (Slice 117)
+The cockpit can pause/resume the worker's **automatic** refresh at runtime via a
+single-row `worker_control.live_mode` flag (read each cycle, no restart needed).
+`POST /api/system-ops/worker-live-mode {liveMode}` sets it; System Ops →
+Worker Status shows the toggle. When OFF, the worker skips the start/interval
+auto-enqueue but **still drains manually-requested jobs** (the System Ops
+refresh buttons keep working).
+
 ### Data source
 Market refresh defaults to **real data** (`yahoo`); `mock` is explicit opt-in
 (`FINSKILLOS_MARKET_REFRESH_ADAPTER=mock`). The mock adapter must never be the
@@ -154,4 +162,5 @@ remove them to make the tabs show MISSING until real data exists.
   worker auto-start); **113** `worker_jobs` queue + queue-driven worker; **114**
   System Ops refresh protocols enqueue jobs (request path) + cockpit `QUEUED`;
   **115** reachable-empty → live(-empty) guard + sample-data cleanup; **116**
-  refresh universe broadened to the full cockpit universe (no MISSING tabs).
+  refresh universe broadened to the full cockpit universe (no MISSING tabs);
+  **117** worker live-mode on/off toggle (`worker_control`).

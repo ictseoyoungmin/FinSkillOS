@@ -184,6 +184,7 @@ export const systemOpsFixture: SystemOpsData = {
     expectedNextCycleAt: null,
     latestDetail: "No worker cycle has been recorded.",
     cadenceDetail: "Worker cadence cannot be assessed until a cycle exists.",
+    liveMode: true,
     recentCycles: [],
   },
   dataSources: [

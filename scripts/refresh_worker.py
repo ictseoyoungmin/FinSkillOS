@@ -37,7 +37,11 @@ from finskillos.db.models.system_ops import (
     WORKER_JOB_REFRESH_MARKET,
     WORKER_JOB_REFRESH_NEWS,
 )
-from finskillos.db.repositories import WorkerCycleRunRepository, WorkerJobRepository
+from finskillos.db.repositories import (
+    WorkerControlRepository,
+    WorkerCycleRunRepository,
+    WorkerJobRepository,
+)
 from finskillos.db.session import session_scope
 from finskillos.logging_config import setup_logging
 from finskillos.services.market_data_service import MarketDataService
@@ -365,6 +369,19 @@ def enqueue_refresh(
         )
 
 
+def live_mode_enabled() -> bool:
+    """Whether the cockpit has the worker's automatic refresh turned on.
+
+    Read each cycle so the toggle takes effect without a restart. Defaults to
+    ``True`` if the control row can't be read (fail toward staying fresh)."""
+    try:
+        with session_scope() as session:
+            return WorkerControlRepository(session).is_live_mode()
+    except Exception:
+        logger.exception("Could not read worker live mode; assuming ON")
+        return True
+
+
 def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
     """Claim and process queued jobs until the queue is empty (or the cap)."""
     processed = 0
@@ -460,17 +477,22 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     try:
-        if config.run_on_start:
+        if config.run_on_start and live_mode_enabled():
             enqueue_refresh(requested_by="worker_start")
         next_interval = time.monotonic() + config.interval_seconds
         while True:
+            # Manual jobs (System Ops refresh buttons) are always processed;
+            # only the automatic enqueue honours the cockpit live-mode toggle.
             try:
                 drain_queue(config)
             except Exception:
                 logger.exception("Worker queue drain failed")
             if time.monotonic() >= next_interval:
                 try:
-                    enqueue_refresh(requested_by="worker_interval")
+                    if live_mode_enabled():
+                        enqueue_refresh(requested_by="worker_interval")
+                    else:
+                        logger.info("Worker live mode OFF — skipping interval refresh")
                 except Exception:
                     logger.exception("Worker interval enqueue failed")
                 next_interval = time.monotonic() + config.interval_seconds

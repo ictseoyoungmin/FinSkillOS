@@ -7,13 +7,19 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from finskillos.db.models import SystemOpsProtocolRun, WorkerCycleRun, WorkerJob
+from finskillos.db.models import (
+    SystemOpsProtocolRun,
+    WorkerControl,
+    WorkerCycleRun,
+    WorkerJob,
+)
 from finskillos.db.models.system_ops import (
     JOB_STATUS_ACTIVE,
     JOB_STATUS_DONE,
     JOB_STATUS_ERROR,
     JOB_STATUS_QUEUED,
     JOB_STATUS_RUNNING,
+    WORKER_CONTROL_SINGLETON_ID,
     _utcnow,
 )
 
@@ -212,3 +218,29 @@ class WorkerJobRepository:
     def count_by_status(self) -> dict[str, int]:
         stmt = select(WorkerJob.status, func.count()).group_by(WorkerJob.status)
         return {status: count for status, count in self.session.execute(stmt)}
+
+
+class WorkerControlRepository:
+    """Single-row worker runtime control (Slice 117 — live-mode toggle)."""
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self) -> WorkerControl:
+        row = self.session.get(WorkerControl, WORKER_CONTROL_SINGLETON_ID)
+        if row is None:
+            row = WorkerControl(id=WORKER_CONTROL_SINGLETON_ID, live_mode=True)
+            self.session.add(row)
+            self.session.flush()
+        return row
+
+    def is_live_mode(self) -> bool:
+        return bool(self.get().live_mode)
+
+    def set_live_mode(self, enabled: bool, *, updated_by: str = "system") -> WorkerControl:
+        row = self.get()
+        row.live_mode = bool(enabled)
+        row.updated_at = _utcnow()
+        row.updated_by = updated_by
+        self.session.flush()
+        return row

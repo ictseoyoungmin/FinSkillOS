@@ -856,3 +856,36 @@ def test_refresh_events_protocol_http_without_url_is_error(
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_worker_live_mode_toggle(monkeypatch, tmp_path) -> None:
+    """Slice 117 — the cockpit can turn the worker's auto-refresh on/off, and
+    System Ops reports the current state."""
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        # Default ON.
+        assert client.get("/api/system-ops").json()["workerStatus"]["liveMode"] is True
+
+        off = client.post(
+            "/api/system-ops/worker-live-mode", json={"liveMode": False}
+        ).json()
+        assert off["liveMode"] is False
+        assert "OFF" in off["message"]
+        assert client.get("/api/system-ops").json()["workerStatus"]["liveMode"] is False
+
+        on = client.post(
+            "/api/system-ops/worker-live-mode", json={"liveMode": True}
+        ).json()
+        assert on["liveMode"] is True
+        assert "ON" in on["message"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

@@ -108,3 +108,30 @@ def test_drain_queue_marks_unknown_job_error(db_session: Session, monkeypatch) -
     job = WorkerJobRepository(db_session).list_recent()[0]
     assert job.status == "ERROR"
     assert "unknown worker job type" in job.error
+
+
+# Slice 117 — worker live-mode control -----------------------------------------
+
+
+def test_worker_control_singleton_and_set(db_session: Session) -> None:
+    from finskillos.db.repositories import WorkerControlRepository
+
+    repo = WorkerControlRepository(db_session)
+    assert repo.is_live_mode() is True  # default ON
+    row = repo.set_live_mode(False, updated_by="test")
+    assert row.updated_by == "test"
+    assert WorkerControlRepository(db_session).is_live_mode() is False
+    # Singleton: a second repo sees the same row.
+    assert WorkerControlRepository(db_session).get().id == repo.get().id
+
+
+def test_live_mode_enabled_reads_control(db_session: Session, monkeypatch) -> None:
+    from finskillos.db.repositories import WorkerControlRepository
+
+    _patch_scope(monkeypatch, db_session)
+    WorkerControlRepository(db_session).set_live_mode(False)
+    db_session.commit()
+    assert rw.live_mode_enabled() is False
+    WorkerControlRepository(db_session).set_live_mode(True)
+    db_session.commit()
+    assert rw.live_mode_enabled() is True

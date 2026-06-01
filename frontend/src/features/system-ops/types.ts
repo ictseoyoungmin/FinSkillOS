@@ -106,7 +106,14 @@ export interface WorkerStatusSummary {
   expectedNextCycleAt: string | null;
   latestDetail: string;
   cadenceDetail: string;
+  liveMode: boolean;
   recentCycles: WorkerCycleRecord[];
+}
+
+export interface WorkerLiveModeResult {
+  liveMode: boolean;
+  message: string;
+  updatedAt: string | null;
 }
 
 export interface ProtocolAvailability {
