@@ -149,6 +149,7 @@ operational protocols.
 109    RegimeStateVector Honest Values (real regime evidence)
 110    Market Kernel Indicator Grid Density
 111    Real-Data Market Refresh Default (kill mock sawtooth)
+112    Worker Auto-Start Orchestration + Test DB Isolation
 ```
 
 Slice 14 is complete:
@@ -499,8 +500,11 @@ Postgres job queue (request) + an interval.
 - [x] **111** real-data market refresh default (`yahoo`); mock opt-in only;
   re-cleaned the re-seeded mock bars + orphan indicators. _Kills the sawtooth at
   the source._
-- [ ] **112** auto-start orchestration — take `worker` out of the `worker`
-  profile so `docker compose up` starts web+api+worker+db together.
+- [x] **112** auto-start orchestration + test DB isolation — `worker` out of its
+  profile (starts with `up`), a one-shot `migrate` service (`alembic upgrade
+  head`) gates api+worker, and an autouse conftest fixture stops tests writing to
+  the production DB (the deeper recurring-junk root cause). Monotonic audit
+  `created_at` removes the `seed_sample_events` ordering flake.
 - [ ] **113** Postgres `worker_jobs` queue — table + repo; the worker idles then
   polls/claims queued jobs (request-driven) alongside the interval refresh;
   System Ops refresh buttons enqueue a job. Upsert-safe (no duplication).

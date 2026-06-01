@@ -178,7 +178,12 @@ def test_refresh_worker_contract_includes_news_refresh() -> None:
     assert "SignalService" in body
     assert "Celery" in body
     assert "redis://" not in body.lower()
-    assert 'profiles: ["worker"]' in compose
+    # Slice 112: the worker starts with the default `docker compose up` (no
+    # longer behind the `worker` profile) after a one-shot Alembic migration.
+    assert 'profiles: ["worker"]' not in compose
+    assert "restart: unless-stopped" in compose
+    assert "service_completed_successfully" in compose
+    assert '"alembic", "upgrade", "head"' in compose
     assert "FINSKILLOS_WORKER_NEWS_ENABLED" in compose
     assert "FINSKILLOS_NEWS_RSS_FEEDS" in compose
     assert "FINSKILLOS_NEWS_RSS_TICKERS" in compose

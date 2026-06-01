@@ -17,6 +17,24 @@ services:
       retries: 10
 
   # ------------------------------------------------------------------
+  # Slice 112 — one-shot schema bootstrap. Runs `alembic upgrade head`
+  # (idempotent) before api + worker start, so a plain `docker compose up`
+  # works on a fresh volume without a manual migration step.
+  # ------------------------------------------------------------------
+  migrate:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: finskillos-migrate
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finskillos}:${POSTGRES_PASSWORD:-finskillos_dev_password}@postgres:5432/${POSTGRES_DB:-finskillos}
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------
   # Streamlit (Slice 02–13.5). Kept intact as the debug / admin UI;
   # the React cockpit ships alongside via the `api` + `web` services.
   # ------------------------------------------------------------------
@@ -53,6 +71,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ------------------------------------------------------------------
   # Slice 13.6 — Vite React frontend (dev mode by default).
@@ -74,19 +94,19 @@ services:
         condition: service_started
 
   # ------------------------------------------------------------------
-  # Slice 26 — optional lightweight refresh worker.
-  # Runs market-bar refresh and indicator calculation on an interval.
-  # Activated via the `worker` profile so normal local UI startup remains
-  # explicit and deterministic.
-  # Usage:
-  #   docker compose --profile worker up -d worker
+  # Slice 26 / 112 — lightweight refresh worker. Starts with the default
+  # `docker compose up` (web + api + worker + db together) so the dashboard
+  # stays fresh from real data on an interval (and, from Slice 113, on demand
+  # via the Postgres job queue). `restart: unless-stopped` keeps it alive
+  # across transient provider/network errors (a failed cycle is logged and the
+  # loop continues; nothing is written on failure, so no junk).
   # ------------------------------------------------------------------
   worker:
     build:
       context: .
       dockerfile: api/Dockerfile
     container_name: finskillos-worker
-    profiles: ["worker"]
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finskillos}:${POSTGRES_PASSWORD:-finskillos_dev_password}@postgres:5432/${POSTGRES_DB:-finskillos}
       FINSKILLOS_MARKET_REFRESH_ADAPTER: ${FINSKILLOS_MARKET_REFRESH_ADAPTER:-yahoo}
@@ -110,6 +130,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # ------------------------------------------------------------------
   # Slice 13.6 — Playwright e2e runner (Slice 13.6 cleanup §4).

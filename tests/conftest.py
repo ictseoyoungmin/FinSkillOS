@@ -41,14 +41,32 @@ _ENV_KEYS = (
 
 
 @pytest.fixture(autouse=True)
-def _offline_market_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Keep the suite offline regardless of the production default.
+def _isolate_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Keep every test isolated from production and from the network.
 
-    The worker / System Ops market refresh default is ``yahoo`` (real data) in
-    production, but tests must never reach the network. Force ``mock`` for every
-    test; a test that needs another value just calls ``monkeypatch.setenv`` after
-    this autouse fixture, which wins."""
+    The Settings default ``DATABASE_URL`` points at the live ``finskillos`` DB,
+    and several integration tests POST System Ops protocols (seed account,
+    refresh market, …) against whatever DB is ambient. Without isolation those
+    writes land in the **production** database (re-seeding mock bars / sample
+    rows — the recurring chart-sawtooth source). Point every test at a fresh,
+    schema-loaded sqlite file by default; a test that needs another DB just
+    calls ``monkeypatch.setenv("DATABASE_URL", ...)`` afterwards, which wins.
+
+    Point ambient DB access at an **unreachable** address so a test that does not
+    set its own ``DATABASE_URL`` gets ``session=None`` (the offline / fixture
+    path) instead of the live ``finskillos`` DB. This prevents accidental writes
+    to production during Docker runs (locally psycopg is absent, which already
+    yields ``None``) while preserving the no-DB semantics those tests expect.
+
+    Also force the market refresh adapter to ``mock`` so a refresh never reaches
+    the network (the production default is ``yahoo``)."""
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://isolated:isolated@127.0.0.1:1/isolated_no_db",
+    )
     monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
+    fs_config.reset_settings_cache()
 
 
 @pytest.fixture

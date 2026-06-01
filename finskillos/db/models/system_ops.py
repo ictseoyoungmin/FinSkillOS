@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import JSON, DateTime, Index, String, Text, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -13,15 +14,26 @@ from finskillos.db.base import Base
 
 JSONPayload = JSON().with_variant(JSONB(), "postgresql")
 
+_utcnow_lock = threading.Lock()
+_utcnow_last: datetime | None = None
+
 
 def _utcnow() -> datetime:
-    """Microsecond-precision insert time.
+    """Strictly-monotonic, microsecond-precision insert time.
 
-    Used as the ORM-side ``created_at`` default so two audit rows written within
-    the same second (``ran_at`` / ``started_at`` are stored at second precision)
-    still order deterministically by insertion time in ``list_recent``.
+    Used as the ORM-side ``created_at`` default so two audit rows written in the
+    same process (``ran_at`` / ``started_at`` are stored only at second
+    precision) order deterministically by insertion time in ``list_recent``.
+    Microsecond wall-clock alone can still tie on a fast host, so each call
+    returns a value strictly greater than the previous one.
     """
-    return datetime.now(timezone.utc)
+    global _utcnow_last
+    with _utcnow_lock:
+        now = datetime.now(timezone.utc)
+        if _utcnow_last is not None and now <= _utcnow_last:
+            now = _utcnow_last + timedelta(microseconds=1)
+        _utcnow_last = now
+        return now
 
 
 class SystemOpsProtocolRun(Base):
