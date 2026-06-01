@@ -152,6 +152,7 @@ operational protocols.
 112    Worker Auto-Start Orchestration + Test DB Isolation
 113    Postgres Worker Job Queue (request-driven worker)
 114    System Ops Refresh Enqueues Jobs (request path)
+115    Reachable-Empty → Live(-empty) Guard + Sample Cleanup
 ```
 
 Slice 14 is complete:
@@ -515,9 +516,11 @@ Postgres job queue (request) + an interval.
   worker job (`QUEUED`, idempotent, `requested_by=system_ops`) instead of running
   synchronously; cockpit renders QUEUED. Live-proven. Spec:
   `docs/WORKER_QUEUE_AND_API_SPEC.md` (living doc).
-- [ ] **114** fixture → MISSING audit — any tab that still shows fixture
-  *analysis* when the DB is reachable-but-empty switches to an explicit MISSING /
-  live-empty state, so seeded sample data never reads as real.
+- [x] **115** fixture → MISSING audit — confirmed every tab already returns
+  live(-empty) (not fixture) on a reachable-empty DB, locked by a 9-tab guard
+  test; cleaned the seeded sample portfolio + events from the live DB so
+  Mission/Risk/Catalyst show MISSING until real data exists (real market/news
+  kept). _P0 orchestration arc 111–115 complete._
 
 ### P3 — UI/UX polish (batch)
 - [x] **103** remove unused `frontend/src/pages/PlaceholderPage.tsx` (dead shell;

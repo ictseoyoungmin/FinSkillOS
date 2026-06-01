@@ -130,7 +130,27 @@ return the same job. When no DB session is reachable, protocols return `NOOP`
 
 ---
 
+## 7. Data-source state contract (cockpit tabs)
+
+Every product tab resolves to exactly one honest state — fixture content is never
+substituted as analysis on a reachable DB:
+
+| Trigger | `source` | `systemStatus.db` | Meaning |
+|---|---|---|---|
+| `X-FSO-Use-Fixture: 1` | `fixture` | `LIVE` | deterministic sample (visual QA opt-in) |
+| `session is None` (no DB) | `fixture` | `MISSING` | db-unavailable banner + sample placeholder |
+| reachable DB, **rows** | `live` | `LIVE` | real read model |
+| reachable DB, **no rows** | `live` | `LIVE` | explicit live-empty / MISSING (no sample) |
+| reachable DB, read raised | `live` | `LIVE` | live-error narrative (class name only) |
+
+Guarded by `tests/test_reachable_empty_is_live.py` (all 9 tabs). Seeded *sample*
+rows (e.g. `seed-sample-account` / `seed-sample-events`) are real `live` rows;
+remove them to make the tabs show MISSING until real data exists.
+
+---
+
 ## Change log
 - **111** real-data default + test isolation; **112** orchestration (migrate +
   worker auto-start); **113** `worker_jobs` queue + queue-driven worker; **114**
-  System Ops refresh protocols enqueue jobs (request path) + cockpit `QUEUED`.
+  System Ops refresh protocols enqueue jobs (request path) + cockpit `QUEUED`;
+  **115** reachable-empty → live(-empty) guard + sample-data cleanup.
