@@ -146,6 +146,7 @@ operational protocols.
 106    Control Room State-Band Density
 107    Vendor HTTP Event Calendar Provider
 108    State-Band Density Parity (Analysis/Symbol/Market Kernel)
+109    RegimeStateVector Honest Values (real regime evidence)
 ```
 
 Slice 14 is complete:
@@ -515,11 +516,10 @@ visual risk is the per-tab screenshot baseline (regen the changed tab).
 - [x] **108 State-band density parity** — applied the Slice-106 treatment
   (tighter tiles + 2-line detail clamp) to the Analysis Workspace / Symbol Lab /
   Market Kernel data-state bands. Sub-threshold, no baseline regen.
-- [ ] **RegimeStateVector honest values** — `derive()` returns hard-coded
-  "Elevated/Compressed/Neutral/Cluster" regardless of state (a placeholder).
-  Either wire each cell to real indicator/regime evidence (RSI zone, vol proxy,
-  macro, event cluster from the live read models) or drop the cells that have no
-  backing signal. Descriptive only; no execution wording.
+- [x] **109 RegimeStateVector honest values** — replaced the fabricated
+  trend/RSI/vol/macro/events vector with real regime evidence (decision mode,
+  confidence band, and the rule-derived positive/risk factors) via a new
+  `OperatingState.state_vector` API field; honest empty state when no regime.
 - [ ] **Indicator snapshot grid density** — audit the Market Kernel indicator
   tiles (`repeat(auto-fit, minmax(120px,1fr))`) and the coverage/timeframe rows
   for wasted vertical space vs. the v4.2 mockup; tighten to a denser readout if

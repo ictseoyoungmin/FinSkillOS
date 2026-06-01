@@ -56,6 +56,19 @@ class MissionProgress(CamelModel):
     goal_mode: str = Field(default="GROWTH")
 
 
+class StateVectorCell(CamelModel):
+    """One real-evidence cell of the operating-state vector.
+
+    The value is sourced from the live regime classification (decision mode,
+    confidence, and the rule-derived positive / risk factors) — never a
+    fabricated market reading.
+    """
+
+    label: str
+    value: str
+    tone: Literal["info", "warning", "danger", "neutral", "success"] = "neutral"
+
+
 class OperatingState(CamelModel):
     title: str
     regime: str
@@ -71,6 +84,7 @@ class OperatingState(CamelModel):
     )
     tags: list[str] = Field(default_factory=list)
     summary: str = ""
+    state_vector: list[StateVectorCell] = Field(default_factory=list)
 
 
 class GuardSummaryVM(CamelModel):

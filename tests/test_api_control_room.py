@@ -464,3 +464,52 @@ def _seed_market_series(
                 source="test",
             )
         )
+
+
+def test_control_room_state_vector_uses_real_regime_evidence() -> None:
+    """Slice 109 — the State Vector is built from real regime evidence, not
+    fabricated trend/RSI/vol readings."""
+    from types import SimpleNamespace
+
+    from api.routes.control_room import _state_vector
+
+    regime = SimpleNamespace(
+        decision_mode="HOLD_WINNERS",
+        positive_factors=("Trend stack constructive", "Breadth steady", "third dropped"),
+        risk_factors=("RSI elevated",),
+    )
+    cells = _state_vector(regime, 64)
+    pairs = [(c.label, c.value, c.tone) for c in cells]
+    assert pairs[0] == ("Decision Mode", "Hold Winners", "info")
+    assert ("Confidence", "64%", "neutral") in pairs
+    # Up to two positive / risk factors become evidence cells (3rd is dropped).
+    assert [c.value for c in cells if c.label == "Strength"] == [
+        "Trend stack constructive",
+        "Breadth steady",
+    ]
+    assert [c.value for c in cells if c.label == "Risk Factor"] == ["RSI elevated"]
+
+
+def test_control_room_state_vector_confidence_tone_bands() -> None:
+    from types import SimpleNamespace
+
+    from api.routes.control_room import _state_vector
+
+    regime = SimpleNamespace(
+        decision_mode="READ_ONLY", positive_factors=(), risk_factors=()
+    )
+    tone = lambda score: next(  # noqa: E731
+        c.tone for c in _state_vector(regime, score) if c.label == "Confidence"
+    )
+    assert tone(80) == "success"
+    assert tone(50) == "neutral"
+    assert tone(20) == "warning"
+
+
+def test_control_room_fixture_exposes_state_vector() -> None:
+    body = _fixture_json()
+    cells = body["operatingState"]["stateVector"]
+    assert len(cells) >= 1
+    first = cells[0]
+    assert set(first.keys()) == {"label", "value", "tone"}
+    assert first["label"] == "Decision Mode"

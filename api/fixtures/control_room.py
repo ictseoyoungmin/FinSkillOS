@@ -27,6 +27,7 @@ from api.schemas.control_room import (
     OperatingState,
     PortfolioExposureSlice,
     ReviewQueueItem,
+    StateVectorCell,
     TickerStripItem,
     WatchlistItem,
 )
@@ -162,6 +163,22 @@ def control_room_fixture() -> ControlRoomResponse:
                 "an elevated state. Prepare for event-driven volatility; this "
                 "view describes exposure, not a price prediction."
             ),
+            state_vector=[
+                StateVectorCell(
+                    label="Decision Mode", value="Hold Winners", tone="info"
+                ),
+                StateVectorCell(label="Confidence", value="64%", tone="neutral"),
+                StateVectorCell(
+                    label="Strength",
+                    value="Broad trend stack remains constructive",
+                    tone="success",
+                ),
+                StateVectorCell(
+                    label="Risk Factor",
+                    value="RSI and breadth flag an elevated state",
+                    tone="warning",
+                ),
+            ],
         ),
         portfolio_exposure=[
             PortfolioExposureSlice(label="AI / Semis", weight_pct=Decimal("42.6")),

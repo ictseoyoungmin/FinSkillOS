@@ -102,6 +102,20 @@ export const controlRoomFixture: ControlRoomData = {
     ],
     summary:
       "Broad trend remains constructive while RSI and breadth flag an elevated state. Prepare for event-driven volatility; this view describes exposure, not a price prediction.",
+    stateVector: [
+      { label: "Decision Mode", value: "Hold Winners", tone: "info" },
+      { label: "Confidence", value: "64%", tone: "neutral" },
+      {
+        label: "Strength",
+        value: "Broad trend stack remains constructive",
+        tone: "success",
+      },
+      {
+        label: "Risk Factor",
+        value: "RSI and breadth flag an elevated state",
+        tone: "warning",
+      },
+    ],
   },
   portfolioExposure: [
     { label: "AI / Semis", weightPct: 42.6 },

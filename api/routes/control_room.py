@@ -27,6 +27,7 @@ from api.schemas.control_room import (
     OperatingState,
     PortfolioExposureSlice,
     ReviewQueueItem,
+    StateVectorCell,
     TickerStripItem,
     WatchlistItem,
 )
@@ -381,7 +382,33 @@ def _operating_state(vm: ControlRoomViewModel) -> OperatingState:
         preparation_score=score,
         tags=["Live DB", vm.regime.risk_level, vm.overall_status],
         summary=vm.regime.summary,
+        state_vector=_state_vector(vm.regime, score),
     )
+
+
+def _state_vector(regime, score: int) -> list[StateVectorCell]:
+    """Build the operating-state vector from real regime evidence.
+
+    Decision mode + classification confidence + the rule-derived positive /
+    risk factors — no fabricated trend / RSI / vol readings."""
+
+    cells = [
+        StateVectorCell(
+            label="Decision Mode",
+            value=regime.decision_mode.replace("_", " ").title(),
+            tone="info",
+        ),
+        StateVectorCell(
+            label="Confidence",
+            value=f"{score}%",
+            tone="success" if score >= 66 else "neutral" if score >= 40 else "warning",
+        ),
+    ]
+    for factor in tuple(regime.positive_factors)[:2]:
+        cells.append(StateVectorCell(label="Strength", value=factor, tone="success"))
+    for factor in tuple(regime.risk_factors)[:2]:
+        cells.append(StateVectorCell(label="Risk Factor", value=factor, tone="warning"))
+    return cells
 
 
 def _portfolio_exposure(vm: ControlRoomViewModel) -> list[PortfolioExposureSlice]:
