@@ -16,7 +16,7 @@ export type ProtocolKey =
   | "seed_sample_events"
   | "refresh_events";
 
-export type ProtocolStatus = "OK" | "NOOP" | "ERROR";
+export type ProtocolStatus = "OK" | "NOOP" | "ERROR" | "QUEUED";
 export type WorkerStatus = ProtocolStatus | "MISSING";
 export type WorkerCadenceStatus = "FRESH" | "STALE" | "ERROR" | "MISSING";
 export type ProtocolTone = "info" | "warning" | "neutral" | "success";

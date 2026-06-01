@@ -206,3 +206,8 @@
   border-color: var(--fso-red);
   color: var(--fso-red);
 }
+
+.fso-protocol-card-result--queued {
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-cyan);
+}

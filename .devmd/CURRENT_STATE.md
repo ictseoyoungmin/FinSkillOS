@@ -151,6 +151,7 @@ operational protocols.
 111    Real-Data Market Refresh Default (kill mock sawtooth)
 112    Worker Auto-Start Orchestration + Test DB Isolation
 113    Postgres Worker Job Queue (request-driven worker)
+114    System Ops Refresh Enqueues Jobs (request path)
 ```
 
 Slice 14 is complete:
@@ -510,8 +511,10 @@ Postgres job queue (request) + an interval.
   the worker is queue-driven: idles, drains claimed jobs (`FOR UPDATE SKIP
   LOCKED`) each poll tick, enqueues a dedup-safe `refresh_all` on start +
   interval. Idempotent enqueue + upsert = no duplication. Live-proven on `up`.
-- [ ] **113b/114** System Ops refresh buttons enqueue a job (the request path)
-  instead of running synchronously; frontend handles the QUEUED status.
+- [x] **114** System Ops refresh protocols (market/news/indicators) enqueue a
+  worker job (`QUEUED`, idempotent, `requested_by=system_ops`) instead of running
+  synchronously; cockpit renders QUEUED. Live-proven. Spec:
+  `docs/WORKER_QUEUE_AND_API_SPEC.md` (living doc).
 - [ ] **114** fixture → MISSING audit — any tab that still shows fixture
   *analysis* when the DB is reachable-but-empty switches to an explicit MISSING /
   live-empty state, so seeded sample data never reads as real.

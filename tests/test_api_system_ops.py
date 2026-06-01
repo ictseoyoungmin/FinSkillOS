@@ -22,7 +22,6 @@ from sqlalchemy.orm import sessionmaker
 from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
 from finskillos.config import reset_settings_cache
-from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
 from finskillos.db.repositories import (
     AccountRepository,
@@ -34,8 +33,8 @@ from finskillos.db.repositories import (
     PositionRepository,
     SystemOpsProtocolRunRepository,
     WorkerCycleRunRepository,
+    WorkerJobRepository,
 )
-from finskillos.services.market_data_service import MarketDataService
 
 _PROTOCOL_KEYS = {
     "seed_sample_account",
@@ -163,7 +162,7 @@ def test_system_ops_post_endpoints_return_structured_json() -> None:
         assert response.headers["content-type"].startswith("application/json")
         body = response.json()
         assert body["protocol"] == expected_key
-        assert body["status"] in {"OK", "NOOP", "ERROR"}
+        assert body["status"] in {"OK", "NOOP", "ERROR", "QUEUED"}
         assert "message" in body and isinstance(body["message"], str)
         assert "detailEvidence" in body
         assert isinstance(body["detailEvidence"], list)
@@ -531,35 +530,35 @@ def test_system_ops_get_exposes_worker_cadence_status(monkeypatch, tmp_path) -> 
         engine.dispose()
 
 
-def test_refresh_market_data_protocol_writes_mock_bars(monkeypatch, tmp_path) -> None:
+def test_refresh_market_data_protocol_enqueues_worker_job(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"
     engine = create_engine(database_url, future=True)
     Base.metadata.create_all(engine)
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
-    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
-    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_TICKERS", "SPY,QQQ")
     reset_settings_cache()
 
     try:
         body = _client().post("/api/system-ops/refresh-market-data").json()
 
+        # Slice 114: the API enqueues a worker job instead of blocking on the
+        # provider; the worker (Slice 113) runs it.
         assert body["protocol"] == "refresh_market_data"
-        assert body["status"] == "OK"
-        assert "2 symbols available" in body["message"]
-        assert "bars=" in body["detail"]
-        assert any(
-            item == {"key": "adapter", "value": "mock"}
-            for item in body["detailEvidence"]
-        )
-        assert any(item["key"] == "bars" for item in body["detailEvidence"])
+        assert body["status"] == "QUEUED"
+        assert "queued for the worker" in body["message"]
+        assert "job_queued" in body["detail"]
+        assert {"key": "job_type", "value": "refresh_market"} in body["detailEvidence"]
+        assert any(item["key"] == "job_id" for item in body["detailEvidence"])
 
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
-            repo = MarketRepository(session)
-            assert repo.count_for("SPY", "1d") > 0
-            assert repo.count_for("QQQ", "1d") > 0
+            jobs = WorkerJobRepository(session).list_recent()
+            assert [j.job_type for j in jobs] == ["refresh_market"]
+            assert jobs[0].status == "QUEUED"
+            assert jobs[0].requested_by == "system_ops"
+            # The API does not run the refresh itself — no bars written yet.
+            assert MarketRepository(session).count_for("SPY", "1d") == 0
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
@@ -609,7 +608,7 @@ def test_seed_sample_account_repairs_snapshot_only_seed_state(
         engine.dispose()
 
 
-def test_refresh_market_data_protocol_rejects_unknown_adapter(
+def test_refresh_market_data_protocol_enqueue_is_idempotent(
     monkeypatch, tmp_path
 ) -> None:
     db_path = tmp_path / "finskillos.db"
@@ -618,22 +617,36 @@ def test_refresh_market_data_protocol_rejects_unknown_adapter(
     Base.metadata.create_all(engine)
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
-    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "unknown")
     reset_settings_cache()
 
     try:
-        body = _client().post("/api/system-ops/refresh-market-data").json()
+        first = _client().post("/api/system-ops/refresh-market-data").json()
+        second = _client().post("/api/system-ops/refresh-market-data").json()
 
-        assert body["protocol"] == "refresh_market_data"
-        assert body["status"] == "ERROR"
-        assert "Unsupported adapter" in body["message"]
+        # Repeated clicks while a job is still pending return the same job — the
+        # queue never duplicates work.
+        assert first["status"] == second["status"] == "QUEUED"
+
+        def _job_id(body: dict) -> str:
+            return next(
+                item["value"]
+                for item in body["detailEvidence"]
+                if item["key"] == "job_id"
+            )
+
+        assert _job_id(first) == _job_id(second)
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            assert (
+                WorkerJobRepository(session).count_by_status() == {"QUEUED": 1}
+            )
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
 
 
-def test_refresh_news_protocol_ingests_configured_rss_feed(
+def test_refresh_news_protocol_enqueues_worker_job(
     monkeypatch, tmp_path
 ) -> None:
     db_path = tmp_path / "finskillos.db"
@@ -666,87 +679,50 @@ def test_refresh_news_protocol_ingests_configured_rss_feed(
     try:
         body = _client().post("/api/system-ops/refresh-news").json()
 
+        # Slice 114: enqueue, not synchronous ingest — the worker ingests.
         assert body["protocol"] == "refresh_news"
-        assert body["status"] == "OK"
-        assert "1 articles ingested" in body["message"]
-        assert "feeds=1" in body["detail"]
-        assert "generated=False" in body["detail"]
-        assert {"key": "feeds", "value": "1"} in body["detailEvidence"]
-        assert {"key": "generated", "value": "False"} in body["detailEvidence"]
+        assert body["status"] == "QUEUED"
+        assert {"key": "job_type", "value": "refresh_news"} in body["detailEvidence"]
 
         factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
-            rows = NewsArticleRepository(session).latest()
-            assert len(rows) == 1
-            assert rows[0].url == "https://news.example.com/tsla-deliveries"
-            assert rows[0].summary == "TSLA delivery update was strong."
+            jobs = WorkerJobRepository(session).list_recent()
+            assert jobs and jobs[0].job_type == "refresh_news"
+            assert NewsArticleRepository(session).latest() == []
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
 
 
-def test_calculate_indicators_protocol_writes_latest_snapshots(
+def test_calculate_indicators_protocol_enqueues_worker_job(
     monkeypatch, tmp_path
 ) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"
     engine = create_engine(database_url, future=True)
     Base.metadata.create_all(engine)
-    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-    with factory() as session:
-        MarketDataService(
-            session,
-            adapter=MockMarketDataAdapter(default_bars=40),
-            universe=["SPY", "QQQ"],
-        ).refresh_bars(["SPY", "QQQ"])
-        session.commit()
-
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
     monkeypatch.setenv("DATABASE_URL", database_url)
-    monkeypatch.setenv("FINSKILLOS_INDICATOR_REFRESH_TICKERS", "SPY,QQQ")
     reset_settings_cache()
 
     try:
         body = _client().post("/api/system-ops/calculate-indicators").json()
 
+        # Slice 114: enqueue, not synchronous compute — the worker computes
+        # (and decides OK / NOOP at process time, e.g. no bars → NOOP).
         assert body["protocol"] == "calculate_indicators"
-        assert body["status"] == "OK"
-        assert "2 symbols available" in body["message"]
-        assert "snapshots=2" in body["detail"]
-        assert {"key": "snapshots", "value": "2"} in body["detailEvidence"]
+        assert body["status"] == "QUEUED"
+        assert (
+            {"key": "job_type", "value": "calculate_indicators"}
+            in body["detailEvidence"]
+        )
 
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         with factory() as session:
-            repo = IndicatorRepository(session)
-            assert repo.latest_for("SPY", "1d") is not None
-            assert repo.latest_for("QQQ", "1d") is not None
-    finally:
-        reset_settings_cache()
-        Base.metadata.drop_all(engine)
-        engine.dispose()
-
-
-def test_calculate_indicators_protocol_noops_without_bars(
-    monkeypatch, tmp_path
-) -> None:
-    db_path = tmp_path / "finskillos.db"
-    database_url = f"sqlite+pysqlite:///{db_path}"
-    engine = create_engine(database_url, future=True)
-    Base.metadata.create_all(engine)
-    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
-    monkeypatch.setenv("DATABASE_URL", database_url)
-    monkeypatch.setenv("FINSKILLOS_INDICATOR_REFRESH_TICKERS", "SPY")
-    reset_settings_cache()
-
-    try:
-        body = _client().post("/api/system-ops/calculate-indicators").json()
-
-        assert body["protocol"] == "calculate_indicators"
-        assert body["status"] == "NOOP"
-        assert "failed=1" in body["detail"]
-        assert "failedSymbols=SPY" in body["detail"]
-        assert {"key": "failed", "value": "1"} in body["detailEvidence"]
-        assert {"key": "failedSymbols", "value": "SPY"} in body["detailEvidence"]
+            jobs = WorkerJobRepository(session).list_recent()
+            assert jobs and jobs[0].job_type == "calculate_indicators"
+            assert IndicatorRepository(session).latest_for("SPY", "1d") is None
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

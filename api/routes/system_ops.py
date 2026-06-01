@@ -47,6 +47,11 @@ from api.schemas.system_ops import (
 )
 from api.timeutil import to_utc as _as_utc
 from finskillos.data_sources import DEFAULT_US_TICKER_UNIVERSE
+from finskillos.db.models.system_ops import (
+    WORKER_JOB_CALCULATE_INDICATORS,
+    WORKER_JOB_REFRESH_MARKET,
+    WORKER_JOB_REFRESH_NEWS,
+)
 from finskillos.db.repositories import (
     SystemOpsProtocolRunRepository,
     WorkerCycleRunRepository,
@@ -675,128 +680,39 @@ def _invoke_seed_sample_account(session) -> tuple[str, str, str]:
 
 
 def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
-    from finskillos.data_sources import (
-        MockMarketDataAdapter,
-        YahooChartMarketDataAdapter,
-    )
-    from finskillos.services.market_data_service import MarketDataService
-    from finskillos.services.watchlist_refresh_policy import (
-        build_watchlist_refresh_policy,
-    )
-
-    adapter_name = os.environ.get("FINSKILLOS_MARKET_REFRESH_ADAPTER", "yahoo").lower()
-    policy = build_watchlist_refresh_policy(
-        session, base_tickers=_market_refresh_tickers()
-    )
-    tickers = policy.tickers
-    if adapter_name == "yahoo":
-        adapter = YahooChartMarketDataAdapter()
-    elif adapter_name == "mock":
-        adapter = MockMarketDataAdapter()
-    else:
-        return (
-            "ERROR",
-            "Market-bar refresh could not start. Unsupported adapter configured.",
-            f"unsupported_adapter:{adapter_name}",
-        )
-
-    service = MarketDataService(session, adapter=adapter, universe=tickers)
-    report = service.refresh_bars(tickers, end=datetime.now(tz=UTC))
-    failed = len(report.failed)
-    succeeded = len(report.succeeded)
-    status = "OK" if succeeded else "NOOP"
-    message = (
-        f"Market bars refreshed · adapter {adapter_name} · "
-        f"{succeeded} symbols available · {report.total_bars_written} bars written."
-    )
-    detail = (
-        f"adapter={adapter_name},tickers={len(tickers)},"
-        f"succeeded={succeeded},failed={failed},bars={report.total_bars_written},"
-        f"{policy.detail}"
-    )
-    if failed:
-        failed_symbols = ",".join(item.ticker for item in report.failed[:5])
-        detail = f"{detail},failedSymbols={failed_symbols}"
-    return (status, message, detail)
+    return _enqueue_refresh_job(session, WORKER_JOB_REFRESH_MARKET, "Market-bar refresh")
 
 
 def _invoke_refresh_news(session) -> tuple[str, str, str]:
-    from finskillos.data_sources.adapters.rss_news_adapter import RssFeed, RssNewsAdapter
-    from finskillos.services.news_feed_policy import build_news_feed_policy
-    from finskillos.services.news_service import NewsService
-    from finskillos.services.watchlist_refresh_policy import (
-        build_watchlist_refresh_policy,
-    )
-
-    adapter_name = os.environ.get("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss").lower()
-    if adapter_name != "rss":
-        return (
-            "ERROR",
-            "News refresh could not start. Unsupported adapter configured.",
-            f"unsupported_adapter:{adapter_name}",
-        )
-
-    watchlist_policy = build_watchlist_refresh_policy(session)
-    policy = build_news_feed_policy(subscribed_tickers=watchlist_policy.tickers)
-    if not policy.feeds:
-        return (
-            "NOOP",
-            "No news feeds are available. Configure RSS feeds or ticker policy first.",
-            "no_news_feeds",
-        )
-
-    adapter = RssNewsAdapter(
-        tuple(
-            RssFeed(url=url, source=policy.source, language=policy.language)
-            for url in policy.feeds
-        )
-    )
-    articles = tuple(adapter.fetch_latest())
-    service = NewsService(session)
-    for article in articles:
-        service.ingest_article(article)
-
-    status = "OK" if articles else "NOOP"
-    message = (
-        f"News refreshed · adapter {adapter_name} · "
-        f"{len(articles)} articles ingested."
-    )
-    detail = (
-        f"adapter={adapter_name},feeds={len(policy.feeds)},"
-        f"tickers={len(policy.tickers)},generated={policy.generated},"
-        f"articles={len(articles)},{watchlist_policy.detail}"
-    )
-    return (status, message, detail)
+    return _enqueue_refresh_job(session, WORKER_JOB_REFRESH_NEWS, "News refresh")
 
 
 def _invoke_calculate_indicators(session) -> tuple[str, str, str]:
-    from finskillos.services.signal_service import SignalService
-    from finskillos.services.watchlist_refresh_policy import (
-        build_watchlist_refresh_policy,
+    return _enqueue_refresh_job(
+        session, WORKER_JOB_CALCULATE_INDICATORS, "Indicator calculation"
     )
 
-    policy = build_watchlist_refresh_policy(
-        session, base_tickers=_indicator_refresh_tickers()
+
+def _enqueue_refresh_job(session, job_type: str, label: str) -> tuple[str, str, str]:
+    """Queue a worker job instead of running the refresh synchronously.
+
+    The worker (request-driven via the Postgres queue, Slice 113) claims and
+    runs the job, so the API returns immediately and never blocks on a provider
+    call. Enqueue is idempotent on the job type, so repeated clicks while a job
+    is still pending never duplicate work (the same queued job is returned)."""
+    from finskillos.db.repositories import WorkerJobRepository
+
+    job = WorkerJobRepository(session).enqueue(
+        job_type, requested_by="system_ops", dedup_key=job_type
     )
-    tickers = policy.tickers
-    service = SignalService(session)
-    results = service.compute_for_universe(tickers)
-    succeeded = [item for item in results if item.ok]
-    failed = [item for item in results if not item.ok]
-    snapshots_written = sum(item.snapshots_written for item in results)
-    status = "OK" if succeeded else "NOOP"
-    message = (
-        f"Indicator snapshots calculated · {len(succeeded)} symbols available · "
-        f"{snapshots_written} snapshots written."
+    return (
+        "QUEUED",
+        (
+            f"{label} queued for the worker. The dashboard refreshes once the "
+            "worker completes the job."
+        ),
+        f"job_queued,job_type={job_type},job_id={job.id},boundary=system_ops",
     )
-    detail = (
-        f"tickers={len(tickers)},succeeded={len(succeeded)},"
-        f"failed={len(failed)},snapshots={snapshots_written},{policy.detail}"
-    )
-    if failed:
-        failed_symbols = ",".join(item.ticker for item in failed[:5])
-        detail = f"{detail},failedSymbols={failed_symbols}"
-    return (status, message, detail)
 
 
 def _invoke_recompute_regime(session) -> tuple[str, str, str]:

@@ -37,7 +37,7 @@ ProtocolKey = Literal[
     "refresh_events",
 ]
 
-ProtocolStatus = Literal["OK", "NOOP", "ERROR"]
+ProtocolStatus = Literal["OK", "NOOP", "ERROR", "QUEUED"]
 WorkerStatus = Literal["OK", "NOOP", "ERROR", "MISSING"]
 WorkerCadenceStatus = Literal["FRESH", "STALE", "ERROR", "MISSING"]
 ProtocolTone = Literal["info", "warning", "neutral", "success"]
