@@ -148,6 +148,7 @@ operational protocols.
 108    State-Band Density Parity (Analysis/Symbol/Market Kernel)
 109    RegimeStateVector Honest Values (real regime evidence)
 110    Market Kernel Indicator Grid Density
+111    Real-Data Market Refresh Default (kill mock sawtooth)
 ```
 
 Slice 14 is complete:
@@ -409,6 +410,13 @@ Slice 14 is complete:
   with a backing (deduped) bar; the 770 orphaned snapshots were deleted under the
   same authorization, restoring the "every snapshot has a backing bar" invariant.
   NVDA's panel reverts to the real 2026-05-29 values (RSI 46.30 / EMA20 228.06).
+- The market-refresh default is now real data (`yahoo`), not `mock`: the worker
+  and the System Ops `refresh-market-data` route default to yfinance, and `mock`
+  is explicit opt-in. The mock adapter had been re-seeding synthetic bars on
+  non-trading days (which the same-day dedup can't remove), re-creating the
+  chart sawtooth; defaulting to real data + re-cleaning the junk (1911 mock bars
+  + 103 orphan indicators) fixes it at the source. Tests stay offline via an
+  autouse conftest fixture forcing the mock adapter.
 - The shared `LineChart` (Market Kernel + Control Room) is now interactive and
   accessible: hover or arrow-key a crosshair to read the stored value at a point
   (crosshair + per-series dots + tooltip), with an `aria-live` readout and a
@@ -484,12 +492,21 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
     testable via an injected transport + `tests/fixtures/events/vendor_calendar.json`;
     vendor-agnostic JSON contract, errors raise `EventCalendarFetchError`.
 
-#### next up
-- [x] **97/98 Market Kernel event overlay + multi-timeframe** — live event overlay
-  on candles (Slice 97); 1D/1W/1M timeframe query wired end to end (Slice 98).
-- [x] **99/100 Trade Memory edit/delete + export** — PUT/DELETE entry endpoints
-  + CSV export (Slice 99); Recent Entries Edit/Delete actions, form edit mode,
-  and export download link (Slice 100).
+### P0 — orchestration / live freshness (2026-06-01)
+Goal: `docker compose up` runs web+api+worker+db together; the worker keeps the
+dashboard fresh from **real** data (no mock junk, no duplication), driven by a
+Postgres job queue (request) + an interval.
+- [x] **111** real-data market refresh default (`yahoo`); mock opt-in only;
+  re-cleaned the re-seeded mock bars + orphan indicators. _Kills the sawtooth at
+  the source._
+- [ ] **112** auto-start orchestration — take `worker` out of the `worker`
+  profile so `docker compose up` starts web+api+worker+db together.
+- [ ] **113** Postgres `worker_jobs` queue — table + repo; the worker idles then
+  polls/claims queued jobs (request-driven) alongside the interval refresh;
+  System Ops refresh buttons enqueue a job. Upsert-safe (no duplication).
+- [ ] **114** fixture → MISSING audit — any tab that still shows fixture
+  *analysis* when the DB is reachable-but-empty switches to an explicit MISSING /
+  live-empty state, so seeded sample data never reads as real.
 
 ### P3 — UI/UX polish (batch)
 - [x] **103** remove unused `frontend/src/pages/PlaceholderPage.tsx` (dead shell;

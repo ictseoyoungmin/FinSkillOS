@@ -684,7 +684,7 @@ def _invoke_refresh_market_data(session) -> tuple[str, str, str]:
         build_watchlist_refresh_policy,
     )
 
-    adapter_name = os.environ.get("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock").lower()
+    adapter_name = os.environ.get("FINSKILLOS_MARKET_REFRESH_ADAPTER", "yahoo").lower()
     policy = build_watchlist_refresh_policy(
         session, base_tickers=_market_refresh_tickers()
     )

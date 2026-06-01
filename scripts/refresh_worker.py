@@ -109,7 +109,7 @@ def load_config(args: argparse.Namespace) -> WorkerConfig:
         market_enabled=_bool_env("FINSKILLOS_WORKER_MARKET_ENABLED", True),
         news_enabled=_bool_env("FINSKILLOS_WORKER_NEWS_ENABLED", True),
         indicator_enabled=_bool_env("FINSKILLOS_WORKER_INDICATOR_ENABLED", True),
-        market_adapter=os.getenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
+        market_adapter=os.getenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "yahoo")
         .strip()
         .lower(),
         news_adapter=os.getenv("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss")

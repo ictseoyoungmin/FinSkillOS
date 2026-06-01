@@ -40,6 +40,17 @@ _ENV_KEYS = (
 )
 
 
+@pytest.fixture(autouse=True)
+def _offline_market_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the suite offline regardless of the production default.
+
+    The worker / System Ops market refresh default is ``yahoo`` (real data) in
+    production, but tests must never reach the network. Force ``mock`` for every
+    test; a test that needs another value just calls ``monkeypatch.setenv`` after
+    this autouse fixture, which wins."""
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
+
+
 @pytest.fixture
 def clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Path]:
     """Strip FinSkillOS env vars, set DATA_DIR to a tmp path, reset Settings cache."""
@@ -51,6 +62,8 @@ def clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Path]
         "DATABASE_URL",
         "postgresql+psycopg://finskillos:finskillos@localhost:5432/finskillos_test",
     )
+    # Keep refreshes offline even after the strip loop removed the autouse value.
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "mock")
     fs_config.reset_settings_cache()
     yield tmp_path
     fs_config.reset_settings_cache()
