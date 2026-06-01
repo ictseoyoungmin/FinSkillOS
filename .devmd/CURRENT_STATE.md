@@ -147,6 +147,7 @@ operational protocols.
 107    Vendor HTTP Event Calendar Provider
 108    State-Band Density Parity (Analysis/Symbol/Market Kernel)
 109    RegimeStateVector Honest Values (real regime evidence)
+110    Market Kernel Indicator Grid Density
 ```
 
 Slice 14 is complete:
@@ -508,11 +509,11 @@ slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
 Importance-ordered. Each is a bounded, offline-verifiable slice; the only
 visual risk is the per-tab screenshot baseline (regen the changed tab).
 - [ ] **Chart axis-label thinning** (highest visual-efficiency win) —
-  `LineChart` axis labels render every point (`labels.map`), so a 255-bar daily
-  chart shows an unreadable crammed strip. Show ~6–8 evenly-spaced labels
-  (first/last + interior, deterministic) and keep the full set in the
-  visually-hidden data table (Slice 104). Affects Market Kernel + Control Room
-  tape; regen those two baselines.
+  _deferred per user (2026-06-01)._ `LineChart` axis labels render every point
+  (`labels.map`), so a 255-bar daily chart shows an unreadable crammed strip.
+  Show ~6–8 evenly-spaced labels (first/last + interior, deterministic) and keep
+  the full set in the visually-hidden data table (Slice 104). Affects Market
+  Kernel + Control Room tape; regen those two baselines.
 - [x] **108 State-band density parity** — applied the Slice-106 treatment
   (tighter tiles + 2-line detail clamp) to the Analysis Workspace / Symbol Lab /
   Market Kernel data-state bands. Sub-threshold, no baseline regen.
@@ -520,10 +521,11 @@ visual risk is the per-tab screenshot baseline (regen the changed tab).
   trend/RSI/vol/macro/events vector with real regime evidence (decision mode,
   confidence band, and the rule-derived positive/risk factors) via a new
   `OperatingState.state_vector` API field; honest empty state when no regime.
-- [ ] **Indicator snapshot grid density** — audit the Market Kernel indicator
-  tiles (`repeat(auto-fit, minmax(120px,1fr))`) and the coverage/timeframe rows
-  for wasted vertical space vs. the v4.2 mockup; tighten to a denser readout if
-  warranted.
+- [x] **110 Indicator snapshot grid density** — tightened the Market Kernel
+  indicator grid (gap/min-width) and scoped a denser `.fso-metric` override to
+  that grid only (shared metric untouched). Sub-threshold, no baseline regen.
+
+_P3b density batch (108–110) complete; only axis-label thinning remains, deferred._
 
 ### Done (this queue)
 - [x] **86 db-unavailable distinct state** — global "DB unavailable" banner

@@ -169,8 +169,19 @@
 
 .fso-indicator-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+}
+
+/* Denser readout for the 8-tile indicator snapshot, scoped to this grid so the
+   shared .fso-metric used elsewhere is untouched. */
+.fso-indicator-grid .fso-metric {
+  padding: 7px 9px;
+  gap: 2px;
+}
+
+.fso-indicator-grid .fso-metric-value {
+  font-size: clamp(13px, 0.9vw, 16px);
 }
 
 .fso-indicator-grid--wide {
