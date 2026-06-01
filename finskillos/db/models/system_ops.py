@@ -91,3 +91,61 @@ class WorkerCycleRun(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+
+# Worker job queue (Slice 113) ------------------------------------------------
+
+JOB_STATUS_QUEUED = "QUEUED"
+JOB_STATUS_RUNNING = "RUNNING"
+JOB_STATUS_DONE = "DONE"
+JOB_STATUS_ERROR = "ERROR"
+JOB_STATUS_ACTIVE = (JOB_STATUS_QUEUED, JOB_STATUS_RUNNING)
+
+WORKER_JOB_REFRESH_ALL = "refresh_all"
+WORKER_JOB_REFRESH_MARKET = "refresh_market"
+WORKER_JOB_REFRESH_NEWS = "refresh_news"
+WORKER_JOB_CALCULATE_INDICATORS = "calculate_indicators"
+WORKER_JOB_TYPES = (
+    WORKER_JOB_REFRESH_ALL,
+    WORKER_JOB_REFRESH_MARKET,
+    WORKER_JOB_REFRESH_NEWS,
+    WORKER_JOB_CALCULATE_INDICATORS,
+)
+
+
+class WorkerJob(Base):
+    """A queued refresh request the worker claims and processes.
+
+    The worker idles, then claims the oldest ``QUEUED`` job (postgres
+    ``FOR UPDATE SKIP LOCKED`` so concurrent workers never double-claim),
+    runs the matching refresh, and records the outcome. ``enqueue`` is
+    idempotent on ``(job_type, dedup_key)`` while a job is still active, so a
+    request never piles up duplicate work.
+    """
+
+    __tablename__ = "worker_jobs"
+    __table_args__ = (
+        Index("idx_worker_jobs_status_created", "status", "created_at"),
+        Index("idx_worker_jobs_type_dedup_status", "job_type", "dedup_key", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(), primary_key=True, default=uuid.uuid4)
+    job_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), default=JOB_STATUS_QUEUED, nullable=False
+    )
+    dedup_key: Mapped[str | None] = mapped_column(String(128))
+    requested_by: Mapped[str] = mapped_column(
+        String(32), default="system", nullable=False
+    )
+    payload: Mapped[dict | None] = mapped_column(JSONPayload)
+    result: Mapped[dict | None] = mapped_column(JSONPayload)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+        server_default=func.now(),
+        nullable=False,
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

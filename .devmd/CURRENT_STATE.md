@@ -150,6 +150,7 @@ operational protocols.
 110    Market Kernel Indicator Grid Density
 111    Real-Data Market Refresh Default (kill mock sawtooth)
 112    Worker Auto-Start Orchestration + Test DB Isolation
+113    Postgres Worker Job Queue (request-driven worker)
 ```
 
 Slice 14 is complete:
@@ -505,9 +506,12 @@ Postgres job queue (request) + an interval.
   head`) gates api+worker, and an autouse conftest fixture stops tests writing to
   the production DB (the deeper recurring-junk root cause). Monotonic audit
   `created_at` removes the `seed_sample_events` ordering flake.
-- [ ] **113** Postgres `worker_jobs` queue — table + repo; the worker idles then
-  polls/claims queued jobs (request-driven) alongside the interval refresh;
-  System Ops refresh buttons enqueue a job. Upsert-safe (no duplication).
+- [x] **113** Postgres `worker_jobs` queue (table + `0013` migration + repo) —
+  the worker is queue-driven: idles, drains claimed jobs (`FOR UPDATE SKIP
+  LOCKED`) each poll tick, enqueues a dedup-safe `refresh_all` on start +
+  interval. Idempotent enqueue + upsert = no duplication. Live-proven on `up`.
+- [ ] **113b/114** System Ops refresh buttons enqueue a job (the request path)
+  instead of running synchronously; frontend handles the QUEUED status.
 - [ ] **114** fixture → MISSING audit — any tab that still shows fixture
   *analysis* when the DB is reachable-but-empty switches to an explicit MISSING /
   live-empty state, so seeded sample data never reads as real.

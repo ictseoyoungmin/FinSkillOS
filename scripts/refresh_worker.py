@@ -10,6 +10,7 @@ from __future__ import annotations
 # ruff: noqa: E402, I001
 
 import argparse
+import dataclasses
 import logging
 import os
 import sys
@@ -30,7 +31,13 @@ from finskillos.data_sources import (
     MockMarketDataAdapter,
     YahooChartMarketDataAdapter,
 )
-from finskillos.db.repositories import WorkerCycleRunRepository
+from finskillos.db.models.system_ops import (
+    WORKER_JOB_CALCULATE_INDICATORS,
+    WORKER_JOB_REFRESH_ALL,
+    WORKER_JOB_REFRESH_MARKET,
+    WORKER_JOB_REFRESH_NEWS,
+)
+from finskillos.db.repositories import WorkerCycleRunRepository, WorkerJobRepository
 from finskillos.db.session import session_scope
 from finskillos.logging_config import setup_logging
 from finskillos.services.market_data_service import MarketDataService
@@ -53,6 +60,7 @@ class WorkerCycleFailed(RuntimeError):
 @dataclass(frozen=True)
 class WorkerConfig:
     interval_seconds: int
+    poll_seconds: int
     run_on_start: bool
     market_enabled: bool
     news_enabled: bool
@@ -104,6 +112,7 @@ def load_config(args: argparse.Namespace) -> WorkerConfig:
     return WorkerConfig(
         interval_seconds=args.interval_seconds
         or _int_env("FINSKILLOS_WORKER_INTERVAL_SECONDS", 24 * 60 * 60),
+        poll_seconds=_int_env("FINSKILLOS_WORKER_POLL_SECONDS", 5),
         run_on_start=not args.no_run_on_start
         and _bool_env("FINSKILLOS_WORKER_RUN_ON_START", True),
         market_enabled=_bool_env("FINSKILLOS_WORKER_MARKET_ENABLED", True),
@@ -310,20 +319,85 @@ def _cycle_status(sections: tuple[dict[str, Any], ...]) -> str:
 
 
 def _with_news_policy(config: WorkerConfig, policy: NewsFeedPolicy) -> WorkerConfig:
-    return WorkerConfig(
-        interval_seconds=config.interval_seconds,
-        run_on_start=config.run_on_start,
-        market_enabled=config.market_enabled,
-        news_enabled=config.news_enabled,
-        indicator_enabled=config.indicator_enabled,
-        market_adapter=config.market_adapter,
-        news_adapter=config.news_adapter,
-        news_policy=policy,
-        market_tickers=config.market_tickers,
-        indicator_tickers=config.indicator_tickers,
-        timeframe=config.timeframe,
-        persist_indicator_history=config.persist_indicator_history,
-    )
+    return dataclasses.replace(config, news_policy=policy)
+
+
+# Job queue (Slice 113) -------------------------------------------------------
+
+_JOB_ENABLES: dict[str, dict[str, bool]] = {
+    WORKER_JOB_REFRESH_MARKET: {
+        "market_enabled": True,
+        "news_enabled": False,
+        "indicator_enabled": False,
+    },
+    WORKER_JOB_REFRESH_NEWS: {
+        "market_enabled": False,
+        "news_enabled": True,
+        "indicator_enabled": False,
+    },
+    WORKER_JOB_CALCULATE_INDICATORS: {
+        "market_enabled": False,
+        "news_enabled": False,
+        "indicator_enabled": True,
+    },
+}
+
+
+def _config_for_job(config: WorkerConfig, job_type: str) -> WorkerConfig:
+    """A config variant enabling only the refresh(es) a job needs."""
+    if job_type == WORKER_JOB_REFRESH_ALL:
+        return config
+    overrides = _JOB_ENABLES.get(job_type)
+    if overrides is None:
+        raise ValueError(f"unknown worker job type: {job_type}")
+    return dataclasses.replace(config, **overrides)
+
+
+def enqueue_refresh(
+    job_type: str = WORKER_JOB_REFRESH_ALL,
+    *,
+    requested_by: str = "worker",
+) -> None:
+    """Idempotently queue a refresh job (dedup on its own type)."""
+    with session_scope() as session:
+        WorkerJobRepository(session).enqueue(
+            job_type, requested_by=requested_by, dedup_key=job_type
+        )
+
+
+def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
+    """Claim and process queued jobs until the queue is empty (or the cap)."""
+    processed = 0
+    while processed < max_jobs:
+        with session_scope() as session:
+            job = WorkerJobRepository(session).claim_next()
+            if job is None:
+                return processed
+            job_id, job_type = job.id, job.job_type
+        summary: dict[str, Any] | None = None
+        error: str | None = None
+        try:
+            summary = run_cycle(_config_for_job(config, job_type))
+        except WorkerCycleFailed as exc:
+            summary = exc.summary
+            error = str(exc.summary.get("error", {}).get("message") or "cycle failed")
+        except Exception as exc:  # noqa: BLE001 — recorded on the job row
+            error = f"{exc.__class__.__name__}: {exc}"
+        with session_scope() as session:
+            repo = WorkerJobRepository(session)
+            job = repo.get(job_id)
+            if job is not None:
+                if error is None:
+                    repo.complete(job, summary)
+                else:
+                    if summary is not None:
+                        job.result = summary
+                    repo.fail(job, error)
+        logger.info(
+            "Worker job %s (%s) -> %s", job_id, job_type, "ERROR" if error else "DONE"
+        )
+        processed += 1
+    return processed
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -360,31 +434,47 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.info(
         (
-            "Starting refresh worker interval=%ss run_on_start=%s "
+            "Starting refresh worker interval=%ss poll=%ss run_on_start=%s "
             "market=%s news=%s indicators=%s"
         ),
         config.interval_seconds,
+        config.poll_seconds,
         config.run_on_start,
         config.market_enabled,
         config.news_enabled,
         config.indicator_enabled,
     )
 
-    should_run_now = config.run_on_start or args.once
+    # `--once` runs one full cycle directly (the original behaviour, used by the
+    # operations tests). The daemon is queue-driven: it idles, processes any
+    # queued jobs each poll tick, and enqueues a periodic refresh on the
+    # interval (and on start). `enqueue` is dedup-safe, so the periodic job
+    # never piles up behind a still-running one.
+    if args.once:
+        try:
+            summary = run_cycle(config)
+            logger.info("Refresh worker cycle summary: %s", summary)
+            return 0
+        except Exception:
+            logger.exception("Refresh worker cycle failed")
+            return 1
+
     try:
+        if config.run_on_start:
+            enqueue_refresh(requested_by="worker_start")
+        next_interval = time.monotonic() + config.interval_seconds
         while True:
-            if should_run_now:
+            try:
+                drain_queue(config)
+            except Exception:
+                logger.exception("Worker queue drain failed")
+            if time.monotonic() >= next_interval:
                 try:
-                    summary = run_cycle(config)
-                    logger.info("Refresh worker cycle summary: %s", summary)
+                    enqueue_refresh(requested_by="worker_interval")
                 except Exception:
-                    logger.exception("Refresh worker cycle failed")
-                    if args.once:
-                        return 1
-            if args.once:
-                return 0
-            should_run_now = True
-            time.sleep(config.interval_seconds)
+                    logger.exception("Worker interval enqueue failed")
+                next_interval = time.monotonic() + config.interval_seconds
+            time.sleep(config.poll_seconds)
     except KeyboardInterrupt:
         logger.info("Refresh worker stopped")
         return 0
