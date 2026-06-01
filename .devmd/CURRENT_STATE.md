@@ -145,6 +145,7 @@ operational protocols.
 105    Control Room Freshness Env → Operator Watchpoints
 106    Control Room State-Band Density
 107    Vendor HTTP Event Calendar Provider
+108    State-Band Density Parity (Analysis/Symbol/Market Kernel)
 ```
 
 Slice 14 is complete:
@@ -511,10 +512,9 @@ visual risk is the per-tab screenshot baseline (regen the changed tab).
   (first/last + interior, deterministic) and keep the full set in the
   visually-hidden data table (Slice 104). Affects Market Kernel + Control Room
   tape; regen those two baselines.
-- [ ] **State-band density parity** — apply the Slice-106 treatment (tighter
-  tiles + 2-line detail clamp) to the Analysis Workspace / Symbol Lab / Market
-  Kernel data-state bands, which still use the pre-106 180px + single-line
-  ellipsis pattern. Regen those baselines.
+- [x] **108 State-band density parity** — applied the Slice-106 treatment
+  (tighter tiles + 2-line detail clamp) to the Analysis Workspace / Symbol Lab /
+  Market Kernel data-state bands. Sub-threshold, no baseline regen.
 - [ ] **RegimeStateVector honest values** — `derive()` returns hard-coded
   "Elevated/Compressed/Neutral/Cluster" regardless of state (a placeholder).
   Either wire each cell to real indicator/regime evidence (RSI zone, vol proxy,
