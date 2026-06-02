@@ -223,6 +223,17 @@ class SymbolSubscriptionFolderRepository:
             for folder in folders
         )
 
+    def delete_folder(self, folder_id: uuid.UUID) -> bool:
+        """Delete a folder (and its memberships via cascade). Refuses System."""
+        folder = self.get(folder_id)
+        if folder is None:
+            return False
+        if folder.is_system:
+            raise ValueError("system_folder_protected")
+        self.session.delete(folder)
+        self.session.flush()
+        return True
+
     def has_member(self, folder_id: uuid.UUID, ticker: str) -> bool:
         subscription = _subscription(self.session, ticker)
         if subscription is None:

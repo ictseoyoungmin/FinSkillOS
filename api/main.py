@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import (
     analysis_workspace,
+    collection_control,
     control_room,
     event_radar,
     health,
@@ -61,7 +62,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=_allowed_origins(),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(risk_firewall.router, prefix="/api")
     app.include_router(mission_control.router, prefix="/api")
     app.include_router(system_ops.router, prefix="/api")
+    app.include_router(collection_control.router, prefix="/api")
     app.include_router(news_intelligence.router, prefix="/api")
     app.include_router(event_radar.router, prefix="/api")
     app.include_router(trade_memory.router, prefix="/api")

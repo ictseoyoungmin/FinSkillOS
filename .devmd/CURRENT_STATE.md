@@ -506,8 +506,12 @@ per folder; the worker collects per folder.
   recorded as `collection:<type>` in the audit. `collection_type=None` preserves
   the legacy subscription/named-folder path for the read-only API routes. See
   `.devmd/128_*.md`.
-- [ ] **W-3 API** — `/api/system-ops/collection-control` GET + PATCH folder flags
-  + folder/symbol CRUD + global toggles.
+- [x] **W-3 API** — `/api/system-ops/collection-control` GET (System-first folders
+  with flags, members, per-type effective ticker counts + global roll-up), PATCH
+  folder flags, POST/DELETE folder (System protected → 409), POST/DELETE
+  folder symbols (subscribe+link / unlink), and `global-toggle` (apply one flag to
+  every folder). Per-type counts reuse the W-2 policy. CORS now allows PATCH. See
+  `.devmd/129_*.md`.
 - [ ] **W-4 frontend** — Ops Collection Control surface (folder cards, checkboxes,
   symbol add/remove); remove the runtime-settings ticker text fields.
 - [ ] **W-5 polish** — global toggles, open/collapse, Symbol-Lab add-to-folder

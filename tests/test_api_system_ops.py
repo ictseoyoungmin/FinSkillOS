@@ -39,6 +39,7 @@ from finskillos.db.repositories import (
 
 _PROTOCOL_KEYS = {
     "seed_sample_account",
+    "seed_system_folder",
     "refresh_news",
     "refresh_market_data",
     "calculate_indicators",
@@ -50,6 +51,7 @@ _PROTOCOL_KEYS = {
 
 _POST_ENDPOINTS = (
     ("/api/system-ops/seed-sample-account", "seed_sample_account"),
+    ("/api/system-ops/seed-system-folder", "seed_system_folder"),
     ("/api/system-ops/refresh-news", "refresh_news"),
     ("/api/system-ops/refresh-market-data", "refresh_market_data"),
     ("/api/system-ops/calculate-indicators", "calculate_indicators"),
