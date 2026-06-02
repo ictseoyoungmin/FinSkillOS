@@ -260,6 +260,8 @@ DB state.
 
 Severity: P2 visual continuity
 
+Status: fixed 2026-06-02
+
 During internal workspace scrolling, the top tray and ticker strip remain fixed
 while the product content scrolls underneath. This is expected from the shell
 layout, but in mid/lower screenshots the ticker strip sits directly over the
@@ -281,6 +283,33 @@ Likely cause:
 
 Impact: lower page sections are reachable, but the visual transition from global
 market strip to page content reads like an overlay instead of a clear boundary.
+
+Fix:
+
+- Strengthened the ticker strip bottom boundary and added a subtle shadow below
+  the market strip.
+- Added a matching workspace top border, inset boundary shadow, and larger top
+  padding so scrolled page content starts from a clearer shell boundary.
+- Adjusted the DB-unavailable banner negative margin to match the new workspace
+  padding.
+- Fixed the narrow status bar wrapping that surfaced during responsive
+  validation.
+- Responsive e2e now asserts that the ticker/workspace boundary styles are
+  present without introducing a layout gap or horizontal overflow.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml build web
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml up -d web
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/responsive.spec.ts --project=chromium --workers=1
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/diagnostics/full-scroll-diagnostics.spec.ts --project=chromium --workers=1
+```
+
+Result: web image build passed; frontend production build/type validation
+passed; focused responsive Playwright suite passed (2 passed); full-scroll
+diagnostic Playwright suite passed (10 passed).
 
 ### D-008 Lower-page whitespace from uneven fixed column grids
 

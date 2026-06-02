@@ -48,6 +48,38 @@ async function assertNoElementOverflowsViewport(page: Page): Promise<void> {
   expect(overflowingCount).toBe(0);
 }
 
+async function assertTickerWorkspaceBoundary(page: Page): Promise<void> {
+  const boundary = await page.evaluate(() => {
+    const ticker = document.querySelector<HTMLElement>(
+      '[data-testid="ticker-strip"]',
+    );
+    const workspace = document.querySelector<HTMLElement>(
+      '[data-testid="os-workspace"]',
+    );
+    if (!ticker || !workspace) {
+      return null;
+    }
+    const tickerStyle = window.getComputedStyle(ticker);
+    const workspaceStyle = window.getComputedStyle(workspace);
+    return {
+      tickerShadow: tickerStyle.boxShadow,
+      workspaceBorderTopWidth: workspaceStyle.borderTopWidth,
+      workspacePaddingTop: workspaceStyle.paddingTop,
+      gap: Math.round(
+        workspace.getBoundingClientRect().top - ticker.getBoundingClientRect().bottom,
+      ),
+    };
+  });
+
+  expect(boundary).not.toBeNull();
+  expect(boundary?.tickerShadow).not.toBe("none");
+  expect(boundary?.workspaceBorderTopWidth).toBe("1px");
+  expect(
+    Number.parseFloat(boundary?.workspacePaddingTop ?? "0"),
+  ).toBeGreaterThanOrEqual(20);
+  expect(boundary?.gap).toBe(0);
+}
+
 test.describe("Slice 13.10 — Control Room responsive smoke", () => {
   for (const viewport of VIEWPORTS) {
     test(`layout holds at ${viewport.name}`, async ({ page }) => {
@@ -60,6 +92,7 @@ test.describe("Slice 13.10 — Control Room responsive smoke", () => {
 
       await assertNoHorizontalOverflow(page);
       await assertNoElementOverflowsViewport(page);
+      await assertTickerWorkspaceBoundary(page);
     });
   }
 });

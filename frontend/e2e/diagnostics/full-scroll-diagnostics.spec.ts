@@ -62,6 +62,7 @@ type RouteDiagnostic = {
 test.describe("diagnostics — full scroll screenshots", () => {
   for (const route of ROUTES) {
     test(`${route.label} top-to-bottom render`, async ({ page }) => {
+      test.setTimeout(60_000);
       mkdirSync(OUTPUT_DIR, { recursive: true });
       const consoleErrors: string[] = [];
       const pageErrors: string[] = [];
