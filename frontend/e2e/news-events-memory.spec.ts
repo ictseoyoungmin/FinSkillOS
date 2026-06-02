@@ -1,10 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { FORBIDDEN_EXECUTION_LABELS } from "./_helpers";
+import {
+  FORBIDDEN_EXECUTION_LABELS,
+  forceFixtureSnapshotApis,
+} from "./_helpers";
 
 test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory", () => {
   test("News Intelligence renders impact map and source coverage", async ({
     page,
   }) => {
+    await forceFixtureSnapshotApis(page);
     await page.goto("/news-intel");
     await expect(page.getByTestId("news-intelligence-page")).toBeVisible();
     await expect(page.getByTestId("news-judgment-header")).toBeVisible();
@@ -14,6 +18,12 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     );
     await expect(page.getByTestId("news-impact-map")).toBeVisible();
     await expect(page.getByTestId("news-impact-map-table")).toBeVisible();
+    await expect(page.getByTestId("news-secondary-evidence")).toHaveAttribute(
+      "open",
+      "",
+    );
+    await expect(page.getByTestId("holdings-relevant-news")).toBeVisible();
+    await expect(page.getByTestId("event-linked-news")).toBeVisible();
     await expect(
       page.getByTestId("news-intelligence-safety-caption"),
     ).toContainText("Descriptive");
@@ -22,6 +32,7 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
   test("Catalyst Watch renders date-status badges and event catalog evidence", async ({
     page,
   }) => {
+    await forceFixtureSnapshotApis(page);
     await page.goto("/catalyst-watch");
     await expect(page.getByTestId("catalyst-watch-page")).toBeVisible();
     await expect(page.getByTestId("event-judgment-header")).toBeVisible();
@@ -51,6 +62,7 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
   test("Trade Memory renders weekly markdown textarea and mistake frequency", async ({
     page,
   }) => {
+    await forceFixtureSnapshotApis(page);
     await page.goto("/trade-memory");
     await expect(page.getByTestId("trade-memory-page")).toBeVisible();
     await expect(page.getByTestId("trade-judgment-header")).toBeVisible();

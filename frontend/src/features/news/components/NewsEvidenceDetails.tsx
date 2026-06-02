@@ -5,6 +5,7 @@ export interface NewsEvidenceDetailsProps {
   badge: string;
   children: ReactNode;
   defaultOpen?: boolean;
+  testId?: string;
   title: string;
 }
 
@@ -12,10 +13,15 @@ export function NewsEvidenceDetails({
   badge,
   children,
   defaultOpen = false,
+  testId,
   title,
 }: NewsEvidenceDetailsProps) {
   return (
-    <details className="fso-news-evidence-details" open={defaultOpen}>
+    <details
+      className="fso-news-evidence-details"
+      data-testid={testId}
+      open={defaultOpen}
+    >
       <summary>
         <span className="fso-news-evidence-dots" aria-hidden>
           <span />

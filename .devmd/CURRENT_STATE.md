@@ -520,6 +520,7 @@ then `[x]` with the implementation note when done.
   full-scroll diagnostics passed on 2026-06-02.
 
 ### P3 — default evidence visibility
-- [ ] **D-010 News Intelligence secondary evidence default** — Decide whether
-  lower secondary evidence should open by default, preview key rows, or show a
-  stronger collapsed summary for top-to-bottom review.
+- [x] **D-010 News Intelligence secondary evidence default** — News Intelligence
+  lower secondary evidence now opens by default for top-to-bottom review.
+  Implemented in Slice 125; Docker web build, News/Catalyst/Trade e2e, and
+  full-scroll diagnostics passed on 2026-06-02.

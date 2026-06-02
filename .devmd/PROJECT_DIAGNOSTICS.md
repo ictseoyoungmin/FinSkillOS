@@ -410,6 +410,8 @@ document or workspace horizontal overflow.
 
 Severity: P3 default information visibility
 
+Status: fixed 2026-06-02
+
 News Intelligence lower content is mostly reachable within two scroll stops, but
 the `Secondary Evidence` region is collapsed by default behind an `EXPAND`
 control.
@@ -422,27 +424,26 @@ Impact: this is not broken, but if the goal is "top-to-bottom review at a
 glance," the default screen does not expose holdings/watchpoints/event-linked
 details until the user expands the panel.
 
+Fix:
+
+- Slice 125 keeps the existing collapsible `details` affordance but opens the
+  Secondary Evidence region by default on News Intelligence.
+- Added a stable `news-secondary-evidence` test id and e2e assertions that the
+  details region is open while holdings-relevant and event-linked evidence are
+  visible.
+
 ## Verification
 
 Commands run:
 
 ```bash
-docker compose -f docker-compose.yml up -d api web
-docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/diagnostics/full-scroll-diagnostics.spec.ts --project=chromium --workers=1
 docker compose -f docker-compose.yml build web
 docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml up -d web
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/news-events-memory.spec.ts --project=chromium --workers=1
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/diagnostics/full-scroll-diagnostics.spec.ts --project=chromium --workers=1
 ```
 
-Results:
-
-- Full-scroll diagnostic Playwright spec: 10 passed.
-- Frontend production build/type validation: passed.
-
-Known limits:
-
-- The visual audit forced product snapshot APIs to fixture mode to make all tabs
-  content-rich and deterministic. It did not click every expandable drawer or
-  mutate data.
-- The current diagnostic full-page PNG captures the document viewport, while the
-  real scroll occurs inside `main[data-testid="os-workspace"]`. Use the
-  `*-viewport-<n>.png` files for true top-to-bottom inspection.
+Result: web image build passed; frontend production build/type validation
+passed; News/Catalyst/Trade Playwright suite passed (7 passed); full-scroll
+diagnostic Playwright suite passed (10 passed).

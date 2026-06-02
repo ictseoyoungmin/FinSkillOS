@@ -81,6 +81,8 @@ export function NewsIntelligencePage() {
       <NewsEvidenceDetails
         title="Secondary Evidence"
         badge={`${payload.watchpoints.length + payload.holdingsRelevant.length + payload.eventLinked.length} rows`}
+        defaultOpen
+        testId="news-secondary-evidence"
       >
         <div className="fso-news-evidence-grid">
           <NewsWatchpointsPanel watchpoints={payload.watchpoints} />
