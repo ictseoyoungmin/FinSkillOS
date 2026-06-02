@@ -80,6 +80,26 @@ async function assertTickerWorkspaceBoundary(page: Page): Promise<void> {
   expect(boundary?.gap).toBe(0);
 }
 
+async function assertControlRoomUsesWorkspaceScroll(page: Page): Promise<void> {
+  const columnOverflow = await page
+    .locator(".fso-control-column")
+    .evaluateAll((columns) =>
+      columns.map((column) => {
+        const style = window.getComputedStyle(column);
+        return {
+          overflowX: style.overflowX,
+          overflowY: style.overflowY,
+        };
+      }),
+    );
+
+  expect(columnOverflow).toHaveLength(3);
+  for (const overflow of columnOverflow) {
+    expect(overflow.overflowX).toBe("visible");
+    expect(overflow.overflowY).toBe("visible");
+  }
+}
+
 test.describe("Slice 13.10 — Control Room responsive smoke", () => {
   for (const viewport of VIEWPORTS) {
     test(`layout holds at ${viewport.name}`, async ({ page }) => {
@@ -93,6 +113,7 @@ test.describe("Slice 13.10 — Control Room responsive smoke", () => {
       await assertNoHorizontalOverflow(page);
       await assertNoElementOverflowsViewport(page);
       await assertTickerWorkspaceBoundary(page);
+      await assertControlRoomUsesWorkspaceScroll(page);
     });
   }
 });

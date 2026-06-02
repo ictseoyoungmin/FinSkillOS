@@ -514,8 +514,10 @@ then `[x]` with the implementation note when done.
   Room, Market Kernel, Catalyst Watch, and Trade Memory so long/short columns do
   not leave large disconnected empty regions. Implemented in Slice 123; Docker
   web build and full-scroll diagnostics passed on 2026-06-02.
-- [ ] **D-009 Control Room nested-scroll cleanup** — Remove or constrain nested
-  column scroll behavior inside the already scrollable OS workspace.
+- [x] **D-009 Control Room nested-scroll cleanup** — Removed independent
+  Control Room column scroll behavior inside the already scrollable OS
+  workspace. Implemented in Slice 124; Docker web build, responsive e2e, and
+  full-scroll diagnostics passed on 2026-06-02.
 
 ### P3 — default evidence visibility
 - [ ] **D-010 News Intelligence secondary evidence default** — Decide whether

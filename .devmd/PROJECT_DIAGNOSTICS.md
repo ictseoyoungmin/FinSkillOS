@@ -370,6 +370,8 @@ passed; full-scroll diagnostic Playwright suite passed (10 passed).
 
 Severity: P2 visual/interaction continuity
 
+Status: fixed 2026-06-02
+
 Control Room columns have `overflow-y: auto` inside the already scrollable OS
 workspace.
 
@@ -381,6 +383,28 @@ Impact: at desktop size this did not produce horizontal overflow or page errors,
 but it can create a nested-scroll mental model: users may scroll the page while
 individual Control Room columns also own independent scroll behavior. This is a
 likely source of "I did not see the lower part" confusion in dense dashboards.
+
+Fix:
+
+- Slice 124 changed `.fso-control-column` to `overflow: visible`, removed
+  scrollbar compensation padding, and added `min-width: 0` for grid shrinkage.
+- The duplicate Control Room 981–1320px media query was collapsed so the middle
+  viewport has one right-rail layout rule.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml build web
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml up -d web
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/responsive.spec.ts --project=chromium --workers=1
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/diagnostics/full-scroll-diagnostics.spec.ts --project=chromium --workers=1
+```
+
+Result: web image build passed; frontend production build/type validation
+passed; responsive Control Room e2e passed (2 passed); full-scroll diagnostic
+Playwright suite passed (10 passed). Control Room diagnostic JSON reported no
+document or workspace horizontal overflow.
 
 ### D-010 News Intelligence hides lower secondary evidence behind collapsed state
 
