@@ -219,17 +219,20 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
             market_policy = build_watchlist_refresh_policy(
                 session,
                 base_tickers=config.market_tickers,
+                collection_type="market",
                 runtime_overrides=config.runtime_overrides,
             )
             indicator_policy = build_watchlist_refresh_policy(
                 session,
                 base_tickers=config.indicator_tickers,
+                collection_type="indicator",
                 runtime_overrides=config.runtime_overrides,
             )
             market_tickers = market_policy.tickers
             indicator_tickers = indicator_policy.tickers
             news_watchlist_policy = build_watchlist_refresh_policy(
                 session,
+                collection_type="news",
                 runtime_overrides=config.runtime_overrides,
             )
             news_policy = build_news_feed_policy(

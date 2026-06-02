@@ -499,8 +499,13 @@ per folder; the worker collects per folder.
   idempotent `seed_system_folder` seed + `seed-system-folder` System Ops protocol
   (System folder + 22 default sector leaders, all types on; operator flags
   preserved on re-seed), and the install seed script wiring. See `.devmd/W1_*.md`.
-- [ ] **W-2 worker** — `watchlist_refresh_policy` returns per-type ticker sets
-  (market/indicator/news) from active folder flags; wire the worker cycle to them.
+- [x] **W-2 worker** — `build_watchlist_refresh_policy` gained a `collection_type`
+  param ("market"/"indicator"/"news"): the universe becomes base ∪ members of every
+  `is_active` folder whose matching type flag is on (inactive folders / flag-off
+  contribute nothing). The worker cycle passes the type per refresh step; scope is
+  recorded as `collection:<type>` in the audit. `collection_type=None` preserves
+  the legacy subscription/named-folder path for the read-only API routes. See
+  `.devmd/128_*.md`.
 - [ ] **W-3 API** — `/api/system-ops/collection-control` GET + PATCH folder flags
   + folder/symbol CRUD + global toggles.
 - [ ] **W-4 frontend** — Ops Collection Control surface (folder cards, checkboxes,
