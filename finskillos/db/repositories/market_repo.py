@@ -143,6 +143,17 @@ class MarketRepository:
         latest = self.latest_bar(ticker, timeframe)
         return latest.close if latest is not None else None
 
+    def tickers_with_bars(self, candidates: Iterable[str]) -> set[str]:
+        """Return the subset of ``candidates`` that have at least one stored bar.
+
+        Timeframe-agnostic — used for collection coverage hints (which symbols the
+        worker has actually fetched). Returns an empty set for an empty input."""
+        wanted = {ticker.strip().upper() for ticker in candidates if ticker.strip()}
+        if not wanted:
+            return set()
+        stmt = select(MarketBar.ticker).where(MarketBar.ticker.in_(wanted)).distinct()
+        return {ticker for ticker in self.session.scalars(stmt)}
+
     def count_for(self, ticker: str, timeframe: str) -> int:
         stmt = select(MarketBar).where(
             MarketBar.ticker == ticker.upper(),

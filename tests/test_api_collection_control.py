@@ -178,6 +178,38 @@ def test_copy_is_descriptive_only(live_client) -> None:
         assert word not in raw
 
 
+def test_coverage_counts_members_with_stored_bars(live_client) -> None:
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from finskillos.data_sources.dto import MarketBarDTO
+    from finskillos.db.repositories import MarketRepository
+
+    client, factory = live_client
+    _seed(factory)
+    with factory() as session:
+        MarketRepository(session).upsert_bar(
+            MarketBarDTO(
+                ticker="SPY",
+                timeframe="1d",
+                bar_time=datetime(2026, 1, 2, tzinfo=timezone.utc),
+                open=Decimal("1"),
+                high=Decimal("1"),
+                low=Decimal("1"),
+                close=Decimal("1"),
+                volume=None,
+                source="test",
+            )
+        )
+        session.commit()
+
+    body = client.get("/api/system-ops/collection-control").json()
+    system = body["folders"][0]
+    # Exactly one seeded member (SPY) has a stored bar.
+    assert system["coveredMemberCount"] == 1
+    assert system["memberCount"] == 22
+
+
 def test_db_unavailable_returns_empty_fixture_shape(live_client) -> None:
     # No seed, but the offline path is exercised by pointing at an unreachable DB
     # is covered elsewhere; here we assert the live empty shape is well-formed.

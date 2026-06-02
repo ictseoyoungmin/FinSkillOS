@@ -38,6 +38,8 @@ class CollectionFolder(CamelModel):
     track_indicators: bool = True
     track_news: bool = True
     member_count: int = 0
+    # Members with at least one stored market bar (coverage hint, Slice W-5).
+    covered_member_count: int = 0
     members: list[CollectionFolderMember] = Field(default_factory=list)
 
 

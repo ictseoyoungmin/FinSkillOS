@@ -518,8 +518,11 @@ per folder; the worker collects per folder.
   disabled for System), inactive/all-off warnings. Removed the two runtime-settings
   ticker text fields (universe is now folder-driven). `features/collection-control/`
   module + fixture + CSS. See `.devmd/130_*.md`. Visual baseline regen pending.
-- [ ] **W-5 polish** — global toggles, open/collapse, Symbol-Lab add-to-folder
-  cross-link, per-folder coverage hints, empty/MISSING states.
+- [x] **W-5 polish** — per-folder coverage hints (`coveredMemberCount` =
+  members with stored bars, via `MarketRepository.tickers_with_bars`) + per-folder
+  open/collapse. Global toggles + empty/MISSING states landed in W-4. Symbol-Lab
+  "add to folder" cross-link (U1) and confirm+undo (U9) deferred to the ideas
+  backlog. See `.devmd/131_*.md`.
 
 ### P1 — correctness / trust
 - [x] **D-001 CORS mutation-method contract** — Allow browser preflight for the

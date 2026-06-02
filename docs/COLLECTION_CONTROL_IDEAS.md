@@ -54,4 +54,9 @@ Created 2026-06-02.
   buy/sell/execution wording (hard constraint).
 
 ## Promoted to Work Queue
-- (none yet — W-1…W-5 are the spec's base plan; promote ideas as slices land)
+- **U7 coverage chip** — shipped in W-5 (slice 131): per-folder
+  `coveredMemberCount` ("X/Y with stored bars") from `MarketRepository`.
+- **U3 open/collapse** — shipped in W-5 (slice 131): per-folder collapse toggle.
+- **U4 global toggles** — shipped in W-4 (slice 130): all-folders flag row.
+- Still open / good next picks: **U1** Symbol-Lab "add to folder" cross-link,
+  **U9** confirm + undo on destructive removal, **F3** per-folder "refresh now".

@@ -30,6 +30,7 @@ from api.schemas.collection_control import (
 )
 from api.schemas.common import SystemStatus
 from finskillos.db.repositories import (
+    MarketRepository,
     SymbolSubscriptionFolderRepository,
     SymbolSubscriptionRepository,
 )
@@ -175,7 +176,9 @@ def global_toggle(payload: GlobalToggleInput) -> CollectionControlResponse:
 def _build_response(session) -> CollectionControlResponse:
     repo = SymbolSubscriptionFolderRepository(session)
     snapshots = _system_first(repo.list_snapshots())
-    folders = [_folder_schema(snap) for snap in snapshots]
+    all_tickers = {m.ticker for snap in snapshots for m in snap.members}
+    covered = MarketRepository(session).tickers_with_bars(all_tickers)
+    folders = [_folder_schema(snap, covered) for snap in snapshots]
     totals = _totals(session, snapshots)
     return CollectionControlResponse(
         generated_at=datetime.now(tz=UTC).isoformat(),
@@ -194,7 +197,9 @@ def _system_first(
     )
 
 
-def _folder_schema(snap: SymbolSubscriptionFolderSnapshot) -> CollectionFolder:
+def _folder_schema(
+    snap: SymbolSubscriptionFolderSnapshot, covered: set[str]
+) -> CollectionFolder:
     return CollectionFolder(
         id=str(snap.id),
         name=snap.name,
@@ -206,6 +211,7 @@ def _folder_schema(snap: SymbolSubscriptionFolderSnapshot) -> CollectionFolder:
         track_indicators=snap.track_indicators,
         track_news=snap.track_news,
         member_count=len(snap.members),
+        covered_member_count=sum(1 for m in snap.members if m.ticker in covered),
         members=[
             CollectionFolderMember(ticker=m.ticker, name=m.name) for m in snap.members
         ],

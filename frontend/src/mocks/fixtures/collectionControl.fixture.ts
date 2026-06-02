@@ -41,6 +41,7 @@ export const collectionControlFixture: CollectionControlData = {
       trackIndicators: true,
       trackNews: true,
       memberCount: SYSTEM_MEMBERS.length,
+      coveredMemberCount: SYSTEM_MEMBERS.length,
       members: SYSTEM_MEMBERS,
     },
   ],

@@ -918,3 +918,22 @@
   display: flex;
   gap: 8px;
 }
+
+.fso-collection-collapse {
+  border: none;
+  background: transparent;
+  color: var(--fso-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 4px 0 0;
+  line-height: 1;
+}
+
+.fso-collection-coverage {
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+  padding: 2px 8px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: 999px;
+}

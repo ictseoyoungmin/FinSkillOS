@@ -20,6 +20,7 @@ export interface CollectionFolder {
   trackIndicators: boolean;
   trackNews: boolean;
   memberCount: number;
+  coveredMemberCount: number;
   members: CollectionFolderMember[];
 }
 

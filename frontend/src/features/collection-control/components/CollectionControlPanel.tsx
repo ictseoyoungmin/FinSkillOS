@@ -34,6 +34,7 @@ export function CollectionControlPanel(): JSX.Element {
   );
   const [newFolder, setNewFolder] = useState("");
   const [symbolDraft, setSymbolDraft] = useState<Record<string, string>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const { data, isLoading, isError } = useQuery({
     queryKey: QUERY_KEY,
@@ -197,6 +198,10 @@ export function CollectionControlPanel(): JSX.Element {
               key={folder.id}
               folder={folder}
               busy={busy}
+              collapsed={collapsed[folder.id] ?? false}
+              onToggleCollapse={() =>
+                setCollapsed((prev) => ({ ...prev, [folder.id]: !(prev[folder.id] ?? false) }))
+              }
               symbolDraft={symbolDraft[folder.id] ?? ""}
               onSymbolDraftChange={(value) =>
                 setSymbolDraft((prev) => ({ ...prev, [folder.id]: value }))
@@ -218,6 +223,8 @@ export function CollectionControlPanel(): JSX.Element {
 function FolderCard({
   folder,
   busy,
+  collapsed,
+  onToggleCollapse,
   symbolDraft,
   onSymbolDraftChange,
   onToggleFlag,
@@ -227,6 +234,8 @@ function FolderCard({
 }: {
   folder: CollectionFolder;
   busy: boolean;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   symbolDraft: string;
   onSymbolDraftChange: (value: string) => void;
   onToggleFlag: (column: (typeof FLAG_COLUMNS)[number]) => void;
@@ -244,9 +253,25 @@ function FolderCard({
     >
       <header className="fso-collection-card-head">
         <div className="fso-collection-card-title">
+          <button
+            type="button"
+            className="fso-collection-collapse"
+            aria-expanded={!collapsed}
+            data-testid={`collection-collapse-${folder.id}`}
+            onClick={onToggleCollapse}
+          >
+            {collapsed ? "▸" : "▾"}
+          </button>
           <h3>{folder.name}</h3>
           {folder.isSystem ? <span className="fso-collection-system-badge">System</span> : null}
           <span className="fso-collection-count">{folder.memberCount} symbols</span>
+          <span
+            className="fso-collection-coverage"
+            title="Members with at least one stored market bar."
+            data-testid={`collection-coverage-${folder.id}`}
+          >
+            {folder.coveredMemberCount}/{folder.memberCount} with stored bars
+          </span>
         </div>
         <button
           type="button"
@@ -259,6 +284,9 @@ function FolderCard({
           Delete
         </button>
       </header>
+
+      {collapsed ? null : (
+        <>
 
       {folder.description ? (
         <p className="fso-collection-card-desc">{folder.description}</p>
@@ -328,6 +356,8 @@ function FolderCard({
           Add
         </button>
       </form>
+        </>
+      )}
     </section>
   );
 }
