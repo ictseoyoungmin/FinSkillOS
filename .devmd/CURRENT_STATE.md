@@ -496,10 +496,11 @@ then `[x]` with the implementation note when done.
   live-failure checks passed on 2026-06-02.
 
 ### P2 — terminology / visual continuity
-- [ ] **D-004 Event Risk naming cleanup** — Rename fixture/UI copy away from
+- [x] **D-004 Event Risk naming cleanup** — Rename fixture/UI copy away from
   `Event Placeholder` now that Event Risk is live-wired through Catalyst Watch;
   keep back-compatible internal guard ids unless a dedicated migration slice is
-  chosen.
+  chosen. Implemented in Slice 120; Docker ruff, focused pytest, and web build
+  passed on 2026-06-02.
 - [ ] **D-005 top navigation scanability** — Use module-specific nav identity
   from `nav-config.ts` or a denser responsive treatment so the 10-tab rail is
   readable at the desktop audit viewport.

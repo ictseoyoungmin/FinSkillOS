@@ -106,8 +106,8 @@ export const riskFirewallFixture: RiskFirewallData = {
       name: "EVENT_PLACEHOLDER_GUARD",
       status: "INFO",
       riskLevel: "UNKNOWN",
-      title: "Event Placeholder",
-      message: "Event-driven volatility note tracked via Catalyst Watch.",
+      title: "Event Exposure",
+      message: "Catalyst Watch event exposure is tracked as descriptive context.",
     },
   ],
   activeAlerts: [

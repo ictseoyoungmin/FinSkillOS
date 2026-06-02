@@ -65,6 +65,22 @@ def test_risk_firewall_guards_include_all_camelcase_fields() -> None:
         assert expected_fields.issubset(guard.keys()), guard
 
 
+def test_risk_firewall_fixture_names_event_exposure_as_live_wired_context() -> None:
+    body = _client().get(
+        "/api/risk-firewall", headers={"X-FSO-Use-Fixture": "1"}
+    ).json()
+    event_guard = next(
+        guard
+        for guard in body["guards"]
+        if guard["name"] == "EVENT_PLACEHOLDER_GUARD"
+    )
+
+    # Keep the legacy id for compatibility, but do not show deferred-copy naming.
+    assert event_guard["title"] == "Event Exposure"
+    assert "Placeholder" not in event_guard["title"]
+    assert "Catalyst Watch" in event_guard["message"]
+
+
 def test_risk_firewall_active_alerts_are_structured() -> None:
     body = _client().get("/api/risk-firewall").json()
     alerts = body["activeAlerts"]

@@ -126,12 +126,36 @@ Result: web build passed; focused Playwright live-failure suite passed
 
 Severity: P2 terminology / mental model
 
+Status: fixed 2026-06-02
+
 `finskillos/guards/event_risk_guard.py` now consumes Catalyst Watch exposure
 summaries, but fixture output still names the row `EVENT_PLACEHOLDER_GUARD` with
 the title `Event Placeholder`.
 
 Impact: users can read an implemented live connection as a deferred or fake
 feature, especially on Risk Firewall fixture/demo views.
+
+Fix:
+
+- Kept the legacy internal guard id `EVENT_PLACEHOLDER_GUARD` for compatibility.
+- Renamed user-visible fixture copy to `Event Exposure` in backend and frontend
+  Risk Firewall fixtures.
+- Reworded disconnected guard copy away from deferred-slice language and toward
+  explicit missing Catalyst Watch evidence.
+- Added API/unit regression coverage so the fixture title does not expose
+  `Placeholder` while the compatibility id remains stable.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml build api web
+docker compose -f docker-compose.yml run --rm api python -m ruff check finskillos/guards/event_risk_guard.py api/fixtures/risk_firewall.py tests/test_risk_guards.py tests/test_api_risk_firewall.py
+docker compose -f docker-compose.yml run --rm api timeout 300 env FINSKILLOS_SKIP_DOTENV=1 python -m pytest tests/test_risk_guards.py tests/test_api_risk_firewall.py -q
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+```
+
+Result: API/web image build passed; ruff passed; focused pytest passed;
+frontend production build/type validation passed.
 
 ### D-005 Top navigation labels are visually compressed
 

@@ -79,8 +79,8 @@ def risk_firewall_fixture() -> RiskFirewallResponse:
             name="EVENT_PLACEHOLDER_GUARD",
             status="INFO",
             risk_level="UNKNOWN",
-            title="Event Placeholder",
-            message="Event-driven volatility note tracked via Catalyst Watch.",
+            title="Event Exposure",
+            message="Catalyst Watch event exposure is tracked as descriptive context.",
         ),
     ]
     active_alerts = [

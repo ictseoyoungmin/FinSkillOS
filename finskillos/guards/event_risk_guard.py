@@ -3,13 +3,13 @@
 Slices 10–11 populate the ``events`` / ``news`` tables and add the
 ``EventRiskService`` deterministic scorer. ``RiskGuardService`` now feeds a
 ``EventRiskSummary`` into the guard ladder, so this guard reports the live
-upcoming-catalyst exposure instead of a static placeholder.
+upcoming-catalyst exposure instead of static deferred copy.
 
 It stays **INFO-only** by design: event exposure is descriptive context for the
 Risk Firewall, not a buy/sell signal, and it must not change the WARN/FAIL
 ladder's overall status. When no event context is supplied (``event_risk`` is
-``None`` / ``connected=False``) it reproduces the original deferred placeholder
-so direct callers stay back-compatible.
+``None`` / ``connected=False``) it keeps the existing guard id but describes the
+missing Catalyst Watch evidence directly so direct callers stay back-compatible.
 """
 
 from __future__ import annotations
@@ -37,17 +37,17 @@ def _deferred_result() -> GuardResult:
         guard_name=GUARD_EVENT_PLACEHOLDER,
         status=STATUS_INFO,
         risk_level=RISK_GREEN,
-        title="이벤트 위험 평가는 이후 슬라이스에서 연결됩니다.",
+        title="Catalyst Watch 이벤트 근거가 아직 없습니다.",
         message=(
-            "Event Radar 슬라이스가 events / news 테이블을 채우면 이벤트 노출도, "
-            "기대감 선반영, sell-the-news 위험을 자동으로 점검합니다."
+            "이벤트 노출도 평가는 Catalyst Watch의 예정 이벤트와 보유 종목 연결 "
+            "근거가 있을 때 서술적 참고 지표로 표시됩니다."
         ),
         evidence={
             "events_table_connected": False,
-            "deferred_to": "Slice 11 Event Radar",
+            "event_exposure_status": "missing_catalyst_watch_evidence",
         },
         watch_next=(
-            "Slice 10 News Intelligence / Slice 11 Event Radar 진행 후 재평가",
+            "Catalyst Watch 이벤트 시드 또는 refresh 이후 이벤트 노출도 재평가",
         ),
     )
 

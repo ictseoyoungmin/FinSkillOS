@@ -438,16 +438,21 @@ def test_overheat_guard_info_when_regime_missing() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Event Risk Guard (placeholder)
+# Event Risk Guard
 # ---------------------------------------------------------------------------
 
 
-def test_event_risk_guard_is_informational_placeholder() -> None:
+def test_event_risk_guard_reports_missing_catalyst_evidence_without_deferred_copy() -> None:
     result = event_risk_guard.evaluate(_base_input())
     assert result.guard_name == GUARD_EVENT_PLACEHOLDER
     assert result.status == STATUS_INFO
     assert result.risk_level == RISK_GREEN
     assert result.evidence["events_table_connected"] is False
+    assert result.evidence["event_exposure_status"] == (
+        "missing_catalyst_watch_evidence"
+    )
+    assert "슬라이스" not in result.title
+    assert "슬라이스" not in result.message
     _check_safety(result)
 
 
