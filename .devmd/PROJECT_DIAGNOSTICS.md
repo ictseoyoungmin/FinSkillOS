@@ -88,6 +88,8 @@ Result: web build passed; focused Playwright passed (2 tests).
 
 Severity: P1 data-state honesty
 
+Status: fixed 2026-06-02
+
 Market Kernel and Analysis Workspace surface API errors to React Query so the
 page can render an explicit live-unavailable state. Several other tabs still
 catch network/4xx errors and return deterministic fixtures directly from the
@@ -95,6 +97,30 @@ frontend API wrapper.
 
 Impact: some tabs visibly distinguish failed live reads, while others can show a
 fixture payload without a local page-level failure signal.
+
+Fix:
+
+- Control Room, Risk Firewall, Mission Control, News Intelligence, Catalyst
+  Watch, Trade Memory, and the System Ops catalogue now surface snapshot read
+  failures to React Query instead of returning fixtures inside the API wrapper.
+- Each page keeps its deterministic `placeholderData` shape but renders the
+  shared `Live data unavailable — showing sample shape, not live data` warning
+  pill when the live request fails.
+- `SystemStatus` keeps its explicit MISSING fallback because it powers the
+  shell-level DB-unavailable contract rather than a product snapshot.
+- The existing forced-fixture e2e/visual helper remains intact.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml build web
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml up -d web
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/live-fetch-pill.spec.ts --project=chromium --workers=1
+```
+
+Result: web build passed; focused Playwright live-failure suite passed
+(18 passed).
 
 ### D-004 Event Risk is live-wired but still named like a placeholder
 

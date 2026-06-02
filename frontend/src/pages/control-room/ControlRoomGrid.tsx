@@ -17,6 +17,7 @@ import {
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
   WatchpointsPanel,
 } from "@/shared/ui";
 import type {
@@ -28,11 +29,22 @@ import "./control-room-grid.css";
 
 export interface ControlRoomGridProps {
   data: ControlRoomData;
+  liveFailed?: boolean;
 }
 
-export function ControlRoomGrid({ data }: ControlRoomGridProps) {
+export function ControlRoomGrid({
+  data,
+  liveFailed = false,
+}: ControlRoomGridProps) {
   return (
     <div className="fso-control-room" data-testid="control-room-grid">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="control-room-live-failed"
+        />
+      ) : null}
       <SectionHeader
         eyebrow="FinSkillOS · Module"
         title="Control Room"

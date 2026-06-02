@@ -13,6 +13,7 @@ import {
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
   WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
@@ -24,11 +25,12 @@ import type {
 import "./risk-firewall.css";
 
 export function RiskFirewallPage() {
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["risk-firewall"],
     queryFn: ({ signal }) => fetchRiskFirewall(signal),
     placeholderData: riskFirewallFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
 
   if (error && !data) {
     return (
@@ -47,6 +49,13 @@ export function RiskFirewallPage() {
 
   return (
     <div className="fso-risk-firewall" data-testid="risk-firewall-page">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="risk-firewall-live-failed"
+        />
+      ) : null}
       <SectionHeader
         eyebrow="FinSkillOS · Module"
         title="Risk Firewall"

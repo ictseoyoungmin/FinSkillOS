@@ -1,6 +1,5 @@
 import { ApiError, getJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
-import { tradeMemoryFixture } from "@/mocks/fixtures/tradeMemory.fixture";
 import type {
   TradeEntryInput,
   TradeEntryResult,
@@ -11,27 +10,15 @@ import type {
 export async function fetchTradeMemory(
   signal?: AbortSignal,
 ): Promise<TradeMemoryData> {
-  try {
-    return await getJson<TradeMemoryData>(apiEndpoints.tradeMemory, { signal });
-  } catch (error) {
-    if (error instanceof ApiError && error.status >= 500) {
-      throw error;
-    }
-    return tradeMemoryFixture;
-  }
+  return await getJson<TradeMemoryData>(apiEndpoints.tradeMemory, { signal });
 }
 
 export async function fetchWeeklyReview(
   signal?: AbortSignal,
 ): Promise<WeeklyReviewVM> {
-  try {
-    return await getJson<WeeklyReviewVM>(apiEndpoints.tradeWeeklyReview, { signal });
-  } catch (error) {
-    if (error instanceof ApiError && error.status >= 500) {
-      throw error;
-    }
-    return tradeMemoryFixture.weeklyReview;
-  }
+  return await getJson<WeeklyReviewVM>(apiEndpoints.tradeWeeklyReview, {
+    signal,
+  });
 }
 
 function apiBase(): string {

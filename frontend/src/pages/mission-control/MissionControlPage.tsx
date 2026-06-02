@@ -12,17 +12,19 @@ import {
   JudgmentHeader,
   Panel,
   SectionHeader,
+  StatusPill,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
 import type { MissionControlData } from "@/features/portfolio/types";
 import "./mission-control.css";
 
 export function MissionControlPage() {
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["mission-control"],
     queryFn: ({ signal }) => fetchMissionControl(signal),
     placeholderData: missionControlFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
 
   if (error && !data) {
     return (
@@ -48,6 +50,13 @@ export function MissionControlPage() {
 
   return (
     <div className="fso-mission-control" data-testid="mission-control-page">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="mission-control-live-failed"
+        />
+      ) : null}
       <SectionHeader eyebrow="FinSkillOS · Module" title="Mission Control" />
       <div className="fso-mission-control-command-row">
         <div className="fso-mission-control-judgment">

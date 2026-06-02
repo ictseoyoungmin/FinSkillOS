@@ -488,11 +488,12 @@ then `[x]` with the implementation note when done.
   footer cannot contradict each other. Implemented in
   `frontend/src/app/layout/OsTopTray.tsx` / `OsShell.tsx`; Docker web build and
   focused Playwright DB-unavailable checks passed on 2026-06-02.
-- [ ] **D-003 frontend live-failure contract parity** — Align Control Room, Risk
+- [x] **D-003 frontend live-failure contract parity** — Align Control Room, Risk
   Firewall, Mission Control, News Intelligence, Catalyst Watch, System Ops, and
   Trade Memory with the explicit live-unavailable pattern used by Market Kernel
   and Analysis Workspace, without removing intentional forced-fixture visual
-  paths.
+  paths. Implemented in Slice 119; Docker web build and focused Playwright
+  live-failure checks passed on 2026-06-02.
 
 ### P2 — terminology / visual continuity
 - [ ] **D-004 Event Risk naming cleanup** — Rename fixture/UI copy away from

@@ -5,11 +5,12 @@ import { EmptyState } from "@/shared/ui";
 import { ControlRoomGrid } from "./ControlRoomGrid";
 
 export function ControlRoomPage() {
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["control-room"],
     queryFn: ({ signal }) => fetchControlRoom(signal),
     placeholderData: controlRoomFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
 
   if (error && !data) {
     return (
@@ -24,5 +25,10 @@ export function ControlRoomPage() {
     );
   }
 
-  return <ControlRoomGrid data={data ?? controlRoomFixture} />;
+  return (
+    <ControlRoomGrid
+      data={data ?? controlRoomFixture}
+      liveFailed={liveFailed}
+    />
+  );
 }

@@ -15,6 +15,7 @@ import {
   Panel,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
   WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
@@ -22,11 +23,12 @@ import type { EventRadarData } from "@/features/events/types";
 import "./catalyst-watch.css";
 
 export function CatalystWatchPage() {
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["event-radar"],
     queryFn: ({ signal }) => fetchEventRadar(signal),
     placeholderData: eventRadarFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
 
   if (error && !data) {
     return (
@@ -45,6 +47,13 @@ export function CatalystWatchPage() {
 
   return (
     <div className="fso-catalyst-watch" data-testid="catalyst-watch-page">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="catalyst-watch-live-failed"
+        />
+      ) : null}
       <SectionHeader eyebrow="FinSkillOS · Module" title="Catalyst Watch" />
       <div className="fso-v42-topline">
         <EventExposureJudgment judgment={payload.judgment} />

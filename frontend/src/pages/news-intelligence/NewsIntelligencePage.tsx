@@ -16,16 +16,18 @@ import {
   InterpretationPanel,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui";
 import "./news-intelligence.css";
 
 export function NewsIntelligencePage() {
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["news-intelligence"],
     queryFn: ({ signal }) => fetchNewsIntelligence(signal),
     placeholderData: newsIntelligenceFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
 
   if (error && !data) {
     return (
@@ -45,6 +47,13 @@ export function NewsIntelligencePage() {
 
   return (
     <div className="fso-news-intel" data-testid="news-intelligence-page">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="news-intelligence-live-failed"
+        />
+      ) : null}
       <SectionHeader eyebrow="FinSkillOS · Module" title="News Intelligence" />
       <div className="fso-news-intel-row fso-news-intel-summary-row">
         <NewsJudgmentHeader judgment={payload.judgment} />

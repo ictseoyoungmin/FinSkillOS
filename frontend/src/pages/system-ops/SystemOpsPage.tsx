@@ -27,17 +27,19 @@ import {
   Panel,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
   WatchpointsPanel,
 } from "@/shared/ui";
 import "./system-ops.css";
 
 export function SystemOpsPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "worker">("overview");
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["system-ops"],
     queryFn: ({ signal }) => fetchSystemOps(signal),
     placeholderData: systemOpsFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
   const { data: statusData } = useQuery({
     queryKey: ["system-status"],
     queryFn: ({ signal }) => fetchSystemStatus(signal),
@@ -68,6 +70,13 @@ export function SystemOpsPage() {
 
   return (
     <div className="fso-system-ops" data-testid="system-ops-page">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="system-ops-live-failed"
+        />
+      ) : null}
       <SectionHeader eyebrow="FinSkillOS · Module" title="System Ops" />
       <div
         className="fso-system-ops-tabs"

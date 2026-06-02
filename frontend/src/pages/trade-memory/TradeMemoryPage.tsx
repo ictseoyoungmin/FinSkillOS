@@ -24,6 +24,7 @@ import {
   InterpretationPanel,
   SafetyCaption,
   SectionHeader,
+  StatusPill,
 } from "@/shared/ui";
 import "./trade-memory.css";
 
@@ -31,11 +32,12 @@ export function TradeMemoryPage() {
   const queryClient = useQueryClient();
   const [editEntry, setEditEntry] = useState<TradeEntryVM | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const { data, error } = useQuery({
+  const { data, error, failureReason } = useQuery({
     queryKey: ["trade-memory"],
     queryFn: ({ signal }) => fetchTradeMemory(signal),
     placeholderData: tradeMemoryFixture,
   });
+  const liveFailed = Boolean(error ?? failureReason);
 
   const refreshTradeMemory = () =>
     queryClient.invalidateQueries({ queryKey: ["trade-memory"] });
@@ -75,6 +77,13 @@ export function TradeMemoryPage() {
 
   return (
     <div className="fso-trade-memory" data-testid="trade-memory-page">
+      {liveFailed ? (
+        <StatusPill
+          label="Live data unavailable — showing sample shape, not live data"
+          tone="warning"
+          testId="trade-memory-live-failed"
+        />
+      ) : null}
       <SectionHeader eyebrow="FinSkillOS · Module" title="Trade Memory" />
       <div
         className="fso-trade-memory-state"

@@ -21,21 +21,16 @@ const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
 };
 
 /**
- * Read the System Ops protocol catalogue. Fixture fallback matches
- * the other Slice 13.6–13.8 routes so the page renders even when the
- * FastAPI container is offline.
+ * Read the System Ops protocol catalogue.
+ *
+ * Slice 119: the main catalogue read surfaces live failures to React Query.
+ * System status keeps its explicit MISSING fallback because it powers the
+ * global DB-unavailable shell contract.
  */
 export async function fetchSystemOps(
   signal?: AbortSignal,
 ): Promise<SystemOpsData> {
-  try {
-    return await getJson<SystemOpsData>(apiEndpoints.systemOps, { signal });
-  } catch (error) {
-    if (error instanceof ApiError && error.status >= 500) {
-      throw error;
-    }
-    return systemOpsFixture;
-  }
+  return await getJson<SystemOpsData>(apiEndpoints.systemOps, { signal });
 }
 
 export async function fetchSystemStatus(
