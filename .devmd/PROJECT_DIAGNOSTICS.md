@@ -161,12 +161,37 @@ frontend production build/type validation passed.
 
 Severity: P2 visual navigation clarity
 
+Status: fixed 2026-06-02
+
 The top tray contains 10 module labels in one row and truncates most labels at
 1280px. `nav-config.ts` includes module-specific `iconChar`, but `OsTopTray`
 renders a generic dot for every module.
 
 Impact: module identity is harder to scan, and the top-level navigation feels
 less connected to the command palette's richer module identity.
+
+Fix:
+
+- Added `shortLabel` to the shared `OS_NAV_ITEMS` config.
+- `OsTopTray` now renders each module's configured `iconChar` plus a compact
+  visible label, while keeping the full module name as the accessible
+  `aria-label`.
+- The nav rail uses equal-width compact buttons so the 10-tab set scans at the
+  desktop audit viewport without the generic-dot treatment.
+- Navigation e2e now verifies module-specific tray icons at 1280px and checks
+  the tray does not overflow.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml build web
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml up -d web
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/navigation.spec.ts e2e/responsive.spec.ts --project=chromium --workers=1
+```
+
+Result: web image build passed; frontend production build/type validation
+passed; focused navigation/responsive Playwright suite passed (11 passed).
 
 ## 2026-06-02 Full-Scroll Visual Audit
 

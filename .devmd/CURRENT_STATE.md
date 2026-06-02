@@ -501,9 +501,11 @@ then `[x]` with the implementation note when done.
   keep back-compatible internal guard ids unless a dedicated migration slice is
   chosen. Implemented in Slice 120; Docker ruff, focused pytest, and web build
   passed on 2026-06-02.
-- [ ] **D-005 top navigation scanability** — Use module-specific nav identity
+- [x] **D-005 top navigation scanability** — Use module-specific nav identity
   from `nav-config.ts` or a denser responsive treatment so the 10-tab rail is
-  readable at the desktop audit viewport.
+  readable at the desktop audit viewport. Implemented in Slice 121; Docker web
+  build and focused navigation/responsive Playwright checks passed on
+  2026-06-02.
 - [ ] **D-007 sticky ticker / workspace boundary** — Reduce the visual overlay
   effect between the fixed ticker strip and internally scrolled product content.
 - [ ] **D-008 lower-page column balance** — Rework lower sections in Control

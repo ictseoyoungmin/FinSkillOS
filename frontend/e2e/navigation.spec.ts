@@ -1,9 +1,18 @@
 import { expect, test } from "@playwright/test";
-import {
-  FORBIDDEN_EXECUTION_LABELS,
-  MAIN_NAV_LABELS,
-  gotoControlRoom,
-} from "./_helpers";
+import { FORBIDDEN_EXECUTION_LABELS, gotoControlRoom } from "./_helpers";
+
+const TOP_TRAY_NAV_ITEMS = [
+  { key: "control", label: "Control Room", icon: "◉" },
+  { key: "kernel", label: "Market Kernel", icon: "⌁" },
+  { key: "analysis", label: "Analysis Workspace", icon: "⌬" },
+  { key: "symbol", label: "Symbol Lab", icon: "⌕" },
+  { key: "firewall", label: "Risk Firewall", icon: "▣" },
+  { key: "mission", label: "Mission Control", icon: "★" },
+  { key: "news", label: "News Intel", icon: "✎" },
+  { key: "catalyst", label: "Catalyst Watch", icon: "⌖" },
+  { key: "memory", label: "Trade Memory", icon: "◇" },
+  { key: "ops", label: "System Ops", icon: "⚙" },
+] as const;
 
 test.describe("OS shell navigation", () => {
   test("Control Room is the default route", async ({ page }) => {
@@ -71,12 +80,30 @@ test.describe("OS shell navigation", () => {
     );
   });
 
-  test("OS top tray exposes every product module", async ({ page }) => {
+  test("OS top tray exposes every product module with module-specific icons", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await gotoControlRoom(page);
     const nav = page.getByTestId("os-nav");
-    for (const label of MAIN_NAV_LABELS) {
-      await expect(nav.getByText(label, { exact: true })).toBeVisible();
+    for (const item of TOP_TRAY_NAV_ITEMS) {
+      await expect(page.getByTestId(`os-nav-${item.key}`)).toHaveAttribute(
+        "aria-label",
+        item.label,
+      );
+      await expect(page.getByTestId(`os-nav-icon-${item.key}`)).toHaveText(
+        item.icon,
+      );
     }
+
+    const navFitsTray = await nav.evaluate((element) => {
+      const tray = element.closest("[data-testid='os-tray']");
+      if (!tray) {
+        return false;
+      }
+      return tray.scrollWidth <= tray.clientWidth + 1;
+    });
+    expect(navFitsTray).toBe(true);
   });
 
   test("global status bar labels source, DB, freshness, and read mode", async ({

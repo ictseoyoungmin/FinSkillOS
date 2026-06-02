@@ -11,6 +11,7 @@
 export interface OsNavItem {
   key: string;
   label: string;
+  shortLabel: string;
   path: string;
   iconChar: string;
   description: string;
@@ -20,6 +21,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "control",
     label: "Control Room",
+    shortLabel: "Control",
     path: "/",
     iconChar: "◉",
     description: "Cockpit overview · mission · regime · alerts",
@@ -27,6 +29,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "kernel",
     label: "Market Kernel",
+    shortLabel: "Kernel",
     path: "/market-kernel",
     iconChar: "⌁",
     description: "Chart terminal · indicator context",
@@ -34,6 +37,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "analysis",
     label: "Analysis Workspace",
+    shortLabel: "Analysis",
     path: "/analysis-workspace",
     iconChar: "⌬",
     description: "Index Lab · ETF tape · relative strength",
@@ -41,6 +45,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "symbol",
     label: "Symbol Lab",
+    shortLabel: "Symbol",
     path: "/symbol-lab",
     iconChar: "⌕",
     description: "Ticker-specific state and position context",
@@ -48,6 +53,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "firewall",
     label: "Risk Firewall",
+    shortLabel: "Risk",
     path: "/risk-firewall",
     iconChar: "▣",
     description: "Constraints · limits · active guards",
@@ -55,6 +61,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "mission",
     label: "Mission Control",
+    shortLabel: "Mission",
     path: "/mission-control",
     iconChar: "★",
     description: "Goal tracker · milestones · early-stop state",
@@ -62,6 +69,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "news",
     label: "News Intel",
+    shortLabel: "News",
     path: "/news-intel",
     iconChar: "✎",
     description: "Holdings-relevant news + sentiment overlay",
@@ -69,6 +77,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "catalyst",
     label: "Catalyst Watch",
+    shortLabel: "Catalyst",
     path: "/catalyst-watch",
     iconChar: "⌖",
     description: "Upcoming events · risk score · linked news",
@@ -76,6 +85,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "memory",
     label: "Trade Memory",
+    shortLabel: "Memory",
     path: "/trade-memory",
     iconChar: "◇",
     description: "Weekly review · mistake patterns",
@@ -83,6 +93,7 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
   {
     key: "ops",
     label: "System Ops",
+    shortLabel: "Ops",
     path: "/system-ops",
     iconChar: "⚙",
     description: "DB · seed · recompute protocol cards",

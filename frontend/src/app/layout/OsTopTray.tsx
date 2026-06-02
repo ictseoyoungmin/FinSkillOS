@@ -66,13 +66,20 @@ export function OsTopTray({
               end={item.path === "/"}
               data-page={item.key}
               data-testid={`os-nav-${item.key}`}
+              aria-label={item.label}
               className={({ isActive }) =>
                 `fso-tray-nav-btn ${isActive ? "active" : ""}`.trim()
               }
               title={item.description}
             >
-              <span className="fso-tray-nav-dot" aria-hidden />
-              <span>{item.label}</span>
+              <span
+                className="fso-tray-nav-icon"
+                data-testid={`os-nav-icon-${item.key}`}
+                aria-hidden
+              >
+                {item.iconChar}
+              </span>
+              <span className="fso-tray-nav-label">{item.shortLabel}</span>
             </NavLink>
           ))}
         </nav>
