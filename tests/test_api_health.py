@@ -27,6 +27,24 @@ def test_health_endpoint_emits_camelcase_field_names() -> None:
     assert "generated_at" not in body
 
 
+def test_cors_preflight_allows_frontend_mutation_methods() -> None:
+    """Browser clients need preflight approval for existing PUT/DELETE routes."""
+
+    client = TestClient(create_app())
+    response = client.options(
+        "/api/trade-memory/entries/example",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "PUT",
+        },
+    )
+
+    assert response.status_code == 200
+    allowed_methods = response.headers["access-control-allow-methods"]
+    assert "PUT" in allowed_methods
+    assert "DELETE" in allowed_methods
+
+
 def test_system_status_endpoint_returns_operations_contract() -> None:
     client = TestClient(create_app())
     response = client.get("/api/system-status")

@@ -67,6 +67,7 @@ export function OsShell({ children }: OsShellProps) {
     >
       <OsTopTray
         guardCount={data?.systemStatus.guardCount ?? 0}
+        dbStatus={systemStatus?.dbStatus ?? "MISSING"}
         onOpenPalette={openPalette}
       />
       <OsTickerStrip items={data?.tickerStrip ?? []} />

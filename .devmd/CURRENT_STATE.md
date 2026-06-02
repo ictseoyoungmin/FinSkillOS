@@ -1,6 +1,6 @@
 # Current State — FinSkillOS v2.1 / v4.2 Cockpit
 
-Updated: 2026-05-30
+Updated: 2026-06-02
 
 ## Architecture
 
@@ -471,125 +471,46 @@ All development and verification for this workspace should run through Docker.
 
 ## Work Queue
 
-Active, importance-ordered queue (derived from
-`.devmd/TAB_REVIEW_AND_BACKLOG.md`). Work top-down; mark `[x]` and append the
-slice number when done, then commit. `[ ]` = pending, `[~]` = in progress.
+Active, importance-ordered queue derived from
+`.devmd/PROJECT_DIAGNOSTICS.md` (2026-06-02 full-scroll audit). Completed items
+are removed from this active queue and remain documented in the completed-slice
+list plus the diagnostic history. Work top-down; mark `[~]` while in progress,
+then `[x]` with the implementation note when done.
 
 ### P1 — correctness / trust
-- _All P1 items complete (Slices 86–90); the full Docker suite is green._
-- [x] **96 Catalyst event de-duplication** (spotted in the live UI, prioritized):
-  `EventService.list_upcoming` de-dupes by title, so duplicate-title rows never
-  surface in Catalyst Watch / Control Room rail / event-risk guard. Verified live
-  (upcoming 16 → 13, "Probe Tentative" 4 → 1).
+- [x] **D-001 CORS mutation-method contract** — Allow browser preflight for the
+  `PUT` / `DELETE` routes that already exist for Trade Memory edit/delete and
+  Symbol Lab folder-member removal. Implemented in `api/main.py` with a CORS
+  preflight regression in `tests/test_api_health.py`; Docker ruff + focused
+  pytest passed on 2026-06-02.
+- [x] **D-002 / D-006 shell DB-state truth** — Wire `OsTopTray` DB pill to
+  `/api/system-status` instead of hard-coded `DB · Live`, so banner, tray, and
+  footer cannot contradict each other. Implemented in
+  `frontend/src/app/layout/OsTopTray.tsx` / `OsShell.tsx`; Docker web build and
+  focused Playwright DB-unavailable checks passed on 2026-06-02.
+- [ ] **D-003 frontend live-failure contract parity** — Align Control Room, Risk
+  Firewall, Mission Control, News Intelligence, Catalyst Watch, System Ops, and
+  Trade Memory with the explicit live-unavailable pattern used by Market Kernel
+  and Analysis Workspace, without removing intentional forced-fixture visual
+  paths.
 
-### P2 — shared refactor
-- _Complete (Slices 91–92): shared `api/timeutil.py` + `api/live_state.py`._
+### P2 — terminology / visual continuity
+- [ ] **D-004 Event Risk naming cleanup** — Rename fixture/UI copy away from
+  `Event Placeholder` now that Event Risk is live-wired through Catalyst Watch;
+  keep back-compatible internal guard ids unless a dedicated migration slice is
+  chosen.
+- [ ] **D-005 top navigation scanability** — Use module-specific nav identity
+  from `nav-config.ts` or a denser responsive treatment so the 10-tab rail is
+  readable at the desktop audit viewport.
+- [ ] **D-007 sticky ticker / workspace boundary** — Reduce the visual overlay
+  effect between the fixed ticker strip and internally scrolled product content.
+- [ ] **D-008 lower-page column balance** — Rework lower sections in Control
+  Room, Market Kernel, Catalyst Watch, and Trade Memory so long/short columns do
+  not leave large disconnected empty regions.
+- [ ] **D-009 Control Room nested-scroll cleanup** — Remove or constrain nested
+  column scroll behavior inside the already scrollable OS workspace.
 
-### P2 — tab features
-- **Catalyst Watch live event calendar provider** (L) — _done (offline + curated)_:
-  - [x] **93** event-calendar adapter boundary (`BaseEventCalendarAdapter` +
-    `MockEventCalendarAdapter`) + `EventService.refresh_events`.
-  - [x] **94** System Ops `refresh_events` protocol (card + handler + frontend +
-    env-gated adapter selection).
-  - [x] **95** `CsvEventCalendarAdapter` (operator-curated calendar, env-gated
-    `FINSKILLOS_EVENT_CALENDAR_ADAPTER=csv`).
-  - [x] **107** vendor HTTP calendar provider (`HttpEventCalendarAdapter`,
-    env-gated `FINSKILLOS_EVENT_CALENDAR_ADAPTER=http` + `..._URL`). Offline-
-    testable via an injected transport + `tests/fixtures/events/vendor_calendar.json`;
-    vendor-agnostic JSON contract, errors raise `EventCalendarFetchError`.
-
-### P0 — orchestration / live freshness (2026-06-01)
-Goal: `docker compose up` runs web+api+worker+db together; the worker keeps the
-dashboard fresh from **real** data (no mock junk, no duplication), driven by a
-Postgres job queue (request) + an interval.
-- [x] **111** real-data market refresh default (`yahoo`); mock opt-in only;
-  re-cleaned the re-seeded mock bars + orphan indicators. _Kills the sawtooth at
-  the source._
-- [x] **112** auto-start orchestration + test DB isolation — `worker` out of its
-  profile (starts with `up`), a one-shot `migrate` service (`alembic upgrade
-  head`) gates api+worker, and an autouse conftest fixture stops tests writing to
-  the production DB (the deeper recurring-junk root cause). Monotonic audit
-  `created_at` removes the `seed_sample_events` ordering flake.
-- [x] **113** Postgres `worker_jobs` queue (table + `0013` migration + repo) —
-  the worker is queue-driven: idles, drains claimed jobs (`FOR UPDATE SKIP
-  LOCKED`) each poll tick, enqueues a dedup-safe `refresh_all` on start +
-  interval. Idempotent enqueue + upsert = no duplication. Live-proven on `up`.
-- [x] **114** System Ops refresh protocols (market/news/indicators) enqueue a
-  worker job (`QUEUED`, idempotent, `requested_by=system_ops`) instead of running
-  synchronously; cockpit renders QUEUED. Live-proven. Spec:
-  `docs/WORKER_QUEUE_AND_API_SPEC.md` (living doc).
-- [x] **115** fixture → MISSING audit — confirmed every tab already returns
-  live(-empty) (not fixture) on a reachable-empty DB, locked by a 9-tab guard
-  test; cleaned the seeded sample portfolio + events from the live DB so
-  Mission/Risk/Catalyst show MISSING until real data exists (real market/news
-  kept). _P0 orchestration arc 111–115 complete._
-
-### P3 — UI/UX polish (batch)
-- [x] **103** remove unused `frontend/src/pages/PlaceholderPage.tsx` (dead shell;
-  all 10 routes are real v4.2 pages).
-- [x] **104** chart crosshair/tooltip + SVG accessibility — shared `LineChart`
-  gains a hover/keyboard value readout (crosshair + dots + tooltip), an
-  `aria-live` readout, and a visually-hidden data table; SVG is `aria-hidden`
-  behind an enriched `role="img"` wrapper.
-- [x] **105** Control Room freshness env propagation to operator notes — a STALE
-  market/watchlist/catalyst rail now adds an operator watchpoint citing the
-  configured `..._STALE_AFTER_DAYS` threshold + refresh guidance.
-- [x] **106** state-band density — Control Room data-state band tightened
-  (smaller padding/gap/min-width) and its detail wraps to 2 lines instead of a
-  single-line ellipsis. _Original P3 batch complete._
-
-### P3b — density / visual-efficiency (queued from the 2026-05-31 UI survey)
-Importance-ordered. Each is a bounded, offline-verifiable slice; the only
-visual risk is the per-tab screenshot baseline (regen the changed tab).
-- [ ] **Chart axis-label thinning** (highest visual-efficiency win) —
-  _deferred per user (2026-06-01)._ `LineChart` axis labels render every point
-  (`labels.map`), so a 255-bar daily chart shows an unreadable crammed strip.
-  Show ~6–8 evenly-spaced labels (first/last + interior, deterministic) and keep
-  the full set in the visually-hidden data table (Slice 104). Affects Market
-  Kernel + Control Room tape; regen those two baselines.
-- [x] **108 State-band density parity** — applied the Slice-106 treatment
-  (tighter tiles + 2-line detail clamp) to the Analysis Workspace / Symbol Lab /
-  Market Kernel data-state bands. Sub-threshold, no baseline regen.
-- [x] **109 RegimeStateVector honest values** — replaced the fabricated
-  trend/RSI/vol/macro/events vector with real regime evidence (decision mode,
-  confidence band, and the rule-derived positive/risk factors) via a new
-  `OperatingState.state_vector` API field; honest empty state when no regime.
-- [x] **110 Indicator snapshot grid density** — tightened the Market Kernel
-  indicator grid (gap/min-width) and scoped a denser `.fso-metric` override to
-  that grid only (shared metric untouched). Sub-threshold, no baseline regen.
-
-_P3b density batch (108–110) complete; only axis-label thinning remains, deferred._
-
-### Done (this queue)
-- [x] **86 db-unavailable distinct state** — global "DB unavailable" banner
-  (`OsDbUnavailableBanner`) keyed on system-status `dbStatus="MISSING"`, so
-  offline sample shape is never read as live data. Visual baselines unaffected.
-- [x] **87 `get_session_scope` error vs config** — only a real DB-availability
-  failure (`SQLAlchemyError`/missing driver) yields the db-unavailable state and
-  it is logged; config errors propagate; route errors after yield surface
-  normally instead of being swallowed.
-- [x] **88 frontend live-fetch failure pill** — Market Kernel / Analysis
-  Workspace no longer swallow fetch errors into a silent fixture; they render
-  the fixture shape with an explicit "Live data unavailable" `StatusPill`.
-  (Other seven tabs share the pattern — follow-up.)
-- [x] **89 event risk guard live wiring** — `EVENT_PLACEHOLDER_GUARD` now reports
-  live Catalyst Watch exposure (`EventRiskSummary` from EventService +
-  EventRiskService), staying INFO-only so the WARN/FAIL ladder is unchanged.
-- [x] **90 Docker env-state test audit** — full Docker suite swept; the lone
-  remaining failure was an unstable run-ordering bug (same-second `ran_at` +
-  second-precision `created_at`), fixed with a microsecond `created_at` default.
-  Full Docker suite now green.
-- [x] **91 shared `api/timeutil.py`** — dedup `_as_utc`/`_iso` across six routes
-  into `to_utc` / `iso`; no behaviour change, contract unit-tested.
-- [x] **92 shared live-error helper/copy** — `api/live_state.py` centralises
-  `exc_detail` + the two shared live-error sentences used by the four Slice-80
-  builders; byte-identical responses.
-- [x] **93 event-calendar provider adapter** — `BaseEventCalendarAdapter` +
-  deterministic `MockEventCalendarAdapter` + `EventService.refresh_events`
-  (idempotent), establishing the Catalyst Watch ingestion boundary.
-- [x] **94 System Ops event refresh protocol** — `POST /system-ops/refresh-events`
-  + protocol card ingest the calendar via the adapter (offline-safe mock,
-  env-gated for a future real provider); idempotent OK/NOOP.
-- [x] **95 CSV event calendar adapter** — `CsvEventCalendarAdapter` for an
-  operator-curated calendar file (`FINSKILLOS_EVENT_CALENDAR_ADAPTER=csv`);
-  offline-safe, idempotent, structured ERROR on misconfig.
+### P3 — default evidence visibility
+- [ ] **D-010 News Intelligence secondary evidence default** — Decide whether
+  lower secondary evidence should open by default, preview key rows, or show a
+  stronger collapsed summary for top-to-bottom review.

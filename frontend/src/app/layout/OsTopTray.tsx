@@ -7,6 +7,7 @@ import "./os-tray.css";
 
 export interface OsTopTrayProps {
   guardCount: number;
+  dbStatus?: "LIVE" | "MISSING";
   onOpenPalette: () => void;
 }
 
@@ -31,9 +32,14 @@ function ThemeButton({ theme, cycleTheme }: ThemeContextValue) {
   );
 }
 
-export function OsTopTray({ guardCount, onOpenPalette }: OsTopTrayProps) {
+export function OsTopTray({
+  guardCount,
+  dbStatus = "MISSING",
+  onOpenPalette,
+}: OsTopTrayProps) {
   const themeCtx = useTheme();
   const [clock, setClock] = useState(() => formatClock(new Date()));
+  const dbTone = dbStatus === "LIVE" ? "success" : "danger";
 
   useEffect(() => {
     const handle = window.setInterval(
@@ -87,7 +93,11 @@ export function OsTopTray({ guardCount, onOpenPalette }: OsTopTrayProps) {
       </div>
 
       <div className="fso-tray-right" data-testid="os-status-pills">
-        <StatusPill label="DB · Live" tone="success" testId="status-db" />
+        <StatusPill
+          label={`DB · ${dbStatus}`}
+          tone={dbTone}
+          testId="status-db"
+        />
         <StatusPill label="Read Mode" tone="info" testId="status-read-mode" />
         <StatusPill
           label={`Guards · ${guardCount}`}

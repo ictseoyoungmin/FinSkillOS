@@ -50,10 +50,10 @@ def create_app() -> FastAPI:
             "Read-only FinSkillOS adapter API for the v4.2 React "
             "Evidence-to-Judgment cockpit. "
             "Returns market state, risk interpretation, portfolio "
-            "constraints, watchpoints, and reflection support. The only "
-            "writes exposed are the System Ops operational protocols "
-            "(seed sample data, recompute regime, run risk guards). No "
-            "execution / order / trade endpoints exist."
+            "constraints, watchpoints, reflection support, and operational "
+            "metadata. Mutations are limited to System Ops protocols, "
+            "watchlist organization, and Trade Memory journal records. No "
+            "brokerage execution or order endpoints exist."
         ),
     )
 
@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=_allowed_origins(),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 

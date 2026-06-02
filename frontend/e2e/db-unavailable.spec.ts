@@ -25,6 +25,10 @@ test("global DB-unavailable banner appears when system-status reports MISSING", 
   await expect(banner).toBeVisible();
   await expect(banner).toContainText("Database unavailable");
   await expect(banner).toContainText("sample shape, not");
+
+  const dbPill = page.getByTestId("status-db");
+  await expect(dbPill).toContainText("DB · MISSING");
+  await expect(dbPill).toHaveAttribute("data-tone", "danger");
 });
 
 test("no DB-unavailable banner when system-status DB is live", async ({
@@ -34,4 +38,9 @@ test("no DB-unavailable banner when system-status DB is live", async ({
   await page.waitForSelector('[data-testid="control-room-grid"]');
   // system-status is live in the e2e stack, so the banner must never render.
   await expect(page.getByTestId("db-unavailable-banner")).toHaveCount(0);
+  await expect(page.getByTestId("status-db")).toContainText("DB · LIVE");
+  await expect(page.getByTestId("status-db")).toHaveAttribute(
+    "data-tone",
+    "success",
+  );
 });
