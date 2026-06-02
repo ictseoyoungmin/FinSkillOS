@@ -192,3 +192,36 @@ class WorkerControl(Base):
     updated_by: Mapped[str] = mapped_column(
         String(32), default="system", nullable=False
     )
+
+
+class SystemOpsSettings(Base):
+    """Persisted override settings for runtime operations and refresh workers.
+
+    This single-row JSON document contains only values that should override
+    `.env` defaults at startup. Missing keys keep `.env` semantics. The UI reads
+    and edits this table via the System Ops settings endpoints.
+    """
+
+    __tablename__ = "system_ops_settings"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        default=1,
+    )
+    values: Mapped[dict] = mapped_column(
+        JSONPayload,
+        default=dict,
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_by: Mapped[str] = mapped_column(
+        String(32),
+        default="system",
+        nullable=False,
+    )

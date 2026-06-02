@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from urllib.parse import urlencode
+
+from finskillos.runtime_settings import read_runtime_csv, read_runtime_value
 
 DEFAULT_NEWS_TICKERS: tuple[str, ...] = ("AAPL", "MSFT", "NVDA", "TSLA")
 
@@ -26,12 +27,25 @@ class NewsFeedPolicy:
 def build_news_feed_policy(
     *,
     subscribed_tickers: Iterable[str] = (),
+    runtime_overrides: Mapping[str, str] | None = None,
 ) -> NewsFeedPolicy:
     """Return RSS feed URLs for the current news refresh context."""
 
-    explicit_feeds = _csv_env("FINSKILLOS_NEWS_RSS_FEEDS")
-    source = os.getenv("FINSKILLOS_NEWS_RSS_SOURCE") or None
-    language = os.getenv("FINSKILLOS_NEWS_RSS_LANGUAGE") or "en-US"
+    explicit_feeds = read_runtime_csv(
+        "FINSKILLOS_NEWS_RSS_FEEDS",
+        runtime_overrides=runtime_overrides,
+    )
+    source = read_runtime_value(
+        "FINSKILLOS_NEWS_RSS_SOURCE",
+        default=None,
+        runtime_overrides=runtime_overrides,
+    )
+    language = read_runtime_value(
+        "FINSKILLOS_NEWS_RSS_LANGUAGE",
+        default="en-US",
+        include_empty=True,
+        runtime_overrides=runtime_overrides,
+    )
     tickers = _ticker_policy(subscribed_tickers)
 
     if explicit_feeds:
@@ -56,8 +70,8 @@ def _ticker_policy(subscribed_tickers: Iterable[str]) -> tuple[str, ...]:
     return _dedupe_tickers(
         (
             *_clean_tickers(subscribed_tickers),
-            *_csv_env("FINSKILLOS_NEWS_RSS_TICKERS"),
-            *_csv_env("FINSKILLOS_MARKET_REFRESH_TICKERS"),
+            *read_runtime_csv("FINSKILLOS_NEWS_RSS_TICKERS"),
+            *read_runtime_csv("FINSKILLOS_MARKET_REFRESH_TICKERS"),
             *DEFAULT_NEWS_TICKERS,
         )
     )
@@ -74,11 +88,6 @@ def _google_news_feed(tickers: tuple[str, ...]) -> str:
         }
     )
     return f"https://news.google.com/rss/search?{params}"
-
-
-def _csv_env(name: str) -> tuple[str, ...]:
-    raw = os.getenv(name, "")
-    return tuple(part.strip() for part in raw.replace(";", ",").split(",") if part.strip())
 
 
 def _clean_tickers(values: Iterable[str]) -> tuple[str, ...]:

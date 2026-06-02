@@ -12,12 +12,12 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import logging
-import os
 import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +48,12 @@ from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.news_feed_policy import NewsFeedPolicy, build_news_feed_policy
 from finskillos.services.signal_service import SignalService
 from finskillos.services.watchlist_refresh_policy import build_watchlist_refresh_policy
+from finskillos.runtime_settings import (
+    read_runtime_bool,
+    read_runtime_csv,
+    read_runtime_int,
+    read_runtime_value,
+)
 
 logger = logging.getLogger("finskillos.scripts.refresh_worker")
 UTC = timezone.utc
@@ -76,65 +82,96 @@ class WorkerConfig:
     indicator_tickers: tuple[str, ...]
     timeframe: str
     persist_indicator_history: bool
+    runtime_overrides: Mapping[str, str] | None = None
 
 
-def _bool_env(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
+def _resolve_tickers(
+    name: str,
+    *,
+    fallback: tuple[str, ...],
+    runtime_overrides: Mapping[str, str] | None,
+) -> tuple[str, ...]:
+    values = read_runtime_csv(name, runtime_overrides=runtime_overrides)
+    if not values:
+        return fallback
+    return tuple(value.upper() for value in values)
 
 
-def _int_env(name: str, default: int, *, minimum: int = 1) -> int:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return default
-    try:
-        value = int(raw)
-    except ValueError as exc:
-        raise ValueError(f"{name} must be an integer, got {raw!r}") from exc
-    if value < minimum:
-        raise ValueError(f"{name} must be >= {minimum}, got {value}")
-    return value
-
-
-def _tickers_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return default
-    tickers = tuple(part.strip().upper() for part in raw.split(",") if part.strip())
-    return tickers or default
-
-
-def load_config(args: argparse.Namespace) -> WorkerConfig:
-    market_tickers = _tickers_env(
-        "FINSKILLOS_MARKET_REFRESH_TICKERS", DEFAULT_US_TICKER_UNIVERSE
+def load_config(
+    args: argparse.Namespace,
+    *,
+    runtime_overrides: Mapping[str, str] | None = None,
+) -> WorkerConfig:
+    market_tickers = _resolve_tickers(
+        "FINSKILLOS_MARKET_REFRESH_TICKERS",
+        fallback=DEFAULT_US_TICKER_UNIVERSE,
+        runtime_overrides=runtime_overrides,
     )
-    indicator_tickers = _tickers_env(
-        "FINSKILLOS_INDICATOR_REFRESH_TICKERS", market_tickers
+    indicator_tickers = _resolve_tickers(
+        "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
+        fallback=market_tickers,
+        runtime_overrides=runtime_overrides,
+    )
+    timeframe = read_runtime_value(
+        "FINSKILLOS_MARKET_REFRESH_TIMEFRAME",
+        default=DEFAULT_TIMEFRAME,
+        runtime_overrides=runtime_overrides,
     )
     return WorkerConfig(
         interval_seconds=args.interval_seconds
-        or _int_env("FINSKILLOS_WORKER_INTERVAL_SECONDS", 24 * 60 * 60),
-        poll_seconds=_int_env("FINSKILLOS_WORKER_POLL_SECONDS", 5),
+        or read_runtime_int(
+            "FINSKILLOS_WORKER_INTERVAL_SECONDS",
+            default=24 * 60 * 60,
+            runtime_overrides=runtime_overrides,
+        ),
+        poll_seconds=read_runtime_int(
+            "FINSKILLOS_WORKER_POLL_SECONDS",
+            default=5,
+            runtime_overrides=runtime_overrides,
+        ),
         run_on_start=not args.no_run_on_start
-        and _bool_env("FINSKILLOS_WORKER_RUN_ON_START", True),
-        market_enabled=_bool_env("FINSKILLOS_WORKER_MARKET_ENABLED", True),
-        news_enabled=_bool_env("FINSKILLOS_WORKER_NEWS_ENABLED", True),
-        indicator_enabled=_bool_env("FINSKILLOS_WORKER_INDICATOR_ENABLED", True),
-        market_adapter=os.getenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "yahoo")
-        .strip()
+        and read_runtime_bool(
+            "FINSKILLOS_WORKER_RUN_ON_START",
+            default=True,
+            runtime_overrides=runtime_overrides,
+        ),
+        market_enabled=read_runtime_bool(
+            "FINSKILLOS_WORKER_MARKET_ENABLED",
+            default=True,
+            runtime_overrides=runtime_overrides,
+        ),
+        news_enabled=read_runtime_bool(
+            "FINSKILLOS_WORKER_NEWS_ENABLED",
+            default=True,
+            runtime_overrides=runtime_overrides,
+        ),
+        indicator_enabled=read_runtime_bool(
+            "FINSKILLOS_WORKER_INDICATOR_ENABLED",
+            default=True,
+            runtime_overrides=runtime_overrides,
+        ),
+        market_adapter=read_runtime_value(
+            "FINSKILLOS_MARKET_REFRESH_ADAPTER",
+            default="yahoo",
+            runtime_overrides=runtime_overrides,
+        ).strip()
         .lower(),
-        news_adapter=os.getenv("FINSKILLOS_NEWS_REFRESH_ADAPTER", "rss")
-        .strip()
+        news_adapter=read_runtime_value(
+            "FINSKILLOS_NEWS_REFRESH_ADAPTER",
+            default="rss",
+            runtime_overrides=runtime_overrides,
+        ).strip()
         .lower(),
         news_policy=build_news_feed_policy(),
         market_tickers=market_tickers,
         indicator_tickers=indicator_tickers,
-        timeframe=os.getenv("FINSKILLOS_MARKET_REFRESH_TIMEFRAME", DEFAULT_TIMEFRAME),
-        persist_indicator_history=_bool_env(
-            "FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY", False
+        timeframe=timeframe,
+        persist_indicator_history=read_runtime_bool(
+            "FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY",
+            default=False,
+            runtime_overrides=runtime_overrides,
         ),
+        runtime_overrides=runtime_overrides,
     )
 
 
@@ -180,16 +217,24 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     try:
         with session_scope() as session:
             market_policy = build_watchlist_refresh_policy(
-                session, base_tickers=config.market_tickers
+                session,
+                base_tickers=config.market_tickers,
+                runtime_overrides=config.runtime_overrides,
             )
             indicator_policy = build_watchlist_refresh_policy(
-                session, base_tickers=config.indicator_tickers
+                session,
+                base_tickers=config.indicator_tickers,
+                runtime_overrides=config.runtime_overrides,
             )
             market_tickers = market_policy.tickers
             indicator_tickers = indicator_policy.tickers
-            news_watchlist_policy = build_watchlist_refresh_policy(session)
+            news_watchlist_policy = build_watchlist_refresh_policy(
+                session,
+                runtime_overrides=config.runtime_overrides,
+            )
             news_policy = build_news_feed_policy(
-                subscribed_tickers=news_watchlist_policy.tickers
+                subscribed_tickers=news_watchlist_policy.tickers,
+                runtime_overrides=config.runtime_overrides,
             )
             config = _with_news_policy(config, news_policy)
             if config.market_enabled:
@@ -394,7 +439,19 @@ def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
         summary: dict[str, Any] | None = None
         error: str | None = None
         try:
-            summary = run_cycle(_config_for_job(config, job_type))
+            runtime_overrides = _extract_runtime_settings_from_job_payload(
+                job_payload=job_payload(job)
+            )
+            effective_config = config
+            if runtime_overrides is not None:
+                effective_config = load_config(
+                    argparse.Namespace(
+                        interval_seconds=config.interval_seconds,
+                        no_run_on_start=False,
+                    ),
+                    runtime_overrides=runtime_overrides,
+                )
+            summary = run_cycle(_config_for_job(effective_config, job_type))
         except WorkerCycleFailed as exc:
             summary = exc.summary
             error = str(exc.summary.get("error", {}).get("message") or "cycle failed")
@@ -415,6 +472,41 @@ def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
         )
         processed += 1
     return processed
+
+
+def _coerce_runtime_overrides(payload: Mapping[str, str] | None) -> dict[str, str] | None:
+    if not payload:
+        return None
+    output: dict[str, str] = {}
+    for key, value in payload.items():
+        if isinstance(value, str):
+            output[key] = value
+    return output or None
+
+
+def _extract_runtime_settings_from_job_payload(
+    job_payload: dict[str, object] | None,
+) -> dict[str, str] | None:
+    if not isinstance(job_payload, dict):
+        return None
+
+    raw = job_payload.get("runtime_settings")
+    if not isinstance(raw, dict):
+        return None
+    return _coerce_runtime_overrides({
+        key: str(value)
+        for key, value in raw.items()
+        if isinstance(key, str) and isinstance(value, (str, int, bool))
+    })
+
+
+def job_payload(job) -> dict[str, object] | None:
+    payload = getattr(job, "payload", None)
+    if payload is None:
+        return None
+    if isinstance(payload, dict):
+        return payload
+    return None
 
 
 def build_parser() -> argparse.ArgumentParser:

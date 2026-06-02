@@ -141,6 +141,20 @@ class WorkerLiveModeResult(CamelModel):
     updated_at: str | None = None
 
 
+class SystemOpsRuntimeSettings(CamelModel):
+    """Runtime overlay settings surfaced to the cockpit and editable via Ops UI."""
+
+    values: dict[str, str] = Field(default_factory=dict)
+    overrides: dict[str, str] = Field(default_factory=dict)
+    captured_at: str = ""
+
+
+class SystemOpsRuntimeSettingsPatch(CamelModel):
+    """Subset of runtime settings keys to persist from Ops UI."""
+
+    values: dict[str, str | bool | int | None]
+
+
 class SystemOpsResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -153,6 +167,9 @@ class SystemOpsResponse(CamelModel):
     data_sources: list[DataSourcePill]
     recent_protocol_runs: list[ProtocolRunRecord] = Field(default_factory=list)
     worker_status: WorkerStatusSummary = Field(default_factory=WorkerStatusSummary)
+    runtime_settings: SystemOpsRuntimeSettings = Field(
+        default_factory=SystemOpsRuntimeSettings
+    )
     safety_caption: str = "Operational protocols only — no trading actions."
     source: Literal["fixture", "live"] = "fixture"
 
@@ -172,4 +189,6 @@ __all__ = [
     "WorkerCycleRecord",
     "WorkerStatus",
     "WorkerStatusSummary",
+    "SystemOpsRuntimeSettings",
+    "SystemOpsRuntimeSettingsPatch",
 ]

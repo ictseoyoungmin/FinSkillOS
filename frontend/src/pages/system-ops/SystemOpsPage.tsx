@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchSystemOps,
   fetchSystemStatus,
+  fetchRuntimeSettings,
   runSystemOpsProtocol,
+  updateRuntimeSettings,
   setWorkerLiveMode,
 } from "@/features/system-ops/api";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
@@ -11,6 +13,7 @@ import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardI
 import { deriveProtocolEvidence } from "@/features/system-ops/detailEvidence";
 import type {
   DataCompleteness,
+  SystemOpsRuntimeSettingsPayload,
   SystemStatusData,
   SystemStatusSource,
   WorkerCadenceStatus,
@@ -32,8 +35,253 @@ import {
 } from "@/shared/ui";
 import "./system-ops.css";
 
+type RuntimeSettingKind = "text" | "number" | "boolean" | "select";
+
+interface RuntimeSettingField {
+  key: string;
+  label: string;
+  section: string;
+  type: RuntimeSettingKind;
+  hint: string;
+  placeholder?: string;
+  options?: string[];
+  /** Minimum for number inputs (clamped server-side too). */
+  min?: number;
+}
+
+const MARKET_ADAPTER_KEY = "FINSKILLOS_MARKET_REFRESH_ADAPTER";
+
+const RUNTIME_SETTING_FIELDS: RuntimeSettingField[] = [
+  {
+    key: "FINSKILLOS_WORKER_INTERVAL_SECONDS",
+    label: "Worker interval (seconds)",
+    section: "Worker",
+    type: "number",
+    hint: "How often automatic refresh-all should be enqueued.",
+    placeholder: "86400",
+  },
+  {
+    key: "FINSKILLOS_WORKER_POLL_SECONDS",
+    label: "Worker poll interval (seconds)",
+    section: "Worker",
+    type: "number",
+    hint: "Queue-drain polling frequency used by the worker process.",
+    placeholder: "5",
+  },
+  {
+    key: "FINSKILLOS_WORKER_STALE_GRACE_SECONDS",
+    label: "Worker stale grace (seconds)",
+    section: "Worker",
+    type: "number",
+    hint: "Grace period added after expected cadence before stale is flagged.",
+    placeholder: "43200",
+  },
+  {
+    key: "FINSKILLOS_WORKER_RUN_ON_START",
+    label: "Run on start",
+    section: "Worker",
+    type: "boolean",
+    hint: "Queue an initial full refresh when the worker starts.",
+  },
+  {
+    key: "FINSKILLOS_WORKER_MARKET_ENABLED",
+    label: "Market refresh enabled",
+    section: "Worker",
+    type: "boolean",
+    hint: "Allow market-bar refresh during worker jobs.",
+  },
+  {
+    key: "FINSKILLOS_WORKER_NEWS_ENABLED",
+    label: "News refresh enabled",
+    section: "Worker",
+    type: "boolean",
+    hint: "Allow news metadata refresh during worker jobs.",
+  },
+  {
+    key: "FINSKILLOS_WORKER_INDICATOR_ENABLED",
+    label: "Indicator refresh enabled",
+    section: "Worker",
+    type: "boolean",
+    hint: "Allow descriptive indicator computation during worker jobs.",
+  },
+  {
+    key: "FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY",
+    label: "Keep indicator snapshots",
+    section: "Worker",
+    type: "boolean",
+    hint: "Persist historical indicator snapshots (off to only keep latest).",
+  },
+  {
+    key: MARKET_ADAPTER_KEY,
+    label: "Market adapter",
+    section: "Market",
+    type: "select",
+    options: ["yahoo", "mock"],
+    hint: "yahoo = real data (production). mock = offline synthetic data.",
+  },
+  {
+    key: "FINSKILLOS_MARKET_REFRESH_TICKERS",
+    label: "Market refresh tickers",
+    section: "Market",
+    type: "text",
+    hint: "Comma-separated universe for market-bar refresh.",
+    placeholder: "SPY,QQQ,NVDA",
+  },
+  {
+    key: "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
+    label: "Indicator tickers",
+    section: "Market",
+    type: "text",
+    hint: "Comma-separated universe for indicator calculation.",
+    placeholder: "SPY,QQQ,NVDA",
+  },
+  {
+    key: "FINSKILLOS_MARKET_REFRESH_TIMEFRAME",
+    label: "Market timeframe",
+    section: "Market",
+    type: "text",
+    hint: "Market timeframe passed to bar refresh and indicator compute.",
+    placeholder: "1d",
+  },
+  {
+    key: "FINSKILLOS_REFRESH_FOLDER_NAMES",
+    label: "Refresh folders",
+    section: "Market",
+    type: "text",
+    hint: "Optional folder names (comma-separated) for scoped refresh.",
+    placeholder: "Growth,Value",
+  },
+  {
+    key: "FINSKILLOS_NEWS_REFRESH_ADAPTER",
+    label: "News adapter",
+    section: "News",
+    type: "text",
+    hint: "Currently supports rss for production-ready policy.",
+    placeholder: "rss",
+  },
+  {
+    key: "FINSKILLOS_NEWS_RSS_FEEDS",
+    label: "News RSS feeds",
+    section: "News",
+    type: "text",
+    hint: "Optional explicit RSS feed URLs (comma-separated).",
+    placeholder: "https://news.example/rss",
+  },
+  {
+    key: "FINSKILLOS_NEWS_RSS_TICKERS",
+    label: "News ticker symbols",
+    section: "News",
+    type: "text",
+    hint: "Fallback ticker filters when explicit feeds are not provided.",
+    placeholder: "AAPL,MSFT,NVDA,TSLA",
+  },
+  {
+    key: "FINSKILLOS_NEWS_RSS_SOURCE",
+    label: "News RSS source",
+    section: "News",
+    type: "text",
+    hint: "Optional custom source for request metadata.",
+    placeholder: "",
+  },
+  {
+    key: "FINSKILLOS_NEWS_RSS_LANGUAGE",
+    label: "News RSS language",
+    section: "News",
+    type: "text",
+    hint: "Language tag forwarded to generated RSS requests.",
+    placeholder: "en-US",
+  },
+];
+
+const BOOL_TRUE_VALUES = new Set(["1", "true", "yes", "on", "enabled", "y"]);
+
+function runtimeInputBooleanValue(raw: string | undefined): string {
+  if (!raw) {
+    return "0";
+  }
+  return BOOL_TRUE_VALUES.has(raw.trim().toLowerCase()) ? "1" : "0";
+}
+
+function toBooleanPatchValue(raw: string): boolean {
+  return raw === "1";
+}
+
+function buildRuntimeDraftSource(values: Record<string, string>): Record<string, string> {
+  const output: Record<string, string> = {};
+  for (const field of RUNTIME_SETTING_FIELDS) {
+    const sourceValue = values[field.key] ?? "";
+    output[field.key] =
+      field.type === "boolean"
+        ? runtimeInputBooleanValue(sourceValue)
+        : sourceValue;
+  }
+  return output;
+}
+
+function buildRuntimePatchPayload(
+  draft: Record<string, string>,
+  baseline: Record<string, string>,
+): SystemOpsRuntimeSettingsPayload["values"] {
+  const payload: SystemOpsRuntimeSettingsPayload["values"] = {};
+
+  for (const field of RUNTIME_SETTING_FIELDS) {
+    const nextRaw = (draft[field.key] ?? "").trim();
+    const current = (baseline[field.key] ?? "").trim();
+    const currentInput =
+      field.type === "boolean" ? runtimeInputBooleanValue(current) : current;
+
+    if (nextRaw === currentInput) {
+      continue;
+    }
+
+    if (field.type === "boolean") {
+      payload[field.key] = toBooleanPatchValue(nextRaw);
+      continue;
+    }
+
+    if (nextRaw === "") {
+      payload[field.key] = null;
+      continue;
+    }
+
+    if (field.type === "number") {
+      const parsed = Number(nextRaw);
+      payload[field.key] = Number.isFinite(parsed) ? parsed : nextRaw;
+      continue;
+    }
+
+    payload[field.key] = nextRaw;
+  }
+
+  return payload;
+}
+
+function runtimeDiffExists(
+  draft: Record<string, string>,
+  baseline: Record<string, string>,
+): boolean {
+  return (
+    Object.keys(buildRuntimePatchPayload(draft, baseline)).length > 0
+  );
+}
+
+function sectionedRuntimeSettings(fields: RuntimeSettingField[]) {
+  const grouped: Record<string, RuntimeSettingField[]> = {};
+  for (const field of fields) {
+    const list = grouped[field.section] ?? [];
+    list.push(field);
+    grouped[field.section] = list;
+  }
+  return grouped;
+}
+
 export function SystemOpsPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "worker">("overview");
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"overview" | "runtime" | "worker">(
+    "overview",
+  );
+  const [runtimeDraft, setRuntimeDraft] = useState<Record<string, string>>({});
+  const [runtimeNotice, setRuntimeNotice] = useState<string | null>(null);
   const { data, error, failureReason } = useQuery({
     queryKey: ["system-ops"],
     queryFn: ({ signal }) => fetchSystemOps(signal),
@@ -44,6 +292,65 @@ export function SystemOpsPage() {
     queryKey: ["system-status"],
     queryFn: ({ signal }) => fetchSystemStatus(signal),
   });
+
+  const payload = data ?? systemOpsFixture;
+  const runtimeSettingsQuery = useQuery({
+    queryKey: ["system-ops-runtime-settings"],
+    queryFn: ({ signal }) => fetchRuntimeSettings(signal),
+    placeholderData: payload.runtimeSettings,
+  });
+  const runtimeSettings = runtimeSettingsQuery.data ?? payload.runtimeSettings;
+  const runtimeBaselineSource = useMemo(
+    () => buildRuntimeDraftSource(runtimeSettings.values),
+    [runtimeSettings],
+  );
+  const runtimeSections = useMemo(
+    () => sectionedRuntimeSettings(RUNTIME_SETTING_FIELDS),
+    [],
+  );
+  const hasRuntimeChanges = runtimeDiffExists(runtimeDraft, runtimeBaselineSource);
+
+  const runtimeMutation = useMutation({
+    mutationFn: (values: SystemOpsRuntimeSettingsPayload["values"]) =>
+      updateRuntimeSettings(values),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(
+        ["system-ops-runtime-settings"],
+        updated,
+      );
+      queryClient.invalidateQueries({ queryKey: ["system-ops"] });
+      setRuntimeNotice("Runtime settings saved.");
+    },
+    onError: () => {
+      setRuntimeNotice("Failed to save runtime settings.");
+    },
+  });
+
+  const handleRuntimeFieldChange = (key: string, value: string): void => {
+    setRuntimeDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const resetRuntimeSettings = (): void => {
+    setRuntimeDraft(runtimeBaselineSource);
+    setRuntimeNotice("Runtime settings reset to saved values.");
+  };
+
+  const saveRuntimeSettings = (): void => {
+    const payloadValues = buildRuntimePatchPayload(
+      runtimeDraft,
+      runtimeBaselineSource,
+    );
+    if (Object.keys(payloadValues).length === 0) {
+      setRuntimeNotice("No changes to save.");
+      return;
+    }
+    runtimeMutation.mutate(payloadValues);
+  };
+
+  useEffect(() => {
+    setRuntimeDraft(runtimeBaselineSource);
+    setRuntimeNotice(null);
+  }, [runtimeBaselineSource]);
 
   if (error && !data) {
     return (
@@ -58,7 +365,6 @@ export function SystemOpsPage() {
     );
   }
 
-  const payload = data ?? systemOpsFixture;
   const dbBadgeTone = statusData?.dbStatus === "LIVE" ? "success" : "danger";
   const staleSummary = statusData
     ? summarizeStaleFlags(statusData.staleFlags)
@@ -92,6 +398,16 @@ export function SystemOpsPage() {
           onClick={() => setActiveTab("overview")}
         >
           Overview
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "runtime"}
+          className={activeTab === "runtime" ? "active" : ""}
+          data-testid="system-ops-tab-runtime"
+          onClick={() => setActiveTab("runtime")}
+        >
+          Runtime Settings
         </button>
         <button
           type="button"
@@ -229,10 +545,175 @@ export function SystemOpsPage() {
           />
           <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
         </>
+      ) : activeTab === "runtime" ? (
+        <RuntimeSettingsDashboard
+          draft={runtimeDraft}
+          sections={runtimeSections}
+          hasChanges={hasRuntimeChanges}
+          isSaving={runtimeMutation.isPending}
+          notice={runtimeNotice}
+          isLoading={runtimeSettingsQuery.isLoading}
+          hasError={runtimeSettingsQuery.isError}
+          onFieldChange={handleRuntimeFieldChange}
+          onReset={resetRuntimeSettings}
+          onSave={saveRuntimeSettings}
+          saveError={runtimeMutation.error?.message ?? null}
+        />
       ) : (
         <WorkerStatusDashboard workerStatus={payload.workerStatus} />
       )}
     </div>
+  );
+}
+
+function RuntimeSettingsDashboard({
+  draft,
+  sections,
+  hasChanges,
+  isSaving,
+  notice,
+  isLoading,
+  hasError,
+  onFieldChange,
+  onReset,
+  onSave,
+  saveError,
+}: {
+  draft: Record<string, string>;
+  sections: Record<string, RuntimeSettingField[]>;
+  hasChanges: boolean;
+  isSaving: boolean;
+  notice: string | null;
+  isLoading: boolean;
+  hasError: boolean;
+  onFieldChange: (key: string, value: string) => void;
+  onReset: () => void;
+  onSave: () => void;
+  saveError: string | null;
+}) {
+  const orderedSections = Object.entries(sections);
+
+  return (
+    <Panel
+      title="Runtime Settings"
+      badge="Runtime Overlay"
+      badgeTone="info"
+      testId="system-ops-runtime-settings"
+    >
+      <div className="fso-runtime-settings">
+        {orderedSections.map(([section, fields]) => (
+          <section className="fso-runtime-section" key={section}>
+            <header className="fso-runtime-section-header">
+              <h3>{section}</h3>
+              <small>Applied as startup overlay over .env values.</small>
+            </header>
+            <div className="fso-runtime-fields">
+              {fields.map((field) => {
+                const value = draft[field.key] ?? "";
+                const isBoolean = field.type === "boolean";
+                return (
+                  <label className="fso-runtime-field" key={field.key}>
+                    <span className="fso-runtime-label">
+                      {field.label}
+                    </span>
+                    {isBoolean ? (
+                      <div className="fso-runtime-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={value === "1"}
+                          onChange={(event) =>
+                            onFieldChange(field.key, event.target.checked ? "1" : "0")
+                          }
+                          disabled={isSaving}
+                          aria-label={`Toggle ${field.label}`}
+                        />
+                        <span>Enabled</span>
+                      </div>
+                    ) : field.type === "select" ? (
+                      <select
+                        className="fso-runtime-input"
+                        value={value || (field.options?.[0] ?? "")}
+                        onChange={(event) =>
+                          onFieldChange(field.key, event.currentTarget.value)
+                        }
+                        disabled={isSaving}
+                      >
+                        {(field.options ?? []).map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="fso-runtime-input"
+                        type={field.type}
+                        value={value}
+                        placeholder={field.placeholder}
+                        min={field.type === "number" ? (field.min ?? 1) : undefined}
+                        onChange={(event) =>
+                          onFieldChange(field.key, event.currentTarget.value)
+                        }
+                        disabled={isSaving}
+                      />
+                    )}
+                    <small>{field.hint}</small>
+                    {field.key === MARKET_ADAPTER_KEY && value === "mock" ? (
+                      <small
+                        className="fso-runtime-warning"
+                        data-testid="runtime-market-adapter-warning"
+                      >
+                        ⚠ Mock writes synthetic bars that can desync the live chart.
+                        Use yahoo for real data.
+                      </small>
+                    ) : null}
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+      <div className="fso-runtime-actions">
+        <button
+          type="button"
+          className="fso-runtime-button"
+          onClick={onReset}
+          disabled={isSaving || isLoading || !hasChanges}
+          data-testid="runtime-settings-reset"
+        >
+          Reset
+        </button>
+        <button
+          type="button"
+          className="fso-runtime-button primary"
+          onClick={onSave}
+          disabled={isSaving || isLoading || !hasChanges}
+          data-testid="runtime-settings-save"
+        >
+          {isSaving ? "Saving…" : "Save"}
+        </button>
+        <span
+          className="fso-runtime-action-note"
+          data-testid="runtime-settings-notice"
+          data-tone={
+            saveError
+              ? "error"
+              : notice?.toLowerCase().includes("fail")
+                ? "error"
+                : notice?.toLowerCase().includes("saved")
+                  ? "success"
+                  : "info"
+          }
+        >
+          {saveError ??
+            notice ??
+            (hasError
+              ? "Runtime settings from the dedicated endpoint are unavailable."
+              : "")}
+        </span>
+      </div>
+    </Panel>
   );
 }
 

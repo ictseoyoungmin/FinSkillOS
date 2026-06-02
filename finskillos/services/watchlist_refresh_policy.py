@@ -7,8 +7,7 @@ watchlist folders without changing subscription state or deleting history.
 
 from __future__ import annotations
 
-import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -17,6 +16,7 @@ from finskillos.db.repositories import (
     SymbolSubscriptionFolderRepository,
     SymbolSubscriptionRepository,
 )
+from finskillos.runtime_settings import read_runtime_csv
 
 REFRESH_FOLDER_ENV = "FINSKILLOS_REFRESH_FOLDER_NAMES"
 
@@ -49,6 +49,7 @@ def build_watchlist_refresh_policy(
     *,
     base_tickers: Iterable[str] = (),
     folder_names: Iterable[str] | None = None,
+    runtime_overrides: Mapping[str, str] | None = None,
 ) -> WatchlistRefreshPolicy:
     """Return the ticker universe for refresh protocols and worker cycles."""
 
@@ -56,7 +57,12 @@ def build_watchlist_refresh_policy(
     requested_folders = (
         _clean_names(folder_names)
         if folder_names is not None
-        else _clean_names(_csv_env(REFRESH_FOLDER_ENV))
+        else _clean_names(
+            read_runtime_csv(
+                REFRESH_FOLDER_ENV,
+                runtime_overrides=runtime_overrides,
+            )
+        )
     )
     try:
         active = _dedupe_tickers(SymbolSubscriptionRepository(session).active_tickers())
@@ -92,11 +98,6 @@ def _folder_member_tickers(
             continue
         tickers.extend(member.ticker for member in folder.members)
     return _dedupe_tickers(tickers)
-
-
-def _csv_env(name: str) -> tuple[str, ...]:
-    raw = os.getenv(name, "")
-    return tuple(part.strip() for part in raw.replace(";", ",").split(",") if part.strip())
 
 
 def _clean_names(values: Iterable[str]) -> tuple[str, ...]:

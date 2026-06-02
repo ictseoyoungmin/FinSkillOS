@@ -2,7 +2,7 @@
 
 > Living document. Update it whenever the worker, the `worker_jobs` queue, the
 > System Ops protocols, or the related API contract change. Last updated for
-> **Slice 114** (2026-06-01).
+> **Slice 126** (2026-06-02).
 
 This describes how FinSkillOS keeps the dashboard fresh from **real** market data
 without manual steps and without data duplication: a Docker stack that starts
@@ -110,6 +110,20 @@ and `job_id`. Enqueue is dedup-safe, so repeated clicks while a job is pending
 return the same job. When no DB session is reachable, protocols return `NOOP`
 (`no_database_session`) and never touch production.
 
+### Runtime overlay settings (Slice 126)
+
+Ops can edit runtime settings from UI (`/api/system-ops/runtime-settings`) and
+persist them in `system_ops_settings`. The worker receives that override on each
+job execution:
+
+- On startup, effective values are still resolved from environment variables.
+- If a DB overlay exists, its keys shadow `.env` for same-name settings.
+- `POST /api/system-ops/refresh-*` enqueues payload containing
+  `payload.runtime_settings` with the currently effective values.
+- `drain_queue()` extracts that map and passes it to `load_config(...,
+  runtime_overrides=...)`, so each job runs against the same settings that were
+  active when the button was pressed.
+
 ---
 
 ## 5. Environment variables
@@ -122,7 +136,9 @@ return the same job. When no DB session is reachable, protocols return `NOOP`
 | `FINSKILLOS_WORKER_RUN_ON_START` | `1` | enqueue a refresh on start |
 | `FINSKILLOS_WORKER_{MARKET,NEWS,INDICATOR}_ENABLED` | `1` | per-section toggles |
 | `FINSKILLOS_MARKET_REFRESH_TICKERS` / `…_INDICATOR_REFRESH_TICKERS` | full 22-ticker cockpit universe | refresh scope — superset of the Analysis index universe so no tab stays MISSING (Slice 116). A present `.env` overrides this. |
+| `FINSKILLOS_REFRESH_FOLDER_NAMES` | *(empty)* | folder list for scoped watchlist refresh policy (`all_active` if empty) |
 | `FINSKILLOS_EVENT_CALENDAR_ADAPTER` | `mock` | `mock` / `csv` / `http` (+ `…_CSV` / `…_URL`) |
+| `system_ops_settings` (table) | persisted key-value JSON | DB-backed runtime override layer. Unset keys fall back to env. |
 
 ---
 

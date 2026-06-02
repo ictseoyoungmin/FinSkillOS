@@ -23,8 +23,9 @@ import json
 import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures import system_ops_fixture
@@ -42,6 +43,8 @@ from api.schemas.system_ops import (
     ProtocolRunRecord,
     ProtocolRunResult,
     SystemOpsResponse,
+    SystemOpsRuntimeSettings,
+    SystemOpsRuntimeSettingsPatch,
     WorkerCycleRecord,
     WorkerLiveModeInput,
     WorkerLiveModeResult,
@@ -57,6 +60,13 @@ from finskillos.db.models.system_ops import (
 from finskillos.db.repositories import (
     SystemOpsProtocolRunRepository,
     WorkerCycleRunRepository,
+)
+from finskillos.runtime_settings import (
+    allowed_setting_keys,
+    read_runtime_int,
+    read_runtime_value,
+    runtime_overlay_meta,
+    runtime_setting_snapshot_for_job_queue,
 )
 
 router = APIRouter(tags=["system-ops"])
@@ -77,6 +87,7 @@ def system_ops(
         # Forced fixture stays deterministic (demos / visual baselines): keep the
         # fixture's sample run history instead of reading the local audit log.
         payload.source = "fixture"
+        payload.runtime_settings = SystemOpsRuntimeSettings(**runtime_overlay_meta())
         return payload
 
     with get_session_scope() as session:
@@ -86,6 +97,9 @@ def system_ops(
             payload.recent_protocol_runs = (
                 _read_recent_protocol_runs() or payload.recent_protocol_runs
             )
+            payload.runtime_settings = SystemOpsRuntimeSettings(
+                **runtime_overlay_meta(session=None)
+            )
             return mark_db_unavailable(payload)
         try:
             payload.recent_protocol_runs = _read_recent_protocol_runs(session=session)
@@ -93,10 +107,16 @@ def system_ops(
             _attach_last_run_times(payload, session)
             payload.data_sources = _live_data_sources()
             _attach_live_evidence(payload)
+            payload.runtime_settings = SystemOpsRuntimeSettings(
+                **runtime_overlay_meta(session=session)
+            )
             payload.source = "live"
         except Exception:
             session.rollback()
             payload.recent_protocol_runs = _read_recent_protocol_runs()
+            payload.runtime_settings = SystemOpsRuntimeSettings(
+                **runtime_overlay_meta(session=session)
+            )
     return payload
 
 
@@ -266,6 +286,64 @@ def set_worker_live_mode(payload: WorkerLiveModeInput) -> WorkerLiveModeResult:
                     f"({type(exc).__name__}). Stored state is unchanged."
                 ),
             )
+
+
+@router.get(
+    "/system-ops/runtime-settings",
+    response_model=SystemOpsRuntimeSettings,
+    summary="Read effective runtime settings for ops tab.",
+)
+def get_system_ops_runtime_settings(
+    use_fixture: bool = Depends(use_fixture_flag),
+) -> SystemOpsRuntimeSettings:
+    if use_fixture:
+        # Keep fixture mode deterministic and avoid opening a session just to
+        # read overrides; live values are shown in fixture mode anyway.
+        return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=None))
+
+    with get_session_scope() as session:
+        if session is None:
+            return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=None))
+        return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=session))
+
+
+@router.patch(
+    "/system-ops/runtime-settings",
+    response_model=SystemOpsRuntimeSettings,
+    summary="Persist runtime settings overrides from Operations tab.",
+)
+def update_system_ops_runtime_settings(
+    payload: SystemOpsRuntimeSettingsPatch,
+    use_fixture: bool = Depends(use_fixture_flag),
+) -> SystemOpsRuntimeSettings:
+    if use_fixture:
+        # Fixture mode does not block writes in the browser, but there is no durable
+        # row there to persist into. Return what the user typed so the UI remains
+        # consistent with the request body.
+        data = runtime_overlay_meta(session=None)
+        normalized = _normalize_runtime_settings_payload(payload.values)
+        if normalized:
+            data["values"].update(normalized)
+            data["overrides"].update(normalized)
+            data["captured_at"] = datetime.now(tz=UTC).isoformat(timespec="seconds")
+        return SystemOpsRuntimeSettings(**data)
+
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database unavailable; settings changes require DB availability.",
+            )
+
+        normalized = _normalize_runtime_settings_payload(payload.values)
+        if normalized:
+            from finskillos.db.repositories import SystemOpsSettingsRepository
+
+            SystemOpsSettingsRepository(session).patch(
+                normalized, updated_by="system_ops_api"
+            )
+            session.commit()
+        return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=session))
 
 
 # ---------------------------------------------------------------------------
@@ -674,25 +752,14 @@ def _worker_cadence(row) -> tuple[str, datetime | None, str]:
 
 
 def _worker_interval_seconds() -> int:
-    return _positive_int_env("FINSKILLOS_WORKER_INTERVAL_SECONDS", 24 * 60 * 60)
+    return read_runtime_int(
+        "FINSKILLOS_WORKER_INTERVAL_SECONDS", default=24 * 60 * 60
+    )
 
 
 def _worker_stale_grace_seconds(interval_seconds: int) -> int:
     default_grace = max(60, interval_seconds // 2)
-    return _positive_int_env("FINSKILLOS_WORKER_STALE_GRACE_SECONDS", default_grace)
-
-
-def _positive_int_env(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None or raw.strip() == "":
-        return default
-    try:
-        value = int(raw)
-    except ValueError:
-        return default
-    return max(0, value)
-
-
+    return read_runtime_int("FINSKILLOS_WORKER_STALE_GRACE_SECONDS", default=default_grace)
 
 
 def _worker_cycle_detail(row) -> str:
@@ -758,7 +825,13 @@ def _enqueue_refresh_job(session, job_type: str, label: str) -> tuple[str, str, 
     from finskillos.db.repositories import WorkerJobRepository
 
     job = WorkerJobRepository(session).enqueue(
-        job_type, requested_by="system_ops", dedup_key=job_type
+        job_type,
+        requested_by="system_ops",
+        dedup_key=job_type,
+        payload={
+            "requested_from": "system_ops",
+            "runtime_settings": runtime_setting_snapshot_for_job_queue(session=session),
+        },
     )
     return (
         "QUEUED",
@@ -831,6 +904,40 @@ def _invoke_seed_sample_events(session) -> tuple[str, str, str]:
     )
 
 
+def _normalize_runtime_settings_payload(
+    raw: dict[str, Any] | None,
+) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    if not isinstance(raw, dict):
+        return normalized
+
+    allowed = set(allowed_setting_keys())
+    for key, value in raw.items():
+        if not isinstance(key, str):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid runtime setting key: {key!r}",
+            )
+        if key not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported runtime setting key: {key!r}",
+            )
+        if value is None:
+            normalized[key] = None
+        elif isinstance(value, (str, int, bool)):
+            normalized[key] = str(value)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Unsupported runtime setting value type for {key!r}: "
+                    f"{type(value).__name__}"
+                ),
+            )
+    return normalized
+
+
 def _event_calendar_adapter():
     """Select the event calendar provider, gated by
     ``FINSKILLOS_EVENT_CALENDAR_ADAPTER`` (mirrors the market-refresh adapter
@@ -891,26 +998,44 @@ def _invoke_refresh_events(session) -> tuple[str, str, str]:
 
 
 def _market_refresh_tickers() -> tuple[str, ...]:
-    return _ticker_env("FINSKILLOS_MARKET_REFRESH_TICKERS")
+    raw = read_runtime_value(
+        "FINSKILLOS_MARKET_REFRESH_TICKERS",
+        default=",".join(DEFAULT_US_TICKER_UNIVERSE),
+    )
+    if raw is None:
+        return DEFAULT_US_TICKER_UNIVERSE
+    tickers = tuple(
+        part.strip().upper()
+        for part in raw.replace(";", ",").split(",")
+        if part.strip()
+    )
+    return tickers or DEFAULT_US_TICKER_UNIVERSE
 
 
 def _indicator_refresh_tickers() -> tuple[str, ...]:
-    return _ticker_env(
-        "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
-        fallback=os.environ.get("FINSKILLOS_MARKET_REFRESH_TICKERS", ""),
+    fallback = read_runtime_value(
+        "FINSKILLOS_MARKET_REFRESH_TICKERS",
+        default=",".join(DEFAULT_US_TICKER_UNIVERSE),
     )
-
-
-def _ticker_env(name: str, *, fallback: str = "") -> tuple[str, ...]:
-    raw = os.environ.get(name, fallback)
-    if not raw.strip():
-        return DEFAULT_US_TICKER_UNIVERSE
+    raw = read_runtime_value(
+        "FINSKILLOS_INDICATOR_REFRESH_TICKERS", default=fallback
+    )
+    if raw is None:
+        return _normalize_tickers(fallback)
     tickers = tuple(
-        item.strip().upper()
-        for item in raw.replace(";", ",").split(",")
-        if item.strip()
+        part.strip().upper()
+        for part in raw.replace(";", ",").split(",")
+        if part.strip()
     )
-    return tickers or DEFAULT_US_TICKER_UNIVERSE
+    return tickers or _normalize_tickers(fallback)
+
+
+def _normalize_tickers(raw: str) -> tuple[str, ...]:
+    return tuple(
+        part.strip().upper()
+        for part in raw.replace(";", ",").split(",")
+        if part.strip()
+    ) or DEFAULT_US_TICKER_UNIVERSE
 
 
 __all__ = ["router"]

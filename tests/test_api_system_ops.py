@@ -32,6 +32,7 @@ from finskillos.db.repositories import (
     PortfolioRepository,
     PositionRepository,
     SystemOpsProtocolRunRepository,
+    SystemOpsSettingsRepository,
     WorkerCycleRunRepository,
     WorkerJobRepository,
 )
@@ -91,6 +92,7 @@ def test_system_ops_get_returns_full_payload() -> None:
         "dataSources",
         "recentProtocolRuns",
         "workerStatus",
+        "runtimeSettings",
         "safetyCaption",
         "source",
     }
@@ -113,6 +115,157 @@ def test_system_ops_protocols_have_camelcase_fields() -> None:
     }
     for protocol in body["protocols"]:
         assert expected_fields.issubset(protocol.keys()), protocol
+
+
+def test_system_ops_runtime_settings_get() -> None:
+    response = _client().get("/api/system-ops/runtime-settings")
+    assert response.status_code == 200
+    body = response.json()
+    assert {"values", "overrides", "capturedAt"}.issubset(body.keys())
+    assert isinstance(body["values"], dict)
+
+
+def test_system_ops_runtime_settings_get_applies_db_overrides(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_WORKER_INTERVAL_SECONDS", "111")
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "yahoo")
+    reset_settings_cache()
+
+    try:
+        first = _client().get("/api/system-ops/runtime-settings").json()
+        assert first["values"]["FINSKILLOS_WORKER_INTERVAL_SECONDS"] == "111"
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            SystemOpsSettingsRepository(session).patch(
+                {
+                    "FINSKILLOS_WORKER_INTERVAL_SECONDS": "222",
+                    "FINSKILLOS_MARKET_REFRESH_ADAPTER": "mock",
+                },
+                updated_by="test",
+            )
+            session.commit()
+
+        second = _client().get("/api/system-ops/runtime-settings").json()
+        assert second["values"]["FINSKILLOS_WORKER_INTERVAL_SECONDS"] == "222"
+        assert second["values"]["FINSKILLOS_MARKET_REFRESH_ADAPTER"] == "mock"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_system_ops_runtime_settings_patch_persists_to_db(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        response = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={
+                "values": {
+                    "FINSKILLOS_WORKER_INTERVAL_SECONDS": 333,
+                    "FINSKILLOS_WORKER_MARKET_ENABLED": False,
+                    "FINSKILLOS_REFRESH_FOLDER_NAMES": "Growth,Value",
+                }
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["values"]["FINSKILLOS_WORKER_INTERVAL_SECONDS"] == "333"
+        assert body["values"]["FINSKILLOS_WORKER_MARKET_ENABLED"] == "False"
+        assert body["values"]["FINSKILLOS_REFRESH_FOLDER_NAMES"] == "Growth,Value"
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            row = SystemOpsSettingsRepository(session).get()
+            assert row.values["FINSKILLOS_WORKER_INTERVAL_SECONDS"] == "333"
+            assert row.values["FINSKILLOS_WORKER_MARKET_ENABLED"] == "False"
+            assert row.values["FINSKILLOS_REFRESH_FOLDER_NAMES"] == "Growth,Value"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_system_ops_runtime_settings_patch_rejects_invalid_key(monkeypatch, tmp_path) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        response = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={"values": {"BAD_SETTING": "1"}},
+        )
+        assert response.status_code == 400
+        assert "Unsupported runtime setting key" in response.json()["detail"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_system_ops_runtime_settings_patch_stores_and_is_applied_in_refresh_job(
+    monkeypatch, tmp_path
+) -> None:
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_MARKET_REFRESH_ADAPTER", "yahoo")
+    reset_settings_cache()
+
+    try:
+        patch_response = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={
+                "values": {
+                    "FINSKILLOS_WORKER_INTERVAL_SECONDS": "222",
+                    "FINSKILLOS_MARKET_REFRESH_ADAPTER": "mock",
+                    "FINSKILLOS_NEWS_RSS_LANGUAGE": "de-DE",
+                    "FINSKILLOS_REFRESH_FOLDER_NAMES": "Growth,Value",
+                }
+            },
+        )
+        assert patch_response.status_code == 200
+
+        queue_response = _client().post("/api/system-ops/refresh-market-data").json()
+        assert queue_response["protocol"] == "refresh_market_data"
+        assert queue_response["status"] == "QUEUED"
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            job = WorkerJobRepository(session).list_recent(limit=1)[0]
+            payload = job.payload or {}
+            runtime_payload = payload.get("runtime_settings")
+            assert isinstance(runtime_payload, dict)
+            assert runtime_payload["FINSKILLOS_WORKER_INTERVAL_SECONDS"] == "222"
+            assert runtime_payload["FINSKILLOS_MARKET_REFRESH_ADAPTER"] == "mock"
+            assert runtime_payload["FINSKILLOS_NEWS_RSS_LANGUAGE"] == "de-DE"
+            assert runtime_payload["FINSKILLOS_REFRESH_FOLDER_NAMES"] == "Growth,Value"
+            assert payload["requested_from"] == "system_ops"
+            assert job.requested_by == "system_ops"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 def test_system_ops_event_catalog_protocol_marks_ingestion_boundary() -> None:

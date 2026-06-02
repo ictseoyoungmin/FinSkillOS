@@ -22,6 +22,7 @@ from finskillos.db.models.symbol_subscription_folder import (
 )
 from finskillos.db.models.system_ops import (
     SystemOpsProtocolRun,
+    SystemOpsSettings,
     WorkerControl,
     WorkerCycleRun,
     WorkerJob,
@@ -47,6 +48,7 @@ __all__ = [
     "SystemOpsProtocolRun",
     "WorkerControl",
     "WorkerJob",
+    "SystemOpsSettings",
     "Trade",
     "WorkerCycleRun",
 ]

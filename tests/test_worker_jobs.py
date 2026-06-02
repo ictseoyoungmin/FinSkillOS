@@ -97,6 +97,40 @@ def test_drain_queue_processes_market_job(db_session: Session, monkeypatch) -> N
     assert MarketRepository(db_session).list_bars("SPY", "1d")
 
 
+def test_drain_queue_applies_runtime_overrides_from_job_payload(
+    db_session: Session, monkeypatch
+) -> None:
+    job_payload = {
+        "runtime_settings": {
+            "FINSKILLOS_MARKET_REFRESH_TICKERS": "AAPL",
+            "FINSKILLOS_MARKET_REFRESH_TIMEFRAME": "1d",
+        }
+    }
+    WorkerJobRepository(db_session).enqueue(
+        WORKER_JOB_REFRESH_MARKET,
+        dedup_key="override",
+        requested_by="test",
+        payload=job_payload,
+    )
+    db_session.commit()
+    _patch_scope(monkeypatch, db_session)
+
+    args = rw.build_parser().parse_args(["--once"])
+    config = dataclasses.replace(
+        rw.load_config(args),
+        market_adapter="mock",
+        market_tickers=("SPY",),
+        indicator_tickers=("SPY",),
+        timeframe="1d",
+    )
+
+    processed = rw.drain_queue(config)
+    assert processed == 1
+
+    assert MarketRepository(db_session).count_for("AAPL", "1d") > 0
+    assert MarketRepository(db_session).count_for("SPY", "1d") == 0
+
+
 def test_drain_queue_marks_unknown_job_error(db_session: Session, monkeypatch) -> None:
     WorkerJobRepository(db_session).enqueue("bogus_job", dedup_key="bogus")
     db_session.commit()

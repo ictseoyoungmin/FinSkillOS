@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from finskillos.db.models import (
     SystemOpsProtocolRun,
+    SystemOpsSettings,
     WorkerControl,
     WorkerCycleRun,
     WorkerJob,
@@ -242,5 +243,51 @@ class WorkerControlRepository:
         row.live_mode = bool(enabled)
         row.updated_at = _utcnow()
         row.updated_by = updated_by
+        self.session.flush()
+        return row
+
+
+class SystemOpsSettingsRepository:
+    """Durable runtime settings overlay for System Ops and worker behavior.
+
+    The row is a single JSON document. Keys map to `FINSKILLOS_*` variable
+    names and override their startup-time environment defaults.
+    """
+
+    SINGLETON_ID = 1
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get_or_create(self) -> SystemOpsSettings:
+        row = self.session.get(SystemOpsSettings, self.SINGLETON_ID)
+        if row is None:
+            row = SystemOpsSettings(
+                id=self.SINGLETON_ID,
+                values={},
+                updated_by="system",
+            )
+            self.session.add(row)
+            self.session.flush()
+        if row.values is None:
+            row.values = {}
+        return row
+
+    def get(self) -> SystemOpsSettings:
+        return self.get_or_create()
+
+    def patch(self, values: dict[str, str], updated_by: str = "system") -> SystemOpsSettings:
+        row = self.get_or_create()
+        stored = dict(row.values or {})
+        for key, value in values.items():
+            if not isinstance(key, str):
+                continue
+            if value is None:
+                stored.pop(key, None)
+                continue
+            stored[key] = str(value)
+        row.values = stored
+        row.updated_by = updated_by
+        row.updated_at = _utcnow()
         self.session.flush()
         return row

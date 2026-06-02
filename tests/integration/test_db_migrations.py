@@ -56,6 +56,7 @@ def test_alembic_upgrade_head_creates_core_tables(alembic_cfg: Config) -> None:
         "alerts",
         "system_ops_protocol_runs",
         "worker_cycle_runs",
+        "system_ops_settings",
         "alembic_version",
     }
     assert required.issubset(tables), f"missing: {required - tables}"

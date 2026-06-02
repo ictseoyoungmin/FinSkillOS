@@ -26,6 +26,138 @@
   gap: 12px;
 }
 
+.fso-runtime-settings {
+  display: grid;
+  gap: 14px;
+}
+
+.fso-runtime-section {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--fso-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fso-bg-2) 62%, transparent);
+}
+
+.fso-runtime-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fso-runtime-section-header h3 {
+  margin: 0;
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 15px;
+}
+
+.fso-runtime-section-header small {
+  color: var(--fso-text-muted-2);
+  font-size: 11px;
+  text-align: right;
+}
+
+.fso-runtime-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.fso-runtime-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border-radius: 6px;
+  border: 1px solid var(--fso-line-soft);
+  background: color-mix(in srgb, var(--fso-bg-3) 54%, transparent);
+}
+
+.fso-runtime-label {
+  color: var(--fso-text);
+  font-family: var(--fso-font-head);
+  font-size: 12px;
+}
+
+.fso-runtime-checkbox {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fso-runtime-checkbox span {
+  color: var(--fso-text-muted-2);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fso-runtime-field small {
+  margin: 0;
+  color: var(--fso-text-muted-2);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.fso-runtime-input {
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--fso-line-soft);
+  background: var(--fso-bg);
+  color: var(--fso-text);
+}
+
+.fso-runtime-input:focus {
+  outline: 1px solid color-mix(in srgb, var(--fso-cyan) 30%, transparent);
+}
+
+.fso-runtime-actions {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.fso-runtime-button {
+  min-width: 120px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-3) 56%, transparent);
+  color: var(--fso-text);
+}
+
+.fso-runtime-button.primary {
+  border-color: color-mix(in srgb, var(--fso-cyan) 40%, var(--fso-line));
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+}
+
+.fso-runtime-button:disabled {
+  opacity: 0.6;
+}
+
+.fso-runtime-action-note {
+  min-width: 0;
+  flex: 1;
+  color: var(--fso-text-muted);
+  font-size: 11px;
+}
+
+.fso-runtime-error {
+  margin-top: 10px;
+  color: var(--fso-red);
+  font-size: 12px;
+  min-height: 1.2em;
+}
+
 .fso-system-ops-history {
   display: flex;
   flex-direction: column;
@@ -535,4 +667,21 @@
 .fso-worker-livemode-hint {
   display: block;
   margin-top: 4px;
+}
+
+.fso-runtime-warning {
+  color: var(--fso-amber);
+  font-weight: 600;
+}
+
+.fso-runtime-action-note[data-tone="success"] {
+  color: var(--fso-green);
+}
+
+.fso-runtime-action-note[data-tone="error"] {
+  color: var(--fso-red);
+}
+
+.fso-runtime-action-note[data-tone="info"] {
+  color: var(--fso-text-muted);
 }

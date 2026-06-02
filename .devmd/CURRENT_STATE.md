@@ -155,6 +155,15 @@ operational protocols.
 115    Reachable-Empty → Live(-empty) Guard + Sample Cleanup
 116    Full Cockpit Refresh Universe (no permanently-MISSING tabs)
 117    Worker Live-Mode On/Off Toggle
+118    Diagnostics Work Queue And Shell State Truth (D-001/002/006)
+119    Frontend Live-Failure Parity (D-003)
+120    Event Risk Naming Cleanup (D-004)
+121    Top Navigation Scanability (D-005)
+122    Ticker Workspace Boundary (D-007)
+123    Lower Page Column Balance (D-008)
+124    Control Room Nested Scroll Cleanup (D-009)
+125    News Secondary Evidence Default (D-010)
+126    System Ops Runtime Settings Overlay (+ review polish/hardening)
 ```
 
 Slice 14 is complete:

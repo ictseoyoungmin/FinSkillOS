@@ -62,8 +62,15 @@ export interface SystemOpsData {
   dataSources: DataSourcePill[];
   recentProtocolRuns: ProtocolRunRecord[];
   workerStatus: WorkerStatusSummary;
+  runtimeSettings: SystemOpsRuntimeSettings;
   safetyCaption: string;
   source: "fixture" | "live";
+}
+
+export interface SystemOpsRuntimeSettings {
+  values: Record<string, string>;
+  overrides: Record<string, string>;
+  capturedAt: string;
 }
 
 export interface ProtocolRunResult {
@@ -114,6 +121,10 @@ export interface WorkerLiveModeResult {
   liveMode: boolean;
   message: string;
   updatedAt: string | null;
+}
+
+export interface SystemOpsRuntimeSettingsPayload {
+  values: Record<string, string | number | boolean | null>;
 }
 
 export interface ProtocolAvailability {

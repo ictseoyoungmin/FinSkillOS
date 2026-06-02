@@ -5,6 +5,8 @@ import type {
   ProtocolKey,
   ProtocolRunResult,
   SystemOpsData,
+  SystemOpsRuntimeSettings,
+  SystemOpsRuntimeSettingsPayload,
   SystemStatusData,
   WorkerLiveModeResult,
 } from "./types";
@@ -93,6 +95,48 @@ export async function setWorkerLiveMode(
     );
   }
   return (await response.json()) as WorkerLiveModeResult;
+}
+
+export async function fetchRuntimeSettings(
+  signal?: AbortSignal,
+): Promise<SystemOpsRuntimeSettings> {
+  return await getJson<SystemOpsRuntimeSettings>(
+    `${apiEndpoints.systemOps}/runtime-settings`,
+    { signal },
+  );
+}
+
+export async function updateRuntimeSettings(
+  values: Record<string, string | number | boolean | null>,
+  signal?: AbortSignal,
+): Promise<SystemOpsRuntimeSettings> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}/system-ops/runtime-settings`;
+  const response = await fetch(url, {
+    method: "PATCH",
+    credentials: "omit",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      values,
+    } as SystemOpsRuntimeSettingsPayload),
+    signal,
+  });
+  if (!response.ok) {
+    let detail = "Could not update runtime settings.";
+    try {
+      const payload = (await response.json()) as { detail?: string };
+      if (typeof payload.detail === "string" && payload.detail) {
+        detail = payload.detail;
+      }
+    } catch {
+      detail = `${response.status} ${response.statusText}`;
+    }
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText}: ${detail} for ${url}`,
+    );
+  }
+  return (await response.json()) as SystemOpsRuntimeSettings;
 }
 
 function systemStatusFallback(): SystemStatusData {

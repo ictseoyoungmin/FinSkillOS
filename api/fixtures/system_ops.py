@@ -268,6 +268,34 @@ def system_ops_fixture() -> SystemOpsResponse:
                 detail="Read mode · operational protocols only.",
             ),
         ],
+        runtime_settings={
+            "values": {
+                "FINSKILLOS_WORKER_INTERVAL_SECONDS": "86400",
+                "FINSKILLOS_WORKER_POLL_SECONDS": "5",
+                "FINSKILLOS_WORKER_STALE_GRACE_SECONDS": "43200",
+                "FINSKILLOS_WORKER_RUN_ON_START": "1",
+                "FINSKILLOS_WORKER_MARKET_ENABLED": "1",
+                "FINSKILLOS_WORKER_NEWS_ENABLED": "1",
+                "FINSKILLOS_WORKER_INDICATOR_ENABLED": "1",
+                "FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY": "0",
+                "FINSKILLOS_MARKET_REFRESH_ADAPTER": "yahoo",
+                "FINSKILLOS_MARKET_REFRESH_TICKERS": (
+                    "SPY,QQQ,NVDA,TSLA,AAPL,MSFT,AMZN,SMH,SOXX,VIX,US10Y,DXY"
+                ),
+                "FINSKILLOS_INDICATOR_REFRESH_TICKERS": (
+                    "SPY,QQQ,NVDA,TSLA,AAPL,MSFT,AMZN,SMH,SOXX,VIX,US10Y,DXY"
+                ),
+                "FINSKILLOS_MARKET_REFRESH_TIMEFRAME": "1d",
+                "FINSKILLOS_REFRESH_FOLDER_NAMES": "",
+                "FINSKILLOS_NEWS_REFRESH_ADAPTER": "rss",
+                "FINSKILLOS_NEWS_RSS_FEEDS": "",
+                "FINSKILLOS_NEWS_RSS_TICKERS": "AAPL,MSFT,NVDA,TSLA",
+                "FINSKILLOS_NEWS_RSS_SOURCE": "",
+                "FINSKILLOS_NEWS_RSS_LANGUAGE": "en-US",
+            },
+            "overrides": {},
+            "capturedAt": FIXTURE_TIMESTAMP,
+        },
     )
 
 
