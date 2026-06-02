@@ -315,6 +315,8 @@ diagnostic Playwright suite passed (10 passed).
 
 Severity: P2 visual continuity / information density
 
+Status: fixed 2026-06-02
+
 Several tabs reach their lower content with large empty regions in one column
 while the other column continues. This is not a rendering failure, but it makes
 the lower page feel visually disconnected.
@@ -340,6 +342,29 @@ Impact: content is present and scrollable, but the lower viewport often contains
 one strong information column plus a large dark empty area. This is especially
 noticeable in Trade Memory, where the lower form sits on the right while the
 left half is mostly empty.
+
+Fix:
+
+- At the 1280px audit range, Control Room keeps mission/operating-state columns
+  above and moves the right rail into a full-width three-panel band.
+- Market Kernel moves the interpretation side rail into a full-width three-panel
+  band below universe/chart content at the audit width.
+- Catalyst Watch moves secondary interpretation/watchpoint/catalog evidence into
+  a full-width three-panel band below event tables.
+- Trade Memory stacks the primary evidence flow first, then lays secondary
+  interpretation/review/form content into a balanced lower band.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml build web
+docker compose -f docker-compose.yml run --rm --no-deps web npm run build
+docker compose -f docker-compose.yml up -d web
+docker compose -f docker-compose.yml --profile e2e run --rm e2e npx playwright test e2e/diagnostics/full-scroll-diagnostics.spec.ts --project=chromium --workers=1
+```
+
+Result: web image build passed; frontend production build/type validation
+passed; full-scroll diagnostic Playwright suite passed (10 passed).
 
 ### D-009 Control Room has nested scroll risk
 

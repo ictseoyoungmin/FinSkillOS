@@ -510,9 +510,10 @@ then `[x]` with the implementation note when done.
   effect between the fixed ticker strip and internally scrolled product content.
   Implemented in Slice 122; Docker web build, responsive e2e, and full-scroll
   diagnostics passed on 2026-06-02.
-- [ ] **D-008 lower-page column balance** — Rework lower sections in Control
+- [x] **D-008 lower-page column balance** — Rework lower sections in Control
   Room, Market Kernel, Catalyst Watch, and Trade Memory so long/short columns do
-  not leave large disconnected empty regions.
+  not leave large disconnected empty regions. Implemented in Slice 123; Docker
+  web build and full-scroll diagnostics passed on 2026-06-02.
 - [ ] **D-009 Control Room nested-scroll cleanup** — Remove or constrain nested
   column scroll behavior inside the already scrollable OS workspace.
 
