@@ -512,8 +512,12 @@ per folder; the worker collects per folder.
   folder symbols (subscribe+link / unlink), and `global-toggle` (apply one flag to
   every folder). Per-type counts reuse the W-2 policy. CORS now allows PATCH. See
   `.devmd/129_*.md`.
-- [ ] **W-4 frontend** — Ops Collection Control surface (folder cards, checkboxes,
-  symbol add/remove); remove the runtime-settings ticker text fields.
+- [x] **W-4 frontend** — new System Ops "Collection Control" tab: totals roll-up,
+  global per-type toggles, create folder, folder cards (System badge, member chips
+  with remove, add-ticker input, Active/Price/Indicators/News checkboxes, delete
+  disabled for System), inactive/all-off warnings. Removed the two runtime-settings
+  ticker text fields (universe is now folder-driven). `features/collection-control/`
+  module + fixture + CSS. See `.devmd/130_*.md`. Visual baseline regen pending.
 - [ ] **W-5 polish** — global toggles, open/collapse, Symbol-Lab add-to-folder
   cross-link, per-folder coverage hints, empty/MISSING states.
 

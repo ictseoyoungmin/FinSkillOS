@@ -8,6 +8,7 @@ import {
   updateRuntimeSettings,
   setWorkerLiveMode,
 } from "@/features/system-ops/api";
+import { CollectionControlPanel } from "@/features/collection-control/components/CollectionControlPanel";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
 import { deriveProtocolEvidence } from "@/features/system-ops/detailEvidence";
@@ -119,22 +120,8 @@ const RUNTIME_SETTING_FIELDS: RuntimeSettingField[] = [
     options: ["yahoo", "mock"],
     hint: "yahoo = real data (production). mock = offline synthetic data.",
   },
-  {
-    key: "FINSKILLOS_MARKET_REFRESH_TICKERS",
-    label: "Market refresh tickers",
-    section: "Market",
-    type: "text",
-    hint: "Comma-separated universe for market-bar refresh.",
-    placeholder: "SPY,QQQ,NVDA",
-  },
-  {
-    key: "FINSKILLOS_INDICATOR_REFRESH_TICKERS",
-    label: "Indicator tickers",
-    section: "Market",
-    type: "text",
-    hint: "Comma-separated universe for indicator calculation.",
-    placeholder: "SPY,QQQ,NVDA",
-  },
+  // Market/indicator ticker universes are no longer hand-typed here — they are
+  // managed in the Collection Control tab (folder-driven, Slice W-4).
   {
     key: "FINSKILLOS_MARKET_REFRESH_TIMEFRAME",
     label: "Market timeframe",
@@ -277,9 +264,9 @@ function sectionedRuntimeSettings(fields: RuntimeSettingField[]) {
 
 export function SystemOpsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"overview" | "runtime" | "worker">(
-    "overview",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "collection" | "runtime" | "worker"
+  >("overview");
   const [runtimeDraft, setRuntimeDraft] = useState<Record<string, string>>({});
   const [runtimeNotice, setRuntimeNotice] = useState<string | null>(null);
   const { data, error, failureReason } = useQuery({
@@ -398,6 +385,16 @@ export function SystemOpsPage() {
           onClick={() => setActiveTab("overview")}
         >
           Overview
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "collection"}
+          className={activeTab === "collection" ? "active" : ""}
+          data-testid="system-ops-tab-collection"
+          onClick={() => setActiveTab("collection")}
+        >
+          Collection Control
         </button>
         <button
           type="button"
@@ -545,6 +542,8 @@ export function SystemOpsPage() {
           />
           <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
         </>
+      ) : activeTab === "collection" ? (
+        <CollectionControlPanel />
       ) : activeTab === "runtime" ? (
         <RuntimeSettingsDashboard
           draft={runtimeDraft}

@@ -10,6 +10,7 @@ export const apiEndpoints = {
   riskFirewall: "/risk-firewall",
   missionControl: "/mission-control",
   systemOps: "/system-ops",
+  collectionControl: "/system-ops/collection-control",
   newsIntelligence: "/news-intelligence",
   eventRadar: "/event-radar",
   tradeMemory: "/trade-memory",
