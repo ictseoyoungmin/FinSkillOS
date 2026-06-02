@@ -8,6 +8,7 @@ container boot.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -15,7 +16,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from finskillos.config import get_settings
-from finskillos.db.models import Account, PortfolioSnapshot
+from finskillos.db.models import SYSTEM_FOLDER_NAME, Account, PortfolioSnapshot
 from finskillos.db.repositories import (
     AccountRepository,
     PortfolioRepository,
@@ -41,6 +42,15 @@ class SeedResult:
     created_account: bool
     created_snapshot: bool
     created_positions: int = 0
+
+
+@dataclass(frozen=True)
+class SystemFolderSeedResult:
+    folder_id: uuid.UUID
+    created_folder: bool
+    subscribed: int  # newly activated subscriptions
+    linked: int  # newly added folder memberships
+    members: int  # total members after seeding
 
 
 def seed_default_account(
@@ -95,6 +105,52 @@ def seed_default_account(
         created_account=created_account,
         created_snapshot=created_snapshot,
         created_positions=created_positions,
+    )
+
+
+def seed_system_folder(session: Session) -> SystemFolderSeedResult:
+    """Ensure the protected System folder holds the install-default universe.
+
+    Idempotent: the System folder, each subscription, and each folder
+    membership are upserted. Re-running never duplicates rows. Collection
+    flags are seeded on (all types on) only when the folder is first created —
+    subsequent runs preserve any operator-adjusted flags.
+    """
+    from finskillos.data_sources import DEFAULT_US_TICKER_UNIVERSE
+    from finskillos.db.repositories import (
+        SymbolSubscriptionFolderRepository,
+        SymbolSubscriptionRepository,
+    )
+
+    folders = SymbolSubscriptionFolderRepository(session)
+    subscriptions = SymbolSubscriptionRepository(session)
+
+    existing = folders.get_by_name(SYSTEM_FOLDER_NAME)
+    created_folder = existing is None
+    folder = folders.ensure_system_folder(
+        description="Install-default sector leaders tracked out of the box.",
+    )
+
+    subscribed = 0
+    linked = 0
+    for index, ticker in enumerate(DEFAULT_US_TICKER_UNIVERSE):
+        before = subscriptions.get(ticker)
+        was_active = bool(before and before.active)
+        membership_existed = folders.has_member(folder.id, ticker)
+        subscriptions.subscribe(ticker, source="system")
+        if not was_active:
+            subscribed += 1
+        folders.add_symbol(folder.id, ticker, sort_order=index)
+        if not membership_existed:
+            linked += 1
+
+    members = folders.member_count(folder.id)
+    return SystemFolderSeedResult(
+        folder_id=folder.id,
+        created_folder=created_folder,
+        subscribed=subscribed,
+        linked=linked,
+        members=members,
     )
 
 

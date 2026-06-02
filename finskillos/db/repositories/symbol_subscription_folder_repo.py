@@ -5,10 +5,11 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from finskillos.db.models import (
+    SYSTEM_FOLDER_NAME,
     SymbolSubscription,
     SymbolSubscriptionFolder,
     SymbolSubscriptionFolderMembership,
@@ -29,6 +30,12 @@ class SymbolSubscriptionFolderSnapshot:
     description: str | None
     sort_order: int
     members: tuple[SymbolSubscriptionFolderMember, ...]
+    # Collection-control flags (Slice W-1).
+    is_active: bool = True
+    track_market: bool = True
+    track_indicators: bool = True
+    track_news: bool = True
+    is_system: bool = False
 
 
 class SymbolSubscriptionFolderRepository:
@@ -111,6 +118,51 @@ class SymbolSubscriptionFolderRepository:
         self.session.flush()
         return True
 
+    def set_collection_flags(
+        self,
+        folder_id: uuid.UUID,
+        *,
+        is_active: bool | None = None,
+        track_market: bool | None = None,
+        track_indicators: bool | None = None,
+        track_news: bool | None = None,
+    ) -> SymbolSubscriptionFolder:
+        """Partial-update a folder's collection flags. `None` leaves a flag as-is."""
+        folder = self.get(folder_id)
+        if folder is None:
+            raise ValueError("folder_not_found")
+        if is_active is not None:
+            folder.is_active = is_active
+        if track_market is not None:
+            folder.track_market = track_market
+        if track_indicators is not None:
+            folder.track_indicators = track_indicators
+        if track_news is not None:
+            folder.track_news = track_news
+        self.session.flush()
+        return folder
+
+    def ensure_system_folder(
+        self, *, description: str | None = None
+    ) -> SymbolSubscriptionFolder:
+        """Get or create the protected System folder (idempotent)."""
+        row = self.get_by_name(SYSTEM_FOLDER_NAME)
+        if row is None:
+            row = SymbolSubscriptionFolder(
+                name=SYSTEM_FOLDER_NAME,
+                description=_clean_optional(description),
+                sort_order=0,
+                is_system=True,
+            )
+            self.session.add(row)
+        else:
+            # Re-assert protection without disturbing operator-set flags.
+            row.is_system = True
+            if description is not None and not row.description:
+                row.description = _clean_optional(description)
+        self.session.flush()
+        return row
+
     def list_snapshots(self) -> tuple[SymbolSubscriptionFolderSnapshot, ...]:
         folders = list(
             self.session.scalars(
@@ -162,9 +214,26 @@ class SymbolSubscriptionFolderRepository:
                 description=folder.description,
                 sort_order=folder.sort_order,
                 members=tuple(members_by_folder.get(folder.id, ())),
+                is_active=folder.is_active,
+                track_market=folder.track_market,
+                track_indicators=folder.track_indicators,
+                track_news=folder.track_news,
+                is_system=folder.is_system,
             )
             for folder in folders
         )
+
+    def has_member(self, folder_id: uuid.UUID, ticker: str) -> bool:
+        subscription = _subscription(self.session, ticker)
+        if subscription is None:
+            return False
+        return self._get_membership(folder_id, subscription.id) is not None
+
+    def member_count(self, folder_id: uuid.UUID) -> int:
+        stmt = select(func.count()).select_from(
+            SymbolSubscriptionFolderMembership
+        ).where(SymbolSubscriptionFolderMembership.folder_id == folder_id)
+        return int(self.session.scalar(stmt) or 0)
 
     def _get_membership(
         self, folder_id: uuid.UUID, subscription_id: uuid.UUID

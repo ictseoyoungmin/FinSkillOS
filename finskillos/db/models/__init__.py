@@ -17,6 +17,7 @@ from finskillos.db.models.regime import MarketRegime
 from finskillos.db.models.symbol_logo import SymbolLogoCache
 from finskillos.db.models.symbol_subscription import SymbolSubscription
 from finskillos.db.models.symbol_subscription_folder import (
+    SYSTEM_FOLDER_NAME,
     SymbolSubscriptionFolder,
     SymbolSubscriptionFolderMembership,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "Position",
     "SymbolLogoCache",
     "SymbolSubscription",
+    "SYSTEM_FOLDER_NAME",
     "SymbolSubscriptionFolder",
     "SymbolSubscriptionFolderMembership",
     "SystemOpsProtocolRun",

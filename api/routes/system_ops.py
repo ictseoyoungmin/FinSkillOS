@@ -137,6 +137,22 @@ def run_seed_sample_account() -> ProtocolRunResult:
 
 
 @router.post(
+    "/system-ops/seed-system-folder",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: seed the protected System folder with the default universe.",
+)
+def run_seed_system_folder() -> ProtocolRunResult:
+    return _run_protocol(
+        key="seed_system_folder",
+        fixture_message=(
+            "System folder seed acknowledged. Fixture-first shell did not "
+            "touch the database."
+        ),
+        runner=_invoke_seed_system_folder,
+    )
+
+
+@router.post(
     "/system-ops/refresh-market-data",
     response_model=ProtocolRunResult,
     summary="Idempotent: refresh stored market bars for the configured universe.",
@@ -799,6 +815,23 @@ def _invoke_seed_sample_account(session) -> tuple[str, str, str]:
         f"Sample account ready: {result.account.name}.",
         ",".join(detail_parts),
     )
+
+
+def _invoke_seed_system_folder(session) -> tuple[str, str, str]:
+    from finskillos.db.seed import seed_system_folder
+
+    result = seed_system_folder(session)
+    detail_parts = [
+        "folder_created" if result.created_folder else "folder_reused",
+        f"subscribed={result.subscribed}",
+        f"linked={result.linked}",
+        f"members={result.members}",
+    ]
+    message = (
+        f"System folder ready · {result.members} sector leaders tracked "
+        f"({result.linked} newly linked)."
+    )
+    return ("OK", message, ",".join(detail_parts))
 
 
 def _invoke_refresh_market_data(session) -> tuple[str, str, str]:

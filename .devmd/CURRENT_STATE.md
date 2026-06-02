@@ -486,6 +486,28 @@ are removed from this active queue and remain documented in the completed-slice
 list plus the diagnostic history. Work top-down; mark `[~]` while in progress,
 then `[x]` with the implementation note when done.
 
+### W — Folder-Driven Collection Control (2026-06-02)
+Spec: `docs/COLLECTION_CONTROL_SPEC.md` · Ideas: `docs/COLLECTION_CONTROL_IDEAS.md`.
+Replace the runtime-settings ticker text fields with GUI/folder-driven collection:
+a pre-seeded protected **System** folder of sector leaders, per-folder
+Active/Price/Indicators/News toggles, GUI add/remove tickers, control globally or
+per folder; the worker collects per folder.
+- [x] **W-1 schema + seed** — added `is_active` / `track_market` / `track_indicators`
+  / `track_news` / `is_system` to `symbol_subscription_folders` (migration
+  `0016_folder_collection_flags`), repo setters (`set_collection_flags`,
+  `ensure_system_folder`, `has_member`, `member_count`), snapshot flag fields, the
+  idempotent `seed_system_folder` seed + `seed-system-folder` System Ops protocol
+  (System folder + 22 default sector leaders, all types on; operator flags
+  preserved on re-seed), and the install seed script wiring. See `.devmd/W1_*.md`.
+- [ ] **W-2 worker** — `watchlist_refresh_policy` returns per-type ticker sets
+  (market/indicator/news) from active folder flags; wire the worker cycle to them.
+- [ ] **W-3 API** — `/api/system-ops/collection-control` GET + PATCH folder flags
+  + folder/symbol CRUD + global toggles.
+- [ ] **W-4 frontend** — Ops Collection Control surface (folder cards, checkboxes,
+  symbol add/remove); remove the runtime-settings ticker text fields.
+- [ ] **W-5 polish** — global toggles, open/collapse, Symbol-Lab add-to-folder
+  cross-link, per-folder coverage hints, empty/MISSING states.
+
 ### P1 — correctness / trust
 - [x] **D-001 CORS mutation-method contract** — Allow browser preflight for the
   `PUT` / `DELETE` routes that already exist for Trade Memory edit/delete and

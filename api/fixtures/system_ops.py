@@ -132,6 +132,23 @@ def system_ops_fixture() -> SystemOpsResponse:
                 last_run_at=None,
             ),
             ProtocolCard(
+                key="seed_system_folder",
+                title="Seed system folder",
+                description=(
+                    "Registers the protected System folder with the install-default "
+                    "sector leaders so collection runs out of the box. Operators add "
+                    "their own folders and tickers from the Collection Control surface."
+                ),
+                idempotency_note=(
+                    "Idempotent · the folder, subscriptions, and memberships are "
+                    "upserted; operator-adjusted collection flags are preserved."
+                ),
+                button_label="Seed system folder",
+                confirm_label="Seed system folder",
+                tone="info",
+                last_run_at=None,
+            ),
+            ProtocolCard(
                 key="refresh_market_data",
                 title="Refresh market bars",
                 description=(

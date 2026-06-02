@@ -22,6 +22,7 @@ from finskillos.db.seed import (
     DEFAULT_INITIAL_CASH_VALUE,
     DEFAULT_INITIAL_TOTAL_VALUE,
     seed_default_account,
+    seed_system_folder,
 )
 from finskillos.db.session import session_scope
 from finskillos.logging_config import setup_logging
@@ -93,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
             initial_total_value=args.initial_total_value,
             initial_cash_value=args.initial_cash_value,
         )
+        folder_result = seed_system_folder(session)
 
     logger.info(
         "Seed complete: account=%s created=%s snapshot=%s created=%s positions=%s",
@@ -101,6 +103,14 @@ def main(argv: list[str] | None = None) -> int:
         result.initial_snapshot.id if result.initial_snapshot else None,
         result.created_snapshot,
         result.created_positions,
+    )
+    logger.info(
+        "System folder seeded: id=%s created=%s subscribed=%s linked=%s members=%s",
+        folder_result.folder_id,
+        folder_result.created_folder,
+        folder_result.subscribed,
+        folder_result.linked,
+        folder_result.members,
     )
     return 0
 
