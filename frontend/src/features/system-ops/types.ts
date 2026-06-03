@@ -134,6 +134,30 @@ export interface WorkerJobRow {
   retryable: boolean;
 }
 
+export interface ProvenanceSource {
+  source: string;
+  barCount: number;
+  synthetic: boolean;
+}
+
+export interface ProvenanceTicker {
+  ticker: string;
+  source: string;
+  latestAt: string | null;
+}
+
+export interface DataProvenanceReport {
+  generatedAt: string;
+  source: "fixture" | "live";
+  totalBars: number;
+  realBars: number;
+  realRatioPercent: number;
+  distinctTickers: number;
+  sources: ProvenanceSource[];
+  syntheticTickers: ProvenanceTicker[];
+  detail: string;
+}
+
 export interface ProviderHealthTicker {
   ticker: string;
   error: string;

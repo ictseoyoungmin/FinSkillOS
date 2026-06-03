@@ -1203,3 +1203,64 @@
   color: var(--fso-red);
   cursor: help;
 }
+
+/* Data provenance (Slice 152) */
+.fso-provenance-detail {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--fso-text-muted);
+}
+
+.fso-provenance-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fso-provenance-source {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: var(--fso-radius-sm);
+  background: var(--fso-bg-2);
+}
+
+.fso-provenance-source[data-synthetic="true"] {
+  border-color: var(--fso-amber);
+}
+
+.fso-provenance-source-name {
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  color: var(--fso-text);
+}
+
+.fso-provenance-source-count {
+  font-size: 11px;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-provenance-synthetic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fso-provenance-synthetic-label {
+  font-size: 12px;
+  color: var(--fso-amber);
+}
+
+.fso-provenance-ticker {
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fso-amber) 16%, transparent);
+  color: var(--fso-amber);
+  cursor: help;
+}

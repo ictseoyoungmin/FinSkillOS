@@ -692,6 +692,61 @@ def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_data_provenance_flags_synthetic_latest_bars(monkeypatch, tmp_path) -> None:
+    # Slice 152: provenance reports source distribution + tickers whose newest bar
+    # is synthetic (mock/test).
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from finskillos.data_sources.dto import MarketBarDTO
+    from finskillos.db.repositories import MarketRepository
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    def _bar(ticker, day, source):
+        return MarketBarDTO(
+            ticker=ticker, timeframe="1d",
+            bar_time=datetime(2026, 5, day, tzinfo=timezone.utc),
+            open=Decimal("1"), high=Decimal("1"), low=Decimal("1"),
+            close=Decimal("1"), volume=None, source=source,
+        )
+
+    with factory() as session:
+        repo = MarketRepository(session)
+        repo.upsert_bar(_bar("SPY", 27, "yfinance"))
+        repo.upsert_bar(_bar("SPY", 28, "yfinance"))
+        # VIX's newest bar is mock → flagged synthetic.
+        repo.upsert_bar(_bar("VIX", 27, "yfinance"))
+        repo.upsert_bar(_bar("VIX", 28, "mock"))
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops/data-provenance").json()
+        assert body["source"] == "live"
+        assert body["totalBars"] == 4
+        assert body["realBars"] == 3
+        assert body["realRatioPercent"] == 75
+        sources = {s["source"]: s for s in body["sources"]}
+        assert sources["yfinance"]["barCount"] == 3
+        assert sources["mock"]["barCount"] == 1
+        assert sources["mock"]["synthetic"] is True
+        synthetic = {t["ticker"] for t in body["syntheticTickers"]}
+        assert synthetic == {"VIX"}  # SPY's latest is real, VIX's latest is mock
+        assert "synthetic" in body["detail"].lower()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_provider_health_rolls_up_recent_market_failures(monkeypatch, tmp_path) -> None:
     # Slice 151: provider health summarizes last success/failure + affected tickers.
     db_path = tmp_path / "finskillos.db"

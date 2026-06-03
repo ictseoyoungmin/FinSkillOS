@@ -147,7 +147,9 @@ data repair/quarantine).
   rolled up from recent cycles (status / last-clean / last-failure / affected
   tickers + reason) + a System Ops panel. Market cycle summary now records
   `failedTickers`.
-- [ ] **152 Market Data Provenance Audit** — source/dedup/provenance per bar.
+- [x] **152 Market Data Provenance Audit** (slice 152) — `GET …/data-provenance`
+  (source distribution + tickers whose newest bar is synthetic) + a "Data
+  Provenance" panel. Repo `source_distribution` / `latest_source_by_ticker`.
 - [ ] **153 Indicator / Bar Invariant Dashboard** — every snapshot has a backing bar.
 - [ ] **154 News / Event Feed Coverage Diagnostics**.
 - [ ] **155 Data Repair / Quarantine Protocols**.

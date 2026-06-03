@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from finskillos.data_sources.dto import MarketBarDTO
@@ -160,6 +160,29 @@ class MarketRepository:
             MarketBar.timeframe == timeframe,
         )
         return len(list(self.session.scalars(stmt)))
+
+    def source_distribution(self) -> dict[str, int]:
+        """Stored-bar counts grouped by source (provenance audit, Slice 152)."""
+        stmt = select(MarketBar.source, func.count()).group_by(MarketBar.source)
+        return {
+            (source or "unknown"): int(count)
+            for source, count in self.session.execute(stmt)
+        }
+
+    def latest_source_by_ticker(
+        self, timeframe: str = "1d"
+    ) -> dict[str, tuple[str, datetime]]:
+        """Per ticker, the source + bar_time of its newest stored bar."""
+        stmt = (
+            select(MarketBar.ticker, MarketBar.bar_time, MarketBar.source)
+            .where(MarketBar.timeframe == timeframe)
+            .order_by(MarketBar.ticker, MarketBar.bar_time.desc())
+        )
+        latest: dict[str, tuple[str, datetime]] = {}
+        for ticker, bar_time, source in self.session.execute(stmt):
+            if ticker not in latest:
+                latest[ticker] = (source or "unknown", bar_time)
+        return latest
 
     def delete_for(self, ticker: str, timeframe: str) -> int:
         stmt = delete(MarketBar).where(

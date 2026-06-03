@@ -36,13 +36,17 @@ from api.schemas.common import (
     EvidenceWatchpoint,
     IntegratedInterpretation,
     JudgmentHeader,
+    SystemStatus,
 )
 from api.schemas.system_ops import (
+    DataProvenanceReport,
     DataSourcePill,
     ProtocolDetailEvidence,
     ProtocolKey,
     ProtocolRunRecord,
     ProtocolRunResult,
+    ProvenanceSource,
+    ProvenanceTicker,
     ProviderHealth,
     ProviderHealthTicker,
     SystemOpsResponse,
@@ -404,6 +408,80 @@ def update_system_ops_runtime_settings(
             )
             session.commit()
         return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=session))
+
+
+_SYNTHETIC_SOURCES = {"mock", "test"}
+
+
+@router.get(
+    "/system-ops/data-provenance",
+    response_model=DataProvenanceReport,
+    summary="Where the stored market bars came from (source distribution + "
+    "synthetic-source tickers).",
+)
+def data_provenance() -> DataProvenanceReport:
+    with get_session_scope() as session:
+        if session is None:
+            return DataProvenanceReport(
+                generated_at=_now_iso(),
+                system_status=SystemStatus(db="UNAVAILABLE", mode="READ_MODE"),
+                source="fixture",
+                detail="Database unavailable; provenance cannot be read.",
+            )
+        from finskillos.db.repositories import MarketRepository
+
+        repo = MarketRepository(session)
+        distribution = repo.source_distribution()
+        latest = repo.latest_source_by_ticker()
+
+        total = sum(distribution.values())
+        real = sum(
+            count
+            for src, count in distribution.items()
+            if src not in _SYNTHETIC_SOURCES
+        )
+        sources = [
+            ProvenanceSource(
+                source=src, bar_count=count, synthetic=src in _SYNTHETIC_SOURCES
+            )
+            for src, count in sorted(
+                distribution.items(), key=lambda item: item[1], reverse=True
+            )
+        ]
+        synthetic_tickers = [
+            ProvenanceTicker(
+                ticker=ticker,
+                source=src,
+                latest_at=bar_time.isoformat() if bar_time else None,
+            )
+            for ticker, (src, bar_time) in sorted(latest.items())
+            if src in _SYNTHETIC_SOURCES
+        ]
+        ratio = round(real / total * 100) if total else 0
+        if total == 0:
+            detail = "No market bars are stored yet."
+        elif synthetic_tickers:
+            names = ", ".join(t.ticker for t in synthetic_tickers[:8])
+            detail = (
+                f"{ratio}% of bars are real; {len(synthetic_tickers)} ticker(s) "
+                f"still show a synthetic latest bar ({names}) — refresh them with the "
+                "real adapter."
+            )
+        else:
+            detail = f"All {total} stored bars are from real sources ({ratio}%)."
+
+        return DataProvenanceReport(
+            generated_at=_now_iso(),
+            system_status=SystemStatus(db="LIVE", mode="READ_MODE"),
+            source="live",
+            total_bars=total,
+            real_bars=real,
+            real_ratio_percent=ratio,
+            distinct_tickers=len(latest),
+            sources=sources,
+            synthetic_tickers=synthetic_tickers,
+            detail=detail,
+        )
 
 
 @router.post(

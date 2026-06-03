@@ -8,6 +8,7 @@ import type {
   SystemOpsRuntimeSettings,
   SystemOpsRuntimeSettingsPayload,
   SystemStatusData,
+  DataProvenanceReport,
   WorkerLiveModeResult,
   WorkerStatusSummary,
 } from "./types";
@@ -118,6 +119,16 @@ export async function retryWorkerJob(
     );
   }
   return (await response.json()) as WorkerStatusSummary;
+}
+
+/** Read the market-bar provenance report (source distribution + synthetic tickers). */
+export async function fetchDataProvenance(
+  signal?: AbortSignal,
+): Promise<DataProvenanceReport> {
+  return await getJson<DataProvenanceReport>(
+    `${apiEndpoints.systemOps}/data-provenance`,
+    { signal },
+  );
 }
 
 export async function fetchRuntimeSettings(

@@ -11,6 +11,7 @@ import {
   retryWorkerJob,
 } from "@/features/system-ops/api";
 import { CollectionControlPanel } from "@/features/collection-control/components/CollectionControlPanel";
+import { DataProvenancePanel } from "@/features/system-ops/components/DataProvenancePanel";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
 import { deriveProtocolEvidence } from "@/features/system-ops/detailEvidence";
@@ -1107,6 +1108,8 @@ function WorkerStatusDashboard({
             </div>
           ) : null}
         </Panel>
+
+        <DataProvenancePanel />
 
         <Panel
           title="Job Queue"

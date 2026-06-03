@@ -134,6 +134,35 @@ class WorkerJobRow(CamelModel):
     retryable: bool = False  # terminal (DONE/ERROR) → can re-enqueue
 
 
+class ProvenanceSource(CamelModel):
+    source: str
+    bar_count: int = 0
+    synthetic: bool = False
+
+
+class ProvenanceTicker(CamelModel):
+    ticker: str
+    source: str
+    latest_at: str | None = None
+
+
+class DataProvenanceReport(CamelModel):
+    """Where the stored market bars came from (Slice 152)."""
+
+    generated_at: str
+    system_status: SystemStatus
+    source: Literal["fixture", "live"] = "fixture"
+    total_bars: int = 0
+    real_bars: int = 0
+    real_ratio_percent: int = 0
+    distinct_tickers: int = 0
+    sources: list[ProvenanceSource] = Field(default_factory=list)
+    # Tickers whose *newest* stored bar is synthetic (mock/test) — the actionable
+    # signal: those rows are not real market data.
+    synthetic_tickers: list[ProvenanceTicker] = Field(default_factory=list)
+    detail: str = ""
+
+
 class ProviderHealthTicker(CamelModel):
     ticker: str
     error: str = ""
