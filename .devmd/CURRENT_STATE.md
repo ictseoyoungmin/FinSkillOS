@@ -175,6 +175,8 @@ operational protocols.
 135    Regime Context Confidence Unit Fix (AW-1)
 136    Worker Recomputes Regime Each Cycle (AW-2)
 137    Regime Staleness Surfacing + Coverage Copy (AW-3)
+138    SQLite-Compatible 0017 Scope Migration (batch_alter_table)
+139    Control Room Freshness Test Date-Drift Fix
 ```
 
 Slice 14 is complete:
@@ -518,6 +520,15 @@ bullish tape + calm VIX on the same screen). All three slices landed + live-veri
   than the latest market bar (defense for live-mode-off / worker-down). Also clean
   the coverage messaging inconsistency ("16/17 PARTIAL" vs "0 rows still need
   stored data" vs "100% evidence" vs "Gap focus NONE").
+
+### Suite robustness cleanup (2026-06-03)
+- [x] **0017 migration SQLite compat** (slice 138) — `batch_alter_table` so the
+  alembic-on-SQLite smoke test passes (slice-134 dialect miss).
+- [x] **Control Room freshness date-drift test** (slice 139) — seed relative to
+  `now` so `test_control_room_promotes_live_overview_rails` no longer rots daily.
+- [ ] **Playwright `system-ops.png` visual baseline regen** — W-4 added a tab;
+  needs browser binaries (unavailable here). Run
+  `npm run test:e2e -- --update-snapshots` where Playwright browsers exist.
 
 ### W — Folder-Driven Collection Control (2026-06-02)
 Spec: `docs/COLLECTION_CONTROL_SPEC.md` · Ideas: `docs/COLLECTION_CONTROL_IDEAS.md`.

@@ -243,17 +243,25 @@ def test_control_room_promotes_live_overview_rails(
     monkeypatch,
 ) -> None:
     _seed_account_and_portfolio(db_session)
-    ts = datetime(2026, 5, 28, 14, 0, tzinfo=UTC)
-    _seed_market_series(db_session, "SPY", Decimal("670"), ts)
-    _seed_market_series(db_session, "QQQ", Decimal("550"), ts)
-    _seed_market_series(db_session, "NVDA", Decimal("170"), ts)
+    # Seed relative to "now" so freshness never rots as the calendar advances:
+    # the route compares bar/event dates to vm.generated_at (= today), so the
+    # latest bar lands at now-1day (FRESH for the default 3-day window) and the
+    # event stays upcoming. Hard-coded past dates made this a time-bomb.
+    now = datetime.now(tz=UTC)
+    base = (now - timedelta(days=3)).replace(hour=14, minute=0, second=0, microsecond=0)
+    latest_dt = base + timedelta(days=2)  # _seed_market_series adds base..base+2
+    market_prefix = latest_dt.strftime("%Y-%m-%dT%H:%M:%S")
+    event_date = (now + timedelta(days=2)).date()
+    _seed_market_series(db_session, "SPY", Decimal("670"), base)
+    _seed_market_series(db_session, "QQQ", Decimal("550"), base)
+    _seed_market_series(db_session, "NVDA", Decimal("170"), base)
     SymbolSubscriptionRepository(db_session).subscribe("NVDA", name="NVIDIA")
     EventService(db_session).create_event(
         EventInput(
             title="NVIDIA earnings window",
             event_type="EARNINGS",
             date_status="TENTATIVE",
-            start_date=date(2026, 6, 3),
+            start_date=event_date,
             source="company_calendar",
             importance_score=Decimal("3.0"),
         ),
@@ -268,14 +276,14 @@ def test_control_room_promotes_live_overview_rails(
     assert body["dataState"]["catalystStatus"] == "OK"
     assert body["dataState"]["watchlistStatus"] == "OK"
     assert body["dataState"]["marketTapePoints"] == len(body["marketTape"])
-    assert body["dataState"]["latestMarketAt"].startswith("2026-05-30T14:00:00")
-    assert body["dataState"]["latestEventAt"] == "2026-06-03"
-    assert body["dataState"]["latestWatchlistAt"].startswith("2026-05-30T14:00:00")
+    assert body["dataState"]["latestMarketAt"].startswith(market_prefix)
+    assert body["dataState"]["latestEventAt"] == event_date.isoformat()
+    assert body["dataState"]["latestWatchlistAt"].startswith(market_prefix)
     assert body["dataState"]["marketFreshnessStatus"] == "FRESH"
     assert body["dataState"]["catalystFreshnessStatus"] == "FRESH"
     assert body["dataState"]["watchlistFreshnessStatus"] == "FRESH"
     assert body["dataState"]["railFreshnessStatus"] == "FRESH"
-    assert "market 2026-05-30" in body["dataState"]["railFreshnessNote"]
+    assert f"market {latest_dt.date().isoformat()}" in body["dataState"]["railFreshnessNote"]
     assert body["tickerStrip"][0]["symbol"] == "NVDA"
     assert body["catalystWatch"][0]["title"] == "NVIDIA earnings window"
     assert body["watchlist"][0]["symbol"] == "NVDA"
