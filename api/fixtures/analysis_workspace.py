@@ -353,7 +353,8 @@ def _rank_entries(reverse: bool, limit: int) -> list[TapeStrengthEntry]:
 def _regime_context() -> RegimeContext:
     return RegimeContext(
         regime="RISK_ON_OVERHEAT",
-        confidence=D("0.72"),
+        # 0–100 scale, matching the regime engine (CONFIDENCE_FULL=100).
+        confidence=D("72"),
         decision_mode="HOLD_WINNERS",
         risk_level="YELLOW",
         summary=(

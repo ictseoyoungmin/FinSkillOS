@@ -108,6 +108,11 @@ def test_analysis_workspace_regime_block_is_descriptive() -> None:
     assert regime is not None
     assert regime["regime"] == "RISK_ON_OVERHEAT"
     assert "not a price prediction" in regime["summary"].lower()
+    # Confidence is a 0–100 score (CONFIDENCE_FULL=100), not a 0–1 fraction — the
+    # frontend renders it as a percentage as-is. A 0–1 fixture here would render
+    # a live 92 as "9200%" (the original bug, slice 135). Guard the scale.
+    confidence = float(regime["confidence"])
+    assert 1 < confidence <= 100
 
 
 def test_analysis_workspace_response_does_not_expose_execution_concepts() -> None:
@@ -207,6 +212,8 @@ def test_analysis_workspace_promotes_stored_bars_and_indicators(
     assert body["strongest"][0]["ticker"] == "QQQ"
     assert body["weakest"][0]["ticker"] == "XLE"
     assert body["regime"]["regime"] == "RISK_ON_OVERHEAT"
+    # Stored 0–100 confidence is passed through unchanged (not rescaled).
+    assert float(body["regime"]["confidence"]) == 82.0
 
 
 def _patch_session_scope(monkeypatch, db_session: Session) -> None:

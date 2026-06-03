@@ -486,6 +486,28 @@ are removed from this active queue and remain documented in the completed-slice
 list plus the diagnostic history. Work top-down; mark `[~]` while in progress,
 then `[x]` with the implementation note when done.
 
+### AW — Analysis Workspace Audit (2026-06-03)
+Findings from a live Analysis Workspace review (PANIC regime contradicting a
+bullish tape + calm VIX on the same screen):
+- [ ] **AW-1 regime confidence unit bug** (slice 135) — `RegimeContextPanel`
+  renders `confidence * 100`, but the regime engine emits a **0–100** value
+  (`CONFIDENCE_FULL=100`); live 92 → "9200%". The `_regime_context()` fixture used
+  `0.72` (0–1), masking it (showed 72%). Fix: treat confidence as 0–100 (drop the
+  ×100), normalize fixtures to 0–100, regression test. (`control_room.py` already
+  treats it as 0–100 — the contract is 0–100.)
+- [ ] **AW-2 regime never recomputed by the worker** (slice 136) — `run_cycle`
+  refreshes bars/news/indicators every cycle but **never recomputes the regime**;
+  it only updates via the manual "Regime 재계산" protocol. So the headline regime
+  drifts stale (PANIC from 2026-06-01 while VIX bars have been 15–16 for days; a
+  fresh recompute self-corrected to RISK_ON_OVERHEAT). Fix: recompute regime in the
+  worker cycle (flagged, after indicators) so it stays consistent with the data the
+  dashboard shows.
+- [ ] **AW-3 regime staleness surfacing + coverage copy** (slice 137) — even with
+  AW-2, surface the regime snapshot age + a STALE marker on the card when older
+  than the latest market bar (defense for live-mode-off / worker-down). Also clean
+  the coverage messaging inconsistency ("16/17 PARTIAL" vs "0 rows still need
+  stored data" vs "100% evidence" vs "Gap focus NONE").
+
 ### W — Folder-Driven Collection Control (2026-06-02)
 Spec: `docs/COLLECTION_CONTROL_SPEC.md` · Ideas: `docs/COLLECTION_CONTROL_IDEAS.md`.
 Replace the runtime-settings ticker text fields with GUI/folder-driven collection:

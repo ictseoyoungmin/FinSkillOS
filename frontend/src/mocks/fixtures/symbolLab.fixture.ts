@@ -134,7 +134,7 @@ const TSLA: SymbolLabData = {
   ],
   regime: {
     regime: "RISK_ON_OVERHEAT",
-    confidence: 0.72,
+    confidence: 72,
     decisionMode: "HOLD_WINNERS",
     riskLevel: "YELLOW",
     summary:

@@ -24,7 +24,9 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
     );
   }
 
-  const confidencePct = (toNumber(regime.confidence) * 100).toFixed(0);
+  // Regime confidence is already a 0–100 score from the engine
+  // (CONFIDENCE_FULL=100), matching the Control Room consumer — render as-is.
+  const confidencePct = toNumber(regime.confidence).toFixed(0);
 
   return (
     <Panel
