@@ -167,6 +167,16 @@ class WorkerLiveModeResult(CamelModel):
     updated_at: str | None = None
 
 
+class RuntimeSettingChange(CamelModel):
+    """One runtime-setting overlay change (Slice 149). `newValue=null` = reverted."""
+
+    key: str
+    old_value: str | None = None
+    new_value: str | None = None
+    updated_by: str = "system"
+    changed_at: str | None = None
+
+
 class SystemOpsRuntimeSettings(CamelModel):
     """Runtime overlay settings surfaced to the cockpit and editable via Ops UI."""
 
@@ -176,6 +186,8 @@ class SystemOpsRuntimeSettings(CamelModel):
     # Last-change audit of the DB overlay (who/when); null when nothing is overridden.
     updated_at: str | None = None
     updated_by: str | None = None
+    # Append-only change log (newest first), Slice 149.
+    history: list[RuntimeSettingChange] = Field(default_factory=list)
 
 
 class SystemOpsRuntimeSettingsPatch(CamelModel):

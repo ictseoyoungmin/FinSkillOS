@@ -404,6 +404,31 @@ def update_system_ops_runtime_settings(
         return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=session))
 
 
+@router.post(
+    "/system-ops/runtime-settings/reset",
+    response_model=SystemOpsRuntimeSettings,
+    summary="Revert every runtime override back to its .env default.",
+)
+def reset_system_ops_runtime_settings() -> SystemOpsRuntimeSettings:
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database unavailable; settings changes require DB availability.",
+            )
+        from finskillos.db.repositories import SystemOpsSettingsRepository
+
+        repo = SystemOpsSettingsRepository(session)
+        current = dict(repo.get().values or {})
+        if current:
+            # Patch each overridden key to None → reverts to .env, recorded in history.
+            repo.patch(
+                {key: None for key in current}, updated_by="system_ops_reset"
+            )
+            session.commit()
+        return SystemOpsRuntimeSettings(**runtime_overlay_meta(session=session))
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import {
   fetchRuntimeSettings,
   runSystemOpsProtocol,
   updateRuntimeSettings,
+  resetRuntimeSettings as resetRuntimeOverridesApi,
   setWorkerLiveMode,
   retryWorkerJob,
 } from "@/features/system-ops/api";
@@ -15,6 +16,7 @@ import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardI
 import { deriveProtocolEvidence } from "@/features/system-ops/detailEvidence";
 import type {
   DataCompleteness,
+  RuntimeSettingChange,
   SystemOpsRuntimeSettingsPayload,
   SystemStatusData,
   SystemStatusSource,
@@ -342,6 +344,16 @@ export function SystemOpsPage() {
     runtimeMutation.mutate(payloadValues);
   };
 
+  const resetOverridesMutation = useMutation({
+    mutationFn: () => resetRuntimeOverridesApi(),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["system-ops-runtime-settings"], updated);
+      queryClient.invalidateQueries({ queryKey: ["system-ops"] });
+      setRuntimeNotice("All overrides reverted to .env defaults.");
+    },
+    onError: () => setRuntimeNotice("Failed to reset overrides."),
+  });
+
   useEffect(() => {
     setRuntimeDraft(runtimeBaselineSource);
     setRuntimeNotice(null);
@@ -568,6 +580,9 @@ export function SystemOpsPage() {
           updatedAt={runtimeSettings.updatedAt ?? null}
           updatedBy={runtimeSettings.updatedBy ?? null}
           overrideCount={Object.keys(runtimeSettings.overrides ?? {}).length}
+          history={runtimeSettings.history ?? []}
+          onResetOverrides={() => resetOverridesMutation.mutate()}
+          isResetting={resetOverridesMutation.isPending}
         />
       ) : (
         <WorkerStatusDashboard workerStatus={payload.workerStatus} />
@@ -591,6 +606,9 @@ function RuntimeSettingsDashboard({
   updatedAt,
   updatedBy,
   overrideCount,
+  history,
+  onResetOverrides,
+  isResetting,
 }: {
   draft: Record<string, string>;
   sections: Record<string, RuntimeSettingField[]>;
@@ -606,6 +624,9 @@ function RuntimeSettingsDashboard({
   updatedAt: string | null;
   updatedBy: string | null;
   overrideCount: number;
+  history: RuntimeSettingChange[];
+  onResetOverrides: () => void;
+  isResetting: boolean;
 }) {
   const orderedSections = Object.entries(sections);
   const lastChangedLabel =
@@ -620,13 +641,27 @@ function RuntimeSettingsDashboard({
       badgeTone="info"
       testId="system-ops-runtime-settings"
     >
-      <p
-        className="fso-runtime-audit"
-        data-testid="system-ops-runtime-audit"
-        data-has-overrides={overrideCount > 0 ? "true" : "false"}
-      >
-        {lastChangedLabel}
-      </p>
+      <div className="fso-runtime-audit-row">
+        <p
+          className="fso-runtime-audit"
+          data-testid="system-ops-runtime-audit"
+          data-has-overrides={overrideCount > 0 ? "true" : "false"}
+        >
+          {lastChangedLabel}
+        </p>
+        {overrideCount > 0 ? (
+          <button
+            type="button"
+            className="fso-runtime-reset-all"
+            disabled={isResetting}
+            data-testid="system-ops-runtime-reset-all"
+            title="Revert every override back to its .env default."
+            onClick={onResetOverrides}
+          >
+            {isResetting ? "Resetting…" : "Reset all to defaults"}
+          </button>
+        ) : null}
+      </div>
       <div className="fso-runtime-settings">
         {orderedSections.map(([section, fields]) => (
           <section className="fso-runtime-section" key={section}>
@@ -740,8 +775,34 @@ function RuntimeSettingsDashboard({
               : "")}
         </span>
       </div>
+      {history.length > 0 ? (
+        <div className="fso-runtime-history" data-testid="system-ops-runtime-history">
+          <h3>Change history</h3>
+          <ul>
+            {history.slice(0, 10).map((change, index) => (
+              <li key={`${change.key}-${change.changedAt}-${index}`}>
+                <code>{change.key}</code>{" "}
+                <span className="fso-runtime-history-change">
+                  {formatOverrideValue(change.oldValue)} →{" "}
+                  {formatOverrideValue(change.newValue)}
+                </span>
+                <span className="fso-runtime-history-meta">
+                  {change.changedAt
+                    ? new Date(change.changedAt).toLocaleString()
+                    : ""}{" "}
+                  · {change.updatedBy}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </Panel>
   );
+}
+
+function formatOverrideValue(value: string | null): string {
+  return value === null ? "default" : value;
 }
 
 function SystemHealthSummary({

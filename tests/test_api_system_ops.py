@@ -232,6 +232,52 @@ def test_runtime_settings_surface_change_audit(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_runtime_settings_records_history_and_reset(monkeypatch, tmp_path) -> None:
+    # Slice 149: each change is logged (old→new), and reset reverts all overrides.
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        first = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={"values": {"FINSKILLOS_WORKER_INTERVAL_SECONDS": 111}},
+        ).json()
+        assert first["history"][0]["key"] == "FINSKILLOS_WORKER_INTERVAL_SECONDS"
+        assert first["history"][0]["oldValue"] is None
+        assert first["history"][0]["newValue"] == "111"
+
+        second = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={"values": {"FINSKILLOS_WORKER_INTERVAL_SECONDS": 222}},
+        ).json()
+        # Newest first: 111 → 222.
+        assert second["history"][0]["oldValue"] == "111"
+        assert second["history"][0]["newValue"] == "222"
+
+        # A no-op edit (same value) adds no history.
+        repeat = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={"values": {"FINSKILLOS_WORKER_INTERVAL_SECONDS": 222}},
+        ).json()
+        assert len(repeat["history"]) == 2
+
+        reset = _client().post("/api/system-ops/runtime-settings/reset").json()
+        assert reset["overrides"] == {}
+        assert reset["updatedAt"] is None  # no overrides remain
+        # Reset logged the revert (222 → null).
+        assert reset["history"][0]["newValue"] is None
+        assert reset["history"][0]["oldValue"] == "222"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_system_ops_runtime_settings_patch_rejects_invalid_key(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"

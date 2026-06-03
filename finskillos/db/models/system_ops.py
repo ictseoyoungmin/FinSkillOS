@@ -227,3 +227,29 @@ class SystemOpsSettings(Base):
         default="system",
         nullable=False,
     )
+
+
+class SystemOpsSettingsHistory(Base):
+    """One row per runtime-setting key change (Slice 149).
+
+    The overlay itself is a single document carrying only the latest values; this
+    table is the append-only change log: who changed which key from what to what,
+    and when. ``new_value=None`` means the key was reverted to its ``.env`` default.
+    """
+
+    __tablename__ = "system_ops_settings_history"
+    __table_args__ = (
+        Index("idx_system_ops_settings_history_created", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(), primary_key=True, default=uuid.uuid4)
+    setting_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    old_value: Mapped[str | None] = mapped_column(String(512))
+    new_value: Mapped[str | None] = mapped_column(String(512))
+    updated_by: Mapped[str] = mapped_column(String(32), default="system", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=_utcnow,
+        server_default=func.now(),
+        nullable=False,
+    )

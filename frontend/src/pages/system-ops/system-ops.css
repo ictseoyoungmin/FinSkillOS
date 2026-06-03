@@ -1102,3 +1102,71 @@
   color: var(--fso-text-muted);
   flex-basis: 100%;
 }
+
+/* Runtime settings change history + reset (Slice 149) */
+.fso-runtime-audit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fso-runtime-reset-all {
+  padding: 4px 12px;
+  border: 1px solid var(--fso-amber);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-amber) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.fso-runtime-reset-all:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-runtime-history {
+  margin-top: 16px;
+  border-top: 1px solid var(--fso-line-soft);
+  padding-top: 12px;
+}
+
+.fso-runtime-history h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--fso-text-muted);
+}
+
+.fso-runtime-history ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fso-runtime-history li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.fso-runtime-history code {
+  font-family: var(--fso-font-mono);
+  color: var(--fso-text);
+}
+
+.fso-runtime-history-change {
+  font-family: var(--fso-font-mono);
+  color: var(--fso-cyan-2);
+}
+
+.fso-runtime-history-meta {
+  color: var(--fso-text-muted-2);
+  margin-left: auto;
+}

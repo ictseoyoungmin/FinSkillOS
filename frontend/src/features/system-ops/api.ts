@@ -162,6 +162,27 @@ export async function updateRuntimeSettings(
   return (await response.json()) as SystemOpsRuntimeSettings;
 }
 
+/** Revert every runtime override back to its .env default. */
+export async function resetRuntimeSettings(
+  signal?: AbortSignal,
+): Promise<SystemOpsRuntimeSettings> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}/system-ops/runtime-settings/reset`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText} for ${url}`,
+    );
+  }
+  return (await response.json()) as SystemOpsRuntimeSettings;
+}
+
 function systemStatusFallback(): SystemStatusData {
   return {
     generatedAt: systemOpsFixture.generatedAt,

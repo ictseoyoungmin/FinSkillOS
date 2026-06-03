@@ -67,12 +67,21 @@ export interface SystemOpsData {
   source: "fixture" | "live";
 }
 
+export interface RuntimeSettingChange {
+  key: string;
+  oldValue: string | null;
+  newValue: string | null;
+  updatedBy: string;
+  changedAt: string | null;
+}
+
 export interface SystemOpsRuntimeSettings {
   values: Record<string, string>;
   overrides: Record<string, string>;
   capturedAt: string;
   updatedAt?: string | null;
   updatedBy?: string | null;
+  history?: RuntimeSettingChange[];
 }
 
 export interface ProtocolRunResult {

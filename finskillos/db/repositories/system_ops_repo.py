@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from finskillos.db.models import (
     SystemOpsProtocolRun,
     SystemOpsSettings,
+    SystemOpsSettingsHistory,
     WorkerControl,
     WorkerCycleRun,
     WorkerJob,
@@ -279,15 +280,43 @@ class SystemOpsSettingsRepository:
     def patch(self, values: dict[str, str], updated_by: str = "system") -> SystemOpsSettings:
         row = self.get_or_create()
         stored = dict(row.values or {})
+        changed = False
         for key, value in values.items():
             if not isinstance(key, str):
                 continue
-            if value is None:
+            old = stored.get(key)
+            new = None if value is None else str(value)
+            if old == new:
+                continue  # no-op edit → no history noise
+            self._record_history(key, old, new, updated_by)
+            if new is None:
                 stored.pop(key, None)
-                continue
-            stored[key] = str(value)
-        row.values = stored
-        row.updated_by = updated_by
-        row.updated_at = _utcnow()
+            else:
+                stored[key] = new
+            changed = True
+        if changed:
+            row.values = stored
+            row.updated_by = updated_by
+            row.updated_at = _utcnow()
         self.session.flush()
         return row
+
+    def _record_history(
+        self, key: str, old: str | None, new: str | None, updated_by: str
+    ) -> None:
+        self.session.add(
+            SystemOpsSettingsHistory(
+                setting_key=key,
+                old_value=old,
+                new_value=new,
+                updated_by=updated_by,
+            )
+        )
+
+    def list_history(self, limit: int = 20) -> list[SystemOpsSettingsHistory]:
+        stmt = (
+            select(SystemOpsSettingsHistory)
+            .order_by(SystemOpsSettingsHistory.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.session.scalars(stmt))

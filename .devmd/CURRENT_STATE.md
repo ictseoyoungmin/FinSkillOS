@@ -132,8 +132,9 @@ loop** (make queued/running/done/error/stale understandable + recoverable).
   retry of transient `MarketDataFetchError` with exponential backoff
   (`FINSKILLOS_MARKET_FETCH_RETRIES` / `_BACKOFF_SECONDS`); injectable sleep for
   offline tests. Implements the S7-flagged gap.
-- [ ] **149 Runtime Settings Change History** — full history + one-click revert
-  (S5 surfaced last-change only).
+- [x] **149 Runtime Settings Change History** (slice 149) — `system_ops_settings_history`
+  table (migration 0018), per-key change log in the GET response, a "Change history"
+  list + "Reset all to defaults" (`POST …/runtime-settings/reset`).
 - [ ] **150 Collection Control Operator Copy Polish** — continue S6.
 
 #### Later phases (see ROADMAP.md)

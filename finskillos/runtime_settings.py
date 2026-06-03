@@ -131,6 +131,42 @@ def _read_overlay_audit(
         return None, None
 
 
+def _read_overlay_history(
+    session: Session | None = None, *, limit: int = 20
+) -> list[dict[str, str | None]]:
+    """Recent runtime-setting changes (newest first), for the cockpit history list."""
+
+    def _extract(active_session: Session) -> list[dict[str, str | None]]:
+        from finskillos.db.repositories import SystemOpsSettingsRepository
+
+        rows = SystemOpsSettingsRepository(active_session).list_history(limit=limit)
+        return [
+            {
+                "key": row.setting_key,
+                "old_value": row.old_value,
+                "new_value": row.new_value,
+                "updated_by": row.updated_by,
+                "changed_at": row.created_at.isoformat() if row.created_at else None,
+            }
+            for row in rows
+        ]
+
+    if session is not None:
+        try:
+            return _extract(session)
+        except Exception:
+            return []
+    try:
+        from finskillos.db.session import session_scope
+
+        with session_scope() as nested_session:
+            if nested_session is None:
+                return []
+            return _extract(nested_session)
+    except Exception:
+        return []
+
+
 def read_runtime_value(
     name: str,
     *,
@@ -298,6 +334,7 @@ def runtime_overlay_meta(*, session: Session | None = None) -> dict[str, Any]:
         "captured_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
         "updated_at": updated_at,
         "updated_by": updated_by,
+        "history": _read_overlay_history(session),
     }
 
 
