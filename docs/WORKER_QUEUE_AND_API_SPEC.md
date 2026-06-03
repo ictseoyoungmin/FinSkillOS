@@ -43,8 +43,47 @@ Two modes:
   3. every `FINSKILLOS_WORKER_INTERVAL_SECONDS` (default 86400s) enqueue another
      `refresh_all` (dedup-safe).
 
-A failed cycle is logged and the loop continues; **nothing is written on
-failure**, so a provider/network error never corrupts or duplicates data.
+Each cycle runs **market → news → indicators → regime** inside one
+`session_scope()`; the commit happens only at the end, so a mid-cycle exception
+rolls back and **no partial data is written** (a provider/network error never
+corrupts or duplicates data). An audit row is always recorded — `DONE` with the
+cycle summary on success, or `ERROR` with the error type/message on failure.
+
+### Regime recompute (Slice 136)
+After the indicator step the cycle **recomputes and persists the market regime**
+(`RegimeService.evaluate_today_regime`), gated on
+`regime_enabled AND indicator_enabled` — so it runs for `refresh_all` and the
+`calculate_indicators` job, and is skipped after a market- or news-only job. This
+keeps the dashboard's headline regime consistent with the bars/indicators just
+refreshed; previously the regime only updated via the manual `recompute-regime`
+protocol and drifted stale. The summary carries a `regime` section
+(`status` / `regime` / `riskLevel` / `decisionMode` / `confidence`). Analysis
+Workspace also flags a regime `freshness=STALE` when a newer bar exists than the
+regime snapshot (Slice 137), as defense for when the worker is paused/down.
+
+### Folder-scoped refresh (Slice 134 / F3)
+A `refresh_all` job whose `payload.folder_id` is set collects **only that folder's
+members** (subject to the folder's active state + per-type flags) — the base
+universe is not unioned. `drain_queue` reads `folder_id` and scopes the cycle's
+ticker sets; the cycle audit scope reads `collection:<type>:folder=<id>`.
+
+### Failure handling & recovery
+- **No automatic per-job retry.** A failed job is terminal (`status=ERROR`,
+  `error` text recorded). Recovery is either the next interval enqueue (dedup
+  permits it because `ERROR` is not an *active* status) or a manual System Ops
+  re-click. There is no exponential-backoff retry loop today — a persistently
+  failing provider produces one `ERROR` job per cadence, visible in Worker Status.
+- **Partial provider results do not fail the cycle.** Per-ticker fetch failures
+  are captured as counts in the cycle summary (`market.failed` /
+  `indicators.failed`) and leave the cycle `OK` with partial coverage; only a
+  structural failure (unknown adapter, total fetch failure) raises and marks the
+  job `ERROR`. The affected tabs then read `PARTIAL`/`MISSING` coverage honestly
+  (see §7), rather than showing stale-as-fresh data.
+- **Provider failure modes** (yahoo/yfinance default): rate-limit, network error,
+  unsupported symbol, partial fetch, and non-trading-day/holiday gaps all surface
+  as reduced succeeded/failed counts + coverage state, not as crashes. Retry/
+  backoff and per-provider circuit-breaking are **not yet implemented** — tracked
+  in the stabilization backlog (S7).
 
 ### Live-mode toggle (Slice 117)
 The cockpit can pause/resume the worker's **automatic** refresh at runtime via a
@@ -135,6 +174,7 @@ job execution:
 | `FINSKILLOS_WORKER_POLL_SECONDS` | `5` | queue drain interval |
 | `FINSKILLOS_WORKER_RUN_ON_START` | `1` | enqueue a refresh on start |
 | `FINSKILLOS_WORKER_{MARKET,NEWS,INDICATOR}_ENABLED` | `1` | per-section toggles |
+| `FINSKILLOS_WORKER_REGIME_ENABLED` | `1` | recompute the regime after indicators (Slice 136); gated also on indicators being enabled |
 | `FINSKILLOS_MARKET_REFRESH_TICKERS` / `…_INDICATOR_REFRESH_TICKERS` | full 22-ticker cockpit universe | refresh scope — superset of the Analysis index universe so no tab stays MISSING (Slice 116). A present `.env` overrides this. |
 | `FINSKILLOS_REFRESH_FOLDER_NAMES` | *(empty)* | folder list for scoped watchlist refresh policy (`all_active` if empty) |
 | `FINSKILLOS_EVENT_CALENDAR_ADAPTER` | `mock` | `mock` / `csv` / `http` (+ `…_CSV` / `…_URL`) |
@@ -180,3 +220,12 @@ remove them to make the tabs show MISSING until real data exists.
   **115** reachable-empty → live(-empty) guard + sample-data cleanup; **116**
   refresh universe broadened to the full cockpit universe (no MISSING tabs);
   **117** worker live-mode on/off toggle (`worker_control`).
+- **126** runtime settings DB overlay (System Ops editable, per-job payload);
+  **127–131** folder-driven collection control (System folder seed, per-type
+  collection sets, `/api/system-ops/collection-control`, Ops tab, coverage);
+  **134** per-folder scoped refresh (`payload.folder_id`); **136** worker
+  recomputes regime each cycle (`FINSKILLOS_WORKER_REGIME_ENABLED`); **137**
+  regime staleness surfacing; **141** per-folder refresh-scope copy.
+- **S7 (this update)** documented failure handling & recovery (no auto-retry;
+  partial results don't fail the cycle), provider failure modes, the regime
+  recompute coupling, and folder-scoped refresh.

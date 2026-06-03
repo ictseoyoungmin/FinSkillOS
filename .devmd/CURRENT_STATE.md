@@ -520,9 +520,11 @@ regression-prevention over new features for now**. Detail + rationale:
 - [x] **S6 collection-control refresh-semantics copy** (slice 141) — "Refresh now"
   success notice + tooltip now state it collects this folder's symbols only (not
   the global universe; excludes disabled types / inactive folders).
-- [ ] **S7 worker / job-queue failure-recovery docs** — extend
-  `docs/WORKER_QUEUE_AND_API_SPEC.md` with provider-failure UX, retry/backoff, job
-  failure recovery, and the regime-recompute coupling (slice 136).
+- [x] **S7 worker / job-queue failure-recovery docs** (slice 142) — extended
+  `docs/WORKER_QUEUE_AND_API_SPEC.md`: failure handling & recovery (no auto-retry,
+  ERROR is terminal/re-enqueueable, partial provider results don't fail the cycle),
+  provider failure modes, the regime-recompute coupling (136) + folder-scoped
+  refresh (134) + `FINSKILLOS_WORKER_REGIME_ENABLED`. (Retry/backoff still TODO.)
 
 ### AW — Analysis Workspace Audit (2026-06-03) — CLOSED (135/136/137)
 Findings from a live Analysis Workspace review (PANIC regime contradicting a
