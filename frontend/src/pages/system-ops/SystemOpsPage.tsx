@@ -13,6 +13,7 @@ import {
 import { CollectionControlPanel } from "@/features/collection-control/components/CollectionControlPanel";
 import { DataInvariantPanel } from "@/features/system-ops/components/DataInvariantPanel";
 import { DataProvenancePanel } from "@/features/system-ops/components/DataProvenancePanel";
+import { FeedCoveragePanel } from "@/features/system-ops/components/FeedCoveragePanel";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
 import { ProtocolCardItem } from "@/features/system-ops/components/ProtocolCardItem";
 import { deriveProtocolEvidence } from "@/features/system-ops/detailEvidence";
@@ -1113,6 +1114,8 @@ function WorkerStatusDashboard({
         <DataProvenancePanel />
 
         <DataInvariantPanel />
+
+        <FeedCoveragePanel />
 
         <Panel
           title="Job Queue"

@@ -14,7 +14,7 @@ from collections.abc import Iterable, Sequence
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from finskillos.db.models import Event, EventLink
@@ -129,6 +129,24 @@ class EventRepository:
         if limit is not None:
             stmt = stmt.limit(limit)
         return list(self.session.scalars(stmt))
+
+    def count(self) -> int:
+        return int(self.session.scalar(select(func.count(Event.id))) or 0)
+
+    def count_upcoming(self, *, today: date) -> int:
+        cond = or_(Event.start_date >= today, Event.end_date >= today)
+        return int(self.session.scalar(select(func.count(Event.id)).where(cond)) or 0)
+
+    def latest_start_date(self) -> date | None:
+        return self.session.scalar(select(func.max(Event.start_date)))
+
+    def source_counts(self) -> dict[str, int]:
+        stmt = select(Event.source, func.count()).group_by(Event.source)
+        return {(s or "unknown"): int(c) for s, c in self.session.execute(stmt)}
+
+    def date_status_counts(self) -> dict[str, int]:
+        stmt = select(Event.date_status, func.count()).group_by(Event.date_status)
+        return {(s or "unknown"): int(c) for s, c in self.session.execute(stmt)}
 
     def list_upcoming(
         self,

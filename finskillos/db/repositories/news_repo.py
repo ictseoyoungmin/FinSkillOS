@@ -14,7 +14,7 @@ from collections.abc import Iterable, Sequence
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from finskillos.db.models import NewsArticle, NewsImpact
@@ -77,6 +77,22 @@ class NewsArticleRepository:
             .limit(limit)
         )
         return list(self.session.scalars(stmt))
+
+    def count(self) -> int:
+        return int(self.session.scalar(select(func.count(NewsArticle.id))) or 0)
+
+    def count_since(self, since: datetime) -> int:
+        stmt = select(func.count(NewsArticle.id)).where(
+            NewsArticle.published_at >= since
+        )
+        return int(self.session.scalar(stmt) or 0)
+
+    def latest_published_at(self) -> datetime | None:
+        return self.session.scalar(select(func.max(NewsArticle.published_at)))
+
+    def source_counts(self) -> dict[str, int]:
+        stmt = select(NewsArticle.source, func.count()).group_by(NewsArticle.source)
+        return {(s or "unknown"): int(c) for s, c in self.session.execute(stmt)}
 
     def list_by_date_range(
         self,

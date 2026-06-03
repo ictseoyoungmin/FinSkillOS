@@ -10,6 +10,7 @@ import type {
   SystemStatusData,
   DataInvariantReport,
   DataProvenanceReport,
+  FeedCoverageReport,
   WorkerLiveModeResult,
   WorkerStatusSummary,
 } from "./types";
@@ -120,6 +121,16 @@ export async function retryWorkerJob(
     );
   }
   return (await response.json()) as WorkerStatusSummary;
+}
+
+/** Read news + event feed coverage diagnostics. */
+export async function fetchFeedCoverage(
+  signal?: AbortSignal,
+): Promise<FeedCoverageReport> {
+  return await getJson<FeedCoverageReport>(
+    `${apiEndpoints.systemOps}/feed-coverage`,
+    { signal },
+  );
 }
 
 /** Read the stored-data invariant audit (orphan indicator snapshots, etc.). */

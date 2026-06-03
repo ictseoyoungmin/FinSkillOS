@@ -134,6 +134,38 @@ class WorkerJobRow(CamelModel):
     retryable: bool = False  # terminal (DONE/ERROR) → can re-enqueue
 
 
+class FeedSourceCount(CamelModel):
+    source: str
+    count: int = 0
+
+
+class NewsCoverage(CamelModel):
+    total_articles: int = 0
+    latest_published_at: str | None = None
+    recent_articles: int = 0  # published within the last 7 days
+    freshness_status: Literal["FRESH", "STALE", "EMPTY"] = "EMPTY"
+    sources: list[FeedSourceCount] = Field(default_factory=list)
+
+
+class EventCoverage(CamelModel):
+    total_events: int = 0
+    upcoming_events: int = 0
+    latest_event_date: str | None = None
+    sources: list[FeedSourceCount] = Field(default_factory=list)
+    date_status: list[FeedSourceCount] = Field(default_factory=list)
+
+
+class FeedCoverageReport(CamelModel):
+    """News + event feed coverage diagnostics (Slice 154)."""
+
+    generated_at: str
+    system_status: SystemStatus
+    source: Literal["fixture", "live"] = "fixture"
+    news: NewsCoverage = Field(default_factory=NewsCoverage)
+    events: EventCoverage = Field(default_factory=EventCoverage)
+    detail: str = ""
+
+
 class InvariantViolation(CamelModel):
     ticker: str
     timeframe: str

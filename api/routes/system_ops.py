@@ -42,7 +42,11 @@ from api.schemas.system_ops import (
     DataInvariantReport,
     DataProvenanceReport,
     DataSourcePill,
+    EventCoverage,
+    FeedCoverageReport,
+    FeedSourceCount,
     InvariantViolation,
+    NewsCoverage,
     ProtocolDetailEvidence,
     ProtocolKey,
     ProtocolRunRecord,
@@ -413,6 +417,75 @@ def update_system_ops_runtime_settings(
 
 
 _SYNTHETIC_SOURCES = {"mock", "test"}
+
+
+@router.get(
+    "/system-ops/feed-coverage",
+    response_model=FeedCoverageReport,
+    summary="News + event feed coverage diagnostics (counts, freshness, sources).",
+)
+def feed_coverage() -> FeedCoverageReport:
+    with get_session_scope() as session:
+        if session is None:
+            return FeedCoverageReport(
+                generated_at=_now_iso(),
+                system_status=SystemStatus(db="UNAVAILABLE", mode="READ_MODE"),
+                source="fixture",
+                detail="Database unavailable; feed coverage cannot be read.",
+            )
+        from finskillos.db.repositories import (
+            EventRepository,
+            NewsArticleRepository,
+        )
+
+        now = datetime.now(tz=UTC)
+        news_repo = NewsArticleRepository(session)
+        latest_news = news_repo.latest_published_at()
+        total_articles = news_repo.count()
+        if total_articles == 0:
+            news_freshness = "EMPTY"
+        elif latest_news and (now - _as_utc(latest_news)).days <= 3:
+            news_freshness = "FRESH"
+        else:
+            news_freshness = "STALE"
+        news = NewsCoverage(
+            total_articles=total_articles,
+            latest_published_at=latest_news.isoformat() if latest_news else None,
+            recent_articles=news_repo.count_since(now - timedelta(days=7)),
+            freshness_status=news_freshness,
+            sources=_feed_source_counts(news_repo.source_counts()),
+        )
+
+        event_repo = EventRepository(session)
+        latest_event = event_repo.latest_start_date()
+        events = EventCoverage(
+            total_events=event_repo.count(),
+            upcoming_events=event_repo.count_upcoming(today=now.date()),
+            latest_event_date=latest_event.isoformat() if latest_event else None,
+            sources=_feed_source_counts(event_repo.source_counts()),
+            date_status=_feed_source_counts(event_repo.date_status_counts()),
+        )
+
+        detail = (
+            f"News: {news.total_articles} stored ({news.freshness_status.lower()}, "
+            f"{news.recent_articles} in 7d). Events: {events.total_events} stored, "
+            f"{events.upcoming_events} upcoming."
+        )
+        return FeedCoverageReport(
+            generated_at=_now_iso(),
+            system_status=SystemStatus(db="LIVE", mode="READ_MODE"),
+            source="live",
+            news=news,
+            events=events,
+            detail=detail,
+        )
+
+
+def _feed_source_counts(counts: dict[str, int]) -> list[FeedSourceCount]:
+    return [
+        FeedSourceCount(source=src, count=count)
+        for src, count in sorted(counts.items(), key=lambda item: item[1], reverse=True)
+    ]
 
 
 @router.get(

@@ -1270,3 +1270,46 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Feed coverage (Slice 154) */
+.fso-feed-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.fso-feed-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: var(--fso-radius-sm);
+  background: var(--fso-bg-2);
+}
+
+.fso-feed-block-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-feed-stat {
+  font-family: var(--fso-font-mono);
+  font-size: 13px;
+  color: var(--fso-text);
+}
+
+.fso-feed-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.fso-feed-source {
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}

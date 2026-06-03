@@ -134,6 +134,35 @@ export interface WorkerJobRow {
   retryable: boolean;
 }
 
+export interface FeedSourceCount {
+  source: string;
+  count: number;
+}
+
+export interface NewsCoverage {
+  totalArticles: number;
+  latestPublishedAt: string | null;
+  recentArticles: number;
+  freshnessStatus: "FRESH" | "STALE" | "EMPTY";
+  sources: FeedSourceCount[];
+}
+
+export interface EventCoverage {
+  totalEvents: number;
+  upcomingEvents: number;
+  latestEventDate: string | null;
+  sources: FeedSourceCount[];
+  dateStatus: FeedSourceCount[];
+}
+
+export interface FeedCoverageReport {
+  generatedAt: string;
+  source: "fixture" | "live";
+  news: NewsCoverage;
+  events: EventCoverage;
+  detail: string;
+}
+
 export interface InvariantViolation {
   ticker: string;
   timeframe: string;

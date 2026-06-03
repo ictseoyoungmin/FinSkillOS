@@ -153,8 +153,10 @@ data repair/quarantine).
 - [x] **153 Indicator / Bar Invariant Dashboard** (slice 153) — `GET …/data-invariants`
   audits orphan indicator snapshots (no backing bar, the slice-102 invariant) + a
   "Data Invariants" panel. Repo orphan NOT EXISTS query.
-- [ ] **154 News / Event Feed Coverage Diagnostics**.
-- [ ] **155 Data Repair / Quarantine Protocols**.
+- [x] **154 News / Event Feed Coverage Diagnostics** (slice 154) — `GET …/feed-coverage`
+  (news + event counts / freshness / sources) + a "Feed Coverage" panel.
+- [ ] **155 Data Repair / Quarantine Protocols** — ⚠️ **data-mutating**; scope (synthetic
+  bars / orphan snapshots), dry-run + confirm policy agreed with operator before building.
 
 #### Later phases (see ROADMAP.md)
 Phase 3 portfolio/journal input · Phase 4 interpretation engine · Phase 5 packaging

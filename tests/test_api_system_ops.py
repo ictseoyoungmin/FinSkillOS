@@ -692,6 +692,60 @@ def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_feed_coverage_reports_news_and_events(monkeypatch, tmp_path) -> None:
+    # Slice 154: feed coverage rolls up news + event counts / freshness / sources.
+    from datetime import datetime, timedelta, timezone
+    from decimal import Decimal
+
+    from finskillos.db.repositories import NewsArticleRepository
+    from finskillos.services.event_service import EventInput, EventService
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime.now(tz=timezone.utc)
+    with factory() as session:
+        news = NewsArticleRepository(session)
+        news.upsert_article(
+            title="Recent headline", source="MockWire",
+            url="https://x/1", published_at=now - timedelta(days=1), summary="s",
+        )
+        news.upsert_article(
+            title="Older headline", source="MockWire",
+            url="https://x/2", published_at=now - timedelta(days=30), summary="s",
+        )
+        EventService(session).create_event(
+            EventInput(
+                title="Upcoming event", event_type="EARNINGS",
+                date_status="TENTATIVE",
+                start_date=(now + timedelta(days=5)).date(),
+                source="company_calendar", importance_score=Decimal("3.0"),
+            )
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops/feed-coverage").json()
+        assert body["source"] == "live"
+        assert body["news"]["totalArticles"] == 2
+        assert body["news"]["recentArticles"] == 1
+        assert body["news"]["freshnessStatus"] == "FRESH"  # latest is 1 day old
+        assert body["news"]["sources"][0]["source"] == "MockWire"
+        assert body["events"]["totalEvents"] == 1
+        assert body["events"]["upcomingEvents"] == 1
+        assert any(d["source"] == "TENTATIVE" for d in body["events"]["dateStatus"])
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_data_invariants_flag_orphan_indicator_snapshots(monkeypatch, tmp_path) -> None:
     # Slice 153: a snapshot without a backing market bar is an invariant violation.
     from datetime import datetime, timezone
