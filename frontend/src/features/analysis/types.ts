@@ -47,6 +47,7 @@ export interface RegimeContext {
   riskFactors: string[];
   watchNext: string[];
   snapshotTime: string | null;
+  freshness?: "FRESH" | "STALE" | "UNKNOWN";
 }
 
 export interface AnalysisWorkspaceSystemStatus {

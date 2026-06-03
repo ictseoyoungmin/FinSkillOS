@@ -61,6 +61,9 @@ class RegimeContext(CamelModel):
     risk_factors: list[str] = Field(default_factory=list)
     watch_next: list[str] = Field(default_factory=list)
     snapshot_time: str | None = None
+    # AW-3: STALE when a newer market bar exists than the regime was computed from,
+    # so the card can flag a regime that no longer reflects the visible tape.
+    freshness: Literal["FRESH", "STALE", "UNKNOWN"] = "UNKNOWN"
 
 
 class AnalysisWorkspaceDataState(CamelModel):

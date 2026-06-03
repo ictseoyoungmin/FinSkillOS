@@ -214,6 +214,46 @@ def test_analysis_workspace_promotes_stored_bars_and_indicators(
     assert body["regime"]["regime"] == "RISK_ON_OVERHEAT"
     # Stored 0–100 confidence is passed through unchanged (not rescaled).
     assert float(body["regime"]["confidence"]) == 82.0
+    # Regime computed at the same time as the latest bar → FRESH (AW-3).
+    assert body["regime"]["freshness"] == "FRESH"
+
+
+def test_analysis_workspace_marks_regime_stale_when_newer_bar_exists(
+    db_session: Session,
+    monkeypatch,
+) -> None:
+    regime_ts = datetime(2026, 5, 28, 14, 0, tzinfo=UTC)
+    newer_bar_ts = datetime(2026, 5, 29, 14, 0, tzinfo=UTC)
+    # A bar arrived AFTER the regime was last computed.
+    _seed_bar(db_session, "QQQ", close=Decimal("560"), ts=newer_bar_ts)
+    _seed_indicator(
+        db_session,
+        "QQQ",
+        ts=newer_bar_ts,
+        trend_state="BULLISH",
+        rsi_14=Decimal("58"),
+        momentum_score=Decimal("12"),
+    )
+    MarketRegimeRepository(db_session).record(
+        snapshot_time=regime_ts,
+        output=RegimeOutput(
+            regime="RISK_ON_OVERHEAT",
+            confidence=Decimal("82"),
+            decision_mode="HOLD_WINNERS",
+            risk_level="YELLOW",
+            summary="Stored regime context describes elevated breadth risk.",
+            what_happened="Leadership remained concentrated in growth indexes.",
+            what_it_means="Review breadth before changing posture.",
+            watch_next=("Breadth expansion",),
+            evidence={"qqq_rsi_14": Decimal("58")},
+            positive_factors=("QQQ trend state is constructive.",),
+            risk_factors=("Sector breadth remains narrow.",),
+        ),
+    )
+    _patch_session_scope(monkeypatch, db_session)
+
+    body = analysis_workspace(use_fixture=False).model_dump(by_alias=True)
+    assert body["regime"]["freshness"] == "STALE"
 
 
 def _patch_session_scope(monkeypatch, db_session: Session) -> None:

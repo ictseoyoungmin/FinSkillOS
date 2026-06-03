@@ -183,6 +183,7 @@ export const analysisWorkspaceFixture: AnalysisWorkspaceData = {
       "Track event-cluster impact across the next 7 sessions.",
     ],
     snapshotTime: "2026-05-19T00:00:00+00:00",
+    freshness: "FRESH",
   },
   setupHint: null,
   safetyCaption: "Structural breadth read (not allocation call).",

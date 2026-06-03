@@ -132,7 +132,12 @@ def _live_response(vm: IndexLabViewModel) -> AnalysisWorkspaceResponse:
                 else "Stored universe coverage is complete for the current read model."
             ),
         ),
-        judgment=_judgment(universe_status, ok_count=ok_count, missing_count=missing_count),
+        judgment=_judgment(
+            universe_status,
+            ok_count=ok_count,
+            partial_count=partial_count,
+            missing_count=missing_count,
+        ),
         drivers=drivers(
             (
                 str(ok_count),
@@ -223,7 +228,19 @@ def _regime_context(vm: IndexLabViewModel) -> RegimeContext:
         snapshot_time=vm.regime.snapshot_time.isoformat()
         if vm.regime.snapshot_time
         else None,
+        freshness=_regime_freshness(vm),
     )
+
+
+def _regime_freshness(vm: IndexLabViewModel) -> str:
+    """STALE when a newer market bar exists than the regime was computed from."""
+    if vm.regime is None or vm.regime.snapshot_time is None:
+        return "UNKNOWN"
+    bar_times = [row.latest_time for row in vm.universe if row.latest_time is not None]
+    if not bar_times:
+        return "UNKNOWN"
+    latest_bar = max(_as_utc(value) for value in bar_times)
+    return "STALE" if latest_bar > _as_utc(vm.regime.snapshot_time) else "FRESH"
 
 
 def _universe_status(
@@ -306,6 +323,7 @@ def _judgment(
     universe_status: str,
     *,
     ok_count: int,
+    partial_count: int,
     missing_count: int,
 ):
     if universe_status == DATA_STATUS_OK:
@@ -317,11 +335,23 @@ def _judgment(
             76,
         )
     if universe_status == DATA_STATUS_PARTIAL:
+        # Distinguish complete / bar-only / missing so "Partial" stays coherent
+        # (a bar-without-indicators row is neither "complete" nor "missing").
+        if partial_count:
+            detail = (
+                f"{ok_count} rows are complete, {partial_count} have bars but no "
+                f"indicators, and {missing_count} are missing stored data."
+            )
+        else:
+            detail = (
+                f"{ok_count} rows are complete while {missing_count} rows still "
+                "need stored data."
+            )
         return judgment(
             "MARKET STRUCTURE JUDGMENT",
             "Live Breadth",
             "Partial",
-            f"{ok_count} rows are complete while {missing_count} rows still need stored data.",
+            detail,
             58,
         )
     return judgment(

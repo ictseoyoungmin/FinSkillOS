@@ -27,6 +27,10 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
   // Regime confidence is already a 0–100 score from the engine
   // (CONFIDENCE_FULL=100), matching the Control Room consumer — render as-is.
   const confidencePct = toNumber(regime.confidence).toFixed(0);
+  const isStale = regime.freshness === "STALE";
+  const snapshotLabel = regime.snapshotTime
+    ? new Date(regime.snapshotTime).toLocaleString()
+    : null;
 
   return (
     <Panel
@@ -39,7 +43,23 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
         <Badge tone="info">{regime.decisionMode}</Badge>
         <Badge tone="warning">{`Risk · ${regime.riskLevel}`}</Badge>
         <Badge tone="neutral">{`Confidence · ${confidencePct}%`}</Badge>
+        {isStale ? (
+          <Badge tone="warning" testId="regime-stale">
+            Stale · newer bars exist
+          </Badge>
+        ) : null}
       </div>
+      {snapshotLabel ? (
+        <p
+          className="fso-regime-snapshot"
+          data-stale={isStale ? "true" : "false"}
+          data-testid="regime-snapshot-time"
+        >
+          {isStale
+            ? `Computed ${snapshotLabel} — run a refresh to recompute against the latest bars.`
+            : `Computed ${snapshotLabel}.`}
+        </p>
+      ) : null}
       <p className="fso-regime-summary">{regime.summary}</p>
       <details className="fso-regime-details">
         <summary>Context details</summary>

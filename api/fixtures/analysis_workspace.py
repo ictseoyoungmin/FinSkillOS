@@ -384,6 +384,7 @@ def _regime_context() -> RegimeContext:
             "Track event-cluster impact across the next 7 sessions.",
         ],
         snapshot_time="2026-05-19T00:00:00+00:00",
+        freshness="FRESH",
     )
 
 

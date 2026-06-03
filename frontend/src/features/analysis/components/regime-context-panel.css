@@ -83,3 +83,13 @@
   left: 0;
   color: var(--fso-text-faint);
 }
+
+.fso-regime-snapshot {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--fso-text-muted, #8a8f98);
+}
+
+.fso-regime-snapshot[data-stale="true"] {
+  color: var(--fso-amber, #d8a200);
+}

@@ -145,6 +145,7 @@ const TSLA: SymbolLabData = {
     riskFactors: ["RSI elevation across leadership groups."],
     watchNext: ["Monitor leadership-rotation signals if RSI cools."],
     snapshotTime: "2026-05-19T00:00:00+00:00",
+    freshness: "FRESH",
   },
   watchpoints: [
     "Trend state is weak bullish; tape support remains intact.",
