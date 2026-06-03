@@ -514,9 +514,11 @@ regression-prevention over new features for now**. Detail + rationale:
   active queue + next actions) + a separate `COMPLETED_SLICES.md` history; point to
   `docs/` for state-vocabulary / worker-API contracts instead of re-describing.
   (This file is ~630 lines and doubles as dashboard + log.)
-- [ ] **S5 runtime-settings change audit / rollback UX** — surface who/when/what
-  changed a runtime setting (overlay persists across restarts); keep allow-list +
-  typed validation strict.
+- [x] **S5 runtime-settings change audit** (slice 143) — surfaced the overlay's
+  `updatedAt` / `updatedBy` in GET + a "last changed … by …" line in the Ops tab
+  (was stored but hidden). Confirmed allow-list/typed validation stays strict and
+  per-key revert-to-default already exists (`patch value=None`). Full per-change
+  history + one-click revert UI scoped out as a follow-up.
 - [x] **S6 collection-control refresh-semantics copy** (slice 141) — "Refresh now"
   success notice + tooltip now state it collects this folder's symbols only (not
   the global universe; excludes disabled types / inactive folders).

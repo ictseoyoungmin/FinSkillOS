@@ -564,6 +564,9 @@ export function SystemOpsPage() {
           onReset={resetRuntimeSettings}
           onSave={saveRuntimeSettings}
           saveError={runtimeMutation.error?.message ?? null}
+          updatedAt={runtimeSettings.updatedAt ?? null}
+          updatedBy={runtimeSettings.updatedBy ?? null}
+          overrideCount={Object.keys(runtimeSettings.overrides ?? {}).length}
         />
       ) : (
         <WorkerStatusDashboard workerStatus={payload.workerStatus} />
@@ -584,6 +587,9 @@ function RuntimeSettingsDashboard({
   onReset,
   onSave,
   saveError,
+  updatedAt,
+  updatedBy,
+  overrideCount,
 }: {
   draft: Record<string, string>;
   sections: Record<string, RuntimeSettingField[]>;
@@ -596,8 +602,15 @@ function RuntimeSettingsDashboard({
   onReset: () => void;
   onSave: () => void;
   saveError: string | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  overrideCount: number;
 }) {
   const orderedSections = Object.entries(sections);
+  const lastChangedLabel =
+    overrideCount > 0 && updatedAt
+      ? `${overrideCount} override${overrideCount === 1 ? "" : "s"} active · last changed ${new Date(updatedAt).toLocaleString()}${updatedBy ? ` by ${updatedBy}` : ""}`
+      : "No overrides — all settings use .env defaults.";
 
   return (
     <Panel
@@ -606,6 +619,13 @@ function RuntimeSettingsDashboard({
       badgeTone="info"
       testId="system-ops-runtime-settings"
     >
+      <p
+        className="fso-runtime-audit"
+        data-testid="system-ops-runtime-audit"
+        data-has-overrides={overrideCount > 0 ? "true" : "false"}
+      >
+        {lastChangedLabel}
+      </p>
       <div className="fso-runtime-settings">
         {orderedSections.map(([section, fields]) => (
           <section className="fso-runtime-section" key={section}>

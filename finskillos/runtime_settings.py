@@ -94,6 +94,41 @@ def _read_overrides(session: Session | None = None) -> dict[str, str]:
         return {}
 
 
+def _read_overlay_audit(
+    session: Session | None = None,
+) -> tuple[str | None, str | None]:
+    """Return (updated_at_iso, updated_by) of the DB overlay row, or (None, None).
+
+    Surfaces who/when last changed the runtime overlay so the cockpit can show it
+    (the row is a single document; this is last-change metadata, not per-key
+    history)."""
+
+    def _extract(active_session: Session) -> tuple[str | None, str | None]:
+        from finskillos.db.repositories import SystemOpsSettingsRepository
+
+        row = SystemOpsSettingsRepository(active_session).get()
+        if not row.values:
+            # No overrides stored → nothing has been changed from env defaults.
+            return None, None
+        updated_at = row.updated_at.isoformat() if row.updated_at else None
+        return updated_at, row.updated_by
+
+    if session is not None:
+        try:
+            return _extract(session)
+        except Exception:
+            return None, None
+    try:
+        from finskillos.db.session import session_scope
+
+        with session_scope() as nested_session:
+            if nested_session is None:
+                return None, None
+            return _extract(nested_session)
+    except Exception:
+        return None, None
+
+
 def read_runtime_value(
     name: str,
     *,
@@ -253,11 +288,14 @@ def runtime_overlay_meta(*, session: Session | None = None) -> dict[str, Any]:
 
     overrides = _read_overrides(session)
     values = runtime_settings_snapshot(session=session)
+    updated_at, updated_by = _read_overlay_audit(session)
 
     return {
         "values": values,
         "overrides": overrides,
         "captured_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
+        "updated_at": updated_at,
+        "updated_by": updated_by,
     }
 
 

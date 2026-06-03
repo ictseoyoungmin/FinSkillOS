@@ -148,6 +148,9 @@ class SystemOpsRuntimeSettings(CamelModel):
     values: dict[str, str] = Field(default_factory=dict)
     overrides: dict[str, str] = Field(default_factory=dict)
     captured_at: str = ""
+    # Last-change audit of the DB overlay (who/when); null when nothing is overridden.
+    updated_at: str | None = None
+    updated_by: str | None = None
 
 
 class SystemOpsRuntimeSettingsPatch(CamelModel):

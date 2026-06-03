@@ -200,6 +200,38 @@ def test_system_ops_runtime_settings_patch_persists_to_db(monkeypatch, tmp_path)
         engine.dispose()
 
 
+def test_runtime_settings_surface_change_audit(monkeypatch, tmp_path) -> None:
+    # S5: the overlay's who/when must be visible. Empty overlay → null audit;
+    # after a PATCH → updatedAt + updatedBy populated on both PATCH and GET.
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        before = _client().get("/api/system-ops/runtime-settings").json()
+        assert before["updatedAt"] is None
+        assert before["updatedBy"] is None
+
+        patched = _client().patch(
+            "/api/system-ops/runtime-settings",
+            json={"values": {"FINSKILLOS_WORKER_INTERVAL_SECONDS": 222}},
+        ).json()
+        assert patched["updatedAt"]
+        assert patched["updatedBy"]
+
+        after = _client().get("/api/system-ops/runtime-settings").json()
+        assert after["updatedAt"] == patched["updatedAt"]
+        assert after["updatedBy"] == patched["updatedBy"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_system_ops_runtime_settings_patch_rejects_invalid_key(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"

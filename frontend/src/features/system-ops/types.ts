@@ -71,6 +71,8 @@ export interface SystemOpsRuntimeSettings {
   values: Record<string, string>;
   overrides: Record<string, string>;
   capturedAt: string;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
 }
 
 export interface ProtocolRunResult {
