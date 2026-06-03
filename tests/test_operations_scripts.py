@@ -255,6 +255,89 @@ def test_refresh_worker_once_ingests_configured_news_feed(tmp_path) -> None:
         engine.dispose()
 
 
+def test_refresh_worker_once_recomputes_regime(tmp_path) -> None:
+    # AW-2: a market+indicator cycle must also recompute and persist the regime,
+    # so the dashboard's headline regime stays consistent with the fresh bars
+    # (previously only the manual System Ops protocol updated it).
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    try:
+        result = subprocess.run(
+            ["python3", str(ROOT / "scripts" / "refresh_worker.py"), "--once"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "DATABASE_URL": database_url,
+                "FINSKILLOS_SKIP_DOTENV": "1",
+                "FINSKILLOS_MARKET_REFRESH_ADAPTER": "mock",
+                "FINSKILLOS_WORKER_MARKET_ENABLED": "1",
+                "FINSKILLOS_WORKER_NEWS_ENABLED": "0",
+                "FINSKILLOS_WORKER_INDICATOR_ENABLED": "1",
+            },
+        )
+        assert result.returncode == 0, result.stderr
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            from finskillos.db.repositories import MarketRegimeRepository
+
+            cycles = WorkerCycleRunRepository(session).list_recent()
+            assert len(cycles) == 1
+            assert cycles[0].status == "OK"
+            regime_section = cycles[0].summary["regime"]
+            assert regime_section["enabled"] is True
+            assert regime_section["status"] == "OK"
+            # A regime snapshot was actually persisted by the cycle.
+            assert MarketRegimeRepository(session).latest() is not None
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_refresh_worker_regime_skipped_when_indicators_disabled(tmp_path) -> None:
+    # Regime follows indicators: a market-only cycle must not recompute it.
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+
+    try:
+        result = subprocess.run(
+            ["python3", str(ROOT / "scripts" / "refresh_worker.py"), "--once"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "DATABASE_URL": database_url,
+                "FINSKILLOS_SKIP_DOTENV": "1",
+                "FINSKILLOS_MARKET_REFRESH_ADAPTER": "mock",
+                "FINSKILLOS_WORKER_MARKET_ENABLED": "1",
+                "FINSKILLOS_WORKER_NEWS_ENABLED": "0",
+                "FINSKILLOS_WORKER_INDICATOR_ENABLED": "0",
+            },
+        )
+        assert result.returncode == 0, result.stderr
+
+        factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        with factory() as session:
+            from finskillos.db.repositories import MarketRegimeRepository
+
+            cycles = WorkerCycleRunRepository(session).list_recent()
+            assert cycles[0].summary["regime"]["status"] == "SKIPPED"
+            assert MarketRegimeRepository(session).latest() is None
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_refresh_worker_once_records_error_cycle_on_failure(tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"

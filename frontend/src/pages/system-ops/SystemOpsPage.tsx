@@ -106,6 +106,13 @@ const RUNTIME_SETTING_FIELDS: RuntimeSettingField[] = [
     hint: "Allow descriptive indicator computation during worker jobs.",
   },
   {
+    key: "FINSKILLOS_WORKER_REGIME_ENABLED",
+    label: "Regime recompute enabled",
+    section: "Worker",
+    type: "boolean",
+    hint: "Recompute the market regime after indicators so it stays fresh.",
+  },
+  {
     key: "FINSKILLOS_WORKER_PERSIST_INDICATOR_HISTORY",
     label: "Keep indicator snapshots",
     section: "Worker",

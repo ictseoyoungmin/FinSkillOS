@@ -85,6 +85,9 @@ class WorkerConfig:
     runtime_overrides: Mapping[str, str] | None = None
     # F3: when set, the cycle collects only this folder's members (scoped refresh).
     refresh_folder_id: str | None = None
+    # AW-2: recompute the market regime at the end of the cycle so the dashboard's
+    # headline regime stays consistent with the bars/indicators just refreshed.
+    regime_enabled: bool = True
 
 
 def _resolve_tickers(
@@ -173,6 +176,11 @@ def load_config(
             default=False,
             runtime_overrides=runtime_overrides,
         ),
+        regime_enabled=read_runtime_bool(
+            "FINSKILLOS_WORKER_REGIME_ENABLED",
+            default=True,
+            runtime_overrides=runtime_overrides,
+        ),
         runtime_overrides=runtime_overrides,
     )
 
@@ -214,6 +222,10 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
         "market": {"enabled": config.market_enabled, "status": "SKIPPED"},
         "news": {"enabled": config.news_enabled, "status": "SKIPPED"},
         "indicators": {"enabled": config.indicator_enabled, "status": "SKIPPED"},
+        "regime": {
+            "enabled": config.regime_enabled and config.indicator_enabled,
+            "status": "SKIPPED",
+        },
     }
 
     try:
@@ -319,6 +331,26 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                     "snapshotsWritten": sum(item.snapshots_written for item in results),
                     "scope": indicator_policy.scope,
                     "folders": indicator_policy.folder_names,
+                }
+
+            # AW-2: recompute the regime from the freshly stored bars/indicators so
+            # the dashboard's headline regime never drifts stale (previously it was
+            # only updated by the manual System Ops protocol). Gated by its own flag
+            # and tied to the indicator step, since the regime reads indicators.
+            if config.regime_enabled and config.indicator_enabled:
+                from finskillos.services.regime_service import RegimeService
+
+                output = RegimeService(session).evaluate_today_regime(
+                    snapshot_time=datetime.now(tz=UTC),
+                    persist=True,
+                )
+                summary["regime"] = {
+                    "enabled": True,
+                    "status": "OK",
+                    "regime": output.regime,
+                    "riskLevel": output.risk_level,
+                    "decisionMode": output.decision_mode,
+                    "confidence": str(output.confidence),
                 }
 
             summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
