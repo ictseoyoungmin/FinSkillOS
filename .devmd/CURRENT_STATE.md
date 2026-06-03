@@ -114,22 +114,33 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   `workflow_and_memory/project_stabilization_backlog_2026_06_03.md`.
 - **P1–P3 diagnostics** (D-001…D-010, slices 118–125) — DONE.
 
-### Open
-- [ ] **Playwright visual baseline regen** — W-4 added a System Ops "Collection
-  Control" tab + S5 added a runtime-audit line, so `system-ops.png` (and possibly
-  the runtime tab) drift. Needs browser binaries (unavailable in the current
-  environment). Run `npm run test:e2e -- --update-snapshots` where Playwright
-  browsers exist.
+### Phase roadmap — `docs/ROADMAP.md`
+Phase 0 (stabilization) DONE via 139–144. Now working **Phase 1 — daily operating
+loop** (make queued/running/done/error/stale understandable + recoverable).
 
-### Follow-ups (noted, not yet scheduled)
-- Runtime settings: full per-change **history** + one-click revert UI (S5 surfaced
-  last-change metadata only; per-key revert exists via `patch value=None`).
-- Worker: provider **retry/backoff** + per-provider circuit-breaking (S7 documented
-  this as a known gap; today a failed job is terminal and recovers next cadence).
+#### Phase 1 (active)
+- [x] **145 Daily Operations Runbook** — `docs/OPERATIONS_RUNBOOK.md` (services,
+  first-time setup, daily start/stop, state vocabulary, refresh & collection,
+  recover, backup/restore, verify). Commands cross-checked against compose/scripts.
+- [ ] **146 Worker Queue Visibility / Recovery UI** — surface individual
+  `worker_jobs` (queued/running/done/error) + retry/re-enqueue a failed job.
+- [ ] **147 Refresh Result Explanation UX** — show what the last cycle did + why a
+  tab is stale/partial.
+- [ ] **148 Provider Failure / Retry / Backoff** — implement the S7-flagged gap.
+- [ ] **149 Runtime Settings Change History** — full history + one-click revert
+  (S5 surfaced last-change only).
+- [ ] **150 Collection Control Operator Copy Polish** — continue S6.
+
+#### Later phases (see ROADMAP.md)
+Phase 2 data-trust/provider-resilience · Phase 3 portfolio/journal input · Phase 4
+interpretation engine · Phase 5 packaging · Phase 6 optional automation/LLM-narration.
+
+### Standing open (env-blocked)
+- [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift
+  `system-ops.png`; needs browser binaries (unavailable here). Run
+  `npm run test:e2e -- --update-snapshots` where Playwright browsers exist.
 
 ## Next actions
-1. Regenerate the System Ops visual baseline where Playwright browsers are
-   available (only remaining open queue item).
-2. Otherwise: hold new features per the 2026-06-03 review; keep contracts
-   (live/fixture/state copy, runtime-settings ↔ worker payload, folder-scope
-   semantics) aligned when touching code.
+1. Phase 1 in order (145 → 150), then Phase 2.
+2. Keep contracts (live/fixture/state copy, runtime-settings ↔ worker payload,
+   folder-scope semantics) aligned; run the SQLite alembic smoke on any migration.
