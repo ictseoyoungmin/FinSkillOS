@@ -520,9 +520,16 @@ per folder; the worker collects per folder.
   module + fixture + CSS. See `.devmd/130_*.md`. Visual baseline regen pending.
 - [x] **W-5 polish** — per-folder coverage hints (`coveredMemberCount` =
   members with stored bars, via `MarketRepository.tickers_with_bars`) + per-folder
-  open/collapse. Global toggles + empty/MISSING states landed in W-4. Symbol-Lab
-  "add to folder" cross-link (U1) and confirm+undo (U9) deferred to the ideas
-  backlog. See `.devmd/131_*.md`.
+  open/collapse. Global toggles + empty/MISSING states landed in W-4. See
+  `.devmd/131_*.md`.
+
+#### W follow-ups (ideas backlog → slices)
+- [x] **U9 confirm + undo** (slice 132) — inline two-step confirm on folder delete
+  + Undo on ticker removal.
+- [ ] **U1 Symbol-Lab "add to folder"** (slice 133) — add the open symbol to a
+  collection folder from Symbol Lab.
+- [ ] **F3 per-folder "refresh now"** (slice 134) — enqueue a folder-scoped worker
+  refresh job.
 
 ### P1 — correctness / trust
 - [x] **D-001 CORS mutation-method contract** — Allow browser preflight for the

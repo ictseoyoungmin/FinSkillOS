@@ -27,14 +27,19 @@ const FLAG_COLUMNS: { flag: CollectionFlag; label: string; patchKey: keyof Colle
   { flag: "track_news", label: "News", patchKey: "trackNews" },
 ];
 
+interface PanelNotice {
+  tone: "success" | "error" | "info";
+  text: string;
+  undo?: { label: string; run: () => void };
+}
+
 export function CollectionControlPanel(): JSX.Element {
   const queryClient = useQueryClient();
-  const [notice, setNotice] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(
-    null,
-  );
+  const [notice, setNotice] = useState<PanelNotice | null>(null);
   const [newFolder, setNewFolder] = useState("");
   const [symbolDraft, setSymbolDraft] = useState<Record<string, string>>({});
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: QUERY_KEY,
@@ -48,11 +53,14 @@ export function CollectionControlPanel(): JSX.Element {
   };
 
   const mutation = useMutation({
-    mutationFn: (input: { action: () => Promise<CollectionControlData>; message: string }) =>
-      input.action(),
+    mutationFn: (input: {
+      action: () => Promise<CollectionControlData>;
+      message: string;
+      undo?: { label: string; run: () => void };
+    }) => input.action(),
     onSuccess: (result, input) => {
       applyResult(result);
-      setNotice({ tone: "success", text: input.message });
+      setNotice({ tone: "success", text: input.message, undo: input.undo });
     },
     onError: (error) => {
       setNotice({
@@ -62,8 +70,12 @@ export function CollectionControlPanel(): JSX.Element {
     },
   });
 
-  const run = (action: () => Promise<CollectionControlData>, message: string): void => {
-    mutation.mutate({ action, message });
+  const run = (
+    action: () => Promise<CollectionControlData>,
+    message: string,
+    undo?: { label: string; run: () => void },
+  ): void => {
+    mutation.mutate({ action, message, undo });
   };
 
   const onToggleFlag = (folder: CollectionFolder, column: (typeof FLAG_COLUMNS)[number]): void => {
@@ -85,8 +97,15 @@ export function CollectionControlPanel(): JSX.Element {
     run(() => createFolder(name), `Folder "${name}" created.`);
   };
 
-  const onDeleteFolder = (folder: CollectionFolder): void => {
-    run(() => deleteFolder(folder.id), `Folder "${folder.name}" removed.`);
+  const onRequestDeleteFolder = (folder: CollectionFolder): void => {
+    // First click arms an inline confirm so a folder + its members are never
+    // dropped on a single misclick. Second click (handled below) commits.
+    if (confirmingDelete === folder.id) {
+      setConfirmingDelete(null);
+      run(() => deleteFolder(folder.id), `Folder "${folder.name}" removed.`);
+    } else {
+      setConfirmingDelete(folder.id);
+    }
   };
 
   const onAddSymbol = (folder: CollectionFolder): void => {
@@ -97,7 +116,18 @@ export function CollectionControlPanel(): JSX.Element {
   };
 
   const onRemoveSymbol = (folder: CollectionFolder, ticker: string): void => {
-    run(() => removeFolderSymbol(folder.id, ticker), `${ticker} removed from ${folder.name}.`);
+    run(
+      () => removeFolderSymbol(folder.id, ticker),
+      `${ticker} removed from ${folder.name}.`,
+      {
+        label: "Undo",
+        run: () =>
+          run(
+            () => addFolderSymbol(folder.id, ticker),
+            `${ticker} restored to ${folder.name}.`,
+          ),
+      },
+    );
   };
 
   const totals = payload.totals;
@@ -182,6 +212,21 @@ export function CollectionControlPanel(): JSX.Element {
           role="status"
         >
           {notice.text}
+          {notice.undo ? (
+            <button
+              type="button"
+              className="fso-collection-undo"
+              disabled={busy}
+              data-testid="collection-control-undo"
+              onClick={() => {
+                const undo = notice.undo;
+                setNotice(null);
+                undo?.run();
+              }}
+            >
+              {notice.undo.label}
+            </button>
+          ) : null}
         </p>
       ) : null}
 
@@ -209,7 +254,9 @@ export function CollectionControlPanel(): JSX.Element {
               onToggleFlag={(column) => onToggleFlag(folder, column)}
               onAddSymbol={() => onAddSymbol(folder)}
               onRemoveSymbol={(ticker) => onRemoveSymbol(folder, ticker)}
-              onDeleteFolder={() => onDeleteFolder(folder)}
+              confirmingDelete={confirmingDelete === folder.id}
+              onDeleteFolder={() => onRequestDeleteFolder(folder)}
+              onCancelDelete={() => setConfirmingDelete(null)}
             />
           ))
         )}
@@ -230,7 +277,9 @@ function FolderCard({
   onToggleFlag,
   onAddSymbol,
   onRemoveSymbol,
+  confirmingDelete,
   onDeleteFolder,
+  onCancelDelete,
 }: {
   folder: CollectionFolder;
   busy: boolean;
@@ -241,7 +290,9 @@ function FolderCard({
   onToggleFlag: (column: (typeof FLAG_COLUMNS)[number]) => void;
   onAddSymbol: () => void;
   onRemoveSymbol: (ticker: string) => void;
+  confirmingDelete: boolean;
   onDeleteFolder: () => void;
+  onCancelDelete: () => void;
 }): JSX.Element {
   const inactive = !folder.isActive;
   const allTypesOff = !folder.trackMarket && !folder.trackIndicators && !folder.trackNews;
@@ -273,16 +324,40 @@ function FolderCard({
             {folder.coveredMemberCount}/{folder.memberCount} with stored bars
           </span>
         </div>
-        <button
-          type="button"
-          className="fso-collection-delete"
-          disabled={busy || folder.isSystem}
-          title={folder.isSystem ? "The System folder is protected." : "Delete folder"}
-          data-testid={`collection-delete-${folder.id}`}
-          onClick={onDeleteFolder}
-        >
-          Delete
-        </button>
+        {confirmingDelete ? (
+          <span className="fso-collection-confirm">
+            <span>Delete this folder?</span>
+            <button
+              type="button"
+              className="fso-collection-delete is-confirm"
+              disabled={busy}
+              data-testid={`collection-delete-confirm-${folder.id}`}
+              onClick={onDeleteFolder}
+            >
+              Confirm
+            </button>
+            <button
+              type="button"
+              className="fso-collection-cancel"
+              disabled={busy}
+              data-testid={`collection-delete-cancel-${folder.id}`}
+              onClick={onCancelDelete}
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="fso-collection-delete"
+            disabled={busy || folder.isSystem}
+            title={folder.isSystem ? "The System folder is protected." : "Delete folder"}
+            data-testid={`collection-delete-${folder.id}`}
+            onClick={onDeleteFolder}
+          >
+            Delete
+          </button>
+        )}
       </header>
 
       {collapsed ? null : (
