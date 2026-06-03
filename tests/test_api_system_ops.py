@@ -692,6 +692,79 @@ def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_data_repair_dry_run_then_confirm(monkeypatch, tmp_path) -> None:
+    # Slice 155: dry-run reports, confirm hard-deletes synthetic bars + orphan
+    # snapshots, and real bars are never touched.
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from finskillos.data_sources.dto import IndicatorSnapshotDTO, MarketBarDTO
+    from finskillos.db.repositories import IndicatorRepository, MarketRepository
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    def _bar(ticker, day, source):
+        return MarketBarDTO(
+            ticker=ticker, timeframe="1d",
+            bar_time=datetime(2026, 5, day, tzinfo=timezone.utc),
+            open=Decimal("1"), high=Decimal("1"), low=Decimal("1"),
+            close=Decimal("1"), volume=None, source=source,
+        )
+
+    with factory() as session:
+        market = MarketRepository(session)
+        market.upsert_bar(_bar("SPY", 27, "yfinance"))  # real → keep
+        market.upsert_bar(_bar("VIX", 27, "mock"))      # synthetic → delete
+        market.upsert_bar(_bar("VIX", 28, "mock"))
+        # An orphan snapshot (no backing bar at all).
+        IndicatorRepository(session).upsert_snapshot(
+            IndicatorSnapshotDTO(
+                ticker="SPY", timeframe="1d",
+                snapshot_time=datetime(2026, 5, 20, tzinfo=timezone.utc),
+                rsi_14=Decimal("50"),
+            )
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        dry = _client().post("/api/system-ops/data-repair").json()
+        assert dry["dryRun"] is True
+        assert dry["syntheticBarCount"] == 2
+        assert dry["syntheticTickers"] == ["VIX"]
+        assert dry["orphanSnapshotCount"] == 1
+        assert dry["deletedBars"] == 0  # dry run touches nothing
+
+        # Nothing was actually deleted.
+        with factory() as session:
+            assert MarketRepository(session).count_bars_by_sources({"mock"}) == 2
+
+        applied = _client().post(
+            "/api/system-ops/data-repair", params={"confirm": "true"}
+        ).json()
+        assert applied["dryRun"] is False
+        assert applied["deletedBars"] == 2
+        assert applied["deletedSnapshots"] == 1
+
+        # Real bar preserved; synthetic gone.
+        with factory() as session:
+            market = MarketRepository(session)
+            assert market.count_bars_by_sources({"mock"}) == 0
+            assert market.latest_bar("SPY", "1d") is not None  # real SPY kept
+            assert IndicatorRepository(session).count_orphan_snapshots() == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_feed_coverage_reports_news_and_events(monkeypatch, tmp_path) -> None:
     # Slice 154: feed coverage rolls up news + event counts / freshness / sources.
     from datetime import datetime, timedelta, timezone

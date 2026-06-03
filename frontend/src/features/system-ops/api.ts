@@ -10,6 +10,7 @@ import type {
   SystemStatusData,
   DataInvariantReport,
   DataProvenanceReport,
+  DataRepairResult,
   FeedCoverageReport,
   WorkerLiveModeResult,
   WorkerStatusSummary,
@@ -99,6 +100,28 @@ export async function setWorkerLiveMode(
     );
   }
   return (await response.json()) as WorkerLiveModeResult;
+}
+
+/** Run the data-repair protocol (dry-run unless confirm=true). */
+export async function runDataRepair(
+  confirm: boolean,
+  signal?: AbortSignal,
+): Promise<DataRepairResult> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}/system-ops/data-repair${confirm ? "?confirm=true" : ""}`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText} for ${url}`,
+    );
+  }
+  return (await response.json()) as DataRepairResult;
 }
 
 /** Re-enqueue a finished worker job to recover a failed (or re-run a done) refresh. */

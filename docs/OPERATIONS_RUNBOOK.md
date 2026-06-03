@@ -105,6 +105,12 @@ live bind mount.
 - **DB unavailable banner:** check `docker compose ps postgres`; start it
   (`docker compose up -d postgres`). The cockpit degrades to an explicit
   db-unavailable state, not fake data.
+- **Synthetic (mock) bars or orphan indicator snapshots crept in:** the System Ops
+  Worker Status tab shows Provenance (synthetic-source tickers) + Invariants
+  (orphan snapshots). The "Data Repair" panel previews a cleanup (dry-run) and only
+  deletes synthetic bars + orphan snapshots after you confirm — real bars are never
+  touched. Back up first. (`POST /api/system-ops/data-repair` dry-run;
+  `?confirm=true` to apply.)
 
 ## Backup / restore
 

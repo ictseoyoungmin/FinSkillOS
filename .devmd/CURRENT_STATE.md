@@ -116,9 +116,9 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 
 ### Phase roadmap — `docs/ROADMAP.md`
 Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
-via 145–150.** Next: **Phase 2 — data trust / provider resilience** (provider
-health dashboard → market-data provenance → invariant dashboards → feed coverage →
-data repair/quarantine).
+via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.**
+Next: **Phase 3 — portfolio / journal real-use input** (manual entry UX, CSV
+import/export, position reconciliation, trade import, journal templates).
 
 #### Phase 1 — DONE (145–150)
 - [x] **145 Daily Operations Runbook** — `docs/OPERATIONS_RUNBOOK.md` (services,
@@ -142,7 +142,7 @@ data repair/quarantine).
   collects nothing"); totals relabeled + tooltips; global toggles → "Apply to all
   folders". **Phase 1 complete.**
 
-#### Phase 2 — data trust / provider resilience (active)
+#### Phase 2 — data trust / provider resilience — DONE (151–155)
 - [x] **151 Provider Health Dashboard** (slice 151) — `workerStatus.providerHealth`
   rolled up from recent cycles (status / last-clean / last-failure / affected
   tickers + reason) + a System Ops panel. Market cycle summary now records
@@ -155,8 +155,10 @@ data repair/quarantine).
   "Data Invariants" panel. Repo orphan NOT EXISTS query.
 - [x] **154 News / Event Feed Coverage Diagnostics** (slice 154) — `GET …/feed-coverage`
   (news + event counts / freshness / sources) + a "Feed Coverage" panel.
-- [ ] **155 Data Repair / Quarantine Protocols** — ⚠️ **data-mutating**; scope (synthetic
-  bars / orphan snapshots), dry-run + confirm policy agreed with operator before building.
+- [x] **155 Data Repair Protocol** (slice 155) — `POST …/data-repair` (dry-run →
+  `?confirm=true` hard-delete) removes synthetic bars + orphan snapshots (operator-
+  confirmed scope); real bars never touched; "Data Repair" panel with preview→confirm.
+  **Phase 2 complete.**
 
 #### Later phases (see ROADMAP.md)
 Phase 3 portfolio/journal input · Phase 4 interpretation engine · Phase 5 packaging

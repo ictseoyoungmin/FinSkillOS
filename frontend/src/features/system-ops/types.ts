@@ -134,6 +134,16 @@ export interface WorkerJobRow {
   retryable: boolean;
 }
 
+export interface DataRepairResult {
+  dryRun: boolean;
+  syntheticBarCount: number;
+  syntheticTickers: string[];
+  orphanSnapshotCount: number;
+  deletedBars: number;
+  deletedSnapshots: number;
+  detail: string;
+}
+
 export interface FeedSourceCount {
   source: string;
   count: number;

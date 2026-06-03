@@ -1313,3 +1313,39 @@
   font-size: 11px;
   color: var(--fso-text-muted);
 }
+
+/* Data repair (Slice 155) */
+.fso-repair-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.fso-repair-preview {
+  padding: 6px 12px;
+  border: 1px solid var(--fso-cyan);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-cyan) 12%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-repair-confirm {
+  padding: 6px 12px;
+  border: 1px solid var(--fso-red);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-red) 16%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-repair-preview:disabled,
+.fso-repair-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-provenance-detail[data-tone="success"] { color: var(--fso-green); }
+.fso-provenance-detail[data-tone="warning"] { color: var(--fso-amber); }
+.fso-provenance-detail[data-tone="error"] { color: var(--fso-red); }

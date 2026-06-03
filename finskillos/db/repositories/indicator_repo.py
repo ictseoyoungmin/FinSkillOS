@@ -129,6 +129,22 @@ class IndicatorRepository:
         )
         return [tuple(row) for row in self.session.execute(stmt)]
 
+    def delete_orphan_snapshots(self) -> int:
+        """Hard-delete indicator snapshots with no backing market bar. Returns count.
+
+        Uses a PK subquery + IN delete so it works on both SQLite and Postgres
+        (neither supports a correlated EXISTS in a DELETE the same way)."""
+        from sqlalchemy import delete
+
+        orphan_ids = select(IndicatorSnapshot.id).where(self._orphan_filter())
+        ids = [row for row in self.session.scalars(orphan_ids)]
+        if not ids:
+            return 0
+        result = self.session.execute(
+            delete(IndicatorSnapshot).where(IndicatorSnapshot.id.in_(ids))
+        )
+        return int(result.rowcount or 0)
+
     def _get(
         self, ticker: str, timeframe: str, snapshot_time: datetime
     ) -> IndicatorSnapshot | None:

@@ -134,6 +134,19 @@ class WorkerJobRow(CamelModel):
     retryable: bool = False  # terminal (DONE/ERROR) → can re-enqueue
 
 
+class DataRepairResult(CamelModel):
+    """Result of the data-repair protocol (Slice 155). Dry-run by default."""
+
+    dry_run: bool = True
+    system_status: SystemStatus
+    synthetic_bar_count: int = 0
+    synthetic_tickers: list[str] = Field(default_factory=list)
+    orphan_snapshot_count: int = 0
+    deleted_bars: int = 0
+    deleted_snapshots: int = 0
+    detail: str = ""
+
+
 class FeedSourceCount(CamelModel):
     source: str
     count: int = 0

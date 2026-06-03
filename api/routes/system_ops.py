@@ -20,6 +20,7 @@ Safety:
 from __future__ import annotations
 
 import json
+import logging
 import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -41,6 +42,7 @@ from api.schemas.common import (
 from api.schemas.system_ops import (
     DataInvariantReport,
     DataProvenanceReport,
+    DataRepairResult,
     DataSourcePill,
     EventCoverage,
     FeedCoverageReport,
@@ -85,6 +87,7 @@ from finskillos.runtime_settings import (
 
 router = APIRouter(tags=["system-ops"])
 
+logger = logging.getLogger("finskillos.api.system_ops")
 UTC = timezone.utc
 
 
@@ -417,6 +420,79 @@ def update_system_ops_runtime_settings(
 
 
 _SYNTHETIC_SOURCES = {"mock", "test"}
+
+
+@router.post(
+    "/system-ops/data-repair",
+    response_model=DataRepairResult,
+    summary="Remove synthetic (mock/test) bars + orphan indicator snapshots. "
+    "Dry-run unless confirm=true.",
+)
+def data_repair(confirm: bool = False) -> DataRepairResult:
+    """Repair stored data. **Dry-run by default** — it only reports what *would*
+    be removed. Pass ``?confirm=true`` to actually hard-delete. Back up first
+    (`scripts/backup_postgres.sh`). Only synthetic-source bars and orphan
+    indicator snapshots are ever touched — real (yfinance/csv) bars are never
+    deleted."""
+    with get_session_scope() as session:
+        if session is None:
+            return DataRepairResult(
+                dry_run=True,
+                system_status=SystemStatus(db="UNAVAILABLE", mode="READ_MODE"),
+                detail="Database unavailable; data repair cannot run.",
+            )
+        from finskillos.db.repositories import (
+            IndicatorRepository,
+            MarketRepository,
+        )
+
+        market = MarketRepository(session)
+        indicators = IndicatorRepository(session)
+        synthetic_count = market.count_bars_by_sources(_SYNTHETIC_SOURCES)
+        synthetic_tickers = market.tickers_by_sources(_SYNTHETIC_SOURCES)
+
+        if not confirm:
+            orphan_count = indicators.count_orphan_snapshots()
+            if synthetic_count == 0 and orphan_count == 0:
+                detail = "Nothing to repair — no synthetic bars or orphan snapshots."
+            else:
+                detail = (
+                    f"Dry run: would delete {synthetic_count} synthetic bar(s) and "
+                    f"{orphan_count} orphan indicator snapshot(s). Back up first, then "
+                    "re-run with confirm to apply."
+                )
+            return DataRepairResult(
+                dry_run=True,
+                system_status=SystemStatus(db="LIVE", mode="READ_MODE"),
+                synthetic_bar_count=synthetic_count,
+                synthetic_tickers=synthetic_tickers,
+                orphan_snapshot_count=orphan_count,
+                detail=detail,
+            )
+
+        # Confirmed: delete synthetic bars first, then orphan snapshots (which now
+        # also covers any snapshot orphaned by the bar deletion).
+        deleted_bars = market.delete_bars_by_sources(_SYNTHETIC_SOURCES)
+        deleted_snapshots = indicators.delete_orphan_snapshots()
+        session.commit()
+        logger.warning(
+            "data-repair applied: deleted %d synthetic bars, %d orphan snapshots",
+            deleted_bars,
+            deleted_snapshots,
+        )
+        return DataRepairResult(
+            dry_run=False,
+            system_status=SystemStatus(db="LIVE", mode="READ_MODE"),
+            synthetic_bar_count=synthetic_count,
+            synthetic_tickers=synthetic_tickers,
+            orphan_snapshot_count=deleted_snapshots,
+            deleted_bars=deleted_bars,
+            deleted_snapshots=deleted_snapshots,
+            detail=(
+                f"Removed {deleted_bars} synthetic bar(s) and {deleted_snapshots} "
+                "orphan indicator snapshot(s)."
+            ),
+        )
 
 
 @router.get(

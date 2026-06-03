@@ -161,6 +161,34 @@ class MarketRepository:
         )
         return len(list(self.session.scalars(stmt)))
 
+    def count_bars_by_sources(self, sources: Iterable[str]) -> int:
+        wanted = {s for s in sources}
+        if not wanted:
+            return 0
+        stmt = select(func.count(MarketBar.id)).where(MarketBar.source.in_(wanted))
+        return int(self.session.scalar(stmt) or 0)
+
+    def tickers_by_sources(self, sources: Iterable[str]) -> list[str]:
+        wanted = {s for s in sources}
+        if not wanted:
+            return []
+        stmt = (
+            select(MarketBar.ticker)
+            .where(MarketBar.source.in_(wanted))
+            .distinct()
+            .order_by(MarketBar.ticker)
+        )
+        return list(self.session.scalars(stmt))
+
+    def delete_bars_by_sources(self, sources: Iterable[str]) -> int:
+        """Hard-delete every bar whose source is in ``sources``. Returns the count."""
+        wanted = {s for s in sources}
+        if not wanted:
+            return 0
+        stmt = delete(MarketBar).where(MarketBar.source.in_(wanted))
+        result = self.session.execute(stmt)
+        return int(result.rowcount or 0)
+
     def source_distribution(self) -> dict[str, int]:
         """Stored-bar counts grouped by source (provenance audit, Slice 152)."""
         stmt = select(MarketBar.source, func.count()).group_by(MarketBar.source)
