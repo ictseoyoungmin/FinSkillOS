@@ -156,8 +156,10 @@ export function CollectionControlPanel(): JSX.Element {
     <div className="fso-collection" data-testid="collection-control-panel">
       <SectionHeader eyebrow="Folder-driven" title="Collection Control" />
       <p className="fso-collection-subtitle">
-        Decide which symbols the worker observes. Add tickers to a folder and toggle
-        Price / Indicators / News per folder or globally.
+        The worker collects a symbol only while it is in an <strong>Active</strong>{" "}
+        folder with the matching type enabled. Add tickers to a folder and toggle
+        Price / Indicators / News per folder or for all folders at once. An inactive
+        folder — or an off type — collects nothing.
       </p>
 
       {isError ? (
@@ -169,14 +171,32 @@ export function CollectionControlPanel(): JSX.Element {
       ) : null}
 
       <div className="fso-collection-totals" data-testid="collection-control-totals">
-        <CoverageStat label="Folders" value={`${totals.activeFolderCount}/${totals.folderCount} active`} />
-        <CoverageStat label="Price" value={`${totals.marketTickerCount} symbols`} />
-        <CoverageStat label="Indicators" value={`${totals.indicatorTickerCount} symbols`} />
-        <CoverageStat label="News" value={`${totals.newsTickerCount} symbols`} />
+        <CoverageStat
+          label="Active folders"
+          value={`${totals.activeFolderCount}/${totals.folderCount}`}
+          hint="Folders currently participating in collection."
+        />
+        <CoverageStat
+          label="Price"
+          value={`${totals.marketTickerCount} symbols`}
+          hint="Distinct symbols the worker collects price bars for, across active folders."
+        />
+        <CoverageStat
+          label="Indicators"
+          value={`${totals.indicatorTickerCount} symbols`}
+          hint="Distinct symbols with indicators computed, across active folders."
+        />
+        <CoverageStat
+          label="News"
+          value={`${totals.newsTickerCount} symbols`}
+          hint="Distinct symbols the worker collects news for, across active folders."
+        />
       </div>
 
       <div className="fso-collection-globals" role="group" aria-label="Global collection toggles">
-        <span className="fso-collection-globals-label">All folders</span>
+        <span className="fso-collection-globals-label" title="Toggles apply to every folder at once.">
+          Apply to all folders
+        </span>
         {FLAG_COLUMNS.map((column) => (
           <label key={column.flag} className="fso-collection-check">
             <input
@@ -466,9 +486,17 @@ function FolderCard({
   );
 }
 
-function CoverageStat({ label, value }: { label: string; value: string }): JSX.Element {
+function CoverageStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}): JSX.Element {
   return (
-    <div className="fso-collection-stat">
+    <div className="fso-collection-stat" title={hint}>
       <span className="fso-collection-stat-label">{label}</span>
       <span className="fso-collection-stat-value">{value}</span>
     </div>

@@ -115,10 +115,12 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 - **P1–P3 diagnostics** (D-001…D-010, slices 118–125) — DONE.
 
 ### Phase roadmap — `docs/ROADMAP.md`
-Phase 0 (stabilization) DONE via 139–144. Now working **Phase 1 — daily operating
-loop** (make queued/running/done/error/stale understandable + recoverable).
+Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
+via 145–150.** Next: **Phase 2 — data trust / provider resilience** (provider
+health dashboard → market-data provenance → invariant dashboards → feed coverage →
+data repair/quarantine).
 
-#### Phase 1 (active)
+#### Phase 1 — DONE (145–150)
 - [x] **145 Daily Operations Runbook** — `docs/OPERATIONS_RUNBOOK.md` (services,
   first-time setup, daily start/stop, state vocabulary, refresh & collection,
   recover, backup/restore, verify). Commands cross-checked against compose/scripts.
@@ -135,7 +137,10 @@ loop** (make queued/running/done/error/stale understandable + recoverable).
 - [x] **149 Runtime Settings Change History** (slice 149) — `system_ops_settings_history`
   table (migration 0018), per-key change log in the GET response, a "Change history"
   list + "Reset all to defaults" (`POST …/runtime-settings/reset`).
-- [ ] **150 Collection Control Operator Copy Polish** — continue S6.
+- [x] **150 Collection Control Operator Copy Polish** (slice 150) — subtitle
+  explains the Active-folder + type-flag model ("inactive folder / off type
+  collects nothing"); totals relabeled + tooltips; global toggles → "Apply to all
+  folders". **Phase 1 complete.**
 
 #### Later phases (see ROADMAP.md)
 Phase 2 data-trust/provider-resilience · Phase 3 portfolio/journal input · Phase 4
