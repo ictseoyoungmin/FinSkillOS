@@ -692,6 +692,60 @@ def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_data_invariants_flag_orphan_indicator_snapshots(monkeypatch, tmp_path) -> None:
+    # Slice 153: a snapshot without a backing market bar is an invariant violation.
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from finskillos.data_sources.dto import IndicatorSnapshotDTO, MarketBarDTO
+    from finskillos.db.repositories import IndicatorRepository, MarketRepository
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    backed = datetime(2026, 5, 27, tzinfo=timezone.utc)
+    orphan = datetime(2026, 5, 28, tzinfo=timezone.utc)
+    with factory() as session:
+        MarketRepository(session).upsert_bar(
+            MarketBarDTO(
+                ticker="SPY", timeframe="1d", bar_time=backed,
+                open=Decimal("1"), high=Decimal("1"), low=Decimal("1"),
+                close=Decimal("1"), volume=None, source="yfinance",
+            )
+        )
+        repo = IndicatorRepository(session)
+        repo.upsert_snapshot(  # has a backing bar
+            IndicatorSnapshotDTO(ticker="SPY", timeframe="1d", snapshot_time=backed,
+                                 rsi_14=Decimal("50"))
+        )
+        repo.upsert_snapshot(  # NO backing bar → orphan
+            IndicatorSnapshotDTO(ticker="SPY", timeframe="1d", snapshot_time=orphan,
+                                 rsi_14=Decimal("55"))
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops/data-invariants").json()
+        assert body["source"] == "live"
+        assert body["status"] == "VIOLATIONS"
+        assert body["totalSnapshots"] == 2
+        assert body["orphanSnapshotCount"] == 1
+        sample = body["orphanSamples"][0]
+        assert sample["ticker"] == "SPY"
+        assert sample["at"].startswith("2026-05-28")
+        assert "phantom" in body["detail"].lower()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_data_provenance_flags_synthetic_latest_bars(monkeypatch, tmp_path) -> None:
     # Slice 152: provenance reports source distribution + tickers whose newest bar
     # is synthetic (mock/test).

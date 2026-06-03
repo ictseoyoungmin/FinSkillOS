@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from finskillos.data_sources.dto import IndicatorSnapshotDTO
-from finskillos.db.models import IndicatorSnapshot
+from finskillos.db.models import IndicatorSnapshot, MarketBar
 
 
 class IndicatorRepository:
@@ -92,6 +92,42 @@ class IndicatorRepository:
         if limit is not None:
             stmt = stmt.limit(limit)
         return list(self.session.scalars(stmt))
+
+    def _orphan_filter(self):
+        """Snapshots with no backing market bar at the same key (Slice 102/153)."""
+        backing = (
+            select(MarketBar.id)
+            .where(
+                MarketBar.ticker == IndicatorSnapshot.ticker,
+                MarketBar.timeframe == IndicatorSnapshot.timeframe,
+                MarketBar.bar_time == IndicatorSnapshot.snapshot_time,
+            )
+            .exists()
+        )
+        return ~backing
+
+    def count_total(self) -> int:
+        return int(self.session.scalar(select(func.count(IndicatorSnapshot.id))) or 0)
+
+    def count_orphan_snapshots(self) -> int:
+        """Indicator snapshots with no backing market bar (an invariant violation)."""
+        stmt = select(func.count(IndicatorSnapshot.id)).where(self._orphan_filter())
+        return int(self.session.scalar(stmt) or 0)
+
+    def list_orphan_snapshots(
+        self, limit: int = 15
+    ) -> list[tuple[str, str, datetime]]:
+        stmt = (
+            select(
+                IndicatorSnapshot.ticker,
+                IndicatorSnapshot.timeframe,
+                IndicatorSnapshot.snapshot_time,
+            )
+            .where(self._orphan_filter())
+            .order_by(IndicatorSnapshot.snapshot_time.desc())
+            .limit(limit)
+        )
+        return [tuple(row) for row in self.session.execute(stmt)]
 
     def _get(
         self, ticker: str, timeframe: str, snapshot_time: datetime

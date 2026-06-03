@@ -8,6 +8,7 @@ import type {
   SystemOpsRuntimeSettings,
   SystemOpsRuntimeSettingsPayload,
   SystemStatusData,
+  DataInvariantReport,
   DataProvenanceReport,
   WorkerLiveModeResult,
   WorkerStatusSummary,
@@ -119,6 +120,16 @@ export async function retryWorkerJob(
     );
   }
   return (await response.json()) as WorkerStatusSummary;
+}
+
+/** Read the stored-data invariant audit (orphan indicator snapshots, etc.). */
+export async function fetchDataInvariants(
+  signal?: AbortSignal,
+): Promise<DataInvariantReport> {
+  return await getJson<DataInvariantReport>(
+    `${apiEndpoints.systemOps}/data-invariants`,
+    { signal },
+  );
 }
 
 /** Read the market-bar provenance report (source distribution + synthetic tickers). */

@@ -134,6 +134,22 @@ export interface WorkerJobRow {
   retryable: boolean;
 }
 
+export interface InvariantViolation {
+  ticker: string;
+  timeframe: string;
+  at: string;
+}
+
+export interface DataInvariantReport {
+  generatedAt: string;
+  source: "fixture" | "live";
+  status: "OK" | "VIOLATIONS" | "UNKNOWN";
+  totalSnapshots: number;
+  orphanSnapshotCount: number;
+  orphanSamples: InvariantViolation[];
+  detail: string;
+}
+
 export interface ProvenanceSource {
   source: string;
   barCount: number;

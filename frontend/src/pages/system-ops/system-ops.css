@@ -1264,3 +1264,9 @@
   color: var(--fso-amber);
   cursor: help;
 }
+
+.fso-invariant-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

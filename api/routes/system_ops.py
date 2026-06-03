@@ -39,8 +39,10 @@ from api.schemas.common import (
     SystemStatus,
 )
 from api.schemas.system_ops import (
+    DataInvariantReport,
     DataProvenanceReport,
     DataSourcePill,
+    InvariantViolation,
     ProtocolDetailEvidence,
     ProtocolKey,
     ProtocolRunRecord,
@@ -411,6 +413,62 @@ def update_system_ops_runtime_settings(
 
 
 _SYNTHETIC_SOURCES = {"mock", "test"}
+
+
+@router.get(
+    "/system-ops/data-invariants",
+    response_model=DataInvariantReport,
+    summary="Audit stored-data invariants (e.g. every indicator snapshot has a "
+    "backing market bar).",
+)
+def data_invariants() -> DataInvariantReport:
+    with get_session_scope() as session:
+        if session is None:
+            return DataInvariantReport(
+                generated_at=_now_iso(),
+                system_status=SystemStatus(db="UNAVAILABLE", mode="READ_MODE"),
+                source="fixture",
+                detail="Database unavailable; invariants cannot be checked.",
+            )
+        from finskillos.db.repositories import IndicatorRepository
+
+        repo = IndicatorRepository(session)
+        total = repo.count_total()
+        orphans = repo.count_orphan_snapshots()
+        samples = (
+            [
+                InvariantViolation(
+                    ticker=ticker, timeframe=timeframe, at=snapshot_time.isoformat()
+                )
+                for ticker, timeframe, snapshot_time in repo.list_orphan_snapshots()
+            ]
+            if orphans
+            else []
+        )
+        if orphans == 0:
+            status = "OK"
+            detail = (
+                f"All {total} indicator snapshot(s) have a backing market bar."
+                if total
+                else "No indicator snapshots are stored yet."
+            )
+        else:
+            status = "VIOLATIONS"
+            names = ", ".join(sorted({v.ticker for v in samples})[:8])
+            detail = (
+                f"{orphans} of {total} indicator snapshot(s) have no backing market "
+                f"bar ({names}) — they can surface phantom indicator values."
+            )
+        return DataInvariantReport(
+            generated_at=_now_iso(),
+            system_status=SystemStatus(db="LIVE", mode="READ_MODE"),
+            source="live",
+            status=status,
+            total_snapshots=total,
+            orphan_snapshot_count=orphans,
+            orphan_samples=samples,
+            detail=detail,
+        )
 
 
 @router.get(

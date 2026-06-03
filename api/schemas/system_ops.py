@@ -134,6 +134,25 @@ class WorkerJobRow(CamelModel):
     retryable: bool = False  # terminal (DONE/ERROR) → can re-enqueue
 
 
+class InvariantViolation(CamelModel):
+    ticker: str
+    timeframe: str
+    at: str
+
+
+class DataInvariantReport(CamelModel):
+    """Stored-data invariant audit (Slice 153)."""
+
+    generated_at: str
+    system_status: SystemStatus
+    source: Literal["fixture", "live"] = "fixture"
+    status: Literal["OK", "VIOLATIONS", "UNKNOWN"] = "UNKNOWN"
+    total_snapshots: int = 0
+    orphan_snapshot_count: int = 0
+    orphan_samples: list[InvariantViolation] = Field(default_factory=list)
+    detail: str = ""
+
+
 class ProvenanceSource(CamelModel):
     source: str
     bar_count: int = 0

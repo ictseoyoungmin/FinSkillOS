@@ -150,7 +150,9 @@ data repair/quarantine).
 - [x] **152 Market Data Provenance Audit** (slice 152) — `GET …/data-provenance`
   (source distribution + tickers whose newest bar is synthetic) + a "Data
   Provenance" panel. Repo `source_distribution` / `latest_source_by_ticker`.
-- [ ] **153 Indicator / Bar Invariant Dashboard** — every snapshot has a backing bar.
+- [x] **153 Indicator / Bar Invariant Dashboard** (slice 153) — `GET …/data-invariants`
+  audits orphan indicator snapshots (no backing bar, the slice-102 invariant) + a
+  "Data Invariants" panel. Repo orphan NOT EXISTS query.
 - [ ] **154 News / Event Feed Coverage Diagnostics**.
 - [ ] **155 Data Repair / Quarantine Protocols**.
 
