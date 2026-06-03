@@ -62,5 +62,7 @@ Created 2026-06-02.
   ticker-removal undo).
 - **U1 add-to-folder from any tab** — shipped in slice 133 (`AddToCollectionFolder`
   in Market Kernel; Symbol Lab already had a folders panel).
-- Still open / good next picks: **F3** per-folder "refresh now" (slice 134),
-  **F2** per-folder cadence, **F1** per-ticker type override.
+- **F3 per-folder "refresh now"** — shipped in slice 134 (scoped `refresh_all`
+  job + per-folder button).
+- Still open / good next picks: **F2** per-folder cadence, **F1** per-ticker type
+  override, **U7** freshness timestamp (not just count) per folder.

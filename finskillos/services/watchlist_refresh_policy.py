@@ -61,6 +61,7 @@ def build_watchlist_refresh_policy(
     base_tickers: Iterable[str] = (),
     folder_names: Iterable[str] | None = None,
     collection_type: CollectionType | None = None,
+    folder_id: str | None = None,
     runtime_overrides: Mapping[str, str] | None = None,
 ) -> WatchlistRefreshPolicy:
     """Return the ticker universe for refresh protocols and worker cycles.
@@ -77,7 +78,9 @@ def build_watchlist_refresh_policy(
 
     if collection_type is not None:
         try:
-            flagged = _flagged_folder_tickers(session, collection_type)
+            flagged = _flagged_folder_tickers(
+                session, collection_type, folder_id=folder_id
+            )
             active = _dedupe_tickers(
                 SymbolSubscriptionRepository(session).active_tickers()
             )
@@ -85,14 +88,22 @@ def build_watchlist_refresh_policy(
             session.rollback()
             flagged = ()
             active = ()
-        tickers = _dedupe_tickers((*base, *flagged))
+        # A single-folder scope (F3 "refresh this folder now") collects only that
+        # folder's members; the env base universe is not unioned in.
+        scoped_to_folder = folder_id is not None
+        tickers = flagged if scoped_to_folder else _dedupe_tickers((*base, *flagged))
+        scope = (
+            f"collection:{collection_type}:folder={folder_id}"
+            if scoped_to_folder
+            else f"collection:{collection_type}"
+        )
         return WatchlistRefreshPolicy(
             tickers=tickers,
             base_tickers=base,
             active_tickers=active,
             folder_tickers=flagged,
             folder_names=(),
-            scope=f"collection:{collection_type}",
+            scope=scope,
             collection_type=collection_type,
         )
 
@@ -128,13 +139,18 @@ def build_watchlist_refresh_policy(
 
 
 def _flagged_folder_tickers(
-    session: Session, collection_type: str
+    session: Session, collection_type: str, *, folder_id: str | None = None
 ) -> tuple[str, ...]:
-    """Members of active folders whose matching collection flag is on."""
+    """Members of active folders whose matching collection flag is on.
+
+    When ``folder_id`` is given, only that one folder contributes (F3 scoped
+    refresh) — still subject to its active state and type flag."""
     flag = _COLLECTION_FLAG[collection_type]
     snapshots = SymbolSubscriptionFolderRepository(session).list_snapshots()
     tickers: list[str] = []
     for folder in snapshots:
+        if folder_id is not None and str(folder.id) != str(folder_id):
+            continue
         if not folder.is_active or not getattr(folder, flag):
             continue
         tickers.extend(member.ticker for member in folder.members)

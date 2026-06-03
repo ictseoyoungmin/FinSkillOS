@@ -7,6 +7,7 @@ import {
   fetchCollectionControl,
   globalToggle,
   patchFolderFlags,
+  refreshFolder,
   removeFolderSymbol,
 } from "../api";
 import type {
@@ -106,6 +107,10 @@ export function CollectionControlPanel(): JSX.Element {
     } else {
       setConfirmingDelete(folder.id);
     }
+  };
+
+  const onRefreshFolder = (folder: CollectionFolder): void => {
+    run(() => refreshFolder(folder.id), `Refresh queued for "${folder.name}".`);
   };
 
   const onAddSymbol = (folder: CollectionFolder): void => {
@@ -254,6 +259,7 @@ export function CollectionControlPanel(): JSX.Element {
               onToggleFlag={(column) => onToggleFlag(folder, column)}
               onAddSymbol={() => onAddSymbol(folder)}
               onRemoveSymbol={(ticker) => onRemoveSymbol(folder, ticker)}
+              onRefreshFolder={() => onRefreshFolder(folder)}
               confirmingDelete={confirmingDelete === folder.id}
               onDeleteFolder={() => onRequestDeleteFolder(folder)}
               onCancelDelete={() => setConfirmingDelete(null)}
@@ -277,6 +283,7 @@ function FolderCard({
   onToggleFlag,
   onAddSymbol,
   onRemoveSymbol,
+  onRefreshFolder,
   confirmingDelete,
   onDeleteFolder,
   onCancelDelete,
@@ -290,6 +297,7 @@ function FolderCard({
   onToggleFlag: (column: (typeof FLAG_COLUMNS)[number]) => void;
   onAddSymbol: () => void;
   onRemoveSymbol: (ticker: string) => void;
+  onRefreshFolder: () => void;
   confirmingDelete: boolean;
   onDeleteFolder: () => void;
   onCancelDelete: () => void;
@@ -324,6 +332,21 @@ function FolderCard({
             {folder.coveredMemberCount}/{folder.memberCount} with stored bars
           </span>
         </div>
+        <div className="fso-collection-card-actions">
+        <button
+          type="button"
+          className="fso-collection-refresh"
+          disabled={busy || !folder.isActive}
+          title={
+            folder.isActive
+              ? "Queue a worker refresh for this folder's symbols."
+              : "Folder is inactive — nothing to refresh."
+          }
+          data-testid={`collection-refresh-${folder.id}`}
+          onClick={onRefreshFolder}
+        >
+          Refresh now
+        </button>
         {confirmingDelete ? (
           <span className="fso-collection-confirm">
             <span>Delete this folder?</span>
@@ -358,6 +381,7 @@ function FolderCard({
             Delete
           </button>
         )}
+        </div>
       </header>
 
       {collapsed ? null : (

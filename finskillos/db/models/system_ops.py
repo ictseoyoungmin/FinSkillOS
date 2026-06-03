@@ -89,10 +89,12 @@ class WorkerCycleRun(Base):
     indicator_status: Mapped[str] = mapped_column(
         String(16), default="SKIPPED", nullable=False
     )
-    market_scope: Mapped[str] = mapped_column(String(32), default="unknown", nullable=False)
-    news_scope: Mapped[str] = mapped_column(String(32), default="unknown", nullable=False)
+    # 80 chars holds folder-scoped audit labels like
+    # "collection:indicator:folder=<uuid>" (Slice 134 / F3).
+    market_scope: Mapped[str] = mapped_column(String(80), default="unknown", nullable=False)
+    news_scope: Mapped[str] = mapped_column(String(80), default="unknown", nullable=False)
     indicator_scope: Mapped[str] = mapped_column(
-        String(32), default="unknown", nullable=False
+        String(80), default="unknown", nullable=False
     )
     summary: Mapped[dict | None] = mapped_column(JSONPayload)
     created_at: Mapped[datetime] = mapped_column(

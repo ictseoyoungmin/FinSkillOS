@@ -178,6 +178,39 @@ def test_copy_is_descriptive_only(live_client) -> None:
         assert word not in raw
 
 
+def test_refresh_folder_enqueues_scoped_job(live_client) -> None:
+    from finskillos.db.models.system_ops import WORKER_JOB_REFRESH_ALL
+    from finskillos.db.repositories import WorkerJobRepository
+
+    client, factory = live_client
+    _seed(factory)
+    folder_id = client.get("/api/system-ops/collection-control").json()["folders"][0][
+        "id"
+    ]
+
+    response = client.post(
+        f"/api/system-ops/collection-control/folders/{folder_id}/refresh"
+    )
+    assert response.status_code == 200
+
+    with factory() as session:
+        job = WorkerJobRepository(session).claim_next()
+        assert job is not None
+        assert job.job_type == WORKER_JOB_REFRESH_ALL
+        assert job.payload["folder_id"] == folder_id
+        assert job.dedup_key == f"{WORKER_JOB_REFRESH_ALL}:folder={folder_id}"
+
+
+def test_refresh_unknown_folder_returns_404(live_client) -> None:
+    client, factory = live_client
+    _seed(factory)
+    response = client.post(
+        "/api/system-ops/collection-control/folders/"
+        "00000000-0000-0000-0000-000000000000/refresh"
+    )
+    assert response.status_code == 404
+
+
 def test_coverage_counts_members_with_stored_bars(live_client) -> None:
     from datetime import datetime, timezone
     from decimal import Decimal

@@ -83,6 +83,8 @@ class WorkerConfig:
     timeframe: str
     persist_indicator_history: bool
     runtime_overrides: Mapping[str, str] | None = None
+    # F3: when set, the cycle collects only this folder's members (scoped refresh).
+    refresh_folder_id: str | None = None
 
 
 def _resolve_tickers(
@@ -216,16 +218,19 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
 
     try:
         with session_scope() as session:
+            folder_id = config.refresh_folder_id
             market_policy = build_watchlist_refresh_policy(
                 session,
                 base_tickers=config.market_tickers,
                 collection_type="market",
+                folder_id=folder_id,
                 runtime_overrides=config.runtime_overrides,
             )
             indicator_policy = build_watchlist_refresh_policy(
                 session,
                 base_tickers=config.indicator_tickers,
                 collection_type="indicator",
+                folder_id=folder_id,
                 runtime_overrides=config.runtime_overrides,
             )
             market_tickers = market_policy.tickers
@@ -233,6 +238,7 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
             news_watchlist_policy = build_watchlist_refresh_policy(
                 session,
                 collection_type="news",
+                folder_id=folder_id,
                 runtime_overrides=config.runtime_overrides,
             )
             news_policy = build_news_feed_policy(
@@ -442,8 +448,9 @@ def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
         summary: dict[str, Any] | None = None
         error: str | None = None
         try:
+            payload = job_payload(job)
             runtime_overrides = _extract_runtime_settings_from_job_payload(
-                job_payload=job_payload(job)
+                job_payload=payload
             )
             effective_config = config
             if runtime_overrides is not None:
@@ -453,6 +460,11 @@ def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
                         no_run_on_start=False,
                     ),
                     runtime_overrides=runtime_overrides,
+                )
+            folder_scope = _extract_folder_scope_from_job_payload(payload)
+            if folder_scope is not None:
+                effective_config = dataclasses.replace(
+                    effective_config, refresh_folder_id=folder_scope
                 )
             summary = run_cycle(_config_for_job(effective_config, job_type))
         except WorkerCycleFailed as exc:
@@ -501,6 +513,18 @@ def _extract_runtime_settings_from_job_payload(
         for key, value in raw.items()
         if isinstance(key, str) and isinstance(value, (str, int, bool))
     })
+
+
+def _extract_folder_scope_from_job_payload(
+    job_payload: dict[str, object] | None,
+) -> str | None:
+    """A folder-scoped refresh (F3) carries `folder_id` in its job payload."""
+    if not isinstance(job_payload, dict):
+        return None
+    raw = job_payload.get("folder_id")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return None
 
 
 def job_payload(job) -> dict[str, object] | None:

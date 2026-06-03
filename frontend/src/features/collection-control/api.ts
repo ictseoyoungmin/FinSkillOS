@@ -87,3 +87,7 @@ export function globalToggle(
 ): Promise<CollectionControlData> {
   return mutate(`${BASE}/global-toggle`, "POST", { flag, value });
 }
+
+export function refreshFolder(folderId: string): Promise<CollectionControlData> {
+  return mutate(`${BASE}/folders/${folderId}/refresh`, "POST");
+}

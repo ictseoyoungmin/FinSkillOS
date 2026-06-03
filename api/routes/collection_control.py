@@ -29,14 +29,17 @@ from api.schemas.collection_control import (
     GlobalToggleInput,
 )
 from api.schemas.common import SystemStatus
+from finskillos.db.models.system_ops import WORKER_JOB_REFRESH_ALL
 from finskillos.db.repositories import (
     MarketRepository,
     SymbolSubscriptionFolderRepository,
     SymbolSubscriptionRepository,
+    WorkerJobRepository,
 )
 from finskillos.db.repositories.symbol_subscription_folder_repo import (
     SymbolSubscriptionFolderSnapshot,
 )
+from finskillos.runtime_settings import runtime_setting_snapshot_for_job_queue
 from finskillos.services.watchlist_refresh_policy import (
     build_watchlist_refresh_policy,
 )
@@ -152,6 +155,37 @@ def remove_symbol(folder_id: UUID, ticker: str) -> CollectionControlResponse:
             return _db_unavailable_response()
         folders = SymbolSubscriptionFolderRepository(session)
         folders.remove_symbol(folder_id, ticker)
+        session.commit()
+        return _build_response(session)
+
+
+@router.post(
+    f"{_BASE}/folders/{{folder_id}}/refresh", response_model=CollectionControlResponse
+)
+def refresh_folder(folder_id: UUID) -> CollectionControlResponse:
+    """Enqueue a worker refresh scoped to this folder's members (idempotent).
+
+    The worker claims the job and collects only this folder's tickers (subject to
+    the folder's active state + per-type flags), instead of waiting for the next
+    cadence. Re-clicking while a job is still pending returns the same queued job."""
+    with get_session_scope() as session:
+        if session is None:
+            return _db_unavailable_response()
+        folders = SymbolSubscriptionFolderRepository(session)
+        if folders.get(folder_id) is None:
+            raise HTTPException(status_code=404, detail="folder_not_found")
+        WorkerJobRepository(session).enqueue(
+            WORKER_JOB_REFRESH_ALL,
+            requested_by="collection_control",
+            dedup_key=f"{WORKER_JOB_REFRESH_ALL}:folder={folder_id}",
+            payload={
+                "requested_from": "collection_control",
+                "folder_id": str(folder_id),
+                "runtime_settings": runtime_setting_snapshot_for_job_queue(
+                    session=session
+                ),
+            },
+        )
         session.commit()
         return _build_response(session)
 

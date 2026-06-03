@@ -529,8 +529,14 @@ per folder; the worker collects per folder.
 - [x] **U1 add-to-folder from any tab** (slice 133) — reusable
   `AddToCollectionFolder` (subscribe+link in one call) in the Market Kernel toolbar;
   Symbol Lab already had a folders panel over the same rows.
-- [ ] **F3 per-folder "refresh now"** (slice 134) — enqueue a folder-scoped worker
-  refresh job.
+- [x] **F3 per-folder "refresh now"** (slice 134) — `folder_id` scope in
+  `build_watchlist_refresh_policy` (single folder, no base union), worker reads
+  `folder_id` from job payload, `POST …/folders/{id}/refresh` enqueues a per-folder
+  `refresh_all` job, and a per-folder "Refresh now" button. See `.devmd/134_*.md`.
+
+> **Open cleanup (unrelated):** `test_control_room_promotes_live_overview_rails`
+> is a date-drift time-bomb (seeds 2026-05-30 bars, asserts FRESH) now failing as
+> the calendar advanced — needs a freeze-now / relative-date fix in its own slice.
 
 ### P1 — correctness / trust
 - [x] **D-001 CORS mutation-method contract** — Allow browser preflight for the

@@ -135,3 +135,53 @@ def test_collection_type_empty_when_no_active_folders(db_session: Session) -> No
     )
     assert policy.tickers == ("SPY",)
     assert policy.folder_tickers == ()
+
+
+def test_folder_id_scopes_to_single_folder_without_base(db_session: Session) -> None:
+    _seed_two_folders(db_session)
+    folders = SymbolSubscriptionFolderRepository(db_session)
+    core = folders.get_by_name("Core")
+    assert core is not None
+
+    policy = build_watchlist_refresh_policy(
+        db_session,
+        base_tickers=("SPY",),
+        collection_type="market",
+        folder_id=str(core.id),
+    )
+
+    # Only the Core folder's members; base ("SPY") is NOT unioned for a scoped run.
+    assert set(policy.tickers) == {"NVDA", "TSLA"}
+    assert policy.scope == f"collection:market:folder={core.id}"
+
+
+def test_folder_scoped_scope_fits_audit_column(db_session: Session) -> None:
+    # The worker persists policy.scope into worker_cycle_runs.*_scope; the
+    # folder-scoped label must fit the column or Postgres rejects the insert
+    # (SQLite silently ignores VARCHAR length, so assert it explicitly here).
+    from finskillos.db.models.system_ops import WorkerCycleRun
+
+    _seed_two_folders(db_session)
+    folders = SymbolSubscriptionFolderRepository(db_session)
+    core = folders.get_by_name("Core")
+    assert core is not None
+
+    policy = build_watchlist_refresh_policy(
+        db_session, collection_type="indicator", folder_id=str(core.id)
+    )
+    limit = WorkerCycleRun.indicator_scope.property.columns[0].type.length
+    assert len(policy.scope) <= limit
+
+
+def test_folder_id_scope_respects_flag_and_active(db_session: Session) -> None:
+    _seed_two_folders(db_session)
+    folders = SymbolSubscriptionFolderRepository(db_session)
+    core = folders.get_by_name("Core")
+    assert core is not None
+    folders.set_collection_flags(core.id, track_news=False)
+
+    news = build_watchlist_refresh_policy(
+        db_session, collection_type="news", folder_id=str(core.id)
+    )
+    # Core opted out of news → scoped news refresh collects nothing.
+    assert news.tickers == ()
