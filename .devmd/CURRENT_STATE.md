@@ -122,8 +122,9 @@ loop** (make queued/running/done/error/stale understandable + recoverable).
 - [x] **145 Daily Operations Runbook** — `docs/OPERATIONS_RUNBOOK.md` (services,
   first-time setup, daily start/stop, state vocabulary, refresh & collection,
   recover, backup/restore, verify). Commands cross-checked against compose/scripts.
-- [ ] **146 Worker Queue Visibility / Recovery UI** — surface individual
-  `worker_jobs` (queued/running/done/error) + retry/re-enqueue a failed job.
+- [x] **146 Worker Queue Visibility / Recovery UI** (slice 146) — `workerStatus`
+  now exposes `jobCounts` + `recentJobs`; a "Job Queue" panel shows status-colored
+  rows + a Retry button; `POST …/worker-jobs/{id}/retry` re-enqueues a terminal job.
 - [ ] **147 Refresh Result Explanation UX** — show what the last cycle did + why a
   tab is stale/partial.
 - [ ] **148 Provider Failure / Retry / Backoff** — implement the S7-flagged gap.

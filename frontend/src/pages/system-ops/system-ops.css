@@ -1005,3 +1005,87 @@
 .fso-runtime-audit[data-has-overrides="true"] {
   color: var(--fso-amber);
 }
+
+/* Worker job queue (Slice 146) */
+.fso-worker-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fso-worker-job-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: var(--fso-radius-sm);
+  background: var(--fso-bg-2);
+}
+
+.fso-worker-job-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.fso-worker-job-status {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fso-bg-3);
+  color: var(--fso-text-muted);
+}
+
+.fso-worker-job-status[data-status="DONE"] { color: var(--fso-green); }
+.fso-worker-job-status[data-status="ERROR"] { color: var(--fso-red); }
+.fso-worker-job-status[data-status="RUNNING"] { color: var(--fso-cyan-2); }
+.fso-worker-job-status[data-status="QUEUED"] { color: var(--fso-amber); }
+
+.fso-worker-job-scope,
+.fso-worker-job-by {
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-worker-job-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  color: var(--fso-text-muted);
+  max-width: 320px;
+}
+
+.fso-worker-job-error {
+  color: var(--fso-red);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fso-worker-job-retry {
+  padding: 4px 12px;
+  border: 1px solid var(--fso-cyan);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-worker-job-retry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-worker-job-notice[data-tone="error"] {
+  color: var(--fso-red);
+  font-size: 12px;
+  margin: 8px 0 0;
+}

@@ -9,6 +9,7 @@ import type {
   SystemOpsRuntimeSettingsPayload,
   SystemStatusData,
   WorkerLiveModeResult,
+  WorkerStatusSummary,
 } from "./types";
 
 const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
@@ -95,6 +96,28 @@ export async function setWorkerLiveMode(
     );
   }
   return (await response.json()) as WorkerLiveModeResult;
+}
+
+/** Re-enqueue a finished worker job to recover a failed (or re-run a done) refresh. */
+export async function retryWorkerJob(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<WorkerStatusSummary> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}/system-ops/worker-jobs/${jobId}/retry`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText} for ${url}`,
+    );
+  }
+  return (await response.json()) as WorkerStatusSummary;
 }
 
 export async function fetchRuntimeSettings(

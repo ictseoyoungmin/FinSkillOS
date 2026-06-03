@@ -24,6 +24,7 @@ import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -46,6 +47,7 @@ from api.schemas.system_ops import (
     SystemOpsRuntimeSettings,
     SystemOpsRuntimeSettingsPatch,
     WorkerCycleRecord,
+    WorkerJobRow,
     WorkerLiveModeInput,
     WorkerLiveModeResult,
     WorkerStatusSummary,
@@ -302,6 +304,46 @@ def set_worker_live_mode(payload: WorkerLiveModeInput) -> WorkerLiveModeResult:
                     f"({type(exc).__name__}). Stored state is unchanged."
                 ),
             )
+
+
+@router.post(
+    "/system-ops/worker-jobs/{job_id}/retry",
+    response_model=WorkerStatusSummary,
+    summary="Re-enqueue a finished worker job to recover a failed (or re-run a "
+    "done) refresh.",
+)
+def retry_worker_job(job_id: UUID) -> WorkerStatusSummary:
+    with get_session_scope() as session:
+        if session is None:
+            return WorkerStatusSummary()
+        from finskillos.db.repositories import WorkerJobRepository
+
+        repo = WorkerJobRepository(session)
+        job = repo.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="job_not_found")
+        if job.status not in _JOB_TERMINAL:
+            # Still QUEUED/RUNNING — nothing to recover; avoid duplicate work.
+            raise HTTPException(status_code=409, detail="job_not_terminal")
+
+        payload = job.payload if isinstance(job.payload, dict) else {}
+        folder_id = payload.get("folder_id")
+        new_payload: dict[str, Any] = {
+            "requested_from": "worker_job_retry",
+            "runtime_settings": runtime_setting_snapshot_for_job_queue(session=session),
+        }
+        dedup = job.job_type
+        if folder_id:
+            new_payload["folder_id"] = folder_id
+            dedup = f"{job.job_type}:folder={folder_id}"
+        repo.enqueue(
+            job.job_type,
+            requested_by="worker_job_retry",
+            dedup_key=dedup,
+            payload=new_payload,
+        )
+        session.commit()
+        return _read_worker_status(session=session)
 
 
 @router.get(
@@ -670,6 +712,7 @@ def _read_worker_status(
     if session is None:
         return WorkerStatusSummary()
     live_mode = _read_worker_live_mode(session)
+    job_counts, recent_jobs = _read_worker_jobs(session)
     try:
         rows = WorkerCycleRunRepository(session).list_recent(limit=limit)
     except Exception:
@@ -677,9 +720,15 @@ def _read_worker_status(
         return WorkerStatusSummary(
             live_mode=live_mode,
             latest_detail="Worker cycle history is unavailable.",
+            job_counts=job_counts,
+            recent_jobs=recent_jobs,
         )
     if not rows:
-        return WorkerStatusSummary(live_mode=live_mode)
+        return WorkerStatusSummary(
+            live_mode=live_mode,
+            job_counts=job_counts,
+            recent_jobs=recent_jobs,
+        )
     latest = rows[0]
     cadence_status, expected_next_cycle_at, cadence_detail = _worker_cadence(latest)
     return WorkerStatusSummary(
@@ -694,6 +743,43 @@ def _read_worker_status(
         cadence_detail=cadence_detail,
         live_mode=live_mode,
         recent_cycles=[_worker_cycle_record_from_db(row) for row in rows],
+        job_counts=job_counts,
+        recent_jobs=recent_jobs,
+    )
+
+
+_JOB_TERMINAL = {"DONE", "ERROR"}
+
+
+def _read_worker_jobs(session) -> tuple[dict[str, int], list[WorkerJobRow]]:
+    from finskillos.db.repositories import WorkerJobRepository
+
+    try:
+        repo = WorkerJobRepository(session)
+        counts = repo.count_by_status()
+        rows = repo.list_recent(limit=10)
+    except Exception:
+        session.rollback()
+        return {}, []
+    return counts, [_worker_job_row(job) for job in rows]
+
+
+def _worker_job_row(job) -> WorkerJobRow:
+    payload = job.payload if isinstance(job.payload, dict) else {}
+    folder_id = payload.get("folder_id") if isinstance(payload, dict) else None
+    error = job.error
+    if error and len(error) > 200:
+        error = error[:197] + "…"
+    return WorkerJobRow(
+        id=str(job.id),
+        job_type=job.job_type,
+        status=job.status,
+        requested_by=job.requested_by,
+        folder_id=str(folder_id) if folder_id else None,
+        created_at=job.created_at.isoformat() if job.created_at else None,
+        finished_at=job.finished_at.isoformat() if job.finished_at else None,
+        error=error,
+        retryable=job.status in _JOB_TERMINAL,
     )
 
 

@@ -7,6 +7,7 @@ import {
   runSystemOpsProtocol,
   updateRuntimeSettings,
   setWorkerLiveMode,
+  retryWorkerJob,
 } from "@/features/system-ops/api";
 import { CollectionControlPanel } from "@/features/collection-control/components/CollectionControlPanel";
 import { DataSourceStrip } from "@/features/system-ops/components/DataSourceStrip";
@@ -854,6 +855,10 @@ function WorkerStatusDashboard({
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["system-ops"] }),
   });
+  const retryMutation = useMutation({
+    mutationFn: (jobId: string) => retryWorkerJob(jobId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["system-ops"] }),
+  });
   const liveMode = workerStatus.liveMode;
   const latest = workerStatus.recentCycles[0] ?? null;
   const components = latest
@@ -992,9 +997,73 @@ function WorkerStatusDashboard({
             </div>
           )}
         </Panel>
+
+        <Panel
+          title="Job Queue"
+          badge={formatJobCounts(workerStatus.jobCounts)}
+          badgeTone="neutral"
+        >
+          {workerStatus.recentJobs.length > 0 ? (
+            <div className="fso-worker-jobs" data-testid="worker-job-queue">
+              {workerStatus.recentJobs.map((job) => (
+                <div
+                  className="fso-worker-job-row"
+                  key={job.id}
+                  data-status={job.status}
+                  data-testid={`worker-job-${job.id}`}
+                >
+                  <div className="fso-worker-job-main">
+                    <span className="fso-worker-job-status" data-status={job.status}>
+                      {job.status}
+                    </span>
+                    <strong>{job.jobType}</strong>
+                    {job.folderId ? (
+                      <span className="fso-worker-job-scope">folder-scoped</span>
+                    ) : null}
+                    <span className="fso-worker-job-by">· {job.requestedBy}</span>
+                  </div>
+                  <div className="fso-worker-job-meta">
+                    <span>{job.finishedAt ?? job.createdAt ?? ""}</span>
+                    {job.error ? (
+                      <span className="fso-worker-job-error" title={job.error}>
+                        {job.error}
+                      </span>
+                    ) : null}
+                  </div>
+                  {job.retryable ? (
+                    <button
+                      type="button"
+                      className="fso-worker-job-retry"
+                      disabled={retryMutation.isPending}
+                      data-testid={`worker-job-retry-${job.id}`}
+                      onClick={() => retryMutation.mutate(job.id)}
+                    >
+                      {job.status === "ERROR" ? "Retry" : "Re-run"}
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="fso-worker-empty">No worker jobs have been queued.</div>
+          )}
+          {retryMutation.isError ? (
+            <p className="fso-worker-job-notice" data-tone="error" role="status">
+              Could not re-enqueue the job.
+            </p>
+          ) : null}
+        </Panel>
       </div>
     </div>
   );
+}
+
+function formatJobCounts(counts: Record<string, number>): string {
+  const order = ["QUEUED", "RUNNING", "DONE", "ERROR"];
+  const parts = order
+    .filter((status) => counts[status])
+    .map((status) => `${counts[status]} ${status.toLowerCase()}`);
+  return parts.length > 0 ? parts.join(" · ") : "no jobs";
 }
 
 function WorkerMetric({ label, value }: { label: string; value: string }) {

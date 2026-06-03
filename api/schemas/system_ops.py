@@ -112,6 +112,20 @@ class WorkerCycleRecord(CamelModel):
     indicator_scope: str
 
 
+class WorkerJobRow(CamelModel):
+    """One row of the worker job queue (Slice 146)."""
+
+    id: str
+    job_type: str
+    status: str  # QUEUED | RUNNING | DONE | ERROR
+    requested_by: str = "system"
+    folder_id: str | None = None
+    created_at: str | None = None
+    finished_at: str | None = None
+    error: str | None = None  # short operational detail, truncated
+    retryable: bool = False  # terminal (DONE/ERROR) → can re-enqueue
+
+
 class WorkerStatusSummary(CamelModel):
     """System Ops summary for the optional refresh worker."""
 
@@ -126,6 +140,9 @@ class WorkerStatusSummary(CamelModel):
     )
     live_mode: bool = True
     recent_cycles: list[WorkerCycleRecord] = Field(default_factory=list)
+    # Job queue visibility (Slice 146).
+    job_counts: dict[str, int] = Field(default_factory=dict)
+    recent_jobs: list[WorkerJobRow] = Field(default_factory=list)
 
 
 class WorkerLiveModeInput(CamelModel):

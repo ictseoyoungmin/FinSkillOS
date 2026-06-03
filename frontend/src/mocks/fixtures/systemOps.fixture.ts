@@ -186,6 +186,8 @@ export const systemOpsFixture: SystemOpsData = {
     cadenceDetail: "Worker cadence cannot be assessed until a cycle exists.",
     liveMode: true,
     recentCycles: [],
+    jobCounts: {},
+    recentJobs: [],
   },
   dataSources: [
     {

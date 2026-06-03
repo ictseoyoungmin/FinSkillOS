@@ -107,6 +107,18 @@ export interface WorkerCycleRecord {
   indicatorScope: string;
 }
 
+export interface WorkerJobRow {
+  id: string;
+  jobType: string;
+  status: string;
+  requestedBy: string;
+  folderId: string | null;
+  createdAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+  retryable: boolean;
+}
+
 export interface WorkerStatusSummary {
   status: WorkerStatus;
   cadenceStatus: WorkerCadenceStatus;
@@ -117,6 +129,8 @@ export interface WorkerStatusSummary {
   cadenceDetail: string;
   liveMode: boolean;
   recentCycles: WorkerCycleRecord[];
+  jobCounts: Record<string, number>;
+  recentJobs: WorkerJobRow[];
 }
 
 export interface WorkerLiveModeResult {

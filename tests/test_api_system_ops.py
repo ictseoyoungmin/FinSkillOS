@@ -591,6 +591,61 @@ def test_seed_sample_events_protocol_is_audited_and_preserves_uncertain_statuses
         engine.dispose()
 
 
+def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
+    # Slice 146: the worker job queue (counts + recent jobs) is visible in
+    # workerStatus, and a failed/terminal job can be re-enqueued.
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        repo = WorkerJobRepository(session)
+        job = repo.enqueue(
+            "refresh_market", requested_by="system_ops", dedup_key="refresh_market"
+        )
+        repo.fail(job, "RuntimeError: provider unavailable")
+        session.commit()
+        failed_id = str(job.id)
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/system-ops").json()
+        worker = body["workerStatus"]
+        assert worker["jobCounts"].get("ERROR") == 1
+        rows = {row["id"]: row for row in worker["recentJobs"]}
+        assert failed_id in rows
+        assert rows[failed_id]["status"] == "ERROR"
+        assert rows[failed_id]["retryable"] is True
+        assert rows[failed_id]["error"].startswith("RuntimeError")
+
+        retried = _client().post(
+            f"/api/system-ops/worker-jobs/{failed_id}/retry"
+        )
+        assert retried.status_code == 200
+        # A fresh QUEUED refresh_market job now exists.
+        with factory() as session:
+            queued = [
+                j
+                for j in WorkerJobRepository(session).list_recent(limit=20)
+                if j.job_type == "refresh_market" and j.status == "QUEUED"
+            ]
+            assert len(queued) == 1
+
+        missing = _client().post(
+            "/api/system-ops/worker-jobs/"
+            "00000000-0000-0000-0000-000000000000/retry"
+        )
+        assert missing.status_code == 404
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_system_ops_get_exposes_worker_cycle_status(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"
