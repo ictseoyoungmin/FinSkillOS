@@ -81,9 +81,15 @@ ticker sets; the cycle audit scope reads `collection:<type>:folder=<id>`.
   (see §7), rather than showing stale-as-fresh data.
 - **Provider failure modes** (yahoo/yfinance default): rate-limit, network error,
   unsupported symbol, partial fetch, and non-trading-day/holiday gaps all surface
-  as reduced succeeded/failed counts + coverage state, not as crashes. Retry/
-  backoff and per-provider circuit-breaking are **not yet implemented** — tracked
-  in the stabilization backlog (S7).
+  as reduced succeeded/failed counts + coverage state, not as crashes.
+- **Per-ticker retry/backoff** (Slice 148): a transient `MarketDataFetchError` is
+  retried within a bounded budget before the ticker is recorded failed —
+  `FINSKILLOS_MARKET_FETCH_RETRIES` (default 2 → up to 3 attempts) with exponential
+  backoff `FINSKILLOS_MARKET_FETCH_BACKOFF_SECONDS * 2**attempt` (default 1.0s).
+  Only the declared transient error is retried; unexpected exceptions fail fast.
+  A failed *job* (whole cycle) still has no auto-retry — recovery is the next
+  cadence or the Slice-146 "Retry" button. Per-provider circuit-breaking is still
+  future work.
 
 ### Live-mode toggle (Slice 117)
 The cockpit can pause/resume the worker's **automatic** refresh at runtime via a

@@ -88,6 +88,9 @@ class WorkerConfig:
     # AW-2: recompute the market regime at the end of the cycle so the dashboard's
     # headline regime stays consistent with the bars/indicators just refreshed.
     regime_enabled: bool = True
+    # Slice 148: bounded retry/backoff for transient market-provider fetch errors.
+    market_fetch_retries: int = 2
+    market_fetch_backoff_seconds: float = 1.0
 
 
 def _resolve_tickers(
@@ -181,8 +184,26 @@ def load_config(
             default=True,
             runtime_overrides=runtime_overrides,
         ),
+        market_fetch_retries=read_runtime_int(
+            "FINSKILLOS_MARKET_FETCH_RETRIES",
+            default=2,
+            runtime_overrides=runtime_overrides,
+        ),
+        market_fetch_backoff_seconds=_read_backoff_seconds(runtime_overrides),
         runtime_overrides=runtime_overrides,
     )
+
+
+def _read_backoff_seconds(runtime_overrides: Mapping[str, str] | None) -> float:
+    raw = read_runtime_value(
+        "FINSKILLOS_MARKET_FETCH_BACKOFF_SECONDS",
+        default="1.0",
+        runtime_overrides=runtime_overrides,
+    )
+    try:
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return 1.0
 
 
 def _build_market_adapter(adapter_name: str):
@@ -261,7 +282,11 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
             if config.market_enabled:
                 adapter = _build_market_adapter(config.market_adapter)
                 market_service = MarketDataService(
-                    session, adapter=adapter, universe=market_tickers
+                    session,
+                    adapter=adapter,
+                    universe=market_tickers,
+                    fetch_retries=config.market_fetch_retries,
+                    fetch_backoff_seconds=config.market_fetch_backoff_seconds,
                 )
                 report = market_service.refresh_bars(
                     market_tickers,

@@ -128,7 +128,10 @@ loop** (make queued/running/done/error/stale understandable + recoverable).
 - [x] **147 Refresh Result Explanation UX** (slice 147) — cycle records now carry
   counts (bars/articles/snapshots/failures/regime) + a readable `outcome` line,
   shown in the Worker Status hero + trace.
-- [ ] **148 Provider Failure / Retry / Backoff** — implement the S7-flagged gap.
+- [x] **148 Provider Failure / Retry / Backoff** (slice 148) — bounded per-ticker
+  retry of transient `MarketDataFetchError` with exponential backoff
+  (`FINSKILLOS_MARKET_FETCH_RETRIES` / `_BACKOFF_SECONDS`); injectable sleep for
+  offline tests. Implements the S7-flagged gap.
 - [ ] **149 Runtime Settings Change History** — full history + one-click revert
   (S5 surfaced last-change only).
 - [ ] **150 Collection Control Operator Copy Polish** — continue S6.

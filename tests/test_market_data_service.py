@@ -22,8 +22,73 @@ from finskillos.data_sources import (
     YahooChartMarketDataAdapter,
 )
 from finskillos.data_sources.dto import MarketBarDTO
+from finskillos.data_sources.market_adapter import BaseMarketDataAdapter
 from finskillos.db.repositories import MarketRepository
 from finskillos.services.market_data_service import MarketDataService
+
+
+class _FlakyAdapter(BaseMarketDataAdapter):
+    """Raises a transient fetch error the first ``fail_times`` calls, then succeeds."""
+
+    source_name = "flaky"
+
+    def __init__(self, fail_times: int) -> None:
+        self.fail_times = fail_times
+        self.calls = 0
+
+    def fetch_bars(self, ticker, *, timeframe="1d", start=None, end=None):
+        self.calls += 1
+        if self.calls <= self.fail_times:
+            raise MarketDataFetchError("transient provider error")
+        return [
+            MarketBarDTO(
+                ticker=ticker,
+                timeframe=timeframe,
+                bar_time=datetime(2026, 5, 28, tzinfo=timezone.utc),
+                open=Decimal("1"),
+                high=Decimal("1"),
+                low=Decimal("1"),
+                close=Decimal("1"),
+                volume=None,
+                source="flaky",
+            )
+        ]
+
+
+def test_refresh_bars_retries_transient_fetch_error(db_session: Session) -> None:
+    # Slice 148: a transient fetch error is retried within the attempt budget.
+    adapter = _FlakyAdapter(fail_times=2)
+    service = MarketDataService(
+        db_session,
+        adapter=adapter,
+        universe=["SPY"],
+        fetch_retries=2,
+        fetch_backoff_seconds=0.0,
+        sleep=lambda _seconds: None,
+    )
+    report = service.refresh_bars(["SPY"])
+    assert adapter.calls == 3  # 2 failures + 1 success
+    assert report.total_bars_written == 1
+    assert report.failed == ()
+
+
+def test_refresh_bars_gives_up_after_exhausting_retries(db_session: Session) -> None:
+    slept: list[float] = []
+    adapter = _FlakyAdapter(fail_times=9)
+    service = MarketDataService(
+        db_session,
+        adapter=adapter,
+        universe=["SPY"],
+        fetch_retries=2,
+        fetch_backoff_seconds=0.5,
+        sleep=slept.append,
+    )
+    report = service.refresh_bars(["SPY"])
+    assert adapter.calls == 3  # 1 initial + 2 retries, all fail
+    assert report.total_bars_written == 0
+    assert len(report.failed) == 1
+    # Exponential backoff between attempts (0.5 * 2**0, 0.5 * 2**1); none after the last.
+    assert slept == [0.5, 1.0]
 
 UTC = timezone.utc
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "market_bars"

@@ -20,7 +20,8 @@ returns data. It does not emit trading directives.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Sequence
+import time
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -97,11 +98,18 @@ class MarketDataService:
         adapter: BaseMarketDataAdapter | None = None,
         *,
         universe: Sequence[str] | None = None,
+        fetch_retries: int = 0,
+        fetch_backoff_seconds: float = 0.0,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.session = session
         self.adapter = adapter or MockMarketDataAdapter()
         self.market_repo = MarketRepository(session)
         self.universe = tuple(t.upper() for t in (universe or DEFAULT_US_TICKER_UNIVERSE))
+        # Bounded retry/backoff for transient provider fetch errors (Slice 148).
+        self.fetch_retries = max(0, int(fetch_retries))
+        self.fetch_backoff_seconds = max(0.0, float(fetch_backoff_seconds))
+        self._sleep = sleep
 
     def list_universe(self) -> tuple[str, ...]:
         return self.universe
@@ -125,6 +133,45 @@ class MarketDataService:
             )
         return MarketRefreshReport(timeframe=timeframe, results=tuple(results))
 
+    def _fetch_with_retry(
+        self,
+        ticker: str,
+        *,
+        timeframe: str,
+        start: datetime | None,
+        end: datetime | None,
+    ):
+        """Fetch bars, retrying transient ``MarketDataFetchError`` with backoff.
+
+        Only the declared transient provider error is retried (rate-limit / network
+        / partial). Unexpected exceptions are not retried — they propagate to the
+        caller's generic handler. Backoff is exponential
+        (``backoff * 2**attempt``); with ``fetch_retries=0`` this is a single
+        attempt and behaves exactly as before."""
+        attempts = self.fetch_retries + 1
+        last_exc: MarketDataFetchError | None = None
+        for attempt in range(attempts):
+            try:
+                return self.adapter.fetch_bars(
+                    ticker, timeframe=timeframe, start=start, end=end
+                )
+            except MarketDataFetchError as exc:
+                last_exc = exc
+                if attempt + 1 >= attempts:
+                    break
+                delay = self.fetch_backoff_seconds * (2**attempt)
+                if delay > 0:
+                    self._sleep(delay)
+                log.info(
+                    "retrying %s %s after transient fetch error (attempt %d/%d)",
+                    ticker,
+                    timeframe,
+                    attempt + 2,
+                    attempts,
+                )
+        assert last_exc is not None
+        raise last_exc
+
     def _refresh_one(
         self,
         ticker: str,
@@ -141,7 +188,7 @@ class MarketDataService:
         ):
             latest_existing = None
         try:
-            new_bars = self.adapter.fetch_bars(
+            new_bars = self._fetch_with_retry(
                 ticker,
                 timeframe=timeframe,
                 start=latest_existing,
@@ -149,7 +196,11 @@ class MarketDataService:
             )
         except MarketDataFetchError as exc:
             log.warning(
-                "market data fetch failed for %s %s: %s", ticker, timeframe, exc
+                "market data fetch failed for %s %s after %d attempt(s): %s",
+                ticker,
+                timeframe,
+                self.fetch_retries + 1,
+                exc,
             )
             return TickerRefreshResult(
                 ticker=ticker,
