@@ -1068,6 +1068,47 @@ function WorkerStatusDashboard({
         </Panel>
 
         <Panel
+          title="Provider Health"
+          badge={workerStatus.providerHealth.status.toLowerCase()}
+          badgeTone={providerHealthTone(workerStatus.providerHealth.status)}
+        >
+          <p
+            className="fso-provider-detail"
+            data-status={workerStatus.providerHealth.status}
+            data-testid="provider-health-detail"
+          >
+            {workerStatus.providerHealth.detail}
+          </p>
+          <div className="fso-provider-meta">
+            <WorkerMetric
+              label="Last clean"
+              value={formatTimeAgo(workerStatus.providerHealth.lastSuccessAt)}
+            />
+            <WorkerMetric
+              label="Last failure"
+              value={formatTimeAgo(workerStatus.providerHealth.lastFailureAt)}
+            />
+            <WorkerMetric
+              label="Failing cycles"
+              value={`${workerStatus.providerHealth.consecutiveFailureCycles}`}
+            />
+          </div>
+          {workerStatus.providerHealth.affectedTickers.length > 0 ? (
+            <div className="fso-provider-tickers" data-testid="provider-health-tickers">
+              {workerStatus.providerHealth.affectedTickers.map((t) => (
+                <span
+                  key={t.ticker}
+                  className="fso-provider-ticker"
+                  title={t.error}
+                >
+                  {t.ticker}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </Panel>
+
+        <Panel
           title="Job Queue"
           badge={formatJobCounts(workerStatus.jobCounts)}
           badgeTone="neutral"
@@ -1133,6 +1174,28 @@ function formatJobCounts(counts: Record<string, number>): string {
     .filter((status) => counts[status])
     .map((status) => `${counts[status]} ${status.toLowerCase()}`);
   return parts.length > 0 ? parts.join(" · ") : "no jobs";
+}
+
+function providerHealthTone(
+  status: WorkerStatusSummary["providerHealth"]["status"],
+): "success" | "warning" | "danger" | "neutral" {
+  if (status === "HEALTHY") return "success";
+  if (status === "DEGRADED") return "warning";
+  if (status === "FAILING") return "danger";
+  return "neutral";
+}
+
+function formatTimeAgo(iso: string | null): string {
+  if (!iso) return "—";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }
 
 function WorkerMetric({ label, value }: { label: string; value: string }) {

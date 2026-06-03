@@ -43,6 +43,8 @@ from api.schemas.system_ops import (
     ProtocolKey,
     ProtocolRunRecord,
     ProtocolRunResult,
+    ProviderHealth,
+    ProviderHealthTicker,
     SystemOpsResponse,
     SystemOpsRuntimeSettings,
     SystemOpsRuntimeSettingsPatch,
@@ -738,6 +740,7 @@ def _read_worker_status(
         return WorkerStatusSummary()
     live_mode = _read_worker_live_mode(session)
     job_counts, recent_jobs = _read_worker_jobs(session)
+    provider_health = _provider_health(session)
     try:
         rows = WorkerCycleRunRepository(session).list_recent(limit=limit)
     except Exception:
@@ -747,12 +750,14 @@ def _read_worker_status(
             latest_detail="Worker cycle history is unavailable.",
             job_counts=job_counts,
             recent_jobs=recent_jobs,
+            provider_health=provider_health,
         )
     if not rows:
         return WorkerStatusSummary(
             live_mode=live_mode,
             job_counts=job_counts,
             recent_jobs=recent_jobs,
+            provider_health=provider_health,
         )
     latest = rows[0]
     cadence_status, expected_next_cycle_at, cadence_detail = _worker_cadence(latest)
@@ -770,7 +775,105 @@ def _read_worker_status(
         recent_cycles=[_worker_cycle_record_from_db(row) for row in rows],
         job_counts=job_counts,
         recent_jobs=recent_jobs,
+        provider_health=provider_health,
     )
+
+
+def _provider_health(session) -> ProviderHealth:
+    """Roll up market-provider health from recent worker cycles.
+
+    Scans the recent cycle audit for the latest success (bars written), the latest
+    failure (failed tickers or an errored cycle), how many newest cycles in a row
+    had failures, and which tickers failed most recently — so an operator can see
+    *why* coverage is partial, not just that it is."""
+    try:
+        rows = WorkerCycleRunRepository(session).list_recent(limit=25)
+    except Exception:
+        session.rollback()
+        return ProviderHealth()
+    market_rows = [(row, _market_section(row)) for row in rows]
+    market_rows = [(row, m) for row, m in market_rows if m.get("enabled")]
+    if not market_rows:
+        return ProviderHealth(status="UNKNOWN")
+
+    latest_row, latest_market = market_rows[0]
+    adapter = str(latest_market.get("adapter") or "")
+
+    # Last fully-clean cycle (collected bars with zero failures) — the clearest
+    # "the provider last worked completely at X" signal.
+    last_success_at = next(
+        (
+            row.finished_at.isoformat()
+            for row, m in market_rows
+            if int(m.get("barsWritten") or 0) > 0 and int(m.get("failed") or 0) == 0
+        ),
+        None,
+    )
+    last_failure_at = next(
+        (
+            row.finished_at.isoformat()
+            for row, m in market_rows
+            if int(m.get("failed") or 0) > 0 or row.status == "ERROR"
+        ),
+        None,
+    )
+
+    consecutive = 0
+    for row, m in market_rows:
+        if int(m.get("failed") or 0) > 0 or row.status == "ERROR":
+            consecutive += 1
+        else:
+            break
+
+    affected = next(
+        (m.get("failedTickers") for _row, m in market_rows if m.get("failedTickers")),
+        None,
+    )
+    affected_tickers = [
+        ProviderHealthTicker(
+            ticker=str(item.get("ticker") or ""),
+            error=str(item.get("error") or ""),
+        )
+        for item in (affected or [])
+        if isinstance(item, dict)
+    ]
+
+    latest_failed = int(latest_market.get("failed") or 0)
+    if consecutive == 0:
+        status = "HEALTHY"
+    elif latest_failed > 0 and int(latest_market.get("succeeded") or 0) > 0:
+        status = "DEGRADED"  # partial: some tickers failing
+    else:
+        status = "FAILING"
+
+    return ProviderHealth(
+        adapter=adapter,
+        status=status,
+        last_cycle_at=latest_row.finished_at.isoformat(),
+        last_success_at=last_success_at,
+        last_failure_at=last_failure_at,
+        consecutive_failure_cycles=consecutive,
+        affected_tickers=affected_tickers,
+        detail=_provider_health_detail(adapter, status, affected_tickers),
+    )
+
+
+def _market_section(row) -> dict:
+    summary = row.summary if isinstance(row.summary, dict) else {}
+    section = summary.get("market")
+    return section if isinstance(section, dict) else {}
+
+
+def _provider_health_detail(adapter, status, affected) -> str:
+    label = adapter or "market provider"
+    if status == "HEALTHY":
+        return f"{label}: healthy — the latest cycle collected without failures."
+    if status == "UNKNOWN":
+        return f"{label}: no market cycle has run yet."
+    names = ", ".join(t.ticker for t in affected[:8]) if affected else "some tickers"
+    if status == "DEGRADED":
+        return f"{label}: degraded — partial coverage; {names} failed most recently."
+    return f"{label}: failing — recent cycles collected no bars ({names})."
 
 
 _JOB_TERMINAL = {"DONE", "ERROR"}

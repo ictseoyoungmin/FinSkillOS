@@ -188,6 +188,16 @@ export const systemOpsFixture: SystemOpsData = {
     recentCycles: [],
     jobCounts: {},
     recentJobs: [],
+    providerHealth: {
+      adapter: "",
+      status: "UNKNOWN",
+      lastCycleAt: null,
+      lastSuccessAt: null,
+      lastFailureAt: null,
+      consecutiveFailureCycles: 0,
+      affectedTickers: [],
+      detail: "No worker cycle has touched the market provider yet.",
+    },
   },
   dataSources: [
     {

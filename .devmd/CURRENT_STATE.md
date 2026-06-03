@@ -142,9 +142,19 @@ data repair/quarantine).
   collects nothing"); totals relabeled + tooltips; global toggles → "Apply to all
   folders". **Phase 1 complete.**
 
+#### Phase 2 — data trust / provider resilience (active)
+- [x] **151 Provider Health Dashboard** (slice 151) — `workerStatus.providerHealth`
+  rolled up from recent cycles (status / last-clean / last-failure / affected
+  tickers + reason) + a System Ops panel. Market cycle summary now records
+  `failedTickers`.
+- [ ] **152 Market Data Provenance Audit** — source/dedup/provenance per bar.
+- [ ] **153 Indicator / Bar Invariant Dashboard** — every snapshot has a backing bar.
+- [ ] **154 News / Event Feed Coverage Diagnostics**.
+- [ ] **155 Data Repair / Quarantine Protocols**.
+
 #### Later phases (see ROADMAP.md)
-Phase 2 data-trust/provider-resilience · Phase 3 portfolio/journal input · Phase 4
-interpretation engine · Phase 5 packaging · Phase 6 optional automation/LLM-narration.
+Phase 3 portfolio/journal input · Phase 4 interpretation engine · Phase 5 packaging
+· Phase 6 optional automation/LLM-narration.
 
 ### Standing open (env-blocked)
 - [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift

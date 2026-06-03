@@ -134,6 +134,24 @@ class WorkerJobRow(CamelModel):
     retryable: bool = False  # terminal (DONE/ERROR) → can re-enqueue
 
 
+class ProviderHealthTicker(CamelModel):
+    ticker: str
+    error: str = ""
+
+
+class ProviderHealth(CamelModel):
+    """Market-provider health rolled up from recent worker cycles (Slice 151)."""
+
+    adapter: str = ""
+    status: Literal["HEALTHY", "DEGRADED", "FAILING", "UNKNOWN"] = "UNKNOWN"
+    last_cycle_at: str | None = None
+    last_success_at: str | None = None
+    last_failure_at: str | None = None
+    consecutive_failure_cycles: int = 0
+    affected_tickers: list[ProviderHealthTicker] = Field(default_factory=list)
+    detail: str = "No worker cycle has touched the market provider yet."
+
+
 class WorkerStatusSummary(CamelModel):
     """System Ops summary for the optional refresh worker."""
 
@@ -151,6 +169,8 @@ class WorkerStatusSummary(CamelModel):
     # Job queue visibility (Slice 146).
     job_counts: dict[str, int] = Field(default_factory=dict)
     recent_jobs: list[WorkerJobRow] = Field(default_factory=list)
+    # Market provider health (Slice 151).
+    provider_health: ProviderHealth = Field(default_factory=ProviderHealth)
 
 
 class WorkerLiveModeInput(CamelModel):

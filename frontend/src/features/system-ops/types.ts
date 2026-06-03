@@ -134,6 +134,22 @@ export interface WorkerJobRow {
   retryable: boolean;
 }
 
+export interface ProviderHealthTicker {
+  ticker: string;
+  error: string;
+}
+
+export interface ProviderHealth {
+  adapter: string;
+  status: "HEALTHY" | "DEGRADED" | "FAILING" | "UNKNOWN";
+  lastCycleAt: string | null;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  consecutiveFailureCycles: number;
+  affectedTickers: ProviderHealthTicker[];
+  detail: string;
+}
+
 export interface WorkerStatusSummary {
   status: WorkerStatus;
   cadenceStatus: WorkerCadenceStatus;
@@ -146,6 +162,7 @@ export interface WorkerStatusSummary {
   recentCycles: WorkerCycleRecord[];
   jobCounts: Record<string, number>;
   recentJobs: WorkerJobRow[];
+  providerHealth: ProviderHealth;
 }
 
 export interface WorkerLiveModeResult {

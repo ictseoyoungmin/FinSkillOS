@@ -303,6 +303,11 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                     "barsWritten": report.total_bars_written,
                     "scope": market_policy.scope,
                     "folders": market_policy.folder_names,
+                    # Provider Health detail (Slice 151): which tickers failed + why.
+                    "failedTickers": [
+                        {"ticker": r.ticker, "error": (r.error or "")[:200]}
+                        for r in report.failed[:15]
+                    ],
                 }
 
             if config.news_enabled:

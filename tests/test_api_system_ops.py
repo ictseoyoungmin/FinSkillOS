@@ -692,6 +692,79 @@ def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_provider_health_rolls_up_recent_market_failures(monkeypatch, tmp_path) -> None:
+    # Slice 151: provider health summarizes last success/failure + affected tickers.
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    older = datetime(2026, 5, 27, 12, 0, tzinfo=timezone.utc)
+    newer = datetime(2026, 5, 28, 12, 0, tzinfo=timezone.utc)
+    with factory() as session:
+        repo = WorkerCycleRunRepository(session)
+        # Older clean cycle (success).
+        repo.create(
+            status="OK",
+            started_at=older,
+            finished_at=older,
+            timeframe="1d",
+            market_status="OK",
+            news_status="NOOP",
+            indicator_status="OK",
+            market_scope="collection:market",
+            news_scope="-",
+            indicator_scope="collection:indicator",
+            summary={
+                "market": {"enabled": True, "adapter": "yahoo", "succeeded": 22,
+                           "failed": 0, "barsWritten": 22, "failedTickers": []},
+            },
+        )
+        # Newer partial cycle (some tickers failed).
+        repo.create(
+            status="OK",
+            started_at=newer,
+            finished_at=newer,
+            timeframe="1d",
+            market_status="OK",
+            news_status="NOOP",
+            indicator_status="OK",
+            market_scope="collection:market",
+            news_scope="-",
+            indicator_scope="collection:indicator",
+            summary={
+                "market": {
+                    "enabled": True, "adapter": "yahoo", "succeeded": 20,
+                    "failed": 2, "barsWritten": 20,
+                    "failedTickers": [
+                        {"ticker": "VIX", "error": "rate limited"},
+                        {"ticker": "US10Y", "error": "rate limited"},
+                    ],
+                },
+            },
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        health = _client().get("/api/system-ops").json()["workerStatus"]["providerHealth"]
+        assert health["adapter"] == "yahoo"
+        assert health["status"] == "DEGRADED"  # latest partial
+        assert health["consecutiveFailureCycles"] == 1
+        assert health["lastSuccessAt"].startswith("2026-05-27T12:00:00")
+        assert health["lastFailureAt"].startswith("2026-05-28T12:00:00")
+        tickers = {t["ticker"] for t in health["affectedTickers"]}
+        assert tickers == {"VIX", "US10Y"}
+        assert "degraded" in health["detail"].lower()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_worker_cycle_outcome_explains_what_was_collected(monkeypatch, tmp_path) -> None:
     # Slice 147: the cycle record surfaces counts + a readable outcome line.
     db_path = tmp_path / "finskillos.db"
