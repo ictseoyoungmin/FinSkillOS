@@ -526,8 +526,9 @@ per folder; the worker collects per folder.
 #### W follow-ups (ideas backlog → slices)
 - [x] **U9 confirm + undo** (slice 132) — inline two-step confirm on folder delete
   + Undo on ticker removal.
-- [ ] **U1 Symbol-Lab "add to folder"** (slice 133) — add the open symbol to a
-  collection folder from Symbol Lab.
+- [x] **U1 add-to-folder from any tab** (slice 133) — reusable
+  `AddToCollectionFolder` (subscribe+link in one call) in the Market Kernel toolbar;
+  Symbol Lab already had a folders panel over the same rows.
 - [ ] **F3 per-folder "refresh now"** (slice 134) — enqueue a folder-scoped worker
   refresh job.
 

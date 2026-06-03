@@ -6,6 +6,7 @@ import { CandlePanel } from "@/features/market/components/CandlePanel";
 import { EventOverlayPanel } from "@/features/market/components/EventOverlayPanel";
 import { IndicatorSnapshotPanel } from "@/features/market/components/IndicatorSnapshotPanel";
 import { MarketKernelInterpretation } from "@/features/market/components/MarketKernelInterpretation";
+import { AddToCollectionFolder } from "@/features/collection-control/components/AddToCollectionFolder";
 import { SymbolUniverseRail } from "@/features/market/components/SymbolUniverseRail";
 import { TickerSearch } from "@/features/market/components/TickerSearch";
 import { marketKernelFixture } from "@/mocks/fixtures/marketKernel.fixture";
@@ -116,6 +117,7 @@ export function MarketKernelPage() {
                 </button>
               ))}
             </div>
+            <AddToCollectionFolder ticker={payload.header.ticker} />
           </div>
 
           {payload.setupHint ? (

@@ -299,3 +299,53 @@
   color: var(--fso-text-muted-2);
   font-size: 11px;
 }
+
+/* Add-to-folder affordance (idea U1) */
+.fso-add-to-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.fso-add-to-folder-label {
+  font-size: 12px;
+  color: var(--fso-text-muted);
+}
+
+.fso-add-to-folder-select {
+  padding: 4px 8px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: var(--fso-bg);
+  color: var(--fso-text);
+  font-size: 13px;
+}
+
+.fso-add-to-folder-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--fso-cyan);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.fso-add-to-folder-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-add-to-folder-note {
+  font-size: 12px;
+}
+
+.fso-add-to-folder-note[data-tone="success"] {
+  color: var(--fso-green);
+}
+
+.fso-add-to-folder-note[data-tone="error"] {
+  color: var(--fso-red);
+}

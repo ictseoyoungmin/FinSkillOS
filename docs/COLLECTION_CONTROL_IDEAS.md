@@ -58,5 +58,9 @@ Created 2026-06-02.
   `coveredMemberCount` ("X/Y with stored bars") from `MarketRepository`.
 - **U3 open/collapse** — shipped in W-5 (slice 131): per-folder collapse toggle.
 - **U4 global toggles** — shipped in W-4 (slice 130): all-folders flag row.
-- Still open / good next picks: **U1** Symbol-Lab "add to folder" cross-link,
-  **U9** confirm + undo on destructive removal, **F3** per-folder "refresh now".
+- **U9 confirm + undo** — shipped in slice 132 (folder-delete two-step confirm +
+  ticker-removal undo).
+- **U1 add-to-folder from any tab** — shipped in slice 133 (`AddToCollectionFolder`
+  in Market Kernel; Symbol Lab already had a folders panel).
+- Still open / good next picks: **F3** per-folder "refresh now" (slice 134),
+  **F2** per-folder cadence, **F1** per-ticker type override.
