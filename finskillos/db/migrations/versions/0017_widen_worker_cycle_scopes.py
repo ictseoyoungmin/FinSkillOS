@@ -24,24 +24,26 @@ _COLUMNS = ("market_scope", "news_scope", "indicator_scope")
 
 
 def upgrade() -> None:
-    for name in _COLUMNS:
-        op.alter_column(
-            "worker_cycle_runs",
-            name,
-            existing_type=sa.String(length=32),
-            type_=sa.String(length=80),
-            existing_nullable=False,
-            existing_server_default="unknown",
-        )
+    # batch_alter_table keeps this portable: SQLite has no ALTER COLUMN TYPE, so
+    # alembic recreates the table there; Postgres issues a normal ALTER.
+    with op.batch_alter_table("worker_cycle_runs") as batch_op:
+        for name in _COLUMNS:
+            batch_op.alter_column(
+                name,
+                existing_type=sa.String(length=32),
+                type_=sa.String(length=80),
+                existing_nullable=False,
+                existing_server_default="unknown",
+            )
 
 
 def downgrade() -> None:
-    for name in _COLUMNS:
-        op.alter_column(
-            "worker_cycle_runs",
-            name,
-            existing_type=sa.String(length=80),
-            type_=sa.String(length=32),
-            existing_nullable=False,
-            existing_server_default="unknown",
-        )
+    with op.batch_alter_table("worker_cycle_runs") as batch_op:
+        for name in _COLUMNS:
+            batch_op.alter_column(
+                name,
+                existing_type=sa.String(length=80),
+                type_=sa.String(length=32),
+                existing_nullable=False,
+                existing_server_default="unknown",
+            )
