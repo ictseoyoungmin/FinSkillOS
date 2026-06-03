@@ -125,8 +125,9 @@ loop** (make queued/running/done/error/stale understandable + recoverable).
 - [x] **146 Worker Queue Visibility / Recovery UI** (slice 146) — `workerStatus`
   now exposes `jobCounts` + `recentJobs`; a "Job Queue" panel shows status-colored
   rows + a Retry button; `POST …/worker-jobs/{id}/retry` re-enqueues a terminal job.
-- [ ] **147 Refresh Result Explanation UX** — show what the last cycle did + why a
-  tab is stale/partial.
+- [x] **147 Refresh Result Explanation UX** (slice 147) — cycle records now carry
+  counts (bars/articles/snapshots/failures/regime) + a readable `outcome` line,
+  shown in the Worker Status hero + trace.
 - [ ] **148 Provider Failure / Retry / Backoff** — implement the S7-flagged gap.
 - [ ] **149 Runtime Settings Change History** — full history + one-click revert
   (S5 surfaced last-change only).

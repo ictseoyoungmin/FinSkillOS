@@ -1089,3 +1089,16 @@
   font-size: 12px;
   margin: 8px 0 0;
 }
+
+/* Cycle outcome explanation (Slice 147) */
+.fso-worker-outcome {
+  color: var(--fso-cyan-2);
+  font-weight: 500;
+}
+
+.fso-worker-cycle-outcome {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--fso-text-muted);
+  flex-basis: 100%;
+}

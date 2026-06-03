@@ -110,6 +110,14 @@ class WorkerCycleRecord(CamelModel):
     market_scope: str
     news_scope: str
     indicator_scope: str
+    # What the cycle actually did (Slice 147) — counts from the cycle summary
+    # plus a human-readable one-line outcome.
+    bars_written: int = 0
+    articles_ingested: int = 0
+    snapshots_written: int = 0
+    failures: int = 0
+    regime: str | None = None
+    outcome: str = ""
 
 
 class WorkerJobRow(CamelModel):

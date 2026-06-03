@@ -105,6 +105,12 @@ export interface WorkerCycleRecord {
   marketScope: string;
   newsScope: string;
   indicatorScope: string;
+  barsWritten: number;
+  articlesIngested: number;
+  snapshotsWritten: number;
+  failures: number;
+  regime: string | null;
+  outcome: string;
 }
 
 export interface WorkerJobRow {

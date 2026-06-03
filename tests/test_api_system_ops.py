@@ -646,6 +646,55 @@ def test_system_ops_surfaces_job_queue_and_retry(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_worker_cycle_outcome_explains_what_was_collected(monkeypatch, tmp_path) -> None:
+    # Slice 147: the cycle record surfaces counts + a readable outcome line.
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    now = datetime(2026, 5, 27, 12, 0, tzinfo=timezone.utc)
+    with factory() as session:
+        WorkerCycleRunRepository(session).create(
+            status="OK",
+            started_at=now,
+            finished_at=now,
+            timeframe="1d",
+            market_status="OK",
+            news_status="OK",
+            indicator_status="OK",
+            market_scope="collection:market",
+            news_scope="collection:news",
+            indicator_scope="collection:indicator",
+            summary={
+                "market": {"status": "OK", "barsWritten": 42, "failed": 1},
+                "news": {"status": "OK", "articlesIngested": 5},
+                "indicators": {"status": "OK", "snapshotsWritten": 22, "failed": 0},
+                "regime": {"status": "OK", "regime": "RISK_ON_OVERHEAT"},
+            },
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        cycle = _client().get("/api/system-ops").json()["workerStatus"]["recentCycles"][0]
+        assert cycle["barsWritten"] == 42
+        assert cycle["articlesIngested"] == 5
+        assert cycle["snapshotsWritten"] == 22
+        assert cycle["failures"] == 1
+        assert cycle["regime"] == "RISK_ON_OVERHEAT"
+        assert "42 bars" in cycle["outcome"]
+        assert "regime RISK_ON_OVERHEAT" in cycle["outcome"]
+        assert "1 ticker(s) failed" in cycle["outcome"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_system_ops_get_exposes_worker_cycle_status(monkeypatch, tmp_path) -> None:
     db_path = tmp_path / "finskillos.db"
     database_url = f"sqlite+pysqlite:///{db_path}"

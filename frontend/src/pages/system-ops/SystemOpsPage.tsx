@@ -909,6 +909,14 @@ function WorkerStatusDashboard({
           <div className="fso-worker-hero-copy">
             <span>Latest cycle</span>
             <strong>{workerStatus.status}</strong>
+            {latest?.outcome ? (
+              <small
+                className="fso-worker-outcome"
+                data-testid="worker-latest-outcome"
+              >
+                {latest.outcome}
+              </small>
+            ) : null}
             <small>{workerStatus.latestDetail}</small>
             <small>{workerStatus.cadenceDetail}</small>
             <div
@@ -1087,6 +1095,9 @@ function WorkerCycleRow({ cycle }: { cycle: WorkerCycleRecord }) {
         <span data-status={cycle.newsStatus}>News</span>
         <span data-status={cycle.indicatorStatus}>Indicators</span>
       </div>
+      {cycle.outcome ? (
+        <p className="fso-worker-cycle-outcome">{cycle.outcome}</p>
+      ) : null}
       <div className="fso-worker-cycle-meta">
         <span>{formatDuration(cycle.startedAt, cycle.finishedAt)}</span>
         <span>{cycle.timeframe}</span>

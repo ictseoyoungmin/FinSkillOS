@@ -794,6 +794,7 @@ def _read_worker_live_mode(session) -> bool:
 
 
 def _worker_cycle_record_from_db(row) -> WorkerCycleRecord:
+    counts = _worker_cycle_counts(row.summary)
     return WorkerCycleRecord(
         status=_worker_status_value(row.status),
         started_at=row.started_at.isoformat(),
@@ -805,7 +806,69 @@ def _worker_cycle_record_from_db(row) -> WorkerCycleRecord:
         market_scope=row.market_scope,
         news_scope=row.news_scope,
         indicator_scope=row.indicator_scope,
+        bars_written=counts["bars_written"],
+        articles_ingested=counts["articles_ingested"],
+        snapshots_written=counts["snapshots_written"],
+        failures=counts["failures"],
+        regime=counts["regime"],
+        outcome=_worker_cycle_outcome(row, counts),
     )
+
+
+def _worker_cycle_counts(summary) -> dict:
+    """Pull the per-component results out of the cycle summary JSONB."""
+    s = summary if isinstance(summary, dict) else {}
+
+    def _section(name: str) -> dict:
+        value = s.get(name)
+        return value if isinstance(value, dict) else {}
+
+    market, news, indicators, regime = (
+        _section("market"),
+        _section("news"),
+        _section("indicators"),
+        _section("regime"),
+    )
+
+    def _int(block: dict, key: str) -> int:
+        try:
+            return int(block.get(key) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    return {
+        "bars_written": _int(market, "barsWritten"),
+        "articles_ingested": _int(news, "articlesIngested"),
+        "snapshots_written": _int(indicators, "snapshotsWritten"),
+        "failures": _int(market, "failed") + _int(indicators, "failed"),
+        "regime": str(regime.get("regime")) if regime.get("regime") else None,
+    }
+
+
+def _worker_cycle_outcome(row, counts: dict) -> str:
+    """A human-readable one-line summary of what the cycle did."""
+    if row.status == "ERROR":
+        detail = ""
+        if isinstance(row.summary, dict):
+            error = row.summary.get("error")
+            if isinstance(error, dict):
+                detail = f" ({error.get('type') or 'WorkerError'})"
+        return f"Cycle failed{detail} — no data was written; the next cycle retries."
+    parts: list[str] = []
+    if row.market_status not in {"SKIPPED", "MISSING"}:
+        parts.append(f"{counts['bars_written']} bars")
+    if row.news_status not in {"SKIPPED", "MISSING"}:
+        parts.append(f"{counts['articles_ingested']} articles")
+    if row.indicator_status not in {"SKIPPED", "MISSING"}:
+        parts.append(f"{counts['snapshots_written']} indicator snapshots")
+    if counts["regime"]:
+        parts.append(f"regime {counts['regime']}")
+    if not parts:
+        return "Nothing collected this cycle (all sections skipped)."
+    line = "Collected " + ", ".join(parts) + "."
+    if counts["failures"]:
+        line += f" {counts['failures']} ticker(s) failed and stay partial."
+    return line
 
 
 def _worker_status_value(value: str) -> str:
