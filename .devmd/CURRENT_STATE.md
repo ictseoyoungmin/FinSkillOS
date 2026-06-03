@@ -499,6 +499,31 @@ are removed from this active queue and remain documented in the completed-slice
 list plus the diagnostic history. Work top-down; mark `[~]` while in progress,
 then `[x]` with the implementation note when done.
 
+### S — Stabilization (2026-06-03 external review)
+Reviewer verdict (~slice 137): product matured past UI-completion into live DB
+read-models + worker ops; **prefer contract-maintenance / docs-split /
+regression-prevention over new features for now**. Detail + rationale:
+`workflow_and_memory/project_stabilization_backlog_2026_06_03.md`.
+- [x] **S1 date-drift test cleanup** — slice 139 (Control Room freshness seeded
+  relative to `now`).
+- [x] **S2 reflect 138/139 in completed list** — done (above).
+- [x] **S4 migration authoring checklist** — captured in
+  `workflow_and_memory/feedback_docker_migration_workflow.md` (Postgres apply +
+  SQLite alembic smoke + downgrade + dialect review).
+- [ ] **S3 split CURRENT_STATE** — lean dashboard (summary + last ~10 slices +
+  active queue + next actions) + a separate `COMPLETED_SLICES.md` history; point to
+  `docs/` for state-vocabulary / worker-API contracts instead of re-describing.
+  (This file is ~630 lines and doubles as dashboard + log.)
+- [ ] **S5 runtime-settings change audit / rollback UX** — surface who/when/what
+  changed a runtime setting (overlay persists across restarts); keep allow-list +
+  typed validation strict.
+- [ ] **S6 collection-control refresh-semantics copy** — per-folder "Refresh now"
+  collects only that folder's members (no base-universe union, excludes
+  inactive/flag-off). Say so in the UI to avoid "why didn't other tickers refresh?".
+- [ ] **S7 worker / job-queue failure-recovery docs** — extend
+  `docs/WORKER_QUEUE_AND_API_SPEC.md` with provider-failure UX, retry/backoff, job
+  failure recovery, and the regime-recompute coupling (slice 136).
+
 ### AW — Analysis Workspace Audit (2026-06-03) — CLOSED (135/136/137)
 Findings from a live Analysis Workspace review (PANIC regime contradicting a
 bullish tape + calm VIX on the same screen). All three slices landed + live-verified.
