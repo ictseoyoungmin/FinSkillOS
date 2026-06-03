@@ -110,7 +110,10 @@ export function CollectionControlPanel(): JSX.Element {
   };
 
   const onRefreshFolder = (folder: CollectionFolder): void => {
-    run(() => refreshFolder(folder.id), `Refresh queued for "${folder.name}".`);
+    run(
+      () => refreshFolder(folder.id),
+      `Refresh queued for "${folder.name}" — this folder's symbols only, not the global universe.`,
+    );
   };
 
   const onAddSymbol = (folder: CollectionFolder): void => {
@@ -339,7 +342,9 @@ function FolderCard({
           disabled={busy || !folder.isActive}
           title={
             folder.isActive
-              ? "Queue a worker refresh for this folder's symbols."
+              ? "Queue a worker refresh for this folder's symbols only — not the " +
+                "global universe. Excludes disabled collection types; an inactive " +
+                "folder collects nothing."
               : "Folder is inactive — nothing to refresh."
           }
           data-testid={`collection-refresh-${folder.id}`}

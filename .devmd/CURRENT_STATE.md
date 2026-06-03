@@ -517,9 +517,9 @@ regression-prevention over new features for now**. Detail + rationale:
 - [ ] **S5 runtime-settings change audit / rollback UX** — surface who/when/what
   changed a runtime setting (overlay persists across restarts); keep allow-list +
   typed validation strict.
-- [ ] **S6 collection-control refresh-semantics copy** — per-folder "Refresh now"
-  collects only that folder's members (no base-universe union, excludes
-  inactive/flag-off). Say so in the UI to avoid "why didn't other tickers refresh?".
+- [x] **S6 collection-control refresh-semantics copy** (slice 141) — "Refresh now"
+  success notice + tooltip now state it collects this folder's symbols only (not
+  the global universe; excludes disabled types / inactive folders).
 - [ ] **S7 worker / job-queue failure-recovery docs** — extend
   `docs/WORKER_QUEUE_AND_API_SPEC.md` with provider-failure UX, retry/backoff, job
   failure recovery, and the regime-recompute coupling (slice 136).
