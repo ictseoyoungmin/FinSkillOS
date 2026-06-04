@@ -106,6 +106,24 @@ def test_trade_memory_form_rules_use_slice_12_sides() -> None:
     assert "execution controls" in rules["disclaimer"].lower()
 
 
+def test_trade_memory_form_rules_carry_templates_and_prompts() -> None:
+    # Slice 162: journal templates + review prompts ship in the form rules.
+    rules = _fixture_get("/api/trade-memory").json()["formRules"]
+    templates = rules["entryTemplates"]
+    prompts = rules["reviewPrompts"]
+    assert len(templates) >= 3
+    assert len(prompts) >= 3
+    labels = {t["label"] for t in templates}
+    assert "Exit review" in labels
+    # Each template carries a descriptive side from the allowed vocabulary.
+    for template in templates:
+        assert template["side"] in rules["allowedSides"]
+    # Descriptive-only: no execution / direct-advice wording in the new copy.
+    blob = " ".join(prompts + [t.get("reason") or "" for t in templates]).lower()
+    for forbidden in _FORBIDDEN_WORDS:
+        assert forbidden not in blob
+
+
 def test_trade_memory_recent_entries_use_camelcase_fields() -> None:
     body = _fixture_get("/api/trade-memory").json()
     assert len(body["recentEntries"]) >= 1

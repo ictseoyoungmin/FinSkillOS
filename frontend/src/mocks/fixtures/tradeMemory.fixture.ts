@@ -299,6 +299,8 @@ export const tradeMemoryFixture: TradeMemoryData = {
       "Ignored Regime",
       "Event FOMO",
     ],
+    entryTemplates: [],
+    reviewPrompts: [],
     disclaimer: "Reflection / process review — no execution controls.",
   },
   safetyCaption: "Reflection / process review only — no execution controls.",

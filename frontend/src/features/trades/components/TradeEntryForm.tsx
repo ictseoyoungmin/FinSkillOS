@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Panel } from "@/shared/ui";
 import { submitTradeEntry, updateTradeEntry } from "../api";
 import type {
+  EntryTemplate,
   TradeEntryInput,
   TradeEntryResult,
   TradeEntryVM,
@@ -17,6 +18,8 @@ export interface TradeEntryFormProps {
   /** When set, the form edits this entry (PUT) instead of appending (POST). */
   editEntry?: TradeEntryVM | null;
   onCancelEdit?: () => void;
+  /** Quick-fill presets (Slice 162); omitted (fixture) hides the chip row. */
+  templates?: EntryTemplate[];
 }
 
 interface FormState {
@@ -97,6 +100,7 @@ export function TradeEntryForm({
   onSaved,
   editEntry,
   onCancelEdit,
+  templates,
 }: TradeEntryFormProps) {
   const [form, setForm] = useState<FormState>(() => empty(rules));
   const [result, setResult] = useState<TradeEntryResult | null>(null);
@@ -195,6 +199,23 @@ export function TradeEntryForm({
     onCancelEdit?.();
   };
 
+  const applyTemplate = (template: EntryTemplate) => {
+    setForm((prev) => ({
+      ...prev,
+      side: rules.allowedSides.includes(template.side)
+        ? template.side
+        : prev.side,
+      strategyType: template.strategyType ?? prev.strategyType,
+      reason: template.reason ?? prev.reason,
+      thesis: template.thesis ?? prev.thesis,
+      mistakeTags:
+        template.mistakeTags.length > 0
+          ? [...template.mistakeTags]
+          : prev.mistakeTags,
+    }));
+    setResult(null);
+  };
+
   return (
     <Panel
       title={isEditing ? "Edit Journal Entry" : "Add Journal Entry"}
@@ -208,6 +229,25 @@ export function TradeEntryForm({
       >
         {rules.disclaimer}
       </p>
+      {templates && templates.length > 0 ? (
+        <div
+          className="fso-trade-entry-templates"
+          data-testid="trade-entry-templates"
+        >
+          <span>Templates</span>
+          {templates.map((template) => (
+            <button
+              key={template.label}
+              type="button"
+              onClick={() => applyTemplate(template)}
+              disabled={submitting}
+              data-testid={`trade-entry-template-${template.label}`}
+            >
+              {template.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="fso-trade-entry-state" data-testid="trade-entry-form-state">
         <span data-ready={requiredReady}>Required {requiredReady ? "ready" : "missing"}</span>
         <span>{form.mistakeTags.length} tags</span>

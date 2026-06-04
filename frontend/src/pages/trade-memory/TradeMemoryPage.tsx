@@ -13,6 +13,7 @@ import { PerformanceBySectorTheme } from "@/features/trades/components/Performan
 import { PerformanceByStrategy } from "@/features/trades/components/PerformanceByStrategy";
 import { ProcessJudgmentHeader } from "@/features/trades/components/ProcessJudgmentHeader";
 import { RecentEntriesTable } from "@/features/trades/components/RecentEntriesTable";
+import { ReviewPromptsPanel } from "@/features/trades/components/ReviewPromptsPanel";
 import { TradeCsvImport } from "@/features/trades/components/TradeCsvImport";
 import { TradeEntryForm } from "@/features/trades/components/TradeEntryForm";
 import { TradeMemoryWatchpoints } from "@/features/trades/components/TradeMemoryWatchpoints";
@@ -180,11 +181,15 @@ export function TradeMemoryPage() {
             review={activeWeekly}
             navigation={weeklyNavigation}
           />
+          {isLive ? (
+            <ReviewPromptsPanel prompts={payload.formRules.reviewPrompts} />
+          ) : null}
           <WeeklyMarkdownExport markdown={activeWeekly.markdown} />
           <TradeEntryForm
             rules={payload.formRules}
             editEntry={editEntry}
             onCancelEdit={() => setEditEntry(null)}
+            templates={isLive ? payload.formRules.entryTemplates : undefined}
             onSaved={async () => {
               await refreshTradeMemory();
             }}

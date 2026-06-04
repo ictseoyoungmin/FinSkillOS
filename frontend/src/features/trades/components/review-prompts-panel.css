@@ -1,0 +1,36 @@
+.fso-review-prompts-note {
+  margin: 0 0 10px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-review-prompts-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fso-review-prompts-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-review-prompts-list input {
+  margin-top: 2px;
+  accent-color: var(--fso-cyan);
+}
+
+.fso-review-prompts-list span[data-checked="true"] {
+  color: var(--fso-text-muted-2);
+  text-decoration: line-through;
+}

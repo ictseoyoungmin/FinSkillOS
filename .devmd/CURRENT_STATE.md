@@ -83,6 +83,7 @@ protocols.
 159  Portfolio CSV Import / Export (Phase 3)
 160  Trade Import CSV (Phase 3)
 161  Trade Memory Review Workflow Polish (Phase 3)
+162  Journal Templates / Review Prompts (Phase 3)
 ```
 
 ## Validation Baseline
@@ -120,9 +121,10 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 
 ### Phase roadmap — `docs/ROADMAP.md`
 Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
-via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.**
-Next: **Phase 3 — portfolio / journal real-use input** (manual entry UX, CSV
-import/export, position reconciliation, trade import, journal templates).
+via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.
+Phase 3 — portfolio / journal real-use input — DONE via 157–162** (reconciliation,
+manual entry CRUD, portfolio + trade CSV import/export, weekly-review navigation,
+journal templates / review prompts). Next: **Phase 4 — interpretation engine**.
 
 #### Phase 1 — DONE (145–150)
 - [x] **145 Daily Operations Runbook** — `docs/OPERATIONS_RUNBOOK.md` (services,
@@ -164,7 +166,7 @@ import/export, position reconciliation, trade import, journal templates).
   confirmed scope); real bars never touched; "Data Repair" panel with preview→confirm.
   **Phase 2 complete.**
 
-#### Phase 3 — portfolio / journal real-use input (active)
+#### Phase 3 — portfolio / journal real-use input — DONE (157–162)
 - [x] **157 Position Reconciliation View** (slice 157) — Mission Control
   `reconciliation` block (snapshot total vs positions+cash, OK/MISMATCH/NO_BASELINE)
   + a panel line. Read-only opener.
@@ -186,7 +188,10 @@ import/export, position reconciliation, trade import, journal templates).
   period navigation: `GET …/weekly-review?as_of=YYYY-MM-DD` computes the window
   ending that date; `WeeklyReviewPanel` prev/next/this-week stepper (live-gated)
   drives both the panel and the markdown export. Fixture render unchanged.
-- [ ] **162 Journal Templates / Review Prompts**.
+- [x] **162 Journal Templates / Review Prompts** (slice 162) — `TradeFormRules`
+  gains `entryTemplates` (quick-fill chips that scaffold an entry) + `reviewPrompts`
+  (a reflection checklist `ReviewPromptsPanel`). Live-gated; fixture render
+  unchanged. **Phase 3 complete (157–162).**
 
 #### Later phases (see ROADMAP.md)
 Phase 4 interpretation engine · Phase 5 packaging · Phase 6 optional

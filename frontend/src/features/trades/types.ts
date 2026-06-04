@@ -89,9 +89,20 @@ export interface WeeklyReviewVM {
   markdown: string;
 }
 
+export interface EntryTemplate {
+  label: string;
+  side: TradeSide;
+  strategyType: string | null;
+  mistakeTags: string[];
+  reason: string | null;
+  thesis: string | null;
+}
+
 export interface TradeFormRules {
   allowedSides: TradeSide[];
   defaultMistakeTags: string[];
+  entryTemplates: EntryTemplate[];
+  reviewPrompts: string[];
   disclaimer: string;
 }
 

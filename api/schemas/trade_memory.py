@@ -127,6 +127,74 @@ class WeeklyReviewVM(CamelModel):
     )
 
 
+class EntryTemplate(CamelModel):
+    """A named quick-fill preset for the journal form (Slice 162).
+
+    Descriptive scaffolding only — pre-fills process / reflection fields, never
+    a trade direction or execution instruction.
+    """
+
+    label: str
+    side: TradeSide = "WATCH"
+    strategy_type: str | None = None
+    mistake_tags: list[str] = Field(default_factory=list)
+    reason: str | None = None
+    thesis: str | None = None
+
+
+def _default_entry_templates() -> list[EntryTemplate]:
+    return [
+        EntryTemplate(
+            label="Trend continuation",
+            side="LONG",
+            strategy_type="swing",
+            reason=(
+                "Setup note: continuation within an established trend. "
+                "Regime: ___. Evidence for / against: ___."
+            ),
+            thesis="Process thesis: ___",
+        ),
+        EntryTemplate(
+            label="Pullback to support",
+            side="LONG",
+            strategy_type="swing",
+            reason=(
+                "Setup note: pullback toward a prior reference level. "
+                "Confirmation observed: ___. Invalidation level: ___."
+            ),
+            thesis="Process thesis: ___",
+        ),
+        EntryTemplate(
+            label="Catalyst watch",
+            side="WATCH",
+            strategy_type="event",
+            reason=(
+                "Watching ahead of a scheduled catalyst; observing only. "
+                "Catalyst: ___. What would change the read: ___."
+            ),
+        ),
+        EntryTemplate(
+            label="Exit review",
+            side="EXIT_REVIEW",
+            strategy_type="swing",
+            reason=(
+                "Reflection: plan versus outcome. What the process said: ___. "
+                "What actually happened: ___."
+            ),
+        ),
+    ]
+
+
+def _default_review_prompts() -> list[str]:
+    return [
+        "Did the setup match a defined process, or was it improvised?",
+        "Which market regime were you in, and did position sizing reflect it?",
+        "What was the strongest piece of evidence for the thesis? The weakest?",
+        "If this repeated a past mistake tag, what was the trigger?",
+        "What will you keep doing — and what will you change — next time?",
+    ]
+
+
 class TradeFormRules(CamelModel):
     allowed_sides: list[TradeSide] = Field(
         default_factory=lambda: ["LONG", "SHORT", "WATCH", "EXIT_REVIEW", "OTHER"]
@@ -145,6 +213,10 @@ class TradeFormRules(CamelModel):
             "Event FOMO",
         ]
     )
+    entry_templates: list[EntryTemplate] = Field(
+        default_factory=_default_entry_templates
+    )
+    review_prompts: list[str] = Field(default_factory=_default_review_prompts)
     disclaimer: str = (
         "Reflection / process review — no execution controls."
     )
@@ -241,6 +313,7 @@ class TradeImportResult(CamelModel):
 
 
 __all__ = [
+    "EntryTemplate",
     "MistakeFrequencyVM",
     "PerformanceBucketVM",
     "ProcessJudgmentHeader",
