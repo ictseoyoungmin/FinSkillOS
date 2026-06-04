@@ -16,6 +16,7 @@ export const apiEndpoints = {
   tradeMemory: "/trade-memory",
   tradeEntries: "/trade-memory/entries",
   tradeWeeklyReview: "/trade-memory/weekly-review",
+  tradeWeeklyEvidenceReport: "/trade-memory/weekly-evidence-report",
   tradeExport: "/trade-memory/export.csv",
   tradeImport: "/trade-memory/import",
 } as const;

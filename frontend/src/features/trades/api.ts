@@ -5,6 +5,7 @@ import type {
   TradeEntryResult,
   TradeImportResult,
   TradeMemoryData,
+  WeeklyEvidenceReport,
   WeeklyReviewVM,
 } from "./types";
 
@@ -21,6 +22,15 @@ export async function fetchWeeklyReview(
   const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
   return await getJson<WeeklyReviewVM>(
     `${apiEndpoints.tradeWeeklyReview}${query}`,
+    { signal },
+  );
+}
+
+export async function fetchWeeklyEvidenceReport(
+  signal?: AbortSignal,
+): Promise<WeeklyEvidenceReport> {
+  return await getJson<WeeklyEvidenceReport>(
+    apiEndpoints.tradeWeeklyEvidenceReport,
     { signal },
   );
 }

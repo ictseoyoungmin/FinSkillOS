@@ -16,6 +16,7 @@ import { RecentEntriesTable } from "@/features/trades/components/RecentEntriesTa
 import { ReviewPromptsPanel } from "@/features/trades/components/ReviewPromptsPanel";
 import { TradeCsvImport } from "@/features/trades/components/TradeCsvImport";
 import { TradeEntryForm } from "@/features/trades/components/TradeEntryForm";
+import { WeeklyEvidenceReportPanel } from "@/features/trades/components/WeeklyEvidenceReportPanel";
 import { TradeMemoryWatchpoints } from "@/features/trades/components/TradeMemoryWatchpoints";
 import { WeeklyMarkdownExport } from "@/features/trades/components/WeeklyMarkdownExport";
 import { WeeklyReviewPanel } from "@/features/trades/components/WeeklyReviewPanel";
@@ -185,6 +186,7 @@ export function TradeMemoryPage() {
             <ReviewPromptsPanel prompts={payload.formRules.reviewPrompts} />
           ) : null}
           <WeeklyMarkdownExport markdown={activeWeekly.markdown} />
+          {isLive ? <WeeklyEvidenceReportPanel /> : null}
           <TradeEntryForm
             rules={payload.formRules}
             editEntry={editEntry}

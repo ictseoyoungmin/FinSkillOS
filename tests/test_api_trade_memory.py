@@ -558,6 +558,47 @@ def test_export_trade_memory_csv_live(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+# --- Slice 168: weekly evidence report --------------------------------------
+
+
+def test_weekly_evidence_report_fixture_mode() -> None:
+    body = _fixture_get("/api/trade-memory/weekly-evidence-report").json()
+    assert body["source"] == "fixture"
+    assert body["markdown"].startswith("# Weekly Evidence Report")
+
+
+def test_weekly_evidence_report_live_assembles_sections(
+    monkeypatch, tmp_path
+) -> None:
+    engine, database_url = _empty_live_db(tmp_path, "weekly-report.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        # Append a journal entry so the trade-review section has content.
+        client.post(
+            "/api/trade-memory/import?confirm=true",
+            json={"csvText": _VALID_TRADE_CSV},
+        )
+        body = client.get(
+            "/api/trade-memory/weekly-evidence-report"
+        ).json()
+        assert body["source"] == "live"
+        md = body["markdown"]
+        assert "## Market Regime" in md
+        assert "## Portfolio" in md
+        assert "## Upcoming Catalysts" in md
+        assert "## Trade Process Review" in md
+        # Descriptive-only: no forbidden execution wording in the assembled report.
+        for forbidden in _FORBIDDEN_WORDS:
+            assert forbidden not in md.lower()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 # --- Slice 161: weekly-review period navigation (?as_of=) -------------------
 
 

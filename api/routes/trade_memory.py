@@ -49,6 +49,7 @@ from api.schemas.trade_memory import (
     TradeImportRow,
     TradeMemoryResponse,
     TradeWatchpoint,
+    WeeklyEvidenceReport,
     WeeklyReviewVM,
 )
 from api.timeutil import iso as _iso
@@ -98,6 +99,61 @@ def trade_memory_weekly_review(
         except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
             return _error_live_payload(exc).weekly_review
+
+
+@router.get(
+    "/trade-memory/weekly-evidence-report",
+    response_model=WeeklyEvidenceReport,
+    summary="Cross-tab weekly evidence report (regime + portfolio + catalysts + trades).",
+)
+def trade_memory_weekly_evidence_report(
+    use_fixture: bool = Depends(use_fixture_flag),
+    as_of: str | None = None,
+) -> WeeklyEvidenceReport:
+    """Live-only markdown report assembled from the cross-tab read models.
+
+    Fixture / offline returns an explicit placeholder report (Slice 168)."""
+    now = datetime.now(tz=UTC)
+    target = _parse_iso_date(as_of) or now.date()
+    if use_fixture:
+        return WeeklyEvidenceReport(
+            generated_at=_iso(now),
+            markdown=(
+                "# Weekly Evidence Report\n\n"
+                "Fixture mode — the live report assembles regime, portfolio, "
+                "catalyst, and trade-review evidence from the database.\n"
+            ),
+            source="fixture",
+        )
+
+    with get_session_scope() as session:
+        if session is None:
+            return WeeklyEvidenceReport(
+                generated_at=_iso(now),
+                markdown=(
+                    "# Weekly Evidence Report\n\n"
+                    "Database unavailable — no live evidence could be assembled.\n"
+                ),
+                source="fixture",
+            )
+        try:
+            from api.weekly_report import build_weekly_evidence_markdown
+
+            markdown = build_weekly_evidence_markdown(session, today=target)
+            return WeeklyEvidenceReport(
+                generated_at=_iso(now), markdown=markdown, source="live"
+            )
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
+            session.rollback()
+            return WeeklyEvidenceReport(
+                generated_at=_iso(now),
+                markdown=(
+                    "# Weekly Evidence Report\n\n"
+                    f"Live report assembly failed ({exc_detail(exc)}); no fixture "
+                    "was substituted. Check API and database health, then retry.\n"
+                ),
+                source="live",
+            )
 
 
 @router.get(

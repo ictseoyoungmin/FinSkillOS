@@ -312,6 +312,15 @@ class TradeImportResult(CamelModel):
     detail: str = ""
 
 
+class WeeklyEvidenceReport(CamelModel):
+    """Cross-tab weekly markdown report (Slice 168 — regime + portfolio +
+    catalysts + trade review). Descriptive process review only."""
+
+    generated_at: str
+    markdown: str
+    source: Literal["fixture", "live"] = "fixture"
+
+
 __all__ = [
     "EntryTemplate",
     "MistakeFrequencyVM",
@@ -330,5 +339,6 @@ __all__ = [
     "TradeMemoryResponse",
     "TradeSide",
     "TradeWatchpoint",
+    "WeeklyEvidenceReport",
     "WeeklyReviewVM",
 ]

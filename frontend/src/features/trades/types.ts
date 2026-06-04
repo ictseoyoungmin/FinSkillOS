@@ -185,3 +185,11 @@ export interface TradeImportResult {
   errors: string[];
   detail: string;
 }
+
+// --- Slice 168 (weekly evidence report) ---------------------------------
+
+export interface WeeklyEvidenceReport {
+  generatedAt: string;
+  markdown: string;
+  source: "fixture" | "live";
+}

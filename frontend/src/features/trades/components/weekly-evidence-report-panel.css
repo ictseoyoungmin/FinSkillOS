@@ -1,0 +1,56 @@
+.fso-weekly-evidence-note {
+  margin: 0 0 10px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-weekly-evidence-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fso-weekly-evidence-actions button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-weekly-evidence-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-weekly-evidence-text {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 10px;
+  resize: vertical;
+}
+
+.fso-weekly-evidence-error {
+  margin: 12px 0 0;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-red);
+  color: var(--fso-red);
+  background: color-mix(in srgb, var(--fso-red) 8%, transparent);
+}
