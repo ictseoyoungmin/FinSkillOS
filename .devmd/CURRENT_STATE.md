@@ -159,9 +159,19 @@ import/export, position reconciliation, trade import, journal templates).
   confirmed scope); real bars never touched; "Data Repair" panel with preview→confirm.
   **Phase 2 complete.**
 
+#### Phase 3 — portfolio / journal real-use input (active)
+- [x] **157 Position Reconciliation View** (slice 157) — Mission Control
+  `reconciliation` block (snapshot total vs positions+cash, OK/MISMATCH/NO_BASELINE)
+  + a panel line. Read-only opener.
+- [ ] **158 Portfolio Manual Entry / Edit** — add/edit positions + snapshot baseline.
+- [ ] **159 Portfolio CSV Import / Export**.
+- [ ] **160 Trade Import CSV**.
+- [ ] **161 Trade Memory Review Workflow Polish**.
+- [ ] **162 Journal Templates / Review Prompts**.
+
 #### Later phases (see ROADMAP.md)
-Phase 3 portfolio/journal input · Phase 4 interpretation engine · Phase 5 packaging
-· Phase 6 optional automation/LLM-narration.
+Phase 4 interpretation engine · Phase 5 packaging · Phase 6 optional
+automation/LLM-narration.
 
 ### Standing open (env-blocked)
 - [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift

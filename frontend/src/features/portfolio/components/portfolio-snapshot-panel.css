@@ -39,3 +39,17 @@
   font-size: 11px;
   color: var(--fso-amber);
 }
+
+/* Reconciliation line (Slice 157) */
+.fso-portfolio-reconciliation {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.fso-portfolio-reconciliation[data-status="OK"] {
+  color: var(--fso-green, #2bbd6e);
+}
+
+.fso-portfolio-reconciliation[data-status="MISMATCH"] {
+  color: var(--fso-amber, #d8a200);
+}

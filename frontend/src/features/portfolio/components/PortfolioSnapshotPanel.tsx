@@ -1,10 +1,14 @@
 import { Panel } from "@/shared/ui";
 import { formatKrw, formatPct } from "@/shared/lib/format";
-import type { PortfolioSnapshotPanelData } from "../types";
+import type {
+  PortfolioReconciliation,
+  PortfolioSnapshotPanelData,
+} from "../types";
 import "./portfolio-snapshot-panel.css";
 
 export interface PortfolioSnapshotPanelProps {
   snapshot: PortfolioSnapshotPanelData;
+  reconciliation?: PortfolioReconciliation;
 }
 
 /**
@@ -13,7 +17,10 @@ export interface PortfolioSnapshotPanelProps {
  * the configured single-position-limit threshold. Descriptive only:
  * the panel never offers a "reduce" or "exit" action.
  */
-export function PortfolioSnapshotPanel({ snapshot }: PortfolioSnapshotPanelProps) {
+export function PortfolioSnapshotPanel({
+  snapshot,
+  reconciliation,
+}: PortfolioSnapshotPanelProps) {
   const overLimit = snapshot.overSingleLimitTickers;
   return (
     <Panel
@@ -51,6 +58,17 @@ export function PortfolioSnapshotPanel({ snapshot }: PortfolioSnapshotPanelProps
           data-testid="mission-portfolio-snapshot-warning"
         >
           Above single-position review threshold · {overLimit.join(", ")}
+        </p>
+      ) : null}
+      {reconciliation && reconciliation.status !== "NO_BASELINE" ? (
+        <p
+          className="fso-portfolio-reconciliation"
+          data-status={reconciliation.status}
+          data-testid="mission-portfolio-reconciliation"
+        >
+          {reconciliation.status === "OK"
+            ? "✓ Snapshot total matches positions + cash."
+            : `⚠ ${reconciliation.detail}`}
         </p>
       ) : null}
     </Panel>

@@ -28,10 +28,15 @@ from api.schemas.mission_control import (
     GoalTracker,
     MilestoneItem,
     MissionControlResponse,
+    PortfolioReconciliation,
     PortfolioSnapshotPanel,
 )
 from finskillos.config import get_settings
-from finskillos.db.repositories import AccountRepository, AlertRepository
+from finskillos.db.repositories import (
+    AccountRepository,
+    AlertRepository,
+    PortfolioRepository,
+)
 from finskillos.services.goal_service import GoalService
 from finskillos.services.portfolio_service import PortfolioService
 
@@ -73,6 +78,8 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
     positions = PortfolioService(session).get_current_positions(account.id)
     alerts = AlertRepository(session).list_active(account_id=account.id)
     snapshot_total = goal_status.current_value
+    snapshot_row = PortfolioRepository(session).latest(account.id)
+    reconciliation = _reconcile(snapshot_row, positions)
 
     largest_weight_pct = (summary.largest_position_weight * Decimal("100")).quantize(
         _PCT
@@ -126,6 +133,7 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
             largest_position_weight_pct=largest_weight_pct,
             over_single_limit_tickers=list(summary.over_single_limit_tickers),
         ),
+        reconciliation=reconciliation,
         capital_map=capital_map,
         theme_map=theme_map,
         challenge_status_caption=(
@@ -133,6 +141,50 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
             f"{goal_status.goal_mode} mode."
         ),
         safety_caption="Read mode — Goal interpretation (not return forecast).",
+    )
+
+
+def _reconcile(snapshot_row, positions) -> PortfolioReconciliation:
+    """Does the stored snapshot total equal sum(position market values) + cash?
+
+    Drift means the portfolio baseline and the positions/cash were entered or
+    updated inconsistently — the actionable input-coherence signal (Slice 157)."""
+    if snapshot_row is None:
+        return PortfolioReconciliation(
+            status="NO_BASELINE",
+            detail="No portfolio snapshot baseline exists yet.",
+        )
+    positions_value = sum((p.market_value for p in positions), Decimal("0"))
+    cash_value = snapshot_row.cash_value or Decimal("0")
+    reconciled = positions_value + cash_value
+    snapshot_total = snapshot_row.total_value
+    drift = snapshot_total - reconciled
+    drift_pct = (
+        (drift / snapshot_total * Decimal("100")).quantize(_PCT)
+        if snapshot_total
+        else Decimal("0")
+    )
+    # Tolerance: 0.5% of the baseline, or 1 unit, to absorb rounding.
+    tolerance = max(abs(snapshot_total) * Decimal("0.005"), Decimal("1"))
+    if abs(drift) <= tolerance:
+        status = "OK"
+        detail = "Snapshot total matches positions + cash."
+    else:
+        status = "MISMATCH"
+        detail = (
+            f"Snapshot total ({snapshot_total:,.0f}) ≠ positions + cash "
+            f"({reconciled:,.0f}); off by {drift:,.0f} ({drift_pct}%). Re-enter the "
+            "snapshot baseline or the position values so they agree."
+        )
+    return PortfolioReconciliation(
+        status=status,
+        snapshot_total=snapshot_total,
+        positions_value=positions_value,
+        cash_value=cash_value,
+        reconciled_total=reconciled,
+        drift=drift,
+        drift_pct=drift_pct,
+        detail=detail,
     )
 
 

@@ -76,6 +76,19 @@ class CapitalMapSlice(CamelModel):
     tone: Literal["info", "warning", "danger", "neutral", "success"] = "info"
 
 
+class PortfolioReconciliation(CamelModel):
+    """Coherence check: does the snapshot total equal positions + cash? (Slice 157)"""
+
+    status: Literal["OK", "MISMATCH", "NO_BASELINE"] = "NO_BASELINE"
+    snapshot_total: Decimal = Field(default=Decimal("0"))
+    positions_value: Decimal = Field(default=Decimal("0"))
+    cash_value: Decimal = Field(default=Decimal("0"))
+    reconciled_total: Decimal = Field(default=Decimal("0"))
+    drift: Decimal = Field(default=Decimal("0"))
+    drift_pct: Decimal = Field(default=Decimal("0"))
+    detail: str = "No portfolio snapshot baseline exists yet."
+
+
 class MissionControlResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -87,6 +100,9 @@ class MissionControlResponse(CamelModel):
     goal: GoalTracker
     milestones: list[MilestoneItem]
     portfolio: PortfolioSnapshotPanel
+    reconciliation: PortfolioReconciliation = Field(
+        default_factory=PortfolioReconciliation
+    )
     capital_map: list[CapitalMapSlice]
     theme_map: list[CapitalMapSlice] = Field(default_factory=list)
     challenge_status_caption: str = Field(
@@ -101,6 +117,7 @@ class MissionControlResponse(CamelModel):
 
 __all__ = [
     "CapitalMapSlice",
+    "PortfolioReconciliation",
     "GoalTracker",
     "MilestoneItem",
     "MilestoneState",

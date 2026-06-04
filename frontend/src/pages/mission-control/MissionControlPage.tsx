@@ -121,7 +121,10 @@ export function MissionControlPage() {
       <div className="fso-mission-control-main-grid">
         <div className="fso-mission-control-stack">
           <div data-testid="mission-portfolio-snapshot">
-            <PortfolioSnapshotPanel snapshot={payload.portfolio} />
+            <PortfolioSnapshotPanel
+              snapshot={payload.portfolio}
+              reconciliation={payload.reconciliation}
+            />
           </div>
         </div>
         <div className="fso-mission-control-stack">

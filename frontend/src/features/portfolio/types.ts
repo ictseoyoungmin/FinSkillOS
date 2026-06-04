@@ -71,6 +71,17 @@ export interface CapitalMapSlice {
   tone: CapitalMapTone;
 }
 
+export interface PortfolioReconciliation {
+  status: "OK" | "MISMATCH" | "NO_BASELINE";
+  snapshotTotal: Numeric;
+  positionsValue: Numeric;
+  cashValue: Numeric;
+  reconciledTotal: Numeric;
+  drift: Numeric;
+  driftPct: Numeric;
+  detail: string;
+}
+
 export interface MissionControlSystemStatus {
   db: string;
   mode: string;
@@ -88,6 +99,7 @@ export interface MissionControlData {
   goal: GoalTracker;
   milestones: MilestoneItem[];
   portfolio: PortfolioSnapshotPanelData;
+  reconciliation?: PortfolioReconciliation;
   capitalMap: CapitalMapSlice[];
   themeMap: CapitalMapSlice[];
   challengeStatusCaption: string;

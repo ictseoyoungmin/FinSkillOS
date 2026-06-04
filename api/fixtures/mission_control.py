@@ -86,6 +86,9 @@ def mission_control_fixture() -> MissionControlResponse:
             largest_position_weight_pct=D("13.8"),
             over_single_limit_tickers=["TSLA"],
         ),
+        # reconciliation left at its default (NO_BASELINE → the panel hides the
+        # line) so the forced-fixture visual baseline is unchanged; live mode
+        # computes a real OK/MISMATCH (Slice 157).
         capital_map=[
             CapitalMapSlice(label="AI / Semis", weight_pct=D("31.4"), tone="warning"),
             CapitalMapSlice(label="Mega Cap Tech", weight_pct=D("24.8"), tone="info"),

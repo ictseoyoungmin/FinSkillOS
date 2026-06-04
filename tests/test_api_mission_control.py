@@ -171,6 +171,52 @@ def test_mission_control_reads_live_db_snapshot(monkeypatch, tmp_path) -> None:
         assert body["portfolio"]["largestPositionTicker"] == "NVDA"
         assert body["capitalMap"][0]["label"] == "Semiconductors"
         assert body["themeMap"][0]["label"] == "AI Infrastructure"
+        # import_snapshot derives total = positions + cash → reconciliation OK.
+        assert body["reconciliation"]["status"] == "OK"
+        assert body["reconciliation"]["snapshotTotal"] == "40000000.00"
+        assert body["reconciliation"]["positionsValue"] == "35000000.00"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_mission_control_reconciliation_flags_mismatch(monkeypatch, tmp_path) -> None:
+    # Slice 157: a snapshot total that doesn't equal positions + cash is flagged.
+    db_path = tmp_path / "mission.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    from finskillos.db.repositories import PortfolioRepository, PositionRepository
+
+    with factory() as session:
+        account = AccountRepository(session).create(
+            name="Main Trading Account", target_value=Decimal("100000000"),
+        )
+        # Stored baseline says 100M, but positions + cash only sum to 30M.
+        PortfolioRepository(session).create_snapshot(
+            account_id=account.id, snapshot_date=date(2026, 5, 27),
+            total_value=Decimal("100000000"), cash_value=Decimal("5000000"),
+        )
+        PositionRepository(session).create(
+            account_id=account.id, ticker="NVDA", quantity=Decimal("10"),
+            market_value=Decimal("25000000"),
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+
+    try:
+        body = _client().get("/api/mission-control").json()
+        rec = body["reconciliation"]
+        assert rec["status"] == "MISMATCH"
+        assert rec["snapshotTotal"] == "100000000.00"
+        assert rec["reconciledTotal"] == "30000000.00"
+        assert rec["drift"] == "70000000.00"
+        assert "off by" in rec["detail"]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
