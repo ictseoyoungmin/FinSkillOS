@@ -131,6 +131,14 @@ export interface PortfolioImportResult {
   snapshot?: MissionControlData | null;
 }
 
+// --- Slice 166 (constraint summary v2) ----------------------------------
+
+export interface PortfolioConstraint {
+  label: string;
+  status: "OK" | "WATCH" | "BREACH" | "UNKNOWN";
+  detail: string;
+}
+
 export interface MissionControlSystemStatus {
   db: string;
   mode: string;
@@ -150,6 +158,7 @@ export interface MissionControlData {
   portfolio: PortfolioSnapshotPanelData;
   reconciliation?: PortfolioReconciliation;
   positions?: PositionRow[];
+  constraints?: PortfolioConstraint[];
   capitalMap: CapitalMapSlice[];
   themeMap: CapitalMapSlice[];
   challengeStatusCaption: string;

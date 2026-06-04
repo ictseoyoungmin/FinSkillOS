@@ -87,6 +87,7 @@ protocols.
 163  Risk-Guard Driver Attribution (Phase 4)
 164  Regime Explanation v2 (Phase 4)
 165  Event/News/Position Linkage Scoring (Phase 4)
+166  Portfolio Constraint Summary v2 (Phase 4)
 ```
 
 ## Validation Baseline
@@ -222,7 +223,10 @@ constraint summary v2 · 167 cross-tab evidence graph · 168 weekly evidence rep
   `eventRiskScore`) + `heldTickers` (affected tickers actually held);
   `EventRiskTable` per-event "Score & linkage" details row, held tags highlighted.
   Live-gated; fixture unchanged.
-- [ ] **166 Portfolio Constraint Summary v2**.
+- [x] **166 Portfolio Constraint Summary v2** (slice 166) — Mission Control
+  `constraints` block (single-position limit / cash reserve / drawdown headroom,
+  OK/WATCH/BREACH) computed from the real Slice-06 guard constants;
+  `ConstraintSummaryPanel`. Live-gated; fixture unchanged.
 - [ ] **167 Cross-tab Evidence Graph**.
 - [ ] **168 Weekly Evidence Report**.
 

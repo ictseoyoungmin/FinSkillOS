@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMissionControl } from "@/features/portfolio/api";
 import { CapitalMapPanel } from "@/features/portfolio/components/CapitalMapPanel";
+import { ConstraintSummaryPanel } from "@/features/portfolio/components/ConstraintSummaryPanel";
 import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTimeline";
 import { MissionGoalTracker } from "@/features/portfolio/components/MissionGoalTracker";
 import { PortfolioEditorPanel } from "@/features/portfolio/components/PortfolioEditorPanel";
@@ -128,6 +129,11 @@ export function MissionControlPage() {
               reconciliation={payload.reconciliation}
             />
           </div>
+          {payload.constraints && payload.constraints.length > 0 ? (
+            <div data-testid="mission-constraint-summary">
+              <ConstraintSummaryPanel constraints={payload.constraints} />
+            </div>
+          ) : null}
           <div data-testid="mission-portfolio-editor">
             <PortfolioEditorPanel
               positions={payload.positions ?? []}

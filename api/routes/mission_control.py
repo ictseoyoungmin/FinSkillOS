@@ -29,6 +29,7 @@ from api.schemas.mission_control import (
     GoalTracker,
     MilestoneItem,
     MissionControlResponse,
+    PortfolioConstraint,
     PortfolioImportRequest,
     PortfolioImportResult,
     PortfolioImportRow,
@@ -44,6 +45,13 @@ from finskillos.db.repositories import (
     AlertRepository,
     PortfolioRepository,
     PositionRepository,
+)
+from finskillos.guards.base import (
+    DEFAULT_CASH_FAIL_THRESHOLD,
+    DEFAULT_DRAWDOWN_FAIL_PCT,
+    DEFAULT_DRAWDOWN_WARN_PCT,
+    DEFAULT_MIN_CASH_RATIO,
+    DEFAULT_SINGLE_POSITION_LIMIT_KRW,
 )
 from finskillos.services.goal_service import GoalService
 from finskillos.services.portfolio_service import (
@@ -386,6 +394,12 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
         ),
         reconciliation=reconciliation,
         positions=[_position_row(p) for p in positions],
+        constraints=_portfolio_constraints(
+            positions=positions,
+            cash_value=summary.cash_value,
+            total_value=snapshot_total,
+            drawdown_pct=snapshot_row.drawdown_pct if snapshot_row else None,
+        ),
         capital_map=capital_map,
         theme_map=theme_map,
         challenge_status_caption=(
@@ -409,6 +423,123 @@ def _position_row(p) -> PositionRow:
         strategy_type=p.strategy_type,
         thesis=p.thesis,
     )
+
+
+def _portfolio_constraints(
+    *,
+    positions,
+    cash_value: Decimal,
+    total_value: Decimal,
+    drawdown_pct: Decimal | None,
+) -> list[PortfolioConstraint]:
+    """Consolidated portfolio constraint summary (Slice 166).
+
+    Headroom against the stored Slice-06 risk policy constants (single-position
+    limit, min cash reserve, drawdown ladder). Descriptive constraint state only
+    — never a directive."""
+
+    rows: list[PortfolioConstraint] = []
+
+    # 1) Single-position absolute limit.
+    limit = DEFAULT_SINGLE_POSITION_LIMIT_KRW
+    over = [p for p in positions if p.market_value > limit]
+    near = [
+        p
+        for p in positions
+        if limit * Decimal("0.9") < p.market_value <= limit
+    ]
+    if over:
+        rows.append(
+            PortfolioConstraint(
+                label="Single-position limit",
+                status="BREACH",
+                detail=(
+                    f"{len(over)} position(s) over the {limit:,.0f} KRW limit: "
+                    + ", ".join(p.ticker for p in over)
+                ),
+            )
+        )
+    elif near:
+        rows.append(
+            PortfolioConstraint(
+                label="Single-position limit",
+                status="WATCH",
+                detail=(
+                    f"{len(near)} position(s) within 10% of the {limit:,.0f} KRW "
+                    "limit: " + ", ".join(p.ticker for p in near)
+                ),
+            )
+        )
+    else:
+        largest = max((p.market_value for p in positions), default=Decimal("0"))
+        rows.append(
+            PortfolioConstraint(
+                label="Single-position limit",
+                status="OK",
+                detail=(
+                    f"Largest position {largest:,.0f} KRW · "
+                    f"{limit - largest:,.0f} KRW headroom to the "
+                    f"{limit:,.0f} KRW limit."
+                ),
+            )
+        )
+
+    # 2) Cash reserve ratio.
+    if total_value > 0:
+        cash_ratio = cash_value / total_value
+        cash_pct = (cash_ratio * Decimal("100")).quantize(_PCT)
+        min_pct = (DEFAULT_MIN_CASH_RATIO * Decimal("100")).quantize(_PCT)
+        if cash_ratio < DEFAULT_CASH_FAIL_THRESHOLD:
+            cash_status = "BREACH"
+        elif cash_ratio < DEFAULT_MIN_CASH_RATIO:
+            cash_status = "WATCH"
+        else:
+            cash_status = "OK"
+        rows.append(
+            PortfolioConstraint(
+                label="Cash reserve",
+                status=cash_status,
+                detail=f"Cash {cash_pct}% of book vs {min_pct}% minimum reserve.",
+            )
+        )
+    else:
+        rows.append(
+            PortfolioConstraint(
+                label="Cash reserve",
+                status="UNKNOWN",
+                detail="No book value to evaluate the cash reserve ratio.",
+            )
+        )
+
+    # 3) Drawdown from peak.
+    if drawdown_pct is None:
+        rows.append(
+            PortfolioConstraint(
+                label="Drawdown",
+                status="UNKNOWN",
+                detail="No stored peak/drawdown baseline yet.",
+            )
+        )
+    else:
+        dd = drawdown_pct.quantize(_PCT)
+        if dd <= DEFAULT_DRAWDOWN_FAIL_PCT:
+            dd_status = "BREACH"
+        elif dd <= DEFAULT_DRAWDOWN_WARN_PCT:
+            dd_status = "WATCH"
+        else:
+            dd_status = "OK"
+        rows.append(
+            PortfolioConstraint(
+                label="Drawdown",
+                status=dd_status,
+                detail=(
+                    f"Drawdown {dd}% vs warn {DEFAULT_DRAWDOWN_WARN_PCT:g}% / "
+                    f"fail {DEFAULT_DRAWDOWN_FAIL_PCT:g}%."
+                ),
+            )
+        )
+
+    return rows
 
 
 def _reconcile(snapshot_row, positions) -> PortfolioReconciliation:

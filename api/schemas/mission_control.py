@@ -89,6 +89,17 @@ class PortfolioReconciliation(CamelModel):
     detail: str = "No portfolio snapshot baseline exists yet."
 
 
+class PortfolioConstraint(CamelModel):
+    """One portfolio constraint with its headroom state (Slice 166).
+
+    Descriptive constraint status — headroom against a stored risk policy, never
+    a directive to trade."""
+
+    label: str
+    status: Literal["OK", "WATCH", "BREACH", "UNKNOWN"] = "OK"
+    detail: str = ""
+
+
 class PositionRow(CamelModel):
     """One editable holding (Slice 158)."""
 
@@ -154,6 +165,7 @@ class MissionControlResponse(CamelModel):
         default_factory=PortfolioReconciliation
     )
     positions: list[PositionRow] = Field(default_factory=list)
+    constraints: list[PortfolioConstraint] = Field(default_factory=list)
     capital_map: list[CapitalMapSlice]
     theme_map: list[CapitalMapSlice] = Field(default_factory=list)
     challenge_status_caption: str = Field(
@@ -186,6 +198,7 @@ class PortfolioImportResult(CamelModel):
 __all__ = [
     "CapitalMapSlice",
     "PortfolioReconciliation",
+    "PortfolioConstraint",
     "PositionRow",
     "PositionInput",
     "SnapshotBaselineInput",

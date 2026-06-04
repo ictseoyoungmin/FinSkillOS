@@ -454,6 +454,33 @@ def test_clear_positions_removes_all(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_portfolio_constraints_summary(monkeypatch, tmp_path) -> None:
+    # Slice 166: consolidated constraint summary with headroom states.
+    engine, database_url = _live_db(tmp_path, "mc-constraints.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        # 25M position is over the 10M single-position limit → BREACH.
+        client.post(
+            "/api/mission-control/positions",
+            json={"ticker": "NVDA", "quantity": "10", "marketValue": "25000000"},
+        )
+        body = client.get("/api/mission-control").json()
+        constraints = {c["label"]: c for c in body["constraints"]}
+        assert "Single-position limit" in constraints
+        assert constraints["Single-position limit"]["status"] == "BREACH"
+        assert "NVDA" in constraints["Single-position limit"]["detail"]
+        assert constraints["Cash reserve"]["label"] == "Cash reserve"
+        assert constraints["Drawdown"]["status"] in {"OK", "WATCH", "BREACH", "UNKNOWN"}
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_export_positions_csv_round_trips(monkeypatch, tmp_path) -> None:
     engine, database_url = _live_db(tmp_path, "mc-export.db")
     _seed_account(engine)
