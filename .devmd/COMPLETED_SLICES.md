@@ -141,6 +141,18 @@ active queue + recent summary stays in `CURRENT_STATE.md`.
 142    Worker Failure-Recovery Docs (S7)
 143    Runtime Settings Change Audit (S5)
 144    Split CURRENT_STATE → COMPLETED_SLICES history (S3)
+145    Daily Operations Runbook (Phase 1)
+146    Worker Queue Visibility / Recovery UI (Phase 1)
+147    Refresh Result Explanation UX (Phase 1)
+148    Provider Failure / Retry / Backoff (Phase 1)
+149    Runtime Settings Change History (Phase 1)
+150    Collection Control Operator Copy Polish (Phase 1)
+151    Provider Health Dashboard (Phase 2)
+152    Market Data Provenance Audit (Phase 2)
+153    Indicator / Bar Invariant Dashboard (Phase 2)
+154    News / Event Feed Coverage Diagnostics (Phase 2)
+155    Data Repair Protocol (Phase 2)
+156    Stale RUNNING Job Reaper (+ lint hygiene)
 ```
 
 Slice 14 is complete:

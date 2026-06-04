@@ -68,6 +68,12 @@ universe is not unioned. `drain_queue` reads `folder_id` and scopes the cycle's
 ticker sets; the cycle audit scope reads `collection:<type>:folder=<id>`.
 
 ### Failure handling & recovery
+- **Stale RUNNING reaper (Slice 156).** A job claimed by a worker that then dies
+  mid-cycle would stay `RUNNING` forever (`claim_next` only picks `QUEUED`). Each
+  `drain_queue` first reaps `RUNNING` jobs older than
+  `FINSKILLOS_WORKER_RUNNING_STALE_SECONDS` (default 1800) to `ERROR`, so they
+  become terminal + retryable. The grace is generous so a genuinely in-progress
+  cycle is never killed.
 - **No automatic per-job retry.** A failed job is terminal (`status=ERROR`,
   `error` text recorded). Recovery is either the next interval enqueue (dedup
   permits it because `ERROR` is not an *active* status) or a manual System Ops

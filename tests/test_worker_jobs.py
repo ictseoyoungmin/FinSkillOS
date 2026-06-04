@@ -47,6 +47,31 @@ def test_claim_next_is_fifo_and_marks_running(db_session: Session) -> None:
     assert repo.claim_next() is None
 
 
+def test_reap_stale_running_marks_old_claims_error(db_session: Session) -> None:
+    # Slice 156: a job stuck RUNNING (worker died mid-claim) past the grace is
+    # reaped to ERROR (and so becomes retryable); a fresh claim is left alone.
+    from datetime import datetime, timedelta, timezone
+
+    repo = WorkerJobRepository(db_session)
+    repo.enqueue(WORKER_JOB_REFRESH_ALL, dedup_key="stale")
+    repo.enqueue(WORKER_JOB_REFRESH_MARKET, dedup_key="fresh")
+    db_session.flush()
+    stale = repo.claim_next()  # oldest → stale
+    fresh = repo.claim_next()  # → fresh
+    assert stale.status == "RUNNING" and fresh.status == "RUNNING"
+    # Backdate the stale job's started_at well past the grace.
+    stale.started_at = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+    db_session.flush()
+
+    cutoff = datetime.now(tz=timezone.utc) - timedelta(minutes=30)
+    reaped = repo.reap_stale_running(older_than=cutoff)
+
+    assert reaped == 1
+    assert repo.get(stale.id).status == "ERROR"
+    assert "reaped" in repo.get(stale.id).error
+    assert repo.get(fresh.id).status == "RUNNING"  # still genuinely running
+
+
 def test_fail_records_error(db_session: Session) -> None:
     repo = WorkerJobRepository(db_session)
     job = repo.enqueue(WORKER_JOB_REFRESH_ALL)

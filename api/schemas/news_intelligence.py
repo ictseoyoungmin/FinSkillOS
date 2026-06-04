@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import Field
 
 from api.schemas.common import CamelModel, SystemStatus
+
 JudgmentTone = Literal["info", "warning", "danger", "neutral", "success"]
 ConfidenceLevel = Literal["LOW", "MODERATE", "HIGH"]
 SentimentLabel = Literal[

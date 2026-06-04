@@ -206,6 +206,28 @@ class WorkerJobRepository:
         self.session.flush()
         return job
 
+    def reap_stale_running(self, *, older_than: datetime) -> int:
+        """Mark jobs stuck in RUNNING (claimed by a worker that then died) as ERROR.
+
+        ``claim_next`` only picks ``QUEUED`` jobs, so a job claimed when the worker
+        crashes mid-cycle would otherwise stay RUNNING forever. A reaped job becomes
+        terminal (and so retryable from the cockpit). Only jobs whose ``started_at``
+        is older than ``older_than`` are touched, so a genuinely in-progress cycle is
+        never killed. Returns the number reaped."""
+        stmt = select(WorkerJob).where(
+            WorkerJob.status == JOB_STATUS_RUNNING,
+            WorkerJob.started_at.is_not(None),
+            WorkerJob.started_at < older_than,
+        )
+        stale = list(self.session.scalars(stmt))
+        for job in stale:
+            job.status = JOB_STATUS_ERROR
+            job.error = "worker stopped while the job was running (reaped)"
+            job.finished_at = _utcnow()
+        if stale:
+            self.session.flush()
+        return len(stale)
+
     def get(self, job_id) -> WorkerJob | None:
         return self.session.get(WorkerJob, job_id)
 

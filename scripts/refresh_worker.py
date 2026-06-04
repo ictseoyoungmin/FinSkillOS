@@ -15,7 +15,7 @@ import logging
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Any
@@ -91,6 +91,9 @@ class WorkerConfig:
     # Slice 148: bounded retry/backoff for transient market-provider fetch errors.
     market_fetch_retries: int = 2
     market_fetch_backoff_seconds: float = 1.0
+    # Slice 156: a job stuck in RUNNING longer than this (worker died mid-claim) is
+    # reaped to ERROR so it can be retried instead of orphaning the queue.
+    running_stale_seconds: int = 1800
 
 
 def _resolve_tickers(
@@ -190,6 +193,11 @@ def load_config(
             runtime_overrides=runtime_overrides,
         ),
         market_fetch_backoff_seconds=_read_backoff_seconds(runtime_overrides),
+        running_stale_seconds=read_runtime_int(
+            "FINSKILLOS_WORKER_RUNNING_STALE_SECONDS",
+            default=1800,
+            runtime_overrides=runtime_overrides,
+        ),
         runtime_overrides=runtime_overrides,
     )
 
@@ -498,8 +506,25 @@ def live_mode_enabled() -> bool:
         return True
 
 
+def reap_stale_running_jobs(config: WorkerConfig) -> int:
+    """Reap jobs stuck in RUNNING (a worker died mid-claim) to ERROR (Slice 156)."""
+    if config.running_stale_seconds <= 0:
+        return 0
+    cutoff = datetime.now(tz=UTC) - timedelta(seconds=config.running_stale_seconds)
+    try:
+        with session_scope() as session:
+            reaped = WorkerJobRepository(session).reap_stale_running(older_than=cutoff)
+        if reaped:
+            logger.warning("reaped %d stale RUNNING worker job(s)", reaped)
+        return reaped
+    except Exception:
+        logger.exception("could not reap stale RUNNING worker jobs")
+        return 0
+
+
 def drain_queue(config: WorkerConfig, *, max_jobs: int = 50) -> int:
     """Claim and process queued jobs until the queue is empty (or the cap)."""
+    reap_stale_running_jobs(config)
     processed = 0
     while processed < max_jobs:
         with session_scope() as session:
