@@ -21,6 +21,9 @@ from api.schemas.control_room import (
     CatalystSummary,
     ControlRoomDataState,
     ControlRoomResponse,
+    EvidenceGraph,
+    EvidenceLink,
+    EvidenceNode,
     GuardSummaryVM,
     MarketTapePoint,
     MissionProgress,
@@ -115,7 +118,159 @@ def _live_response(
         )
         for guard in vm.guard_report
     ]
+    payload.evidence_graph = _evidence_graph(vm, event_vm)
     return payload
+
+
+_RISK_TONE = {
+    "GREEN": "success",
+    "YELLOW": "warning",
+    "ORANGE": "danger",
+    "RED": "danger",
+    "UNKNOWN": "neutral",
+}
+
+
+def _evidence_graph(
+    vm: ControlRoomViewModel, event_vm: EventRadarViewModel
+) -> EvidenceGraph | None:
+    """Link the regime / risk / events / portfolio read models (Slice 167).
+
+    Descriptive cross-references only, derived from the already-assembled VMs —
+    no re-computation, no directive."""
+
+    if not vm.has_account:
+        return None
+
+    nodes: list[EvidenceNode] = []
+    links: list[EvidenceLink] = []
+
+    # --- Regime node ---------------------------------------------------
+    if vm.regime is not None:
+        regime = vm.regime
+        regime_drivers = list(regime.positive_factors[:1]) + list(
+            regime.risk_factors[:1]
+        )
+        nodes.append(
+            EvidenceNode(
+                key="regime",
+                label="Regime",
+                state=f"{regime.regime} · {regime.risk_level}",
+                tone=_RISK_TONE.get(regime.risk_level.upper(), "info"),
+                drivers=regime_drivers,
+            )
+        )
+
+    # --- Risk node -----------------------------------------------------
+    flagged = [
+        g
+        for g in vm.guard_report
+        if g.status in {"WARN", "FAIL", "BLOCKED"}
+    ]
+    nodes.append(
+        EvidenceNode(
+            key="risk",
+            label="Risk Firewall",
+            state=f"{vm.overall_status} · {len(flagged)} flagged",
+            tone=_RISK_TONE.get(vm.overall_risk_level.upper(), "info"),
+            drivers=[g.title for g in flagged[:2]],
+        )
+    )
+
+    # --- Events node ---------------------------------------------------
+    nodes.append(
+        EvidenceNode(
+            key="events",
+            label="Catalyst Watch",
+            state=(
+                f"{len(event_vm.high_risk)} high-risk · "
+                f"{len(event_vm.upcoming)} upcoming"
+            ),
+            tone="warning" if event_vm.high_risk else "info",
+            drivers=[e.title for e in event_vm.high_risk[:2]],
+        )
+    )
+
+    # --- Portfolio node ------------------------------------------------
+    if vm.portfolio is not None:
+        pf = vm.portfolio
+        largest_pct = (pf.largest_position_weight * Decimal("100")).quantize(
+            Decimal("0.1")
+        )
+        pf_drivers: list[str] = []
+        if pf.largest_position_ticker:
+            pf_drivers.append(
+                f"Largest: {pf.largest_position_ticker} ({largest_pct}%)"
+            )
+        if pf.over_single_limit_tickers:
+            pf_drivers.append(
+                "Over single-position limit: "
+                + ", ".join(pf.over_single_limit_tickers)
+            )
+        nodes.append(
+            EvidenceNode(
+                key="portfolio",
+                label="Portfolio",
+                state=f"{pf.position_count} positions",
+                tone="warning" if pf.over_single_limit_tickers else "info",
+                drivers=pf_drivers,
+            )
+        )
+
+    # --- Links ---------------------------------------------------------
+    if vm.regime is not None and vm.regime.risk_level.upper() in {
+        "YELLOW",
+        "ORANGE",
+        "RED",
+    }:
+        links.append(
+            EvidenceLink(
+                source="regime",
+                target="risk",
+                relation=(
+                    "Elevated regime risk raises guard sensitivity across the "
+                    "ladder."
+                ),
+            )
+        )
+    if vm.portfolio is not None and vm.portfolio.over_single_limit_tickers:
+        links.append(
+            EvidenceLink(
+                source="portfolio",
+                target="risk",
+                relation=(
+                    "Position concentration feeds the single-position / "
+                    "concentration guards."
+                ),
+            )
+        )
+    if event_vm.holdings_linked:
+        links.append(
+            EvidenceLink(
+                source="events",
+                target="portfolio",
+                relation=(
+                    f"{len(event_vm.holdings_linked)} upcoming event(s) touch "
+                    "current holdings."
+                ),
+            )
+        )
+    if event_vm.high_risk:
+        links.append(
+            EvidenceLink(
+                source="events",
+                target="risk",
+                relation=(
+                    "High-exposure events add event-risk watchpoints to monitor."
+                ),
+            )
+        )
+
+    summary = (
+        f"{len(nodes)} evidence domains linked by {len(links)} cross-reference(s); "
+        "regime, risk, events, and portfolio read as one descriptive picture."
+    )
+    return EvidenceGraph(nodes=nodes, links=links, summary=summary)
 
 
 def _data_state(

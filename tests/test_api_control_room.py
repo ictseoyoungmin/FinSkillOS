@@ -236,6 +236,15 @@ def test_control_room_promotes_live_mission_portfolio_and_guards(
     assert body["portfolioExposure"]
     assert body["riskFirewall"]
     assert body["systemStatus"]["guardCount"] <= len(body["riskFirewall"])
+    # Slice 167: cross-tab evidence graph links the live read models.
+    graph = body["evidenceGraph"]
+    assert graph is not None
+    node_keys = {n["key"] for n in graph["nodes"]}
+    assert {"risk", "events", "portfolio"} <= node_keys
+    assert "evidence domains" in graph["summary"]
+    for link in graph["links"]:
+        assert link["source"] in node_keys
+        assert link["target"] in node_keys
 
 
 def test_control_room_promotes_live_overview_rails(

@@ -75,5 +75,35 @@ export interface ControlRoomData {
   catalystWatch: CatalystSummary[];
   watchlist: WatchlistItem[];
   marketTape: MarketTapePoint[];
+  // Slice 167: cross-tab evidence graph (live only).
+  evidenceGraph?: EvidenceGraph | null;
   source: "fixture" | "live";
+}
+
+export type EvidenceNodeKey = "regime" | "risk" | "events" | "portfolio";
+export type EvidenceNodeTone =
+  | "info"
+  | "warning"
+  | "danger"
+  | "neutral"
+  | "success";
+
+export interface EvidenceNode {
+  key: EvidenceNodeKey;
+  label: string;
+  state: string;
+  tone: EvidenceNodeTone;
+  drivers: string[];
+}
+
+export interface EvidenceLink {
+  source: EvidenceNodeKey;
+  target: EvidenceNodeKey;
+  relation: string;
+}
+
+export interface EvidenceGraph {
+  nodes: EvidenceNode[];
+  links: EvidenceLink[];
+  summary: string;
 }

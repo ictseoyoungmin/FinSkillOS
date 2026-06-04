@@ -1,3 +1,4 @@
+import { EvidenceGraphPanel } from "@/features/control-room/components/EvidenceGraphPanel";
 import { GoalProgressCard } from "@/features/portfolio/components/GoalProgressCard";
 import { PortfolioExposureCard } from "@/features/portfolio/components/PortfolioExposureCard";
 import { ReviewQueueCard } from "@/features/portfolio/components/ReviewQueueCard";
@@ -105,6 +106,9 @@ export function ControlRoomGrid({
           <WatchlistCard items={data.watchlist} />
         </section>
       </div>
+      {data.evidenceGraph && data.evidenceGraph.nodes.length > 0 ? (
+        <EvidenceGraphPanel graph={data.evidenceGraph} />
+      ) : null}
       <InterpretationPanel
         bullets={[
           data.interpretation.verdict,

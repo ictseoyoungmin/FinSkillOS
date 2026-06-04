@@ -88,6 +88,7 @@ protocols.
 164  Regime Explanation v2 (Phase 4)
 165  Event/News/Position Linkage Scoring (Phase 4)
 166  Portfolio Constraint Summary v2 (Phase 4)
+167  Cross-tab Evidence Graph (Phase 4)
 ```
 
 ## Validation Baseline
@@ -227,7 +228,10 @@ constraint summary v2 · 167 cross-tab evidence graph · 168 weekly evidence rep
   `constraints` block (single-position limit / cash reserve / drawdown headroom,
   OK/WATCH/BREACH) computed from the real Slice-06 guard constants;
   `ConstraintSummaryPanel`. Live-gated; fixture unchanged.
-- [ ] **167 Cross-tab Evidence Graph**.
+- [x] **167 Cross-tab Evidence Graph** (slice 167) — Control Room `evidenceGraph`
+  (regime/risk/events/portfolio nodes + derived cross-reference links) built from
+  the already-assembled VMs; `EvidenceGraphPanel` node grid + link list.
+  Live-gated; fixture unchanged.
 - [ ] **168 Weekly Evidence Report**.
 
 #### Later phases (see ROADMAP.md)

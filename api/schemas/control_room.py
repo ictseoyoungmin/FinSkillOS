@@ -160,6 +160,38 @@ class ControlRoomDataState(CamelModel):
     refresh_note: str
 
 
+EvidenceNodeKey = Literal["regime", "risk", "events", "portfolio"]
+EvidenceNodeTone = Literal["info", "warning", "danger", "neutral", "success"]
+
+
+class EvidenceNode(CamelModel):
+    """One domain node in the cross-tab evidence graph (Slice 167)."""
+
+    key: EvidenceNodeKey
+    label: str
+    state: str
+    tone: EvidenceNodeTone = "info"
+    drivers: list[str] = Field(default_factory=list)
+
+
+class EvidenceLink(CamelModel):
+    """A descriptive cross-reference between two evidence nodes."""
+
+    source: EvidenceNodeKey
+    target: EvidenceNodeKey
+    relation: str
+
+
+class EvidenceGraph(CamelModel):
+    """Regime ↔ Risk ↔ Events ↔ Portfolio evidence, linked (Slice 167).
+
+    Descriptive aggregation of the existing read models — never a directive."""
+
+    nodes: list[EvidenceNode] = Field(default_factory=list)
+    links: list[EvidenceLink] = Field(default_factory=list)
+    summary: str = ""
+
+
 class ControlRoomResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -180,6 +212,8 @@ class ControlRoomResponse(CamelModel):
     catalyst_watch: list[CatalystSummary]
     watchlist: list[WatchlistItem]
     market_tape: list[MarketTapePoint] = Field(default_factory=list)
+    # Slice 167: cross-tab evidence graph (live only; None in fixtures).
+    evidence_graph: EvidenceGraph | None = None
     source: Literal["fixture", "live"] = "fixture"
 
 
@@ -187,6 +221,9 @@ __all__ = [
     "CatalystSummary",
     "ControlRoomDataState",
     "ControlRoomResponse",
+    "EvidenceGraph",
+    "EvidenceLink",
+    "EvidenceNode",
     "GuardDriver",
     "GuardSummaryVM",
     "MarketTapePoint",
