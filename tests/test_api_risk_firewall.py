@@ -144,6 +144,15 @@ def test_risk_firewall_can_return_live_db_read_model(monkeypatch, tmp_path) -> N
         assert len(body["guards"]) >= 6
         assert body["dataState"]["evaluationSource"] == "live"
         assert body["dataState"]["persistedAlerts"] is False
+
+        # Slice 163: live guards carry evidence attribution (the "why?" rows).
+        attributed = [g for g in body["guards"] if g["attribution"]]
+        assert attributed, "expected at least one guard with evidence attribution"
+        sample = attributed[0]["attribution"][0]
+        assert set(sample.keys()) == {"label", "value"}
+        assert sample["label"] and isinstance(sample["value"], str)
+        # watchNext is always present (list), populated for flagged guards.
+        assert all(isinstance(g["watchNext"], list) for g in body["guards"])
     finally:
         reset_settings_cache()
         engine.dispose()

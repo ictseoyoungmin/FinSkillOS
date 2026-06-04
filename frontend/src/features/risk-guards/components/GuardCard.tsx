@@ -32,6 +32,9 @@ export interface GuardCardProps {
 
 export function GuardCard({ guard }: GuardCardProps) {
   const tone = STATUS_TONE[guard.status];
+  const attribution = guard.attribution ?? [];
+  const watchNext = guard.watchNext ?? [];
+  const hasWhy = attribution.length > 0 || watchNext.length > 0;
   return (
     <Card testId={`guard-${guard.name}`}>
       <div className="fso-guard-row">
@@ -50,6 +53,31 @@ export function GuardCard({ guard }: GuardCardProps) {
           {STATUS_LABEL[guard.status]}
         </span>
       </div>
+      {hasWhy ? (
+        <details
+          className="fso-guard-why"
+          data-testid={`guard-why-${guard.name}`}
+        >
+          <summary>Why this state?</summary>
+          {attribution.length > 0 ? (
+            <dl className="fso-guard-attribution">
+              {attribution.map((row) => (
+                <div key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+          {watchNext.length > 0 ? (
+            <ul className="fso-guard-watch-next">
+              {watchNext.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          ) : null}
+        </details>
+      ) : null}
     </Card>
   );
 }

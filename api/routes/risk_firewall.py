@@ -9,6 +9,7 @@ exist. The route stays read-only: live evaluation uses
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
@@ -21,7 +22,7 @@ from api.live_state import (
     exc_detail,
 )
 from api.schemas.common import SystemStatus
-from api.schemas.control_room import GuardSummaryVM
+from api.schemas.control_room import GuardDriver, GuardSummaryVM
 from api.schemas.risk_firewall import (
     ActiveAlertItem,
     RiskFirewallDataState,
@@ -253,6 +254,8 @@ def _live_response(report) -> RiskFirewallResponse:
             risk_level=result.risk_level,
             title=result.title,
             message=result.message,
+            attribution=_guard_attribution(result.evidence),
+            watch_next=list(result.watch_next),
         )
         for result in report.results
     ]
@@ -268,6 +271,46 @@ def _live_response(report) -> RiskFirewallResponse:
         if result.status in {STATUS_WARN, STATUS_FAIL, STATUS_BLOCKED}
     ]
     return payload
+
+
+def _guard_attribution(evidence: dict[str, object]) -> list[GuardDriver]:
+    """Turn a guard's raw ``evidence`` dict into readable driver rows (Slice 163).
+
+    Surfaces the numbers behind each decision so the Risk Firewall can render a
+    "why?" drilldown without re-running the guard. Descriptive labels / values
+    only — never a directive."""
+
+    return [
+        GuardDriver(label=_humanize_key(key), value=_format_evidence_value(value))
+        for key, value in evidence.items()
+        if value is not None and value != [] and value != {}
+    ]
+
+
+def _humanize_key(key: str) -> str:
+    return key.replace("_", " ").strip().capitalize() or key
+
+
+def _format_evidence_value(value: object) -> str:
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, Decimal):
+        return _format_decimal(value)
+    if isinstance(value, (int, float)):
+        return f"{value:,}"
+    if isinstance(value, dict):
+        return "; ".join(
+            f"{k}: {_format_evidence_value(v)}" for k, v in value.items()
+        )
+    if isinstance(value, (list, tuple)):
+        return ", ".join(_format_evidence_value(v) for v in value)
+    return str(value)
+
+
+def _format_decimal(value: Decimal) -> str:
+    if value == value.to_integral_value():
+        return f"{value:,.0f}"
+    return f"{value:,.2f}"
 
 
 __all__ = ["router"]

@@ -87,12 +87,24 @@ class OperatingState(CamelModel):
     state_vector: list[StateVectorCell] = Field(default_factory=list)
 
 
+class GuardDriver(CamelModel):
+    """One evidence row behind a guard decision (Slice 163 attribution)."""
+
+    label: str
+    value: str
+
+
 class GuardSummaryVM(CamelModel):
     name: str
     status: Literal["PASS", "WARN", "FAIL", "BLOCKED", "INFO"]
     risk_level: Literal["GREEN", "YELLOW", "ORANGE", "RED", "UNKNOWN"]
     title: str
     message: str
+    # Slice 163: the numbers behind the decision + suggested review actions.
+    # Populated in the live Risk Firewall path; empty elsewhere (fixtures,
+    # Control Room) so existing visual baselines are unchanged.
+    attribution: list[GuardDriver] = Field(default_factory=list)
+    watch_next: list[str] = Field(default_factory=list)
 
 
 class CatalystSummary(CamelModel):
@@ -175,6 +187,7 @@ __all__ = [
     "CatalystSummary",
     "ControlRoomDataState",
     "ControlRoomResponse",
+    "GuardDriver",
     "GuardSummaryVM",
     "MarketTapePoint",
     "MissionProgress",

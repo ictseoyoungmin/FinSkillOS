@@ -84,6 +84,7 @@ protocols.
 160  Trade Import CSV (Phase 3)
 161  Trade Memory Review Workflow Polish (Phase 3)
 162  Journal Templates / Review Prompts (Phase 3)
+163  Risk-Guard Driver Attribution (Phase 4)
 ```
 
 ## Validation Baseline
@@ -193,9 +194,24 @@ journal templates / review prompts). Next: **Phase 4 — interpretation engine**
   (a reflection checklist `ReviewPromptsPanel`). Live-gated; fixture render
   unchanged. **Phase 3 complete (157–162).**
 
+#### Phase 4 — interpretation engine (active)
+Link evidence across tabs (descriptive only). Read-model / additive — no
+mutations. Slice plan (may adjust): 163 risk-guard driver attribution · 164
+regime explanation v2 · 165 event/news/position linkage scoring · 166 portfolio
+constraint summary v2 · 167 cross-tab evidence graph · 168 weekly evidence report.
+- [x] **163 Risk-Guard Driver Attribution** (slice 163) — `GuardSummaryVM` gains
+  optional `attribution` (`GuardDriver{label,value}` from each guard's `evidence`)
+  + `watchNext`; Risk Firewall live path populates them; `GuardCard` "Why this
+  state?" drilldown. Live-gated by data → fixture/Control Room baselines unchanged.
+- [ ] **164 Regime Explanation v2** — positive/risk factor attribution + what
+  would flip the classification, on the regime read model.
+- [ ] **165 Event/News/Position Linkage Scoring**.
+- [ ] **166 Portfolio Constraint Summary v2**.
+- [ ] **167 Cross-tab Evidence Graph**.
+- [ ] **168 Weekly Evidence Report**.
+
 #### Later phases (see ROADMAP.md)
-Phase 4 interpretation engine · Phase 5 packaging · Phase 6 optional
-automation/LLM-narration.
+Phase 5 packaging · Phase 6 optional automation/LLM-narration.
 
 ### Standing open (env-blocked)
 - [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift

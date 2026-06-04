@@ -11,12 +11,21 @@ export type RiskLevel = "GREEN" | "YELLOW" | "ORANGE" | "RED" | "UNKNOWN";
 export type AlertSeverity = "INFO" | "YELLOW" | "ORANGE" | "RED";
 export type RiskProtocolTone = "allowed" | "limited" | "blocked";
 
+export interface GuardDriver {
+  label: string;
+  value: string;
+}
+
 export interface GuardSummary {
   name: string;
   status: GuardStatus;
   riskLevel: RiskLevel;
   title: string;
   message: string;
+  // Slice 163: per-guard evidence + review actions (live Risk Firewall only;
+  // optional so Control Room / fixtures stay unchanged).
+  attribution?: GuardDriver[];
+  watchNext?: string[];
 }
 
 export interface ActiveAlertItem {
