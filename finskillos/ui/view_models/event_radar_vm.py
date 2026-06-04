@@ -90,6 +90,10 @@ class EventRiskVM:
     links: tuple[EventLinkVM, ...]
     linked_news: tuple[EventLinkedNewsVM, ...]
     description: str | None = None
+    # Slice 165: the multiplicative factors behind event_risk_score + the
+    # held tickers this event actually touches (event↔position linkage).
+    score_drivers: tuple[tuple[str, str], ...] = ()
+    held_tickers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -148,6 +152,7 @@ def build_event_radar_view_model(
             risk_service=risk_service,
             today=today,
             account_id=account_id,
+            holdings_tickers=holdings_tickers,
         )
         for event in upcoming_events
     )
@@ -196,6 +201,7 @@ def _build_event_risk_vm(
     risk_service: EventRiskService,
     today: date,
     account_id: uuid.UUID | None,
+    holdings_tickers: tuple[str, ...] = (),
 ) -> EventRiskVM:
     breakdown = risk_service.score(
         event, today=today, account_id=account_id
@@ -203,6 +209,9 @@ def _build_event_risk_vm(
     link_rows = risk_service.links.list_for_event(event.id)
     pre, post = _build_event_notes(event=event, breakdown=breakdown)
     linked_news = _build_linked_news(session=session, links=link_rows)
+    held_tickers = tuple(
+        t for t in breakdown.affected_tickers if t in holdings_tickers
+    )
     return EventRiskVM(
         event_id=event.id,
         title=event.title,
@@ -223,7 +232,40 @@ def _build_event_risk_vm(
         links=_links_to_vm(link_rows),
         linked_news=linked_news,
         description=event.description,
+        score_drivers=_score_drivers(breakdown, linked_news_count=len(linked_news)),
+        held_tickers=held_tickers,
     )
+
+
+def _score_drivers(
+    breakdown: EventRiskBreakdown, *, linked_news_count: int
+) -> tuple[tuple[str, str], ...]:
+    """Multiplicative factors behind ``event_risk_score`` as label/value rows.
+
+    ``score = importance × exposure_weight × proximity_weight × overheat_weight``
+    (clamped 0–10). Descriptive attribution only — a preparation score, never a
+    directive (Slice 165)."""
+
+    exposure_pct = (breakdown.portfolio_exposure * Decimal("100")).quantize(
+        Decimal("0.1")
+    )
+    rows: list[tuple[str, str]] = [
+        ("Importance", _num(breakdown.importance_score)),
+        ("Portfolio exposure", f"{_num(exposure_pct)}%"),
+        ("Exposure weight", f"×{_num(breakdown.portfolio_exposure_weight)}"),
+        ("Proximity weight", f"×{_num(breakdown.days_to_event_weight)}"),
+        ("Overheat weight", f"×{_num(breakdown.market_overheat_weight)}"),
+        ("Linked news", str(linked_news_count)),
+        ("Event risk score", _num(breakdown.event_risk_score)),
+    ]
+    return tuple(rows)
+
+
+def _num(value: Decimal) -> str:
+    normalised = value.normalize()
+    if normalised == normalised.to_integral_value():
+        return f"{normalised.to_integral_value()}"
+    return f"{normalised}"
 
 
 def _build_event_notes(

@@ -25,6 +25,7 @@ from api.schemas.event_radar import (
     EventRadarDataState,
     EventRadarResponse,
     EventRiskRow,
+    EventScoreDriver,
     EventWatchpoint,
 )
 from finskillos.guards.base import GuardResult, assert_no_forbidden_wording
@@ -249,6 +250,11 @@ def _event_row(event: EventRiskVM) -> EventRiskRow:
             for link in event.links
         ],
         linked_news=_safe_news_rows(event.linked_news),
+        score_drivers=[
+            EventScoreDriver(label=label, value=value)
+            for label, value in event.score_drivers
+        ],
+        held_tickers=list(event.held_tickers),
     )
 
 

@@ -25,6 +25,7 @@ from api.fixtures import FIXTURE_TIMESTAMP
 from api.main import create_app
 from finskillos.config import reset_settings_cache
 from finskillos.db.base import Base
+from finskillos.db.repositories import AccountRepository, PositionRepository
 from finskillos.services.event_service import (
     EventInput,
     EventLinkInput,
@@ -179,6 +180,15 @@ def test_event_radar_can_return_live_db_read_model(monkeypatch, tmp_path) -> Non
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     with factory() as session:
+        account = AccountRepository(session).create(
+            name="Main Trading Account", target_value=Decimal("100000000"),
+        )
+        PositionRepository(session).create(
+            account_id=account.id,
+            ticker="NVDA",
+            quantity=Decimal("10"),
+            market_value=Decimal("25000000"),
+        )
         EventService(session).create_event(
             EventInput(
                 title="NVIDIA earnings window",
@@ -203,7 +213,12 @@ def test_event_radar_can_return_live_db_read_model(monkeypatch, tmp_path) -> Non
         assert body["dataState"]["calendarStatus"] == "db_backed"
         assert body["dataState"]["eventCount"] == 1
         assert body["dataState"]["dateConfidenceStatus"] == "uncertain"
-        assert body["upcoming"][0]["title"] == "NVIDIA earnings window"
+        row = body["upcoming"][0]
+        assert row["title"] == "NVIDIA earnings window"
+        # Slice 165: score-factor attribution + held-ticker linkage.
+        labels = {d["label"] for d in row["scoreDrivers"]}
+        assert {"Importance", "Event risk score"} <= labels
+        assert row["heldTickers"] == ["NVDA"]  # NVDA is held → event touches it
     finally:
         reset_settings_cache()
         engine.dispose()

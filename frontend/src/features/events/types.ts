@@ -94,6 +94,15 @@ export interface EventRiskRow {
   postEventNote: string;
   links: EventLinkVM[];
   linkedNews: EventLinkedNewsVM[];
+  // Slice 165: score-factor attribution + held-ticker linkage (live only;
+  // optional so fixtures stay unchanged).
+  scoreDrivers?: EventScoreDriver[];
+  heldTickers?: string[];
+}
+
+export interface EventScoreDriver {
+  label: string;
+  value: string;
 }
 
 export interface EventWatchpoint {

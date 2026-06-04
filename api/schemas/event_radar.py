@@ -90,6 +90,13 @@ class EventLinkedNewsVM(CamelModel):
     url: str
 
 
+class EventScoreDriver(CamelModel):
+    """One factor behind an event's risk score (Slice 165 attribution)."""
+
+    label: str
+    value: str
+
+
 class EventRiskRow(CamelModel):
     """One row in the upcoming-events table."""
 
@@ -112,6 +119,9 @@ class EventRiskRow(CamelModel):
     post_event_note: str = ""
     links: list[EventLinkVM] = Field(default_factory=list)
     linked_news: list[EventLinkedNewsVM] = Field(default_factory=list)
+    # Slice 165: score-factor attribution + the held tickers this event touches.
+    score_drivers: list[EventScoreDriver] = Field(default_factory=list)
+    held_tickers: list[str] = Field(default_factory=list)
 
 
 class EventWatchpoint(CamelModel):
@@ -173,6 +183,7 @@ __all__ = [
     "EventRadarResponse",
     "EventRadarDataState",
     "EventRiskRow",
+    "EventScoreDriver",
     "EventWatchpoint",
     "RiskLabel",
 ]

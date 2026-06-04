@@ -86,14 +86,22 @@ protocols.
 162  Journal Templates / Review Prompts (Phase 3)
 163  Risk-Guard Driver Attribution (Phase 4)
 164  Regime Explanation v2 (Phase 4)
+165  Event/News/Position Linkage Scoring (Phase 4)
 ```
 
 ## Validation Baseline
 
-All development and verification run through Docker. Focused checks before
-touching the v4.2 cockpit surface:
+All development and verification run through Docker. **The `api` / `web` /
+`migrate` / `worker` services are baked images with no source bind-mount, and
+`docker compose run` does not rebuild — so you must `docker compose build api web`
+*before* the Docker gate or it silently tests stale code (a false-green that bit
+slices 158–164 on 2026-06-04; the rebuilt-image gate re-validated them). Iterate
+locally (`FINSKILLOS_SKIP_DOTENV=1 python3 -m pytest …` + `npm run build` / `tsc`
+/ `ruff` / `eslint`) — that runs the real current code — then rebuild + run the
+final Docker gate.** Focused checks before touching the v4.2 cockpit surface:
 
 ```bash
+docker compose -f docker-compose.yml build api web   # required: refresh baked source
 docker compose -f docker-compose.yml run --rm --no-deps api pytest \
   tests/test_api_v42_contract.py tests/test_api_health.py \
   tests/test_api_system_ops.py tests/test_operations_scripts.py -q
@@ -209,7 +217,11 @@ constraint summary v2 · 167 cross-tab evidence graph · 168 weekly evidence rep
   `confidenceRationale` (band + factor counts, no fabricated thresholds);
   `RegimeContextPanel` renders both. Evidence threaded through the shared
   `RegimeSummary` VM. Live-gated; fixture unchanged.
-- [ ] **165 Event/News/Position Linkage Scoring**.
+- [x] **165 Event/News/Position Linkage Scoring** (slice 165) — `EventRiskRow`
+  gains `scoreDrivers` (the multiplicative factor breakdown behind
+  `eventRiskScore`) + `heldTickers` (affected tickers actually held);
+  `EventRiskTable` per-event "Score & linkage" details row, held tags highlighted.
+  Live-gated; fixture unchanged.
 - [ ] **166 Portfolio Constraint Summary v2**.
 - [ ] **167 Cross-tab Evidence Graph**.
 - [ ] **168 Weekly Evidence Report**.
