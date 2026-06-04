@@ -82,6 +82,7 @@ protocols.
 158  Portfolio Manual Entry / Edit (Phase 3)
 159  Portfolio CSV Import / Export (Phase 3)
 160  Trade Import CSV (Phase 3)
+161  Trade Memory Review Workflow Polish (Phase 3)
 ```
 
 ## Validation Baseline
@@ -181,7 +182,10 @@ import/export, position reconciliation, trade import, journal templates).
   (dry-run preview → `?confirm=true`, append-only + atomic: nothing written if any
   row is invalid). `TradeCsvImport` panel (file/paste → preview counts + flagged
   errors → append). Shared `TRADE_CSV_COLUMNS` / `parse_trade_csv`.
-- [ ] **161 Trade Memory Review Workflow Polish**.
+- [x] **161 Trade Memory Review Workflow Polish** (slice 161) — weekly-review
+  period navigation: `GET …/weekly-review?as_of=YYYY-MM-DD` computes the window
+  ending that date; `WeeklyReviewPanel` prev/next/this-week stepper (live-gated)
+  drives both the panel and the markdown export. Fixture render unchanged.
 - [ ] **162 Journal Templates / Review Prompts**.
 
 #### Later phases (see ROADMAP.md)

@@ -540,6 +540,81 @@ def test_export_trade_memory_csv_live(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+# --- Slice 161: weekly-review period navigation (?as_of=) -------------------
+
+
+def test_weekly_review_as_of_targets_a_past_window(monkeypatch, tmp_path) -> None:
+    from datetime import timedelta
+
+    db_path = tmp_path / "weekly-asof.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    today = date.today()
+    last_week = today - timedelta(days=10)
+    with factory() as session:
+        account = AccountRepository(session).create(
+            name="Main Trading Account", target_value=100000000,
+        )
+        service = TradeJournalService(session)
+        service.create_entry(
+            TradeJournalInput(
+                trade_date=today, ticker="NVDA", side="LONG",
+                amount=Decimal("1000000"), mistake_tags=(),
+            ),
+            account_id=account.id,
+        )
+        service.create_entry(
+            TradeJournalInput(
+                trade_date=last_week, ticker="AAPL", side="LONG",
+                amount=Decimal("500000"), mistake_tags=(),
+            ),
+            account_id=account.id,
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        # Default window (ending today) sees only the recent entry.
+        default = client.get("/api/trade-memory/weekly-review").json()
+        assert default["tradeCount"] == 1
+        assert default["endDate"] == today.isoformat()
+
+        # as_of points the 7-day window at the older entry.
+        past = client.get(
+            f"/api/trade-memory/weekly-review?as_of={last_week.isoformat()}"
+        ).json()
+        assert past["tradeCount"] == 1
+        assert past["endDate"] == last_week.isoformat()
+        assert past["startDate"] == (last_week - timedelta(days=6)).isoformat()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_weekly_review_invalid_as_of_falls_back_to_current(
+    monkeypatch, tmp_path
+) -> None:
+    engine, database_url = _empty_live_db(tmp_path, "weekly-badasof.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = _client().get(
+            "/api/trade-memory/weekly-review?as_of=not-a-date"
+        ).json()
+        assert body["endDate"] == date.today().isoformat()
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 # --- Slice 160: trade CSV import (dry-run → confirm, append-only) -----------
 
 

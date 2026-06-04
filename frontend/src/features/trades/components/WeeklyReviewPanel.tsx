@@ -3,16 +3,30 @@ import { toNumber } from "@/shared/lib/format";
 import type { WeeklyReviewVM } from "../types";
 import "./weekly-review-panel.css";
 
+export interface WeeklyReviewNavigation {
+  /** 0 = current week, 1 = one week back, … */
+  weekOffset: number;
+  loading: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onThisWeek: () => void;
+}
+
 export interface WeeklyReviewPanelProps {
   review: WeeklyReviewVM;
+  /** Live-only week stepper; omitted (fixture/offline) renders the static card. */
+  navigation?: WeeklyReviewNavigation;
 }
 
 /**
  * Weekly review summary card. Reads the 7-day window the
  * ReflectionService computes and surfaces trade count, total PnL,
  * win rate, top mistakes, best / weakest regime, and process notes.
+ *
+ * When ``navigation`` is supplied (live mode) the header gains a prev / next /
+ * this-week stepper so completed weeks can be reviewed (Slice 161).
  */
-export function WeeklyReviewPanel({ review }: WeeklyReviewPanelProps) {
+export function WeeklyReviewPanel({ review, navigation }: WeeklyReviewPanelProps) {
   const winRate =
     review.winRate === null
       ? "—"
@@ -24,6 +38,50 @@ export function WeeklyReviewPanel({ review }: WeeklyReviewPanelProps) {
       badgeTone="info"
       testId="weekly-review"
     >
+      {navigation ? (
+        <div
+          className="fso-weekly-review-nav"
+          data-testid="weekly-review-nav"
+        >
+          <button
+            type="button"
+            onClick={navigation.onPrev}
+            disabled={navigation.loading}
+            data-testid="weekly-review-prev"
+            aria-label="Previous week"
+          >
+            ◀ Prev
+          </button>
+          <span data-testid="weekly-review-window-label">
+            {navigation.weekOffset === 0
+              ? "This week"
+              : `${navigation.weekOffset} week${
+                  navigation.weekOffset === 1 ? "" : "s"
+                } ago`}
+            {navigation.loading ? " · loading…" : ""}
+          </span>
+          <button
+            type="button"
+            onClick={navigation.onNext}
+            disabled={navigation.loading || navigation.weekOffset === 0}
+            data-testid="weekly-review-next"
+            aria-label="Next week"
+          >
+            Next ▶
+          </button>
+          {navigation.weekOffset !== 0 ? (
+            <button
+              type="button"
+              className="fso-weekly-review-thisweek"
+              onClick={navigation.onThisWeek}
+              disabled={navigation.loading}
+              data-testid="weekly-review-thisweek"
+            >
+              This week
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <dl className="fso-weekly-review-stats">
         <div>
           <dt>Trades</dt>

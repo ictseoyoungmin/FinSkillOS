@@ -1,3 +1,43 @@
+.fso-weekly-review-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  flex-wrap: wrap;
+}
+
+.fso-weekly-review-nav span {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fso-text-muted);
+  min-width: 96px;
+  text-align: center;
+}
+
+.fso-weekly-review-nav button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  color: var(--fso-text-muted);
+  cursor: pointer;
+}
+
+.fso-weekly-review-nav button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fso-weekly-review-thisweek {
+  border-color: var(--fso-cyan-2) !important;
+  color: var(--fso-cyan) !important;
+}
+
 .fso-weekly-review-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

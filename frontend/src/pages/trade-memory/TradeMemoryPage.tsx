@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   deleteTradeEntry,
   fetchTradeMemory,
+  fetchWeeklyReview,
   tradeMemoryCsvUrl,
 } from "@/features/trades/api";
 import type { TradeEntryVM } from "@/features/trades/types";
@@ -33,12 +34,27 @@ export function TradeMemoryPage() {
   const queryClient = useQueryClient();
   const [editEntry, setEditEntry] = useState<TradeEntryVM | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
   const { data, error, failureReason } = useQuery({
     queryKey: ["trade-memory"],
     queryFn: ({ signal }) => fetchTradeMemory(signal),
     placeholderData: tradeMemoryFixture,
   });
   const liveFailed = Boolean(error ?? failureReason);
+
+  // Weekly-review period navigation (Slice 161). Offset 0 uses the embedded
+  // current-week block; a non-zero offset fetches the window ending N weeks back.
+  const weeklyBase = data ?? tradeMemoryFixture;
+  const weeklyIsLive = weeklyBase.source === "live";
+  const asOf =
+    weekOffset === 0
+      ? null
+      : shiftIsoDate(weeklyBase.weeklyReview.endDate, -weekOffset * 7);
+  const weeklyQuery = useQuery({
+    queryKey: ["weekly-review", asOf],
+    queryFn: ({ signal }) => fetchWeeklyReview(asOf, signal),
+    enabled: weeklyIsLive && asOf !== null,
+  });
 
   const refreshTradeMemory = () =>
     queryClient.invalidateQueries({ queryKey: ["trade-memory"] });
@@ -75,6 +91,20 @@ export function TradeMemoryPage() {
   const payload = data ?? tradeMemoryFixture;
   const isLive = payload.source === "live";
   const sourceSummary = buildTradeMemorySourceSummary(payload);
+
+  const activeWeekly =
+    weekOffset === 0
+      ? payload.weeklyReview
+      : (weeklyQuery.data ?? payload.weeklyReview);
+  const weeklyNavigation = isLive
+    ? {
+        weekOffset,
+        loading: asOf !== null && weeklyQuery.isFetching,
+        onPrev: () => setWeekOffset((offset) => offset + 1),
+        onNext: () => setWeekOffset((offset) => Math.max(0, offset - 1)),
+        onThisWeek: () => setWeekOffset(0),
+      }
+    : undefined;
 
   return (
     <div className="fso-trade-memory" data-testid="trade-memory-page">
@@ -146,8 +176,11 @@ export function TradeMemoryPage() {
             bullets={payload.integratedInterpretation}
           />
           <TradeMemoryWatchpoints watchpoints={payload.watchpoints} />
-          <WeeklyReviewPanel review={payload.weeklyReview} />
-          <WeeklyMarkdownExport markdown={payload.weeklyReview.markdown} />
+          <WeeklyReviewPanel
+            review={activeWeekly}
+            navigation={weeklyNavigation}
+          />
+          <WeeklyMarkdownExport markdown={activeWeekly.markdown} />
           <TradeEntryForm
             rules={payload.formRules}
             editEntry={editEntry}
@@ -165,6 +198,15 @@ export function TradeMemoryPage() {
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );
+}
+
+function shiftIsoDate(iso: string, days: number): string {
+  const parsed = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return iso;
+  }
+  parsed.setUTCDate(parsed.getUTCDate() + days);
+  return parsed.toISOString().slice(0, 10);
 }
 
 function buildTradeMemorySourceSummary(

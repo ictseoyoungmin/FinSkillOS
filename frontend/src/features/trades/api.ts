@@ -15,11 +15,14 @@ export async function fetchTradeMemory(
 }
 
 export async function fetchWeeklyReview(
+  asOf?: string | null,
   signal?: AbortSignal,
 ): Promise<WeeklyReviewVM> {
-  return await getJson<WeeklyReviewVM>(apiEndpoints.tradeWeeklyReview, {
-    signal,
-  });
+  const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
+  return await getJson<WeeklyReviewVM>(
+    `${apiEndpoints.tradeWeeklyReview}${query}`,
+    { signal },
+  );
 }
 
 function apiBase(): string {

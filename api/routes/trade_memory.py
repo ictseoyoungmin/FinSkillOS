@@ -74,12 +74,30 @@ def trade_memory(
 @router.get(
     "/trade-memory/weekly-review",
     response_model=WeeklyReviewVM,
-    summary="Weekly-review block (the same shape embedded in /trade-memory).",
+    summary="Weekly-review block; pass ?as_of=YYYY-MM-DD to review a past week.",
 )
 def trade_memory_weekly_review(
     use_fixture: bool = Depends(use_fixture_flag),
+    as_of: str | None = None,
 ) -> WeeklyReviewVM:
-    return _resolve_payload(use_fixture).weekly_review
+    """Default (no ``as_of``) returns the embedded current-week block.
+
+    ``as_of`` (live only) computes the 7-day window ending that date so the
+    review workflow can step back over completed weeks. A missing / invalid
+    date or fixture mode falls back to the current-week block (Slice 161).
+    """
+    target = _parse_iso_date(as_of) if as_of else None
+    if use_fixture or target is None:
+        return _resolve_payload(use_fixture).weekly_review
+
+    with get_session_scope() as session:
+        if session is None:
+            return mark_db_unavailable(trade_memory_fixture()).weekly_review
+        try:
+            return _weekly_review_for_date(session, target)
+        except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
+            session.rollback()
+            return _error_live_payload(exc).weekly_review
 
 
 @router.get(
@@ -740,6 +758,23 @@ def _mistake_from_vm(mistake) -> MistakeFrequencyVM:
         losing_trade_count=mistake.losing_trade_count,
         avg_pnl=mistake.avg_pnl,
     )
+
+
+def _weekly_review_for_date(session, target_date: date) -> WeeklyReviewVM:
+    """Compute the weekly review for the 7-day window ending ``target_date``.
+
+    Reuses ``ReflectionService`` (the same engine the embedded block uses) so a
+    past-week review is identical in shape to the current week. Stored entries
+    were wording-scanned at write time, so the rendered markdown is safe."""
+
+    from finskillos.services.reflection_service import ReflectionService
+    from finskillos.ui.view_models.trade_memory_vm import (
+        render_weekly_review_markdown,
+    )
+
+    weekly = ReflectionService(session).weekly_review(today=target_date)
+    markdown = render_weekly_review_markdown(weekly)
+    return _weekly_review_from_vm(weekly, markdown)
 
 
 def _weekly_review_from_vm(review, markdown: str) -> WeeklyReviewVM:
