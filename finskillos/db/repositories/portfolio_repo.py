@@ -78,6 +78,32 @@ class PortfolioRepository:
         )
         return self.session.scalars(stmt).one_or_none()
 
+    def update_latest_baseline(
+        self,
+        account_id: uuid.UUID,
+        *,
+        snapshot_date: date,
+        total_value: Decimal | None = None,
+        cash_value: Decimal | None = None,
+    ) -> PortfolioSnapshot:
+        """Partial-update the latest snapshot's baseline (Slice 158).
+
+        Creates today's snapshot if none exists. ``None`` leaves a field as-is."""
+        snapshot = self.latest(account_id)
+        if snapshot is None:
+            return self.create_snapshot(
+                account_id=account_id,
+                snapshot_date=snapshot_date,
+                total_value=total_value or Decimal("0"),
+                cash_value=cash_value or Decimal("0"),
+            )
+        if total_value is not None:
+            snapshot.total_value = total_value
+        if cash_value is not None:
+            snapshot.cash_value = cash_value
+        self.session.flush()
+        return snapshot
+
     def latest(self, account_id: uuid.UUID) -> PortfolioSnapshot | None:
         stmt = (
             select(PortfolioSnapshot)

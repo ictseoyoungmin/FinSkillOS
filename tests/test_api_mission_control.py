@@ -280,3 +280,211 @@ def test_mission_control_live_error_state_does_not_fall_back_to_fixture(
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+# --- Slice 158: portfolio manual entry / edit (CRUD) ------------------------
+
+
+def _live_db(tmp_path, name: str):
+    """Create a fresh sqlite engine for a mutation test."""
+    db_path = tmp_path / name
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    return engine, database_url
+
+
+def _seed_account(engine) -> None:
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        AccountRepository(session).create(
+            name="Main Trading Account", target_value=Decimal("100000000"),
+        )
+        session.commit()
+
+
+def test_create_position_appends_holding(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-create.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        resp = client.post(
+            "/api/mission-control/positions",
+            json={
+                "ticker": "nvda",
+                "quantity": "10",
+                "marketValue": "25000000",
+                "sector": "Semiconductors",
+                "theme": "AI Infrastructure",
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["source"] == "live"
+        assert body["portfolio"]["positionCount"] == 1
+        rows = body["positions"]
+        assert len(rows) == 1
+        assert rows[0]["ticker"] == "NVDA"  # upper-cased
+        assert rows[0]["marketValue"] == "25000000.00"
+        assert rows[0]["id"]
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_create_position_bootstraps_account_when_empty(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-bootstrap.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        resp = _client().post(
+            "/api/mission-control/positions",
+            json={"ticker": "AAPL", "quantity": "5", "marketValue": "10000000"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["positions"][0]["ticker"] == "AAPL"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_update_position_edits_in_place(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-update.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        created = client.post(
+            "/api/mission-control/positions",
+            json={"ticker": "NVDA", "quantity": "10", "marketValue": "25000000"},
+        ).json()
+        pos_id = created["positions"][0]["id"]
+
+        resp = client.put(
+            f"/api/mission-control/positions/{pos_id}",
+            json={
+                "ticker": "NVDA",
+                "quantity": "12",
+                "marketValue": "30000000",
+                "theme": "AI Infrastructure",
+            },
+        )
+        assert resp.status_code == 200
+        row = resp.json()["positions"][0]
+        assert Decimal(row["quantity"]) == Decimal("12")
+        assert row["marketValue"] == "30000000.00"
+        assert row["theme"] == "AI Infrastructure"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_update_missing_position_returns_404(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-update-404.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        resp = _client().put(
+            "/api/mission-control/positions/00000000-0000-0000-0000-000000000000",
+            json={"ticker": "NVDA", "quantity": "1", "marketValue": "1000"},
+        )
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "position_not_found"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_delete_position_removes_holding(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-delete.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        created = client.post(
+            "/api/mission-control/positions",
+            json={"ticker": "NVDA", "quantity": "10", "marketValue": "25000000"},
+        ).json()
+        pos_id = created["positions"][0]["id"]
+
+        resp = client.delete(f"/api/mission-control/positions/{pos_id}")
+        assert resp.status_code == 200
+        assert resp.json()["positions"] == []
+        assert resp.json()["portfolio"]["positionCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_clear_positions_removes_all(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-clear.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        for tk in ("NVDA", "AAPL", "MSFT"):
+            client.post(
+                "/api/mission-control/positions",
+                json={"ticker": tk, "quantity": "1", "marketValue": "1000000"},
+            )
+        resp = client.post("/api/mission-control/clear-positions")
+        assert resp.status_code == 200
+        assert resp.json()["positions"] == []
+        assert resp.json()["portfolio"]["positionCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_patch_snapshot_baseline_updates_reconciliation(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-snapshot.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        client.post(
+            "/api/mission-control/positions",
+            json={"ticker": "NVDA", "quantity": "10", "marketValue": "25000000"},
+        )
+        # Set a baseline that matches positions + cash (25M + 0) → reconciliation OK.
+        resp = client.patch(
+            "/api/mission-control/snapshot",
+            json={"totalValue": "25000000", "cashValue": "0"},
+        )
+        assert resp.status_code == 200
+        rec = resp.json()["reconciliation"]
+        assert rec["status"] == "OK"
+        assert rec["snapshotTotal"] == "25000000.00"
+
+        # Now drift the baseline → MISMATCH.
+        resp2 = client.patch(
+            "/api/mission-control/snapshot",
+            json={"totalValue": "99000000"},
+        )
+        rec2 = resp2.json()["reconciliation"]
+        assert rec2["status"] == "MISMATCH"
+        assert rec2["snapshotTotal"] == "99000000.00"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

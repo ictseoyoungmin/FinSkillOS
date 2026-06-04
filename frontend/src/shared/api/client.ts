@@ -34,3 +34,43 @@ export async function getJson<T>(
   }
   return (await response.json()) as T;
 }
+
+/**
+ * Send a JSON body via a mutating method (POST / PUT / PATCH / DELETE).
+ * Used by the descriptive portfolio editor (Slice 158); the API stays
+ * read-only except for these idempotent holdings-management endpoints.
+ */
+export async function sendJson<T>(
+  path: string,
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  body?: unknown,
+  options: FetchOptions = {},
+): Promise<T> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE;
+  const url = `${base}${path}`;
+  const response = await fetch(url, {
+    method,
+    credentials: "omit",
+    headers: {
+      Accept: "application/json",
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers ?? {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...options,
+  });
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const payload = (await response.json()) as { detail?: string };
+      detail = payload?.detail ? `: ${payload.detail}` : "";
+    } catch {
+      detail = "";
+    }
+    throw new ApiError(
+      response.status,
+      `${response.status} ${response.statusText} for ${url}${detail}`,
+    );
+  }
+  return (await response.json()) as T;
+}

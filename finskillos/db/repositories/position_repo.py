@@ -80,8 +80,45 @@ class PositionRepository:
         self.session.flush()
         return position
 
+    def update(
+        self,
+        position_id: uuid.UUID,
+        *,
+        ticker: str,
+        quantity: Decimal,
+        market_value: Decimal,
+        sector: str | None = None,
+        theme: str | None = None,
+        strategy_type: str = "swing",
+        average_cost: Decimal | None = None,
+        thesis: str | None = None,
+    ) -> Position:
+        """Full-field update of an editable holding (Slice 158)."""
+        position = self.session.get(Position, position_id)
+        if position is None:
+            raise LookupError(f"Position {position_id} not found")
+        position.ticker = ticker
+        position.quantity = quantity
+        position.market_value = market_value
+        position.sector = sector
+        position.theme = theme
+        position.strategy_type = strategy_type
+        position.average_cost = average_cost
+        position.thesis = thesis
+        self.session.flush()
+        return position
+
     def delete(self, position_id: uuid.UUID) -> None:
         position = self.session.get(Position, position_id)
         if position is not None:
             self.session.delete(position)
             self.session.flush()
+
+    def delete_all_for_account(self, account_id: uuid.UUID) -> int:
+        """Delete every holding for an account (the "Clear sample" action)."""
+        positions = self.list_for_account(account_id)
+        for position in positions:
+            self.session.delete(position)
+        if positions:
+            self.session.flush()
+        return len(positions)

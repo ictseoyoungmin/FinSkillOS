@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMissionControl } from "@/features/portfolio/api";
 import { CapitalMapPanel } from "@/features/portfolio/components/CapitalMapPanel";
 import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTimeline";
 import { MissionGoalTracker } from "@/features/portfolio/components/MissionGoalTracker";
+import { PortfolioEditorPanel } from "@/features/portfolio/components/PortfolioEditorPanel";
 import { PortfolioSnapshotPanel } from "@/features/portfolio/components/PortfolioSnapshotPanel";
 import { missionControlFixture } from "@/mocks/fixtures/missionControl.fixture";
 import { formatKrw, formatPct } from "@/shared/lib/format";
@@ -19,6 +20,7 @@ import type { MissionControlData } from "@/features/portfolio/types";
 import "./mission-control.css";
 
 export function MissionControlPage() {
+  const queryClient = useQueryClient();
   const { data, error, failureReason } = useQuery({
     queryKey: ["mission-control"],
     queryFn: ({ signal }) => fetchMissionControl(signal),
@@ -124,6 +126,21 @@ export function MissionControlPage() {
             <PortfolioSnapshotPanel
               snapshot={payload.portfolio}
               reconciliation={payload.reconciliation}
+            />
+          </div>
+          <div data-testid="mission-portfolio-editor">
+            <PortfolioEditorPanel
+              positions={payload.positions ?? []}
+              reconciliation={payload.reconciliation}
+              totalValue={payload.portfolio.totalValue}
+              cashValue={payload.portfolio.cashValue}
+              editable={
+                payload.source === "live" &&
+                payload.systemStatus.db.toUpperCase() === "LIVE"
+              }
+              onMutated={(next) =>
+                queryClient.setQueryData(["mission-control"], next)
+              }
             />
           </div>
         </div>

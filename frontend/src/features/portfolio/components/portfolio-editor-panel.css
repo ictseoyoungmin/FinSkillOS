@@ -1,0 +1,201 @@
+.fso-portfolio-editor-note {
+  margin: 0 0 10px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-portfolio-editor-disabled {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--fso-amber);
+  border: 1px solid color-mix(in srgb, var(--fso-amber) 50%, var(--fso-line));
+  border-radius: var(--fso-radius-sm);
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--fso-amber) 8%, transparent);
+}
+
+.fso-portfolio-editor-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 14px;
+}
+
+.fso-portfolio-editor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-portfolio-editor-table th {
+  text-align: left;
+  padding: 6px 8px;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+  border-bottom: 1px solid var(--fso-line);
+}
+
+.fso-portfolio-editor-table td {
+  padding: 6px 8px;
+  color: var(--fso-text);
+  border-bottom: 1px solid var(--fso-line-soft);
+}
+
+.fso-portfolio-editor-table tr[data-editing="true"] td {
+  background: color-mix(in srgb, var(--fso-cyan) 10%, transparent);
+}
+
+.fso-portfolio-editor-empty {
+  color: var(--fso-text-muted);
+  font-style: italic;
+}
+
+.fso-portfolio-editor-row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.fso-portfolio-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--fso-line-soft);
+  padding-top: 12px;
+}
+
+.fso-portfolio-editor-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.fso-portfolio-editor-form-grid label,
+.fso-portfolio-editor-baseline-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted);
+}
+
+.fso-portfolio-editor-form-grid input,
+.fso-portfolio-editor-baseline-grid input {
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 6px 8px;
+}
+
+.fso-portfolio-editor-wide {
+  grid-column: 1 / -1;
+}
+
+.fso-portfolio-editor-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.fso-portfolio-editor-baseline {
+  margin-top: 16px;
+  border-top: 1px solid var(--fso-line-soft);
+  padding-top: 12px;
+}
+
+.fso-portfolio-editor-baseline h4 {
+  margin: 0 0 4px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-portfolio-editor-baseline p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--fso-text-muted);
+}
+
+.fso-portfolio-editor-baseline-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.fso-portfolio-editor-footer {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--fso-line-soft);
+  padding-top: 12px;
+}
+
+.fso-portfolio-editor-footer small {
+  color: var(--fso-text-muted-2);
+  font-size: 11px;
+}
+
+.fso-portfolio-editor-table button,
+.fso-portfolio-editor-actions button,
+.fso-portfolio-editor-baseline-grid button,
+.fso-portfolio-editor-footer button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  color: var(--fso-text-muted);
+  cursor: pointer;
+}
+
+.fso-portfolio-editor-actions button[type="submit"],
+.fso-portfolio-editor-baseline-grid button {
+  border-color: var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+}
+
+.fso-portfolio-editor-danger {
+  border-color: color-mix(
+    in srgb,
+    var(--fso-red) 60%,
+    var(--fso-line)
+  ) !important;
+  color: var(--fso-red) !important;
+}
+
+.fso-portfolio-editor-table button:disabled,
+.fso-portfolio-editor-actions button:disabled,
+.fso-portfolio-editor-baseline-grid button:disabled,
+.fso-portfolio-editor-footer button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-portfolio-editor-error {
+  margin: 12px 0 0;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-red);
+  color: var(--fso-red);
+  background: color-mix(in srgb, var(--fso-red) 8%, transparent);
+}

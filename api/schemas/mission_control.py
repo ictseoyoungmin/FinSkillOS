@@ -89,6 +89,41 @@ class PortfolioReconciliation(CamelModel):
     detail: str = "No portfolio snapshot baseline exists yet."
 
 
+class PositionRow(CamelModel):
+    """One editable holding (Slice 158)."""
+
+    id: str
+    ticker: str
+    quantity: Decimal
+    market_value: Decimal
+    average_cost: Decimal | None = None
+    pnl_pct: Decimal | None = None
+    sector: str | None = None
+    theme: str | None = None
+    strategy_type: str = "swing"
+    thesis: str | None = None
+
+
+class PositionInput(CamelModel):
+    """Create/update payload for a holding."""
+
+    ticker: str = Field(..., min_length=1, max_length=32)
+    quantity: Decimal
+    market_value: Decimal
+    average_cost: Decimal | None = None
+    sector: str | None = Field(default=None, max_length=80)
+    theme: str | None = Field(default=None, max_length=80)
+    strategy_type: str = Field(default="swing", max_length=40)
+    thesis: str | None = None
+
+
+class SnapshotBaselineInput(CamelModel):
+    """Edit the stored snapshot baseline (the account's official value)."""
+
+    total_value: Decimal | None = None
+    cash_value: Decimal | None = None
+
+
 class MissionControlResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -103,6 +138,7 @@ class MissionControlResponse(CamelModel):
     reconciliation: PortfolioReconciliation = Field(
         default_factory=PortfolioReconciliation
     )
+    positions: list[PositionRow] = Field(default_factory=list)
     capital_map: list[CapitalMapSlice]
     theme_map: list[CapitalMapSlice] = Field(default_factory=list)
     challenge_status_caption: str = Field(
@@ -118,6 +154,9 @@ class MissionControlResponse(CamelModel):
 __all__ = [
     "CapitalMapSlice",
     "PortfolioReconciliation",
+    "PositionRow",
+    "PositionInput",
+    "SnapshotBaselineInput",
     "GoalTracker",
     "MilestoneItem",
     "MilestoneState",

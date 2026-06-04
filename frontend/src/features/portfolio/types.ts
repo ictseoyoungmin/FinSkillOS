@@ -82,6 +82,37 @@ export interface PortfolioReconciliation {
   detail: string;
 }
 
+// --- Slice 158 (manual entry / edit) ------------------------------------
+
+export interface PositionRow {
+  id: string;
+  ticker: string;
+  quantity: Numeric;
+  marketValue: Numeric;
+  averageCost: Numeric | null;
+  pnlPct: Numeric | null;
+  sector: string | null;
+  theme: string | null;
+  strategyType: string;
+  thesis: string | null;
+}
+
+export interface PositionInput {
+  ticker: string;
+  quantity: Numeric;
+  marketValue: Numeric;
+  averageCost?: Numeric | null;
+  sector?: string | null;
+  theme?: string | null;
+  strategyType?: string;
+  thesis?: string | null;
+}
+
+export interface SnapshotBaselineInput {
+  totalValue?: Numeric | null;
+  cashValue?: Numeric | null;
+}
+
 export interface MissionControlSystemStatus {
   db: string;
   mode: string;
@@ -100,6 +131,7 @@ export interface MissionControlData {
   milestones: MilestoneItem[];
   portfolio: PortfolioSnapshotPanelData;
   reconciliation?: PortfolioReconciliation;
+  positions?: PositionRow[];
   capitalMap: CapitalMapSlice[];
   themeMap: CapitalMapSlice[];
   challengeStatusCaption: string;

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
@@ -30,12 +31,16 @@ from api.schemas.mission_control import (
     MissionControlResponse,
     PortfolioReconciliation,
     PortfolioSnapshotPanel,
+    PositionInput,
+    PositionRow,
+    SnapshotBaselineInput,
 )
 from finskillos.config import get_settings
 from finskillos.db.repositories import (
     AccountRepository,
     AlertRepository,
     PortfolioRepository,
+    PositionRepository,
 )
 from finskillos.services.goal_service import GoalService
 from finskillos.services.portfolio_service import PortfolioService
@@ -64,6 +69,130 @@ def mission_control(
         except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
             return _error_live_response(datetime.now(tz=timezone.utc), exc)
+
+
+# --- portfolio editing (Slice 158) ------------------------------------------
+# Descriptive holdings management only — no execution/order endpoints exist.
+
+
+def _mutation_session(session, *, create_account: bool = False):
+    """Resolve the account for a portfolio mutation (503 if DB down)."""
+    account = _resolve_account(session)
+    if account is None and create_account:
+        settings = get_settings()
+        account = AccountRepository(session).create(
+            name=settings.default_account_name,
+            target_value=settings.target_value,
+            base_currency=settings.base_currency,
+        )
+    if account is None:
+        raise HTTPException(status_code=404, detail="no_account")
+    return account
+
+
+@router.post("/mission-control/positions", response_model=MissionControlResponse)
+def create_position(payload: PositionInput) -> MissionControlResponse:
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        account = _mutation_session(session, create_account=True)
+        PositionRepository(session).create(
+            account_id=account.id,
+            ticker=payload.ticker.upper(),
+            quantity=payload.quantity,
+            market_value=payload.market_value,
+            average_cost=payload.average_cost,
+            sector=payload.sector,
+            theme=payload.theme,
+            strategy_type=payload.strategy_type,
+            thesis=payload.thesis,
+        )
+        session.commit()
+        return _build_live_mission_control(session)
+
+
+@router.put(
+    "/mission-control/positions/{position_id}", response_model=MissionControlResponse
+)
+def update_position(
+    position_id: UUID, payload: PositionInput
+) -> MissionControlResponse:
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        _mutation_session(session)
+        try:
+            PositionRepository(session).update(
+                position_id,
+                ticker=payload.ticker.upper(),
+                quantity=payload.quantity,
+                market_value=payload.market_value,
+                average_cost=payload.average_cost,
+                sector=payload.sector,
+                theme=payload.theme,
+                strategy_type=payload.strategy_type,
+                thesis=payload.thesis,
+            )
+        except LookupError as exc:
+            session.rollback()
+            raise HTTPException(status_code=404, detail="position_not_found") from exc
+        session.commit()
+        return _build_live_mission_control(session)
+
+
+@router.delete(
+    "/mission-control/positions/{position_id}", response_model=MissionControlResponse
+)
+def delete_position(position_id: UUID) -> MissionControlResponse:
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        _mutation_session(session)
+        PositionRepository(session).delete(position_id)
+        session.commit()
+        return _build_live_mission_control(session)
+
+
+@router.post(
+    "/mission-control/clear-positions", response_model=MissionControlResponse
+)
+def clear_positions() -> MissionControlResponse:
+    """Remove every holding (e.g. clear the seeded sample before entering real ones)."""
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        account = _mutation_session(session)
+        PositionRepository(session).delete_all_for_account(account.id)
+        session.commit()
+        return _build_live_mission_control(session)
+
+
+@router.patch("/mission-control/snapshot", response_model=MissionControlResponse)
+def update_snapshot_baseline(
+    payload: SnapshotBaselineInput,
+) -> MissionControlResponse:
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        account = _mutation_session(session, create_account=True)
+        PortfolioRepository(session).update_latest_baseline(
+            account.id,
+            snapshot_date=datetime.now(tz=timezone.utc).date(),
+            total_value=payload.total_value,
+            cash_value=payload.cash_value,
+        )
+        session.commit()
+        return _build_live_mission_control(session)
 
 
 def _build_live_mission_control(session: Session) -> MissionControlResponse:
@@ -134,6 +263,7 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
             over_single_limit_tickers=list(summary.over_single_limit_tickers),
         ),
         reconciliation=reconciliation,
+        positions=[_position_row(p) for p in positions],
         capital_map=capital_map,
         theme_map=theme_map,
         challenge_status_caption=(
@@ -141,6 +271,21 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
             f"{goal_status.goal_mode} mode."
         ),
         safety_caption="Read mode — Goal interpretation (not return forecast).",
+    )
+
+
+def _position_row(p) -> PositionRow:
+    return PositionRow(
+        id=str(p.id),
+        ticker=p.ticker,
+        quantity=p.quantity,
+        market_value=p.market_value,
+        average_cost=p.average_cost,
+        pnl_pct=p.pnl_pct,
+        sector=p.sector,
+        theme=p.theme,
+        strategy_type=p.strategy_type,
+        thesis=p.thesis,
     )
 
 

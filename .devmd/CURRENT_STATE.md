@@ -78,6 +78,8 @@ protocols.
 154  News / Event Feed Coverage Diagnostics (Phase 2)
 155  Data Repair Protocol (Phase 2)
 156  Stale RUNNING Job Reaper (+ lint hygiene)
+157  Position Reconciliation View (Phase 3)
+158  Portfolio Manual Entry / Edit (Phase 3)
 ```
 
 ## Validation Baseline
@@ -163,7 +165,11 @@ import/export, position reconciliation, trade import, journal templates).
 - [x] **157 Position Reconciliation View** (slice 157) — Mission Control
   `reconciliation` block (snapshot total vs positions+cash, OK/MISMATCH/NO_BASELINE)
   + a panel line. Read-only opener.
-- [ ] **158 Portfolio Manual Entry / Edit** — add/edit positions + snapshot baseline.
+- [x] **158 Portfolio Manual Entry / Edit** (slice 158) — descriptive holdings CRUD
+  (`POST`/`PUT`/`DELETE …/positions`, `POST …/clear-positions`,
+  `PATCH …/snapshot`) returning the refreshed snapshot; a `PortfolioEditorPanel`
+  on Mission Control (table edit/delete + add/edit form + baseline editor +
+  "Clear sample"), gated to live+LIVE. Reconciliation updates in place.
 - [ ] **159 Portfolio CSV Import / Export**.
 - [ ] **160 Trade Import CSV**.
 - [ ] **161 Trade Memory Review Workflow Polish**.
