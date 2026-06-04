@@ -44,11 +44,17 @@ from api.schemas.trade_memory import (
     TradeEntryResult,
     TradeEntryVM,
     TradeFormRules,
+    TradeImportRequest,
+    TradeImportResult,
+    TradeImportRow,
     TradeMemoryResponse,
     TradeWatchpoint,
     WeeklyReviewVM,
 )
 from api.timeutil import iso as _iso
+from finskillos.services.trade_journal_service import (
+    TRADE_CSV_COLUMNS as _CSV_COLUMNS,
+)
 
 router = APIRouter(tags=["trade-memory"])
 UTC = timezone.utc
@@ -205,6 +211,130 @@ def delete_trade_entry(entry_id: str) -> TradeEntryResult:
         )
 
 
+@router.post(
+    "/trade-memory/import",
+    response_model=TradeImportResult,
+    summary="Append journal entries from CSV (dry-run preview → confirm).",
+)
+def import_trade_entries(
+    payload: TradeImportRequest, confirm: bool = False
+) -> TradeImportResult:
+    """Dry-run preview by default; ``?confirm=true`` appends every row.
+
+    Append-only and atomic: each CSV row becomes a new journal entry, and the
+    confirm path writes nothing unless every row is valid (descriptive-only
+    wording included). There is no upsert key — trades are dated events.
+    """
+    from finskillos.services.trade_journal_service import parse_trade_csv
+
+    parsed = parse_trade_csv(payload.csv_text)
+    preview_rows = [
+        TradeImportRow(
+            line_no=row.line_no,
+            trade_date=row.trade_date,
+            ticker=row.ticker,
+            side=row.side,
+            status="OK" if row.entry is not None else "INVALID",
+            error=row.error or "",
+        )
+        for row in parsed
+    ]
+    valid = sum(1 for row in parsed if row.entry is not None)
+    invalid = len(parsed) - valid
+    errors = [
+        f"Row {row.line_no} ({row.ticker or '—'}): {row.error}"
+        for row in parsed
+        if row.error
+    ]
+
+    if not confirm:
+        if not parsed:
+            detail = "No trade rows found in the CSV."
+        elif invalid:
+            detail = (
+                f"Preview: {valid} valid, {invalid} invalid. Fix the flagged "
+                "rows before applying."
+            )
+        else:
+            detail = f"Preview: {valid} valid. Confirm to append."
+        return TradeImportResult(
+            status="PREVIEW",
+            valid=valid,
+            invalid=invalid,
+            total_rows=len(parsed),
+            rows=preview_rows,
+            errors=errors,
+            detail=detail,
+        )
+
+    if not parsed:
+        return TradeImportResult(
+            status="ERROR",
+            detail="No trade rows to import; nothing was changed.",
+        )
+    if invalid:
+        return TradeImportResult(
+            status="ERROR",
+            valid=valid,
+            invalid=invalid,
+            total_rows=len(parsed),
+            rows=preview_rows,
+            errors=errors,
+            detail=(
+                f"{invalid} invalid row(s); nothing was imported. Fix and retry."
+            ),
+        )
+
+    with get_session_scope() as session:
+        if session is None:
+            return TradeImportResult(
+                status="ERROR",
+                total_rows=len(parsed),
+                detail=(
+                    "No database session was available; the import was not "
+                    "persisted."
+                ),
+            )
+        from finskillos.config import get_settings
+        from finskillos.db.repositories import AccountRepository
+        from finskillos.services.trade_journal_service import TradeJournalService
+
+        settings = get_settings()
+        accounts = AccountRepository(session)
+        if accounts.get_by_name(settings.default_account_name) is None and not (
+            accounts.list_all()
+        ):
+            accounts.create(
+                name=settings.default_account_name,
+                target_value=settings.target_value,
+                base_currency=settings.base_currency,
+            )
+        service = TradeJournalService(session)
+        try:
+            for row in parsed:
+                assert row.entry is not None  # guaranteed: invalid==0 above
+                service.create_entry(row.entry)
+            session.commit()
+        except Exception as exc:  # noqa: BLE001 — structured JSON, atomic rollback
+            session.rollback()
+            return TradeImportResult(
+                status="ERROR",
+                total_rows=len(parsed),
+                detail=(
+                    f"Import failed while writing ({type(exc).__name__}); no rows "
+                    "were stored."
+                ),
+            )
+    return TradeImportResult(
+        status="APPLIED",
+        valid=valid,
+        invalid=0,
+        total_rows=len(parsed),
+        rows=preview_rows,
+        detail=f"Appended {valid} journal entr{'y' if valid == 1 else 'ies'}.",
+    )
+
+
 def _journal_input(payload: TradeEntryInput, trade_date: date):
     from finskillos.services.trade_journal_service import TradeJournalInput
 
@@ -318,27 +448,6 @@ def _parse_uuid(value: str) -> uuid.UUID | None:
         return uuid.UUID(value)
     except (ValueError, AttributeError, TypeError):
         return None
-
-
-_CSV_COLUMNS = (
-    "trade_date",
-    "ticker",
-    "side",
-    "strategy_type",
-    "amount",
-    "market_regime",
-    "emotion_state",
-    "result_pnl",
-    "result_pnl_pct",
-    "r_multiple",
-    "mistake_tags",
-    "sector",
-    "theme",
-    "catalyst",
-    "thesis",
-    "reason",
-    "notes",
-)
 
 
 def _entries_csv(entries: list[TradeEntryVM]) -> str:

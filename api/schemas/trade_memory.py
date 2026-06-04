@@ -208,6 +208,38 @@ class TradeEntryResult(CamelModel):
     entry_id: str | None = None
 
 
+class TradeImportRequest(CamelModel):
+    """CSV text submitted for a trade-journal import (Slice 160)."""
+
+    csv_text: str = Field(..., min_length=0, max_length=500_000)
+
+
+class TradeImportRow(CamelModel):
+    """One parsed import row, OK or INVALID (with a reason)."""
+
+    line_no: int
+    trade_date: str
+    ticker: str
+    side: str
+    status: Literal["OK", "INVALID"]
+    error: str = ""
+
+
+class TradeImportResult(CamelModel):
+    """Dry-run preview (and, on confirm, applied) result of a CSV import.
+
+    Append-only and atomic: confirm writes nothing unless every row is valid.
+    """
+
+    status: Literal["PREVIEW", "APPLIED", "ERROR"]
+    valid: int = 0
+    invalid: int = 0
+    total_rows: int = 0
+    rows: list[TradeImportRow] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    detail: str = ""
+
+
 __all__ = [
     "MistakeFrequencyVM",
     "PerformanceBucketVM",
@@ -219,6 +251,9 @@ __all__ = [
     "TradeEntryStatus",
     "TradeEntryVM",
     "TradeFormRules",
+    "TradeImportRequest",
+    "TradeImportRow",
+    "TradeImportResult",
     "TradeMemoryResponse",
     "TradeSide",
     "TradeWatchpoint",

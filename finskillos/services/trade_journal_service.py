@@ -20,6 +20,8 @@ execution triggers.
 
 from __future__ import annotations
 
+import csv
+import io
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -413,11 +415,140 @@ def _normalize_mistake_tags(
     return tuple(cleaned)
 
 
+# ---------------------------------------------------------------------------
+# CSV import (Slice 160)
+# ---------------------------------------------------------------------------
+
+# Column order matches the trade-memory CSV export so an export round-trips
+# back through import as appended entries.
+TRADE_CSV_COLUMNS: tuple[str, ...] = (
+    "trade_date",
+    "ticker",
+    "side",
+    "strategy_type",
+    "amount",
+    "market_regime",
+    "emotion_state",
+    "result_pnl",
+    "result_pnl_pct",
+    "r_multiple",
+    "mistake_tags",
+    "sector",
+    "theme",
+    "catalyst",
+    "thesis",
+    "reason",
+    "notes",
+)
+
+
+@dataclass(frozen=True)
+class TradeCsvRow:
+    """One parsed import row: a valid ``entry`` or an ``error`` (never both)."""
+
+    line_no: int
+    trade_date: str
+    ticker: str
+    side: str
+    entry: TradeJournalInput | None
+    error: str | None
+
+
+def _csv_decimal(value: str | None) -> Decimal | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if cleaned == "":
+        return None
+    return Decimal(cleaned)
+
+
+def _split_mistake_tags(value: str | None) -> tuple[str, ...]:
+    if not value:
+        return ()
+    parts = value.replace(",", ";").split(";")
+    return tuple(part.strip() for part in parts if part.strip())
+
+
+def parse_trade_csv(text: str) -> list[TradeCsvRow]:
+    """Parse trade-journal CSV *text* into validated per-row results.
+
+    Each row is validated (ISO date, required ticker, allowed side, numeric
+    cells, and the Slice-06 forbidden-wording scan). A failing row carries an
+    ``error`` and ``entry=None`` so the caller can present a dry-run preview and
+    reject the whole batch before anything is written. Fully blank rows are
+    skipped.
+    """
+
+    out: list[TradeCsvRow] = []
+    reader = csv.DictReader(io.StringIO(text))
+    for line_no, raw in enumerate(reader, start=2):  # row 1 is the header
+        date_raw = (raw.get("trade_date") or "").strip()
+        ticker_raw = (raw.get("ticker") or "").strip()
+        side_raw = (raw.get("side") or "").strip()
+        if not any((raw.get(col) or "").strip() for col in TRADE_CSV_COLUMNS):
+            continue
+
+        entry: TradeJournalInput | None = None
+        error: str | None = None
+        try:
+            try:
+                trade_date = date.fromisoformat(date_raw)
+            except ValueError as exc:
+                raise ValueError(
+                    f"invalid trade_date {date_raw!r} (expected YYYY-MM-DD)"
+                ) from exc
+            ticker = _normalize_ticker(ticker_raw)
+            if not ticker:
+                raise ValueError("ticker is required")
+            side = _validate_side(side_raw)
+            candidate = TradeJournalInput(
+                trade_date=trade_date,
+                ticker=ticker,
+                side=side,
+                strategy_type=(raw.get("strategy_type") or "").strip() or None,
+                amount=_csv_decimal(raw.get("amount")),
+                market_regime=(raw.get("market_regime") or "").strip() or None,
+                emotion_state=(raw.get("emotion_state") or "").strip() or None,
+                result_pnl=_csv_decimal(raw.get("result_pnl")),
+                result_pnl_pct=_csv_decimal(raw.get("result_pnl_pct")),
+                r_multiple=_csv_decimal(raw.get("r_multiple")),
+                mistake_tags=_split_mistake_tags(raw.get("mistake_tags")),
+                sector=(raw.get("sector") or "").strip() or None,
+                theme=(raw.get("theme") or "").strip() or None,
+                catalyst=(raw.get("catalyst") or "").strip() or None,
+                thesis=(raw.get("thesis") or "").strip() or None,
+                reason=(raw.get("reason") or "").strip() or None,
+                notes=(raw.get("notes") or "").strip() or None,
+            )
+            _assert_entry_text_is_safe(candidate)
+            entry = candidate
+        except (ValueError, ArithmeticError) as exc:
+            error = str(exc)
+        except AssertionError as exc:
+            error = f"descriptive-only violation ({exc or 'forbidden wording'})"
+
+        out.append(
+            TradeCsvRow(
+                line_no=line_no,
+                trade_date=date_raw,
+                ticker=ticker_raw.upper(),
+                side=side_raw.upper(),
+                entry=entry,
+                error=error,
+            )
+        )
+    return out
+
+
 # Re-exports for the UI layer.
 __all__ = [
     "ALL_ALLOWED_SIDES",
     "DEFAULT_MISTAKE_TAGS",
     "LEGACY_SIDES",
+    "TRADE_CSV_COLUMNS",
+    "TradeCsvRow",
+    "parse_trade_csv",
     "SIDE_EXIT_REVIEW",
     "SIDE_LONG",
     "SIDE_OTHER",

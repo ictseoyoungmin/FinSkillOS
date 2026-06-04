@@ -1,8 +1,9 @@
-import { ApiError, getJson } from "@/shared/api/client";
+import { ApiError, getJson, sendJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
 import type {
   TradeEntryInput,
   TradeEntryResult,
+  TradeImportResult,
   TradeMemoryData,
   WeeklyReviewVM,
 } from "./types";
@@ -89,4 +90,28 @@ export async function deleteTradeEntry(
 
 export function tradeMemoryCsvUrl(): string {
   return `${apiBase()}${apiEndpoints.tradeExport}`;
+}
+
+// --- Slice 160: CSV import (dry-run preview → confirm, append-only) ---------
+
+/** Dry-run an import (per-row OK/INVALID preview); never writes. */
+export async function previewTradeImport(
+  csvText: string,
+): Promise<TradeImportResult> {
+  return await sendJson<TradeImportResult>(
+    apiEndpoints.tradeImport,
+    "POST",
+    { csvText },
+  );
+}
+
+/** Apply an import (append). Rejects the whole batch if any row is invalid. */
+export async function applyTradeImport(
+  csvText: string,
+): Promise<TradeImportResult> {
+  return await sendJson<TradeImportResult>(
+    `${apiEndpoints.tradeImport}?confirm=true`,
+    "POST",
+    { csvText },
+  );
 }

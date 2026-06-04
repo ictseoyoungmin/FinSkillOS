@@ -538,3 +538,123 @@ def test_export_trade_memory_csv_live(monkeypatch, tmp_path) -> None:
         reset_settings_cache()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+# --- Slice 160: trade CSV import (dry-run → confirm, append-only) -----------
+
+
+def _empty_live_db(tmp_path, name: str = "trade-import.db"):
+    """Create a sqlite DB with one account and no journal entries."""
+    db_path = tmp_path / name
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        AccountRepository(session).create(
+            name="Main Trading Account", target_value=100000000,
+        )
+        session.commit()
+    return engine, database_url
+
+
+_VALID_TRADE_CSV = (
+    "trade_date,ticker,side,amount,market_regime,reason\n"
+    "2026-05-01,NVDA,LONG,4200000,HEALTHY_BULL,Aligned with checklist.\n"
+    "2026-05-02,AAPL,SHORT,1500000,DISTRIBUTION,Process review entry.\n"
+)
+
+
+def test_import_trade_preview_does_not_mutate(monkeypatch, tmp_path) -> None:
+    engine, database_url = _empty_live_db(tmp_path, "ti-preview.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        csv_text = _VALID_TRADE_CSV + "bad-date,MSFT,LONG,5,,\n"
+        result = client.post(
+            "/api/trade-memory/import", json={"csvText": csv_text}
+        ).json()
+        assert result["status"] == "PREVIEW"
+        assert result["valid"] == 2
+        assert result["invalid"] == 1
+        assert result["totalRows"] == 3
+        flagged = [r for r in result["rows"] if r["status"] == "INVALID"]
+        assert flagged and "trade_date" in flagged[0]["error"]
+
+        # Nothing written.
+        assert client.get("/api/trade-memory").json()["recentEntries"] == []
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_import_trade_confirm_appends(monkeypatch, tmp_path) -> None:
+    engine, database_url = _empty_live_db(tmp_path, "ti-apply.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        result = client.post(
+            "/api/trade-memory/import?confirm=true",
+            json={"csvText": _VALID_TRADE_CSV},
+        ).json()
+        assert result["status"] == "APPLIED"
+        assert result["valid"] == 2
+
+        tickers = {
+            e["ticker"]
+            for e in client.get("/api/trade-memory").json()["recentEntries"]
+        }
+        assert {"NVDA", "AAPL"} <= tickers
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_import_trade_confirm_rejects_when_any_row_invalid(
+    monkeypatch, tmp_path
+) -> None:
+    engine, database_url = _empty_live_db(tmp_path, "ti-atomic.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        csv_text = _VALID_TRADE_CSV + "2026-05-03,TSLA,NONSENSE,5,,\n"
+        result = client.post(
+            "/api/trade-memory/import?confirm=true",
+            json={"csvText": csv_text},
+        ).json()
+        assert result["status"] == "ERROR"
+        assert result["invalid"] == 1
+        # Atomic: the two valid rows were NOT written.
+        assert client.get("/api/trade-memory").json()["recentEntries"] == []
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_import_trade_flags_forbidden_wording(monkeypatch, tmp_path) -> None:
+    engine, database_url = _empty_live_db(tmp_path, "ti-safety.db")
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        csv_text = "trade_date,ticker,side,notes\n2026-05-01,TSLA,LONG,지금 사라\n"
+        result = client.post(
+            "/api/trade-memory/import", json={"csvText": csv_text}
+        ).json()
+        assert result["status"] == "PREVIEW"
+        assert result["invalid"] == 1
+        assert result["rows"][0]["status"] == "INVALID"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

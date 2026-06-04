@@ -153,3 +153,24 @@ export interface TradeEntryResult {
   detail: string;
   entryId: string | null;
 }
+
+// --- Slice 160 (CSV import) ---------------------------------------------
+
+export interface TradeImportRow {
+  lineNo: number;
+  tradeDate: string;
+  ticker: string;
+  side: string;
+  status: "OK" | "INVALID";
+  error: string;
+}
+
+export interface TradeImportResult {
+  status: "PREVIEW" | "APPLIED" | "ERROR";
+  valid: number;
+  invalid: number;
+  totalRows: number;
+  rows: TradeImportRow[];
+  errors: string[];
+  detail: string;
+}

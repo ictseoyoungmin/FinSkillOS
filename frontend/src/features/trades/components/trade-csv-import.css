@@ -1,0 +1,123 @@
+.fso-trade-csv-note {
+  margin: 0 0 10px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-trade-csv-disabled {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--fso-amber);
+  border: 1px solid color-mix(in srgb, var(--fso-amber) 50%, var(--fso-line));
+  border-radius: var(--fso-radius-sm);
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--fso-amber) 8%, transparent);
+}
+
+.fso-trade-csv-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted);
+}
+
+.fso-trade-csv-file input {
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}
+
+.fso-trade-csv-text {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 8px;
+  resize: vertical;
+}
+
+.fso-trade-csv-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.fso-trade-csv-actions button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-trade-csv-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-trade-csv-result {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 80%, transparent);
+}
+
+.fso-trade-csv-result strong {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.fso-trade-csv-result--preview {
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-cyan);
+}
+
+.fso-trade-csv-result--applied {
+  border-color: var(--fso-green);
+  color: var(--fso-green);
+}
+
+.fso-trade-csv-result--error {
+  border-color: var(--fso-red);
+  color: var(--fso-red);
+}
+
+.fso-trade-csv-errors {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  color: var(--fso-amber);
+}
+
+.fso-trade-csv-error {
+  margin: 12px 0 0;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-red);
+  color: var(--fso-red);
+  background: color-mix(in srgb, var(--fso-red) 8%, transparent);
+}

@@ -12,6 +12,7 @@ import { PerformanceBySectorTheme } from "@/features/trades/components/Performan
 import { PerformanceByStrategy } from "@/features/trades/components/PerformanceByStrategy";
 import { ProcessJudgmentHeader } from "@/features/trades/components/ProcessJudgmentHeader";
 import { RecentEntriesTable } from "@/features/trades/components/RecentEntriesTable";
+import { TradeCsvImport } from "@/features/trades/components/TradeCsvImport";
 import { TradeEntryForm } from "@/features/trades/components/TradeEntryForm";
 import { TradeMemoryWatchpoints } from "@/features/trades/components/TradeMemoryWatchpoints";
 import { WeeklyMarkdownExport } from "@/features/trades/components/WeeklyMarkdownExport";
@@ -154,6 +155,10 @@ export function TradeMemoryPage() {
             onSaved={async () => {
               await refreshTradeMemory();
             }}
+          />
+          <TradeCsvImport
+            editable={isLive}
+            onImported={refreshTradeMemory}
           />
         </div>
       </div>

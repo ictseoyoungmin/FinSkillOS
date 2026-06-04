@@ -81,6 +81,7 @@ protocols.
 157  Position Reconciliation View (Phase 3)
 158  Portfolio Manual Entry / Edit (Phase 3)
 159  Portfolio CSV Import / Export (Phase 3)
+160  Trade Import CSV (Phase 3)
 ```
 
 ## Validation Baseline
@@ -176,7 +177,10 @@ import/export, position reconciliation, trade import, journal templates).
   upsert; CSV tickers add/update, absent holdings kept). Editor CSV section
   (export / paste-or-file / preview adds·updates / apply). Shared
   `parse_portfolio_csv` / `serialize_positions_csv`.
-- [ ] **160 Trade Import CSV**.
+- [x] **160 Trade Import CSV** (slice 160) — `POST …/trade-memory/import`
+  (dry-run preview → `?confirm=true`, append-only + atomic: nothing written if any
+  row is invalid). `TradeCsvImport` panel (file/paste → preview counts + flagged
+  errors → append). Shared `TRADE_CSV_COLUMNS` / `parse_trade_csv`.
 - [ ] **161 Trade Memory Review Workflow Polish**.
 - [ ] **162 Journal Templates / Review Prompts**.
 
