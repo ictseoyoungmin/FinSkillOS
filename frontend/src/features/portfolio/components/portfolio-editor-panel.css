@@ -136,6 +136,94 @@
   align-items: end;
 }
 
+.fso-portfolio-editor-csv {
+  margin-top: 16px;
+  border-top: 1px solid var(--fso-line-soft);
+  padding-top: 12px;
+}
+
+.fso-portfolio-editor-csv h4 {
+  margin: 0 0 4px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-portfolio-editor-csv p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--fso-text-muted);
+}
+
+.fso-portfolio-editor-csv-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fso-portfolio-editor-csv-file {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fso-portfolio-editor-csv-file input {
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}
+
+.fso-portfolio-editor-csv-text {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  color: var(--fso-text);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  padding: 8px;
+  resize: vertical;
+}
+
+.fso-portfolio-editor-csv-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.fso-portfolio-editor-csv button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 14%, transparent);
+  color: var(--fso-text);
+  cursor: pointer;
+}
+
+.fso-portfolio-editor-csv button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-portfolio-editor-csv-summary {
+  margin: 10px 0 0 !important;
+  font-size: 12px;
+  color: var(--fso-cyan) !important;
+}
+
 .fso-portfolio-editor-footer {
   margin-top: 16px;
   display: flex;

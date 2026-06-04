@@ -113,6 +113,24 @@ export interface SnapshotBaselineInput {
   cashValue?: Numeric | null;
 }
 
+export interface PortfolioImportRow {
+  ticker: string;
+  quantity: Numeric;
+  marketValue: Numeric;
+  action: "ADD" | "UPDATE";
+}
+
+export interface PortfolioImportResult {
+  status: "PREVIEW" | "APPLIED" | "ERROR";
+  adds: number;
+  updates: number;
+  totalRows: number;
+  parseErrors: string[];
+  rows: PortfolioImportRow[];
+  detail: string;
+  snapshot?: MissionControlData | null;
+}
+
 export interface MissionControlSystemStatus {
   db: string;
   mode: string;

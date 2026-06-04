@@ -124,6 +124,21 @@ class SnapshotBaselineInput(CamelModel):
     cash_value: Decimal | None = None
 
 
+class PortfolioImportRequest(CamelModel):
+    """CSV text submitted for a portfolio import (Slice 159)."""
+
+    csv_text: str = Field(..., min_length=0, max_length=200_000)
+
+
+class PortfolioImportRow(CamelModel):
+    """One parsed row in the import preview, tagged ADD vs UPDATE."""
+
+    ticker: str
+    quantity: Decimal
+    market_value: Decimal
+    action: Literal["ADD", "UPDATE"]
+
+
 class MissionControlResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus
@@ -151,12 +166,32 @@ class MissionControlResponse(CamelModel):
     source: Literal["fixture", "live"] = "fixture"
 
 
+class PortfolioImportResult(CamelModel):
+    """Dry-run preview (and, on confirm, applied) result of a CSV import.
+
+    Upsert semantics only — tickers absent from the CSV are left untouched.
+    """
+
+    status: Literal["PREVIEW", "APPLIED", "ERROR"]
+    adds: int = 0
+    updates: int = 0
+    total_rows: int = 0
+    parse_errors: list[str] = Field(default_factory=list)
+    rows: list[PortfolioImportRow] = Field(default_factory=list)
+    detail: str = ""
+    # Populated only when status == "APPLIED" so the client can refresh in place.
+    snapshot: MissionControlResponse | None = None
+
+
 __all__ = [
     "CapitalMapSlice",
     "PortfolioReconciliation",
     "PositionRow",
     "PositionInput",
     "SnapshotBaselineInput",
+    "PortfolioImportRequest",
+    "PortfolioImportRow",
+    "PortfolioImportResult",
     "GoalTracker",
     "MilestoneItem",
     "MilestoneState",

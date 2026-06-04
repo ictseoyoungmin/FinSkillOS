@@ -3,14 +3,18 @@ import { useEffect, useState } from "react";
 import { Panel } from "@/shared/ui";
 import { formatKrw } from "@/shared/lib/format";
 import {
+  applyImportPositions,
   clearPositions,
   createPosition,
   deletePosition,
+  downloadPositionsCsv,
+  previewImportPositions,
   updatePosition,
   updateSnapshotBaseline,
 } from "../api";
 import type {
   MissionControlData,
+  PortfolioImportResult,
   PortfolioReconciliation,
   PositionInput,
   PositionRow,
@@ -82,6 +86,9 @@ export function PortfolioEditorPanel({
   const [baseline, setBaseline] = useState({ totalValue: "", cashValue: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [csvText, setCsvText] = useState("");
+  const [preview, setPreview] = useState<PortfolioImportResult | null>(null);
+  const [csvError, setCsvError] = useState<string | null>(null);
   const isEditing = editingId !== null;
 
   useEffect(() => {
@@ -174,6 +181,64 @@ export function PortfolioEditorPanel({
         cashValue: baseline.cashValue.trim() || null,
       }),
     );
+  };
+
+  const onExport = async () => {
+    setCsvError(null);
+    try {
+      await downloadPositionsCsv();
+    } catch (err) {
+      setCsvError(err instanceof Error ? err.message : "Export failed.");
+    }
+  };
+
+  const onCsvFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    setCsvText(text);
+    setPreview(null);
+    setCsvError(null);
+  };
+
+  const onPreview = async () => {
+    if (csvText.trim() === "") {
+      setCsvError("Paste or choose a CSV first.");
+      return;
+    }
+    setBusy(true);
+    setCsvError(null);
+    try {
+      const result = await previewImportPositions(csvText);
+      setPreview(result);
+      if (result.status === "ERROR") {
+        setCsvError(result.parseErrors[0] ?? result.detail);
+      }
+    } catch (err) {
+      setCsvError(err instanceof Error ? err.message : "Preview failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onApplyImport = async () => {
+    setBusy(true);
+    setCsvError(null);
+    try {
+      const result = await applyImportPositions(csvText);
+      setPreview(result);
+      if (result.status === "APPLIED" && result.snapshot) {
+        onMutated(result.snapshot);
+        setCsvText("");
+        setPreview(null);
+      } else if (result.status === "ERROR") {
+        setCsvError(result.parseErrors[0] ?? result.detail);
+      }
+    } catch (err) {
+      setCsvError(err instanceof Error ? err.message : "Import failed.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -403,6 +468,83 @@ export function PortfolioEditorPanel({
             Save baseline
           </button>
         </div>
+      </div>
+
+      <div
+        className="fso-portfolio-editor-csv"
+        data-testid="portfolio-editor-csv"
+      >
+        <h4>Import / Export CSV</h4>
+        <p>
+          Export downloads the current holdings. Import is upsert-only — CSV
+          tickers are added or updated; holdings not in the CSV are kept.
+        </p>
+        <div className="fso-portfolio-editor-csv-controls">
+          <button
+            type="button"
+            onClick={onExport}
+            data-testid="portfolio-editor-export"
+          >
+            Export CSV
+          </button>
+          <label className="fso-portfolio-editor-csv-file">
+            <span>Choose CSV…</span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={onCsvFile}
+              disabled={!editable}
+            />
+          </label>
+        </div>
+        <textarea
+          className="fso-portfolio-editor-csv-text"
+          value={csvText}
+          onChange={(e) => {
+            setCsvText(e.target.value);
+            setPreview(null);
+          }}
+          placeholder="ticker,quantity,market_value,sector,theme&#10;NVDA,10,25000000,Semiconductors,AI Infrastructure"
+          rows={4}
+          disabled={!editable}
+          data-testid="portfolio-editor-csv-textarea"
+        />
+        <div className="fso-portfolio-editor-csv-actions">
+          <button
+            type="button"
+            onClick={onPreview}
+            disabled={!editable || busy || csvText.trim() === ""}
+            data-testid="portfolio-editor-csv-preview"
+          >
+            Preview import
+          </button>
+          {preview && preview.status === "PREVIEW" ? (
+            <button
+              type="button"
+              onClick={onApplyImport}
+              disabled={!editable || busy || preview.totalRows === 0}
+              data-testid="portfolio-editor-csv-apply"
+            >
+              Apply {preview.adds} new · {preview.updates} updated
+            </button>
+          ) : null}
+        </div>
+        {preview && preview.status === "PREVIEW" ? (
+          <p
+            className="fso-portfolio-editor-csv-summary"
+            data-testid="portfolio-editor-csv-summary"
+          >
+            {preview.detail}
+          </p>
+        ) : null}
+        {csvError ? (
+          <p
+            className="fso-portfolio-editor-error"
+            data-testid="portfolio-editor-csv-error"
+          >
+            {csvError}
+          </p>
+        ) : null}
       </div>
 
       <div className="fso-portfolio-editor-footer">

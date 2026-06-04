@@ -80,6 +80,7 @@ protocols.
 156  Stale RUNNING Job Reaper (+ lint hygiene)
 157  Position Reconciliation View (Phase 3)
 158  Portfolio Manual Entry / Edit (Phase 3)
+159  Portfolio CSV Import / Export (Phase 3)
 ```
 
 ## Validation Baseline
@@ -170,7 +171,11 @@ import/export, position reconciliation, trade import, journal templates).
   `PATCH …/snapshot`) returning the refreshed snapshot; a `PortfolioEditorPanel`
   on Mission Control (table edit/delete + add/edit form + baseline editor +
   "Clear sample"), gated to live+LIVE. Reconciliation updates in place.
-- [ ] **159 Portfolio CSV Import / Export**.
+- [x] **159 Portfolio CSV Import / Export** (slice 159) — `GET …/positions/export.csv`
+  (read-only) + `POST …/import-positions` (dry-run preview → `?confirm=true`
+  upsert; CSV tickers add/update, absent holdings kept). Editor CSV section
+  (export / paste-or-file / preview adds·updates / apply). Shared
+  `parse_portfolio_csv` / `serialize_positions_csv`.
 - [ ] **160 Trade Import CSV**.
 - [ ] **161 Trade Memory Review Workflow Polish**.
 - [ ] **162 Journal Templates / Review Prompts**.

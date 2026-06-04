@@ -20,6 +20,7 @@ descriptive read model only.
 from __future__ import annotations
 
 import csv
+import io
 import uuid
 from dataclasses import dataclass, field
 from datetime import date
@@ -32,6 +33,19 @@ from finskillos.db.models import PortfolioSnapshot, Position
 from finskillos.db.repositories import PortfolioRepository, PositionRepository
 
 SINGLE_POSITION_LIMIT_KRW = Decimal("10000000")
+
+# Canonical column order for portfolio CSV export (Slice 159). Import accepts
+# this header plus the legacy `symbol` / `avg_price` aliases (see parser below).
+PORTFOLIO_CSV_COLUMNS = (
+    "ticker",
+    "quantity",
+    "market_value",
+    "average_cost",
+    "sector",
+    "theme",
+    "strategy_type",
+    "thesis",
+)
 
 
 @dataclass(frozen=True)
@@ -78,38 +92,83 @@ def _decimal_or_none(value: str | None) -> Decimal | None:
     return Decimal(cleaned)
 
 
-def load_portfolio_csv(path: str | Path) -> list[PortfolioPositionInput]:
-    """Parse a portfolio CSV into `PortfolioPositionInput` rows.
+def parse_portfolio_csv(text: str) -> list[PortfolioPositionInput]:
+    """Parse portfolio CSV *text* into `PortfolioPositionInput` rows.
 
     Accepts both the v2.1 `ticker` column (docs/v2_1/08 §4.2) and the
     legacy `symbol` column. Numeric columns are parsed as `Decimal` so
-    rounding stays exact for the 1천만원 limit check.
+    rounding stays exact for the 1천만원 limit check. Blank-ticker rows are
+    skipped; a malformed numeric cell raises (the caller surfaces it).
     """
 
     rows: list[PortfolioPositionInput] = []
-    with Path(path).open(newline="", encoding="utf-8") as csv_file:
-        reader = csv.DictReader(csv_file)
-        for raw in reader:
-            ticker_raw = (raw.get("ticker") or raw.get("symbol") or "").strip().upper()
-            if not ticker_raw:
-                continue
+    reader = csv.DictReader(io.StringIO(text))
+    for line_no, raw in enumerate(reader, start=2):  # row 1 is the header
+        ticker_raw = (raw.get("ticker") or raw.get("symbol") or "").strip().upper()
+        if not ticker_raw:
+            continue
+        try:
             rows.append(
                 PortfolioPositionInput(
                     ticker=ticker_raw,
                     name=(raw.get("name") or "").strip() or None,
                     sector=(raw.get("sector") or "").strip() or None,
                     theme=(raw.get("theme") or "").strip() or None,
-                    strategy_type=(raw.get("strategy_type") or "swing").strip() or "swing",
+                    strategy_type=(raw.get("strategy_type") or "swing").strip()
+                    or "swing",
                     quantity=Decimal(raw.get("quantity", "0") or "0"),
                     market_value=Decimal(raw.get("market_value", "0") or "0"),
-                    average_cost=_decimal_or_none(raw.get("avg_price") or raw.get("average_cost")),
+                    average_cost=_decimal_or_none(
+                        raw.get("avg_price") or raw.get("average_cost")
+                    ),
                     pnl_pct=_decimal_or_none(raw.get("pnl_pct")),
                     stop_loss=_decimal_or_none(raw.get("stop_loss")),
                     take_profit=_decimal_or_none(raw.get("take_profit")),
                     thesis=(raw.get("thesis") or "").strip() or None,
                 )
             )
+        except (ArithmeticError, ValueError) as exc:
+            raise ValueError(
+                f"Row {line_no} ({ticker_raw}): could not parse a numeric value "
+                f"({exc})."
+            ) from exc
     return rows
+
+
+def load_portfolio_csv(path: str | Path) -> list[PortfolioPositionInput]:
+    """Parse a portfolio CSV file into `PortfolioPositionInput` rows."""
+
+    return parse_portfolio_csv(Path(path).read_text(encoding="utf-8"))
+
+
+def serialize_positions_csv(positions: list[Position]) -> str:
+    """Render live positions as portfolio CSV text (Slice 159 export).
+
+    Columns are `PORTFOLIO_CSV_COLUMNS`, the same header `parse_portfolio_csv`
+    reads back, so an export round-trips through import as in-place updates.
+    """
+
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=list(PORTFOLIO_CSV_COLUMNS))
+    writer.writeheader()
+    for position in positions:
+        writer.writerow(
+            {
+                "ticker": position.ticker,
+                "quantity": _csv_cell(position.quantity),
+                "market_value": _csv_cell(position.market_value),
+                "average_cost": _csv_cell(position.average_cost),
+                "sector": position.sector or "",
+                "theme": position.theme or "",
+                "strategy_type": position.strategy_type or "swing",
+                "thesis": position.thesis or "",
+            }
+        )
+    return buffer.getvalue()
+
+
+def _csv_cell(value: Decimal | None) -> str:
+    return "" if value is None else str(value)
 
 
 class PortfolioService:

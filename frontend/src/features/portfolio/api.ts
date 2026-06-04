@@ -2,9 +2,12 @@ import { getJson, sendJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
 import type {
   MissionControlData,
+  PortfolioImportResult,
   PositionInput,
   SnapshotBaselineInput,
 } from "./types";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 /**
  * Read the Mission Control snapshot.
@@ -68,5 +71,50 @@ export async function updateSnapshotBaseline(
     `${apiEndpoints.missionControl}/snapshot`,
     "PATCH",
     input,
+  );
+}
+
+// --- Slice 159: CSV import / export ----------------------------------------
+
+/** Fetch the current holdings as CSV and trigger a browser download. */
+export async function downloadPositionsCsv(): Promise<void> {
+  const url = `${API_BASE}${apiEndpoints.missionControl}/positions/export.csv`;
+  const response = await fetch(url, {
+    credentials: "omit",
+    headers: { Accept: "text/csv" },
+  });
+  if (!response.ok) {
+    throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+  }
+  const blob = await response.blob();
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = href;
+  anchor.download = "portfolio_positions.csv";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(href);
+}
+
+/** Dry-run an import (preview adds/updates); never mutates. */
+export async function previewImportPositions(
+  csvText: string,
+): Promise<PortfolioImportResult> {
+  return await sendJson<PortfolioImportResult>(
+    `${apiEndpoints.missionControl}/import-positions`,
+    "POST",
+    { csvText },
+  );
+}
+
+/** Apply an import (upsert). Returns the result with the refreshed snapshot. */
+export async function applyImportPositions(
+  csvText: string,
+): Promise<PortfolioImportResult> {
+  return await sendJson<PortfolioImportResult>(
+    `${apiEndpoints.missionControl}/import-positions?confirm=true`,
+    "POST",
+    { csvText },
   );
 }

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
@@ -29,6 +29,9 @@ from api.schemas.mission_control import (
     GoalTracker,
     MilestoneItem,
     MissionControlResponse,
+    PortfolioImportRequest,
+    PortfolioImportResult,
+    PortfolioImportRow,
     PortfolioReconciliation,
     PortfolioSnapshotPanel,
     PositionInput,
@@ -43,7 +46,11 @@ from finskillos.db.repositories import (
     PositionRepository,
 )
 from finskillos.services.goal_service import GoalService
-from finskillos.services.portfolio_service import PortfolioService
+from finskillos.services.portfolio_service import (
+    PortfolioService,
+    parse_portfolio_csv,
+    serialize_positions_csv,
+)
 
 router = APIRouter(tags=["mission-control"])
 
@@ -193,6 +200,121 @@ def update_snapshot_baseline(
         )
         session.commit()
         return _build_live_mission_control(session)
+
+
+# --- CSV import / export (Slice 159) ----------------------------------------
+
+
+@router.get(
+    "/mission-control/positions/export.csv",
+    summary="Download current holdings as portfolio CSV (read-only).",
+)
+def export_positions_csv() -> Response:
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        account = _resolve_account(session)
+        positions = (
+            PortfolioService(session).get_current_positions(account.id)
+            if account is not None
+            else []
+        )
+        body = serialize_positions_csv(positions)
+    return Response(
+        content=body,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=portfolio_positions.csv"
+        },
+    )
+
+
+@router.post(
+    "/mission-control/import-positions", response_model=PortfolioImportResult
+)
+def import_positions(
+    payload: PortfolioImportRequest, confirm: bool = False
+) -> PortfolioImportResult:
+    """Dry-run preview by default; ``?confirm=true`` applies the upsert.
+
+    Upsert semantics: CSV tickers are added or updated in place; holdings absent
+    from the CSV are left untouched (never deleted).
+    """
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        try:
+            rows = parse_portfolio_csv(payload.csv_text)
+        except ValueError as exc:
+            return PortfolioImportResult(
+                status="ERROR",
+                parse_errors=[str(exc)],
+                detail="Could not parse the CSV; nothing was changed.",
+            )
+
+        service = PortfolioService(session)
+        account = _resolve_account(session)
+        existing = (
+            {p.ticker for p in service.get_current_positions(account.id)}
+            if account is not None
+            else set()
+        )
+
+        preview: list[PortfolioImportRow] = []
+        adds = updates = 0
+        for row in rows:
+            action = "UPDATE" if row.ticker in existing else "ADD"
+            if action == "ADD":
+                adds += 1
+            else:
+                updates += 1
+            preview.append(
+                PortfolioImportRow(
+                    ticker=row.ticker,
+                    quantity=row.quantity,
+                    market_value=row.market_value,
+                    action=action,
+                )
+            )
+
+        if not confirm:
+            detail = (
+                "No position rows found in the CSV."
+                if not rows
+                else f"Preview: {adds} new, {updates} updated. Confirm to apply."
+            )
+            return PortfolioImportResult(
+                status="PREVIEW",
+                adds=adds,
+                updates=updates,
+                total_rows=len(rows),
+                rows=preview,
+                detail=detail,
+            )
+
+        if not rows:
+            return PortfolioImportResult(
+                status="ERROR",
+                detail="No position rows to import; nothing was changed.",
+            )
+
+        account = _mutation_session(session, create_account=True)
+        for row in rows:
+            service.upsert_position(account_id=account.id, row=row)
+        session.commit()
+        return PortfolioImportResult(
+            status="APPLIED",
+            adds=adds,
+            updates=updates,
+            total_rows=len(rows),
+            rows=preview,
+            detail=f"Applied: {adds} new, {updates} updated.",
+            snapshot=_build_live_mission_control(session),
+        )
 
 
 def _build_live_mission_control(session: Session) -> MissionControlResponse:

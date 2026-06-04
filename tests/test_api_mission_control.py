@@ -454,6 +454,136 @@ def test_clear_positions_removes_all(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_export_positions_csv_round_trips(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-export.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        client.post(
+            "/api/mission-control/positions",
+            json={
+                "ticker": "NVDA",
+                "quantity": "10",
+                "marketValue": "25000000",
+                "sector": "Semiconductors",
+            },
+        )
+        resp = client.get("/api/mission-control/positions/export.csv")
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("text/csv")
+        body = resp.text
+        assert body.splitlines()[0].startswith("ticker,quantity,market_value")
+        assert "NVDA" in body
+
+        # Re-importing the export is a pure UPDATE (round-trip, non-destructive).
+        preview = client.post(
+            "/api/mission-control/import-positions",
+            json={"csvText": body},
+        ).json()
+        assert preview["status"] == "PREVIEW"
+        assert preview["updates"] == 1
+        assert preview["adds"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_import_dry_run_does_not_mutate(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-import-dry.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        csv_text = (
+            "ticker,quantity,market_value,sector\n"
+            "NVDA,10,25000000,Semiconductors\n"
+            "AAPL,8,10000000,Technology\n"
+        )
+        preview = client.post(
+            "/api/mission-control/import-positions",
+            json={"csvText": csv_text},
+        ).json()
+        assert preview["status"] == "PREVIEW"
+        assert preview["adds"] == 2
+        assert preview["totalRows"] == 2
+        assert preview["snapshot"] is None
+        assert {r["ticker"] for r in preview["rows"]} == {"NVDA", "AAPL"}
+
+        # Nothing was written.
+        body = client.get("/api/mission-control").json()
+        assert body["portfolio"]["positionCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_import_confirm_applies_upsert(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-import-apply.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        # Pre-existing NVDA that the CSV will update; AAPL is new.
+        client.post(
+            "/api/mission-control/positions",
+            json={"ticker": "NVDA", "quantity": "5", "marketValue": "12000000"},
+        )
+        csv_text = (
+            "ticker,quantity,market_value\n"
+            "NVDA,10,25000000\n"
+            "AAPL,8,10000000\n"
+        )
+        result = client.post(
+            "/api/mission-control/import-positions?confirm=true",
+            json={"csvText": csv_text},
+        ).json()
+        assert result["status"] == "APPLIED"
+        assert result["adds"] == 1
+        assert result["updates"] == 1
+        snap = result["snapshot"]
+        assert snap["portfolio"]["positionCount"] == 2
+        rows = {r["ticker"]: r for r in snap["positions"]}
+        assert rows["NVDA"]["marketValue"] == "25000000.00"  # updated in place
+        assert "AAPL" in rows
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_import_malformed_csv_reports_error(monkeypatch, tmp_path) -> None:
+    engine, database_url = _live_db(tmp_path, "mc-import-bad.db")
+    _seed_account(engine)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        client = _client()
+        bad = "ticker,quantity,market_value\nNVDA,not-a-number,25000000\n"
+        result = client.post(
+            "/api/mission-control/import-positions?confirm=true",
+            json={"csvText": bad},
+        ).json()
+        assert result["status"] == "ERROR"
+        assert result["parseErrors"]
+        # Nothing applied.
+        body = client.get("/api/mission-control").json()
+        assert body["portfolio"]["positionCount"] == 0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_patch_snapshot_baseline_updates_reconciliation(monkeypatch, tmp_path) -> None:
     engine, database_url = _live_db(tmp_path, "mc-snapshot.db")
     _seed_account(engine)
