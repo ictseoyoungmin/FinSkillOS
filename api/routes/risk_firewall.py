@@ -9,11 +9,11 @@ exist. The route stays read-only: live evaluation uses
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
+from api.evidence_format import evidence_rows
 from api.fixtures import risk_firewall_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.live_state import (
@@ -281,36 +281,9 @@ def _guard_attribution(evidence: dict[str, object]) -> list[GuardDriver]:
     only — never a directive."""
 
     return [
-        GuardDriver(label=_humanize_key(key), value=_format_evidence_value(value))
-        for key, value in evidence.items()
-        if value is not None and value != [] and value != {}
+        GuardDriver(label=label, value=value)
+        for label, value in evidence_rows(evidence)
     ]
-
-
-def _humanize_key(key: str) -> str:
-    return key.replace("_", " ").strip().capitalize() or key
-
-
-def _format_evidence_value(value: object) -> str:
-    if isinstance(value, bool):
-        return "Yes" if value else "No"
-    if isinstance(value, Decimal):
-        return _format_decimal(value)
-    if isinstance(value, (int, float)):
-        return f"{value:,}"
-    if isinstance(value, dict):
-        return "; ".join(
-            f"{k}: {_format_evidence_value(v)}" for k, v in value.items()
-        )
-    if isinstance(value, (list, tuple)):
-        return ", ".join(_format_evidence_value(v) for v in value)
-    return str(value)
-
-
-def _format_decimal(value: Decimal) -> str:
-    if value == value.to_integral_value():
-        return f"{value:,.0f}"
-    return f"{value:,.2f}"
 
 
 __all__ = ["router"]

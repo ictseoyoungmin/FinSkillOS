@@ -15,6 +15,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
+from api.evidence_format import evidence_rows, format_evidence_value
 from api.fixtures import analysis_workspace_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.analysis_workspace import (
@@ -22,6 +23,7 @@ from api.schemas.analysis_workspace import (
     AnalysisWorkspaceResponse,
     IndexUniverseRow,
     RegimeContext,
+    RegimeDriver,
     TapeStrengthEntry,
 )
 from api.schemas.common import SystemStatus
@@ -229,6 +231,33 @@ def _regime_context(vm: IndexLabViewModel) -> RegimeContext:
         if vm.regime.snapshot_time
         else None,
         freshness=_regime_freshness(vm),
+        attribution=[
+            RegimeDriver(label=label, value=value)
+            for label, value in evidence_rows(vm.regime.evidence)
+        ],
+        confidence_rationale=_confidence_rationale(vm.regime),
+    )
+
+
+def _confidence_rationale(regime) -> str:
+    """One descriptive line explaining the confidence level (Slice 164).
+
+    Derived only from the stored confidence (0–100) and the supporting /
+    opposing factor counts — no fabricated thresholds."""
+
+    confidence = regime.confidence
+    supporting = len(regime.positive_factors)
+    opposing = len(regime.risk_factors)
+    if confidence >= 70:
+        band = "High confidence"
+    elif confidence >= 40:  # R.CONFIDENCE_LOW_THRESHOLD
+        band = "Moderate confidence"
+    else:
+        band = "Low confidence"
+    return (
+        f"{band} ({format_evidence_value(confidence)}/100) — {supporting} "
+        f"supporting vs {opposing} opposing factor(s) in the stored rule "
+        "rationale."
     )
 
 

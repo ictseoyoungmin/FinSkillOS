@@ -421,6 +421,7 @@ def _build_regime_summary(regime_repo: MarketRegimeRepository) -> RegimeSummary 
         risk_factors=tuple(latest.risk_factors or ()),
         watch_next=tuple(latest.watch_next or ()),
         snapshot_time=_as_utc(latest.snapshot_time),
+        evidence=dict(latest.evidence or {}),
     )
 
 

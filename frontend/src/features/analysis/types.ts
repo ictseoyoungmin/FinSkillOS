@@ -35,6 +35,11 @@ export interface TapeStrengthEntry {
   trendState: string | null;
 }
 
+export interface RegimeDriver {
+  label: string;
+  value: string;
+}
+
 export interface RegimeContext {
   regime: string;
   confidence: Numeric;
@@ -48,6 +53,10 @@ export interface RegimeContext {
   watchNext: string[];
   snapshotTime: string | null;
   freshness?: "FRESH" | "STALE" | "UNKNOWN";
+  // Slice 164: evidence attribution + confidence rationale (live only;
+  // optional so fixtures stay unchanged).
+  attribution?: RegimeDriver[];
+  confidenceRationale?: string;
 }
 
 export interface AnalysisWorkspaceSystemStatus {

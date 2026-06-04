@@ -74,6 +74,9 @@ class RegimeSummary:
     risk_factors: tuple[str, ...]
     watch_next: tuple[str, ...]
     snapshot_time: datetime | None
+    # Slice 164: the indicators that fed the rule, for the "why this regime?"
+    # attribution drilldown. Optional so existing call sites stay valid.
+    evidence: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

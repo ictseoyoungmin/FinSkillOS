@@ -85,6 +85,7 @@ protocols.
 161  Trade Memory Review Workflow Polish (Phase 3)
 162  Journal Templates / Review Prompts (Phase 3)
 163  Risk-Guard Driver Attribution (Phase 4)
+164  Regime Explanation v2 (Phase 4)
 ```
 
 ## Validation Baseline
@@ -203,8 +204,11 @@ constraint summary v2 · 167 cross-tab evidence graph · 168 weekly evidence rep
   optional `attribution` (`GuardDriver{label,value}` from each guard's `evidence`)
   + `watchNext`; Risk Firewall live path populates them; `GuardCard` "Why this
   state?" drilldown. Live-gated by data → fixture/Control Room baselines unchanged.
-- [ ] **164 Regime Explanation v2** — positive/risk factor attribution + what
-  would flip the classification, on the regime read model.
+- [x] **164 Regime Explanation v2** (slice 164) — Analysis Workspace `RegimeContext`
+  gains `attribution` (indicator evidence via shared `api/evidence_format`) +
+  `confidenceRationale` (band + factor counts, no fabricated thresholds);
+  `RegimeContextPanel` renders both. Evidence threaded through the shared
+  `RegimeSummary` VM. Live-gated; fixture unchanged.
 - [ ] **165 Event/News/Position Linkage Scoring**.
 - [ ] **166 Portfolio Constraint Summary v2**.
 - [ ] **167 Cross-tab Evidence Graph**.

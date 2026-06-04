@@ -216,6 +216,12 @@ def test_analysis_workspace_promotes_stored_bars_and_indicators(
     assert float(body["regime"]["confidence"]) == 82.0
     # Regime computed at the same time as the latest bar → FRESH (AW-3).
     assert body["regime"]["freshness"] == "FRESH"
+    # Slice 164: evidence becomes attribution rows; confidence rationale derived.
+    attribution = body["regime"]["attribution"]
+    assert {"label": "Qqq rsi 14", "value": "58"} in attribution  # 58.0 -> 58
+    rationale = body["regime"]["confidenceRationale"]
+    assert rationale.startswith("High confidence (82/100)")
+    assert "1 supporting vs 1 opposing" in rationale
 
 
 def test_analysis_workspace_marks_regime_stale_when_newer_bar_exists(

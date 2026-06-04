@@ -61,8 +61,34 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
         </p>
       ) : null}
       <p className="fso-regime-summary">{regime.summary}</p>
+      {regime.confidenceRationale ? (
+        <p
+          className="fso-regime-confidence-rationale"
+          data-testid="regime-confidence-rationale"
+        >
+          {regime.confidenceRationale}
+        </p>
+      ) : null}
       <details className="fso-regime-details">
         <summary>Context details</summary>
+        {regime.attribution && regime.attribution.length > 0 ? (
+          <div className="fso-regime-block">
+            <span className="fso-regime-block-head">
+              Indicator evidence
+            </span>
+            <dl
+              className="fso-regime-attribution"
+              data-testid="regime-attribution"
+            >
+              {regime.attribution.map((row) => (
+                <div key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : null}
         {regime.whatHappened ? (
           <div className="fso-regime-block">
             <span className="fso-regime-block-head">What happened</span>

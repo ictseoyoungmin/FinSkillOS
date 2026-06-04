@@ -49,6 +49,13 @@ class TapeStrengthEntry(CamelModel):
     trend_state: str | None = None
 
 
+class RegimeDriver(CamelModel):
+    """One indicator row behind the regime classification (Slice 164)."""
+
+    label: str
+    value: str
+
+
 class RegimeContext(CamelModel):
     regime: str
     confidence: Decimal
@@ -64,6 +71,11 @@ class RegimeContext(CamelModel):
     # AW-3: STALE when a newer market bar exists than the regime was computed from,
     # so the card can flag a regime that no longer reflects the visible tape.
     freshness: Literal["FRESH", "STALE", "UNKNOWN"] = "UNKNOWN"
+    # Slice 164 (Regime Explanation v2): the indicator numbers behind the rule
+    # + a one-line confidence rationale. Populated live; empty in fixtures so
+    # the visual baseline is unchanged.
+    attribution: list[RegimeDriver] = Field(default_factory=list)
+    confidence_rationale: str = ""
 
 
 class AnalysisWorkspaceDataState(CamelModel):
@@ -112,5 +124,6 @@ __all__ = [
     "AnalysisWorkspaceResponse",
     "IndexUniverseRow",
     "RegimeContext",
+    "RegimeDriver",
     "TapeStrengthEntry",
 ]
