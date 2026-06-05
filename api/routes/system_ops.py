@@ -127,6 +127,9 @@ def system_ops(
             payload.runtime_settings = SystemOpsRuntimeSettings(
                 **runtime_overlay_meta(session=session)
             )
+            # Phase 7 (179): a live payload must carry a live timestamp — the
+            # fixture sentinel must never survive into a DB-backed response.
+            payload.generated_at = _now_iso()
             payload.source = "live"
         except Exception:
             session.rollback()

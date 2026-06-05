@@ -100,6 +100,7 @@ protocols.
 176  Worker Notification Hook (Phase 6)
 177  Optional Telegram Notification Adapter (Phase 6)
 178  On-demand LLM Explanation Boundary (Phase 6)
+179  Real-Data Audit + Integrity Guard (v3 Phase 7)
 ```
 
 ## Validation Baseline
@@ -147,8 +148,13 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 cockpit — planned in [`docs/v3/`](../docs/v3/README.md): Phase 7 real-data
 integrity · 8 layout redesign · 9 agent tool contract · 10 LLM provider switching
 (Ops) · 11 agent ingestion (paste/screenshot → dry-run → confirm → DB) · 12
-brokerage/execution boundary (deferred). Slices continue at **179**. Awaiting the
-user's chosen entry point ("phase 7 진행" or similar).
+brokerage/execution boundary (deferred). **Phase 7–8 ACTIVE** (user: "phase7-8 진행").
+- [x] **179 Real-data audit + integrity guard** (v3) — audited the
+  seed-from-fixture live builders; fixed a real leak (system-ops live
+  `generatedAt` was the fixture sentinel) + `tests/test_real_data_integrity.py`
+  guards all seed-from-fixture routes. Doc: `docs/v3/AUDIT_179_real_data.md`.
+- [ ] 180 authenticity contract (LIVE/DERIVED/SAMPLE/EMPTY marker) · 181+ per-tab
+  honesty fixes · then Phase 8 layout audit + per-tab density redesign.
 
 Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
 via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.
