@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import (
+    agent,
     analysis_workspace,
     collection_control,
     control_room,
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(news_intelligence.router, prefix="/api")
     app.include_router(event_radar.router, prefix="/api")
     app.include_router(trade_memory.router, prefix="/api")
+    app.include_router(agent.router, prefix="/api")
 
     return app
 

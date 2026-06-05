@@ -107,6 +107,7 @@ protocols.
 183  Use Horizontal Space — Mission/Risk/Catalyst (v3 Phase 8)
 184  System Ops History Density (v3 Phase 8)
 185  Reusable Pagination for Long Lists (v3 Phase 8)
+186  Agent Tool Contract (v3 Phase 9)
 ```
 
 ## Validation Baseline
