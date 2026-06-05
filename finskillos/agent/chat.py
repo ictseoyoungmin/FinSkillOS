@@ -24,17 +24,25 @@ from finskillos.agent.ingest import (
     parse_portfolio_paste,
     proposal_from_records,
 )
-from finskillos.guards.base import GuardResult, assert_no_forbidden_wording
 from finskillos.llm.provider import LLMProvider, build_provider
 
 __all__ = ["ChatMessage", "ProposedAction", "ChatReply", "run_chat", "SYSTEM_PROMPT"]
 
 SYSTEM_PROMPT = (
     "You are the FinSkillOS bookkeeping assistant. You help the user record and "
-    "review portfolio holdings, trade journal entries, and watchlists as "
-    "descriptive data. You never give buy or sell advice, never predict prices or "
-    "direction, and never place orders or trades — FinSkillOS is descriptive "
-    "only. Keep replies short and concrete.\n\n"
+    "review their portfolio, trades, and watchlists as descriptive data.\n\n"
+    "What you can do (your tools), and you may explain these when asked:\n"
+    "- Record / edit / remove portfolio holdings, and bulk-import them.\n"
+    "- Read the current portfolio, cash, and constraints.\n"
+    "- Append trade journal entries.\n"
+    "- Manage watch folders and tickers.\n"
+    "- Collate holdings the user pastes (free-form text) or attaches as a "
+    "screenshot into an import they confirm.\n\n"
+    "Boundary: you give descriptive bookkeeping only. You do not give buy or sell "
+    "advice, do not predict prices or market direction, and do not place orders "
+    "or trades. (It is fine to *say* that you don't do those things.) Answer the "
+    "user's actual question — including questions about your features or tools — "
+    "clearly and concisely.\n\n"
     "When the user gives you holdings to record — in any free-form text, a messy "
     "list, or an attached screenshot — extract them and END your reply with a "
     "fenced code block exactly like:\n"
@@ -44,6 +52,33 @@ SYSTEM_PROMPT = (
     "```\n"
     "Use plain numbers (no commas or currency symbols). Omit fields you don't "
     "know. If there are no holdings to record, do not include the block."
+)
+
+# Narrow chat boundary: block genuine trade DIRECTIVES, price PREDICTIONS, and
+# guaranteed-return claims — but allow the assistant to *describe* itself (e.g.
+# "I don't give buy/sell advice") and to use ordinary words like 확실/반드시. This
+# is intentionally narrower than the risk-alert guard (assert_no_forbidden_wording),
+# which blocks any buy/sell mention and is wrong for conversation.
+_CHAT_DIRECTIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\b(buy|sell)\s+now\b", re.IGNORECASE),
+    re.compile(
+        r"\b(should|must|recommend|need to)\s+(buy|sell|buying|selling)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(buy|sell|short|long)\s+\$?[A-Z]{1,6}\b"),
+    re.compile(
+        r"\bwill\s+(rise|fall|surge|soar|drop|plunge|go\s+up|go\s+down)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bguaranteed\s+(return|returns|profit|profits|gain|gains|reward)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"지금\s*(사라|사세요|사요|매수|매수해|매수하)"),
+    re.compile(r"지금\s*(팔아|파세요|파요|매도|매도해|매도하)"),
+    re.compile(r"(사세요|사라|팔아라|파세요|매수하세요|매도하세요)"),
+    re.compile(r"(수익|원금)\s*보장"),
+    re.compile(r"반드시\s*(사|팔|매수|매도|오)"),
 )
 
 _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
@@ -93,26 +128,22 @@ def _clean(text: str) -> str:
 
 
 def _guarded(text: str) -> str:
-    """Return text if descriptive; otherwise a safe note (never leak a breach)."""
+    """Return text if it has no trade directive; otherwise a safe note.
+
+    Blocks genuine buy/sell directives, price predictions, and guaranteed-return
+    claims — not mere descriptive mentions — so the assistant can converse and
+    describe its own (non-advisory) role.
+    """
 
     cleaned = _clean(text)
     if not cleaned:
         return _SAFE_FALLBACK
-    try:
-        assert_no_forbidden_wording(
-            GuardResult(
-                guard_name="AGENT_CHAT_BOUNDARY",
-                status="INFO",
-                risk_level="GREEN",
-                title="",
-                message=cleaned,
+    for pattern in _CHAT_DIRECTIVE_PATTERNS:
+        if pattern.search(cleaned):
+            return (
+                "I can't help with buy/sell or order requests — FinSkillOS is "
+                "descriptive only. I can record holdings, trades, and watchlists."
             )
-        )
-    except AssertionError:
-        return (
-            "I can't help with buy/sell or order requests — FinSkillOS is "
-            "descriptive only. I can record holdings, trades, and watchlists."
-        )
     return cleaned
 
 

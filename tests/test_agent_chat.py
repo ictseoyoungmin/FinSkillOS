@@ -59,6 +59,28 @@ def test_chat_boundary_breach_is_replaced_with_safe_note() -> None:
     assert "descriptive" in reply.reply.lower()
 
 
+def test_descriptive_self_description_is_not_blocked() -> None:
+    # The agent describing its non-advisory role must pass (it mentions buy/sell).
+    for text in (
+        "I record holdings, trades, and watchlists. I don't give buy/sell advice.",
+        "제 기능은 보유종목 기록과 거래 기록입니다. 매수/매도 조언은 하지 않습니다.",
+        "My tools: record, edit, and import holdings; manage watch folders.",
+    ):
+        reply = run_chat([ChatMessage("user", "what can you do")], provider=_StubProvider(text))
+        assert reply.reply == text, reply.reply
+
+
+def test_real_directives_and_predictions_are_blocked() -> None:
+    for text in (
+        "You should buy NVDA right now.",
+        "지금 TSLA 매수하세요",
+        "NVDA will rise next week",
+        "This trade has guaranteed profit.",
+    ):
+        reply = run_chat([ChatMessage("user", "advice?")], provider=_StubProvider(text))
+        assert "descriptive only" in reply.reply.lower(), text
+
+
 def test_chat_provider_not_ready_falls_back() -> None:
     provider = _StubProvider("unused", ready=False)
     reply = run_chat([ChatMessage("user", "hello")], provider=provider)
