@@ -94,6 +94,29 @@ services:
         condition: service_started
 
   # ------------------------------------------------------------------
+  # Slice 172 — local release profile. Serves the built React bundle via the
+  # nginx `runtime` stage (static + /api proxy to the api service), instead of
+  # the Vite dev server. Opt-in and explicit so it never collides with the dev
+  # `web` service on the default `docker compose up`:
+  #   docker compose --profile release up -d web-release   # → http://localhost:8080
+  # (or `./fsoctl.sh release`). Build args bake VITE_API_BASE_URL=/api.
+  # ------------------------------------------------------------------
+  web-release:
+    profiles: ["release"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: finskillos-web-release
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_started
+
+  # ------------------------------------------------------------------
   # Slice 26 / 112 — lightweight refresh worker. Starts with the default
   # `docker compose up` (web + api + worker + db together) so the dashboard
   # stays fresh from real data on an interval (and, from Slice 113, on demand

@@ -93,6 +93,7 @@ protocols.
 169  Operator CLI / Bootstrap (fsoctl.sh) (Phase 5)
 170  Upgrade / Migration Safety Check (Phase 5)
 171  Backup-restore Drill UX (Phase 5)
+172  Local Data-dir Policy / Release Profile (Phase 5)
 ```
 
 ## Validation Baseline
@@ -259,7 +260,10 @@ safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
   (dump integrity: completion marker + core tables, OK/SUSPECT/MISSING) +
   `fsoctl.sh drill` (backup → verify); runbook full-drill (restore into a
   throwaway DB) procedure.
-- [ ] **172 Local data-dir policy / release profile**.
+- [x] **172 Local data-dir policy / release profile** (slice 172) — `web-release`
+  compose service (profile `release`, nginx static serve :8080) + `fsoctl.sh
+  release`/`release-down`; `scripts/data_dir_report.py` + `fsoctl.sh info` +
+  `.env.example` BACKUP_DIR/policy; runbook data-dir + release sections.
 - [ ] **173 Versioned release notes / CHANGELOG**.
 
 #### Later phases (see ROADMAP.md)

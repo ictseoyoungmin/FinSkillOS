@@ -24,6 +24,7 @@ PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "run_regime_scan.py",
     ROOT / "scripts" / "migration_safety_check.py",
     ROOT / "scripts" / "backup_verify.py",
+    ROOT / "scripts" / "data_dir_report.py",
 )
 
 
@@ -454,3 +455,31 @@ def test_backup_verify_reports_missing_file(tmp_path: Path) -> None:
     report = verify(tmp_path / "nope.sql")
     assert report["status"] == "MISSING"
     assert report["ok"] is False
+
+
+# --- Slice 172: data-dir report ---------------------------------------------
+
+from scripts.data_dir_report import build_report  # noqa: E402
+
+
+def test_data_dir_report_lists_core_directories(tmp_path: Path) -> None:
+    (tmp_path / "backups").mkdir()
+    (tmp_path / "backups" / "d.sql").write_text("x", encoding="utf-8")
+    report = build_report(root=tmp_path)
+    assert set(report["directories"]) == {
+        "DATA_DIR",
+        "CACHE_DIR",
+        "EXPORT_DIR",
+        "BACKUP_DIR",
+    }
+    backups = report["directories"]["BACKUP_DIR"]
+    assert backups["exists"] is True
+    assert backups["file_count"] == 1
+    assert "postgres_data" in report["postgres_volume"]
+    assert "down -v" in report["policy"]
+
+
+def test_data_dir_report_marks_absent_dirs(tmp_path: Path) -> None:
+    report = build_report(root=tmp_path)
+    assert report["directories"]["DATA_DIR"]["exists"] is False
+    assert report["env_file"]["exists"] is False

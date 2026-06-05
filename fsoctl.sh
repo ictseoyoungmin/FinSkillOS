@@ -38,6 +38,9 @@ Setup / lifecycle
   restart [svc]    Restart everything, or one service
   status           Show service states (docker compose ps)
   logs [svc]       Follow logs (all services, or one)
+  info             Show local data-dir / backup locations and policy
+  release          Start the local release build (nginx static serve → :8080)
+  release-down     Stop the local release service
 
 Data / operations
   check            Migration safety preflight (DB revision vs code head)
@@ -115,6 +118,22 @@ cmd_status() {
   ${COMPOSE} ps
 }
 
+cmd_info() {
+  python3 scripts/data_dir_report.py "$@"
+}
+
+cmd_release() {
+  c_blue "Building + starting the local release service (nginx → :8080)"
+  ${COMPOSE} --profile release build web-release
+  ${COMPOSE} --profile release up -d web-release
+  c_blue "Release UI: http://localhost:8080"
+}
+
+cmd_release_down() {
+  c_blue "Stopping the local release service"
+  ${COMPOSE} --profile release stop web-release
+}
+
 cmd_logs() {
   if [ "$#" -ge 1 ]; then
     ${COMPOSE} logs -f "$1"
@@ -169,6 +188,9 @@ main() {
     restart) cmd_restart "$@" ;;
     status) cmd_status "$@" ;;
     logs) cmd_logs "$@" ;;
+    info) cmd_info "$@" ;;
+    release) cmd_release "$@" ;;
+    release-down) cmd_release_down "$@" ;;
     check) cmd_check "$@" ;;
     migrate) cmd_migrate "$@" ;;
     seed) cmd_seed "$@" ;;

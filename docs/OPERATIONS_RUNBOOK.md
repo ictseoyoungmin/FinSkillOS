@@ -38,8 +38,38 @@ raw `docker compose …` commands below are what each wrapper runs.
 | `worker` | `scripts/refresh_worker.py` queue-driven refresh loop | — |
 | `app` (profile `app`) | Streamlit debug/admin UI | 8501 |
 | `e2e` (profile `e2e`) | Playwright visual/e2e image | — |
+| `web-release` (profile `release`) | nginx static serve of the built bundle | 8080 |
 
 Cockpit: **http://localhost:5173** · API: **http://localhost:8000/api**.
+
+## Local data-dir policy (Slice 172)
+
+Where local state lives — `./fsoctl.sh info` reports it:
+
+| Location | What | Lifecycle |
+|---|---|---|
+| `postgres_data` (Docker named volume) | the database | survives `docker compose down`; **`down -v` erases it** |
+| `backups/` (`BACKUP_DIR`) | pg_dump backups | host directory; gitignored except `.gitkeep` |
+| `data/` (`DATA_DIR` / `CACHE_DIR` / `EXPORT_DIR`) | caches / exports | host directories, created on demand |
+| `.env` | local config overrides | optional; `.env.example` is the template |
+
+Rules: never `docker compose down -v` unless you intend to erase the database;
+back up before risky changes (`./fsoctl.sh backup` / `drill`); to relocate
+backups, set `BACKUP_DIR` in `.env`.
+
+## Local release profile (Slice 172)
+
+`web` runs the Vite dev server (:5173). For a stable local instance, the
+`release` profile serves the **built** bundle via nginx (static + `/api` proxy):
+
+```bash
+./fsoctl.sh release        # build + start web-release → http://localhost:8080
+./fsoctl.sh release-down   # stop it
+# raw: docker compose --profile release up -d web-release
+```
+
+It is opt-in and started explicitly, so it never collides with the dev `web`
+service on the default `docker compose up`.
 
 ## First-time setup
 
