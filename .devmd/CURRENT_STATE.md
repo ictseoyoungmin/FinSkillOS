@@ -114,6 +114,7 @@ protocols.
 190  Agent Paste-Import UI (v3 Phase 11)
 191  Agent Chat Backend + Local-LLM Wiring (v3 Phase 11)
 192  Agent Chat Widget (v3 Phase 11)
+193  Chat Widget Mockup Parity + Image/Vision (v3 Phase 11)
 ```
 
 ## Validation Baseline

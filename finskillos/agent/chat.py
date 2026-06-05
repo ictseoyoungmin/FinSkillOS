@@ -45,6 +45,7 @@ _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 class ChatMessage:
     role: str
     content: str
+    images: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -112,16 +113,42 @@ def _detect_action(text: str) -> ProposedAction | None:
     )
 
 
+def _wire_content(message: ChatMessage, *, vision: bool):
+    """OpenAI-style content: parts (text + image_url) when the message carries
+    images and the provider can read them; otherwise a plain string."""
+
+    if message.images and vision:
+        parts = [{"type": "text", "text": message.content}]
+        parts += [
+            {"type": "image_url", "image_url": {"url": img}} for img in message.images
+        ]
+        return parts
+    return message.content
+
+
 def run_chat(
     messages: list[ChatMessage], *, provider: LLMProvider | None = None
 ) -> ChatReply:
     provider = provider or build_provider()
     availability = provider.available()
+    vision = bool(getattr(provider, "supports_vision", lambda: False)())
     action = _detect_action(_last_user(messages))
+    image_count = sum(len(m.images) for m in messages)
+
+    image_note = ""
+    if image_count and not vision:
+        image_note = (
+            f"(You attached {image_count} image(s), but the active model can't "
+            "read images. Switch to a vision model — e.g. Gemini, or a local "
+            "multimodal model — in the Ops tab to analyze screenshots.) "
+        )
 
     if availability.ready:
         wire = [{"role": "system", "content": SYSTEM_PROMPT}]
-        wire += [{"role": m.role, "content": m.content} for m in messages]
+        wire += [
+            {"role": m.role, "content": _wire_content(m, vision=vision)}
+            for m in messages
+        ]
         try:
             reply = _guarded(provider.chat(wire).text)
         except Exception:  # noqa: BLE001 - any provider/transport failure → safe note
@@ -136,7 +163,7 @@ def run_chat(
         )
 
     return ChatReply(
-        reply=reply,
+        reply=f"{image_note}{reply}".strip(),
         provider=provider.kind,
         ready=availability.ready,
         proposed_action=action,

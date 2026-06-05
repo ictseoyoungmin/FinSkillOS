@@ -7,6 +7,7 @@ export interface LLMProviderVM {
   defaultModel: string;
   requires: string[];
   needsNetwork: boolean;
+  vision: boolean;
   ready: boolean;
   reason: string;
 }
@@ -40,6 +41,7 @@ export interface IngestProposalResponse {
 export interface ChatMessageVM {
   role: "user" | "assistant";
   content: string;
+  images?: string[];
 }
 
 export interface ProposedActionVM {

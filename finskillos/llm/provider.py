@@ -68,6 +68,7 @@ class ProviderSpec:
     default_model: str
     requires: tuple[str, ...] = field(default_factory=tuple)
     needs_network: bool = False
+    vision: bool = False
 
 
 # A chat message is {"role": "system"|"user"|"assistant", "content": str}.
@@ -79,6 +80,8 @@ class LLMProvider(Protocol):
     kind: ProviderKind
 
     def available(self) -> ProviderAvailability: ...
+
+    def supports_vision(self) -> bool: ...
 
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult: ...
 
@@ -112,6 +115,9 @@ class EchoProvider:
 
     def available(self) -> ProviderAvailability:
         return ProviderAvailability(True, "Offline echo — always available.")
+
+    def supports_vision(self) -> bool:
+        return False
 
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult:
         body = prompt.strip()
@@ -159,6 +165,9 @@ class ClaudeCodeProvider:
             )
         return ProviderAvailability(True, "`claude` CLI found on PATH.")
 
+    def supports_vision(self) -> bool:
+        return False
+
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult:
         runner = self._runner or _default_claude_runner
         text = runner(prompt, system)
@@ -199,6 +208,9 @@ class GeminiProvider:
                 False, "FINSKILLOS_GEMINI_API_KEY is not set."
             )
         return ProviderAvailability(True, "API key configured.")
+
+    def supports_vision(self) -> bool:
+        return True
 
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult:
         transport = self._transport or _default_http_transport
@@ -260,6 +272,15 @@ class LocalOpenAIProvider:
             True, f"Configured for {self._base_url} (not probed)."
         )
 
+    def supports_vision(self) -> bool:
+        # The local stack is multimodal only when the loaded model is — opt in.
+        return os.getenv("FINSKILLOS_LOCAL_LLM_VISION", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult:
         messages: list[ChatMessage] = []
         if system and system.strip():
@@ -303,10 +324,11 @@ PROVIDER_SPECS: tuple[ProviderSpec, ...] = (
     ProviderSpec(
         kind="gemini",
         label="Gemini API",
-        description="Google Gemini API over HTTPS.",
+        description="Google Gemini API over HTTPS (vision-capable).",
         default_model="gemini-2.5-flash",
         requires=("FINSKILLOS_GEMINI_API_KEY",),
         needs_network=True,
+        vision=True,
     ),
     ProviderSpec(
         kind="local",
@@ -340,7 +362,8 @@ def provider_catalog() -> list[dict]:
 
     catalogue = []
     for spec in PROVIDER_SPECS:
-        availability = build_provider(spec.kind).available()
+        provider = build_provider(spec.kind)
+        availability = provider.available()
         catalogue.append(
             {
                 "kind": spec.kind,
@@ -349,6 +372,7 @@ def provider_catalog() -> list[dict]:
                 "default_model": spec.default_model,
                 "requires": list(spec.requires),
                 "needs_network": spec.needs_network,
+                "vision": provider.supports_vision(),
                 "ready": availability.ready,
                 "reason": availability.reason,
             }

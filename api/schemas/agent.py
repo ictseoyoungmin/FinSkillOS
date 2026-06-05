@@ -47,6 +47,7 @@ class LLMProviderVM(CamelModel):
     default_model: str
     requires: list[str] = Field(default_factory=list)
     needs_network: bool = False
+    vision: bool = False
     ready: bool = False
     reason: str = ""
 
@@ -106,6 +107,8 @@ class IngestProposalResponse(CamelModel):
 class ChatMessageVM(CamelModel):
     role: Literal["user", "assistant"]
     content: str = Field(..., max_length=200_000)
+    # Image data URLs (data:image/...;base64,...). Only used by vision providers.
+    images: list[str] = Field(default_factory=list, max_length=6)
 
 
 class ChatRequest(CamelModel):

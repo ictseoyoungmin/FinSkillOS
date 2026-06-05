@@ -80,6 +80,40 @@ def test_chat_provider_exception_is_handled() -> None:
     assert "unreachable" in reply.reply.lower()
 
 
+def test_image_without_vision_provider_adds_a_switch_note() -> None:
+    provider = _StubProvider("ok")  # stub has no supports_vision → treated False
+    reply = run_chat(
+        [ChatMessage("user", "read this", images=("data:image/png;base64,AAAA",))],
+        provider=provider,
+    )
+    assert "vision model" in reply.reply.lower()
+
+
+def test_image_with_vision_provider_sends_image_parts() -> None:
+    captured: dict = {}
+
+    class _Vision:
+        kind = "gemini"
+
+        def available(self):
+            return ProviderAvailability(True, "ok")
+
+        def supports_vision(self) -> bool:
+            return True
+
+        def chat(self, messages):
+            captured["messages"] = messages
+            return LLMResult("saw it", "gemini", "v", False)
+
+    run_chat(
+        [ChatMessage("user", "read this", images=("data:image/png;base64,AAAA",))],
+        provider=_Vision(),
+    )
+    last = captured["messages"][-1]["content"]
+    assert isinstance(last, list)
+    assert any(p.get("type") == "image_url" for p in last)
+
+
 def test_echo_chat_is_deterministic_offline() -> None:
     result = EchoProvider().chat([{"role": "user", "content": "hello"}])
     assert result.offline is True

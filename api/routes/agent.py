@@ -80,6 +80,7 @@ def _providers_response(session) -> AgentProvidersResponse:
             default_model=item["default_model"],
             requires=item["requires"],
             needs_network=item["needs_network"],
+            vision=item["vision"],
             ready=item["ready"],
             reason=item["reason"],
         )
@@ -174,7 +175,10 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
 
     provider = build_provider(_active_provider_kind())
     reply = run_chat(
-        [ChatMessage(role=m.role, content=m.content) for m in payload.messages],
+        [
+            ChatMessage(role=m.role, content=m.content, images=tuple(m.images))
+            for m in payload.messages
+        ],
         provider=provider,
     )
     action = None

@@ -115,17 +115,193 @@
 
 .fso-chat-msg {
   display: flex;
+  gap: 7px;
+  max-width: 90%;
+}
+
+.fso-chat-avatar {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--fso-cyan) 25%, var(--fso-panel-2));
+  color: var(--fso-text);
+}
+
+.fso-chat-body {
+  display: flex;
   flex-direction: column;
-  max-width: 85%;
+  gap: 4px;
+  min-width: 0;
 }
 
 .fso-chat-user {
   align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.fso-chat-user .fso-chat-body {
   align-items: flex-end;
+}
+
+.fso-chat-user .fso-chat-avatar {
+  background: color-mix(in srgb, var(--fso-green) 25%, var(--fso-panel-2));
 }
 
 .fso-chat-assistant {
   align-self: flex-start;
+}
+
+.fso-chat-time {
+  font-family: var(--fso-font-mono);
+  font-size: 8.5px;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-chat-imgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.fso-chat-imgs img {
+  max-width: 130px;
+  max-height: 110px;
+  border-radius: 8px;
+  border: 1px solid var(--fso-line-soft);
+}
+
+/* Drag-to-move + drop overlay */
+.fso-chat-header {
+  cursor: grab;
+}
+.fso-chat-header:active {
+  cursor: grabbing;
+}
+
+.fso-chat-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fso-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fso-cyan);
+  background: color-mix(in srgb, var(--fso-cyan) 12%, rgba(0, 0, 0, 0.7));
+  border: 2px dashed var(--fso-cyan-2);
+  border-radius: var(--fso-radius-md);
+}
+
+/* In-widget provider picker */
+.fso-chat-picker {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--fso-line-soft);
+  background: var(--fso-bg-2);
+}
+
+.fso-chat-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: var(--fso-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 11.5px;
+}
+
+.fso-chat-picker-row:hover {
+  background: color-mix(in srgb, var(--fso-cyan) 8%, transparent);
+}
+
+.fso-chat-picker-active {
+  background: color-mix(in srgb, var(--fso-cyan) 12%, transparent);
+}
+
+.fso-chat-picker-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fso-text-muted);
+}
+.fso-chat-picker-dot[data-ready="true"] {
+  background: var(--fso-green);
+}
+
+.fso-chat-picker-name {
+  flex: 1;
+}
+
+.fso-chat-picker-state {
+  font-family: var(--fso-font-mono);
+  font-size: 8.5px;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+}
+
+/* Attachment preview strip */
+.fso-chat-strip {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px 0;
+  flex-wrap: wrap;
+}
+
+.fso-chat-thumb {
+  position: relative;
+}
+
+.fso-chat-thumb img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--fso-line-soft);
+}
+
+.fso-chat-thumb button {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: var(--fso-red);
+  color: #fff;
+  font-size: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.fso-chat-attach {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: var(--fso-bg-2);
+  color: var(--fso-text-muted);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.fso-chat-attach:hover {
+  color: var(--fso-text);
+  border-color: var(--fso-cyan-2);
 }
 
 .fso-chat-bubble {
@@ -198,9 +374,35 @@
 
 .fso-chat-typing {
   align-self: flex-start;
-  color: var(--fso-text-muted);
-  font-size: 16px;
-  letter-spacing: 2px;
+  display: flex;
+  gap: 4px;
+  padding: 6px 4px;
+}
+
+.fso-chat-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fso-text-muted);
+  animation: fso-chat-blink 1.2s infinite ease-in-out both;
+}
+
+.fso-chat-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.fso-chat-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes fso-chat-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
 }
 
 .fso-chat-input-row {
