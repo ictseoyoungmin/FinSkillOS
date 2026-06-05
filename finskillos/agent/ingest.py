@@ -22,6 +22,7 @@ __all__ = [
     "IngestRow",
     "IngestProposal",
     "parse_portfolio_paste",
+    "proposal_from_records",
 ]
 
 _TICKER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9.\-]{0,31}$")
@@ -201,4 +202,51 @@ def parse_portfolio_paste(text: str) -> IngestProposal:
 
     if not rows and not warnings:
         warnings.append("No holdings could be read from the pasted text.")
+    return IngestProposal(rows=rows, warnings=warnings)
+
+
+def proposal_from_records(records: list[dict]) -> IngestProposal:
+    """Build a proposal from already-structured records (e.g. LLM-extracted).
+
+    Same validation as the text parser, so an LLM extraction can never bypass
+    the ticker / numeric checks before reaching the import.
+    """
+
+    rows: list[IngestRow] = []
+    warnings: list[str] = []
+    seen: set[str] = set()
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        ticker = str(record.get("ticker", "")).strip().upper()
+        if not _TICKER_RE.match(ticker):
+            warnings.append(f"Skipped a record with no valid ticker: {record!r}")
+            continue
+        qty = _clean_number(str(record.get("quantity", "")))
+        value = _clean_number(
+            str(record.get("market_value", record.get("value", "")))
+        )
+        if qty is None or value is None:
+            warnings.append(f"Missing quantity / market value for {ticker}.")
+            continue
+        if ticker in seen:
+            warnings.append(f"Duplicate ticker {ticker} — kept the first.")
+            continue
+        seen.add(ticker)
+        avg_raw = record.get("average_cost") or record.get("avg_cost")
+        rows.append(
+            IngestRow(
+                ticker=ticker,
+                quantity=qty,
+                market_value=value,
+                average_cost=_clean_number(str(avg_raw)) if avg_raw else None,
+                sector=(str(record["sector"]).strip() or None)
+                if record.get("sector")
+                else None,
+                theme=(str(record["theme"]).strip() or None)
+                if record.get("theme")
+                else None,
+                strategy_type=str(record.get("strategy_type") or "swing"),
+            )
+        )
     return IngestProposal(rows=rows, warnings=warnings)

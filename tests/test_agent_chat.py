@@ -114,6 +114,37 @@ def test_image_with_vision_provider_sends_image_parts() -> None:
     assert any(p.get("type") == "image_url" for p in last)
 
 
+def _block(holdings_json: str) -> str:
+    return f"Here you go.\n```json\n{holdings_json}\n```"
+
+
+def test_llm_holdings_block_becomes_extracted_action() -> None:
+    provider = _StubProvider(
+        _block('{"holdings":[{"ticker":"NVDA","quantity":10,"market_value":25000000}]}')
+    )
+    reply = run_chat([ChatMessage("user", "i hold ten nvidia ~25m")], provider=provider)
+    assert reply.proposed_action is not None
+    assert reply.proposed_action.row_count == 1
+    assert "extracted" in reply.proposed_action.summary
+    assert "```" not in reply.reply  # block stripped from the visible reply
+
+
+def test_no_block_falls_back_to_deterministic_parser() -> None:
+    provider = _StubProvider("Recorded.")  # no json block
+    reply = run_chat(
+        [ChatMessage("user", "NVDA 10 25000000\nTSLA 12 12000000")], provider=provider
+    )
+    assert reply.proposed_action is not None
+    assert reply.proposed_action.row_count == 2
+    assert "parsed" in reply.proposed_action.summary
+
+
+def test_malformed_block_does_not_crash() -> None:
+    provider = _StubProvider('text ```json\n{"holdings": [BROKEN}\n```')
+    reply = run_chat([ChatMessage("user", "hello")], provider=provider)
+    assert reply.proposed_action is None  # nothing usable, no crash
+
+
 def test_echo_chat_is_deterministic_offline() -> None:
     result = EchoProvider().chat([{"role": "user", "content": "hello"}])
     assert result.offline is True

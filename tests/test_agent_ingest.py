@@ -5,7 +5,21 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from api.main import create_app
-from finskillos.agent.ingest import parse_portfolio_paste
+from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
+
+
+def test_proposal_from_records_validates_like_the_parser() -> None:
+    proposal = proposal_from_records(
+        [
+            {"ticker": "nvda", "quantity": 10, "market_value": 25000000, "sector": "Semis"},
+            {"ticker": "", "quantity": 1, "market_value": 2},  # no ticker → warn
+            {"ticker": "TSLA", "quantity": "x", "market_value": "y"},  # bad nums → warn
+            {"ticker": "NVDA", "quantity": 9, "market_value": 9},  # dup → warn
+        ]
+    )
+    assert [r.ticker for r in proposal.rows] == ["NVDA"]
+    assert proposal.rows[0].market_value == "25000000"
+    assert len(proposal.warnings) == 3
 
 
 def test_parses_freeform_with_currency_and_thousands() -> None:

@@ -15,10 +15,15 @@ server by default) and stays inside the descriptive-only boundary:
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 
-from finskillos.agent.ingest import parse_portfolio_paste
+from finskillos.agent.ingest import (
+    IngestProposal,
+    parse_portfolio_paste,
+    proposal_from_records,
+)
 from finskillos.guards.base import GuardResult, assert_no_forbidden_wording
 from finskillos.llm.provider import LLMProvider, build_provider
 
@@ -27,11 +32,22 @@ __all__ = ["ChatMessage", "ProposedAction", "ChatReply", "run_chat", "SYSTEM_PRO
 SYSTEM_PROMPT = (
     "You are the FinSkillOS bookkeeping assistant. You help the user record and "
     "review portfolio holdings, trade journal entries, and watchlists as "
-    "descriptive data. You can collate pasted holdings into an import the user "
-    "confirms. You never give buy or sell advice, never predict prices or "
+    "descriptive data. You never give buy or sell advice, never predict prices or "
     "direction, and never place orders or trades — FinSkillOS is descriptive "
-    "only. Keep replies short and concrete."
+    "only. Keep replies short and concrete.\n\n"
+    "When the user gives you holdings to record — in any free-form text, a messy "
+    "list, or an attached screenshot — extract them and END your reply with a "
+    "fenced code block exactly like:\n"
+    "```json\n"
+    '{"holdings": [{"ticker": "NVDA", "quantity": 10, "market_value": 25000000, '
+    '"sector": "Semiconductors", "theme": "AI"}]}\n'
+    "```\n"
+    "Use plain numbers (no commas or currency symbols). Omit fields you don't "
+    "know. If there are no holdings to record, do not include the block."
 )
+
+_JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
+_HOLDINGS_KEY = '"holdings"'
 
 _SAFE_FALLBACK = (
     "I can help you record holdings, trades, and watchlists. Paste your holdings "
@@ -100,17 +116,41 @@ def _guarded(text: str) -> str:
     return cleaned
 
 
-def _detect_action(text: str) -> ProposedAction | None:
-    proposal = parse_portfolio_paste(text)
+def _action_from_proposal(proposal: IngestProposal, source: str) -> ProposedAction | None:
     if not proposal.rows:
         return None
     return ProposedAction(
         kind="portfolio_import",
-        summary=f"{len(proposal.rows)} holdings parsed from your message.",
+        summary=f"{len(proposal.rows)} holdings {source}.",
         normalized_csv=proposal.normalized_csv,
         row_count=len(proposal.rows),
         warnings=proposal.warnings,
     )
+
+
+def _extract_llm_holdings(reply: str) -> tuple[str, IngestProposal | None]:
+    """Pull a ```json {"holdings": [...]} ``` block from the reply.
+
+    Returns the reply with the block removed + a proposal (validated through the
+    same ingest checks), or (reply, None) when there is no usable block.
+    """
+
+    for match in _JSON_BLOCK_RE.finditer(reply or ""):
+        blob = match.group(1)
+        if _HOLDINGS_KEY not in blob:
+            continue
+        try:
+            data = json.loads(blob)
+        except (ValueError, TypeError):
+            continue
+        holdings = data.get("holdings") if isinstance(data, dict) else None
+        if not isinstance(holdings, list) or not holdings:
+            continue
+        proposal = proposal_from_records(holdings)
+        if proposal.rows:
+            cleaned = (reply[: match.start()] + reply[match.end() :]).strip()
+            return cleaned or "I prepared an import from what you gave me.", proposal
+    return reply, None
 
 
 def _wire_content(message: ChatMessage, *, vision: bool):
@@ -132,8 +172,14 @@ def run_chat(
     provider = provider or build_provider()
     availability = provider.available()
     vision = bool(getattr(provider, "supports_vision", lambda: False)())
-    action = _detect_action(_last_user(messages))
     image_count = sum(len(m.images) for m in messages)
+
+    # Deterministic fallback proposal from the raw pasted text (covers structured
+    # paste even when the model emits no extraction block).
+    deterministic = _action_from_proposal(
+        parse_portfolio_paste(_last_user(messages)), "parsed from your message"
+    )
+    action = deterministic
 
     image_note = ""
     if image_count and not vision:
@@ -150,7 +196,15 @@ def run_chat(
             for m in messages
         ]
         try:
-            reply = _guarded(provider.chat(wire).text)
+            raw = provider.chat(wire).text
+            cleaned, llm_proposal = _extract_llm_holdings(raw)
+            reply = _guarded(cleaned)
+            # Prefer the model's extraction (handles free-form text + screenshots).
+            llm_action = _action_from_proposal(
+                llm_proposal, "extracted from your message"
+            ) if llm_proposal else None
+            if llm_action is not None:
+                action = llm_action
         except Exception:  # noqa: BLE001 - any provider/transport failure → safe note
             reply = (
                 "The language model is unreachable right now, but I can still "
