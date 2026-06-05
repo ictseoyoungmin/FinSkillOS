@@ -94,6 +94,7 @@ protocols.
 170  Upgrade / Migration Safety Check (Phase 5)
 171  Backup-restore Drill UX (Phase 5)
 172  Local Data-dir Policy / Release Profile (Phase 5)
+173  Versioned Release Notes / CHANGELOG (Phase 5)
 ```
 
 ## Validation Baseline
@@ -245,7 +246,7 @@ baselines are unchanged (no Playwright regen).
   `WeeklyEvidenceReportPanel` (build / copy / download). Live-gated.
   **Phase 4 complete (163–168).**
 
-#### Phase 5 — personal deployment / packaging (active)
+#### Phase 5 — personal deployment / packaging — DONE (169–173)
 Local release ergonomics: one-command bootstrap, backup/restore drill, migration
 safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
 - [x] **169 Operator CLI / Bootstrap** (slice 169) — `fsoctl.sh` one entrypoint
@@ -264,7 +265,10 @@ safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
   compose service (profile `release`, nginx static serve :8080) + `fsoctl.sh
   release`/`release-down`; `scripts/data_dir_report.py` + `fsoctl.sh info` +
   `.env.example` BACKUP_DIR/policy; runbook data-dir + release sections.
-- [ ] **173 Versioned release notes / CHANGELOG**.
+- [x] **173 Versioned release notes / CHANGELOG** (slice 173) — `CHANGELOG.md`
+  (phase-versioned v0.0–v0.5) + `scripts/release_notes.py` (parse `NN — Title`
+  commits for a git range) + `fsoctl.sh release-notes`. **Phase 5 complete
+  (169–173).**
 
 #### Later phases (see ROADMAP.md)
 Phase 6 optional automation/LLM-narration.

@@ -39,6 +39,7 @@ Setup / lifecycle
   status           Show service states (docker compose ps)
   logs [svc]       Follow logs (all services, or one)
   info             Show local data-dir / backup locations and policy
+  release-notes    Generate the slice list for a git range (see CHANGELOG.md)
   release          Start the local release build (nginx static serve → :8080)
   release-down     Stop the local release service
 
@@ -122,6 +123,10 @@ cmd_info() {
   python3 scripts/data_dir_report.py "$@"
 }
 
+cmd_release_notes() {
+  python3 scripts/release_notes.py "$@"
+}
+
 cmd_release() {
   c_blue "Building + starting the local release service (nginx → :8080)"
   ${COMPOSE} --profile release build web-release
@@ -189,6 +194,7 @@ main() {
     status) cmd_status "$@" ;;
     logs) cmd_logs "$@" ;;
     info) cmd_info "$@" ;;
+    release-notes) cmd_release_notes "$@" ;;
     release) cmd_release "$@" ;;
     release-down) cmd_release_down "$@" ;;
     check) cmd_check "$@" ;;

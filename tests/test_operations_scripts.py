@@ -25,6 +25,7 @@ PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "migration_safety_check.py",
     ROOT / "scripts" / "backup_verify.py",
     ROOT / "scripts" / "data_dir_report.py",
+    ROOT / "scripts" / "release_notes.py",
 )
 
 
@@ -483,3 +484,35 @@ def test_data_dir_report_marks_absent_dirs(tmp_path: Path) -> None:
     report = build_report(root=tmp_path)
     assert report["directories"]["DATA_DIR"]["exists"] is False
     assert report["env_file"]["exists"] is False
+
+
+# --- Slice 173: release notes -----------------------------------------------
+
+from scripts.release_notes import parse_slice_commits, render_markdown  # noqa: E402
+
+
+def test_release_notes_parses_slice_commits() -> None:
+    subjects = [
+        "173 — Versioned release notes / CHANGELOG (Phase 5)",
+        "172 — Local Data-dir Policy / Release Profile (Phase 5)",
+        "merge branch main",  # ignored
+        "chore: tidy",  # ignored
+        "169 — Operator CLI / Bootstrap (fsoctl.sh) (Phase 5)",
+    ]
+    entries = parse_slice_commits(subjects)
+    numbers = [n for n, _ in entries]
+    assert numbers == [169, 172, 173]  # ascending, non-slice dropped
+    assert entries[0][1].startswith("Operator CLI")
+
+
+def test_release_notes_render_markdown_and_changelog_exists() -> None:
+    md = render_markdown([(170, "Migration Safety"), (171, "Drill")], "v0.5")
+    assert md.startswith("## v0.5")
+    assert "- **170** — Migration Safety" in md
+    assert (ROOT / "CHANGELOG.md").exists()
+
+
+def test_changelog_lists_each_phase() -> None:
+    body = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    for marker in ("Phase 5", "Phase 4", "Phase 3", "Phase 2", "Phase 1"):
+        assert marker in body
