@@ -159,8 +159,10 @@
 }
 
 .fso-system-ops-history {
-  display: flex;
-  flex-direction: column;
+  /* v3 Phase 8 (184): protocol-run history packs into a responsive 2-column
+     grid instead of one tall single-column stack (user-flagged). */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
