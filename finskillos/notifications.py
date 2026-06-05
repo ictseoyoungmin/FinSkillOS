@@ -14,8 +14,12 @@ sink without code changes:
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import urllib.error
+import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
@@ -24,6 +28,7 @@ __all__ = [
     "Notifier",
     "NullNotifier",
     "LogNotifier",
+    "TelegramNotifier",
     "build_notifier",
     "notification_from_worker_summary",
 ]
@@ -71,14 +76,67 @@ class LogNotifier:
         )
 
 
+# A sender posts (url, json_payload, timeout); injectable so tests never touch
+# the network. The default uses urllib (stdlib — no new dependency).
+TelegramSender = Callable[[str, dict[str, str], float], None]
+
+
+def _http_post_json(url: str, payload: dict[str, str], timeout: float) -> None:
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url, data=data, headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(request, timeout=timeout):  # noqa: S310 - https only
+        return None
+
+
+class TelegramNotifier:
+    """Optional outbound sink — posts to a Telegram chat (Slice 177).
+
+    Off by default: only selected when ``FINSKILLOS_NOTIFY_SINK=telegram`` AND a
+    bot token + chat id are configured. Forwards the same operational
+    Notification text (status / errors) — never trade direction. A send failure
+    is logged, never raised, so it can't break a worker cycle."""
+
+    def __init__(
+        self,
+        *,
+        token: str,
+        chat_id: str,
+        sender: TelegramSender | None = None,
+        timeout: float = 10.0,
+    ) -> None:
+        self._token = token
+        self._chat_id = chat_id
+        self._send = sender or _http_post_json
+        self._timeout = timeout
+
+    def notify(self, note: Notification) -> None:
+        text = f"[{note.level.upper()}] {note.title}\n{note.message}"
+        url = f"https://api.telegram.org/bot{self._token}/sendMessage"
+        try:
+            self._send(url, {"chat_id": self._chat_id, "text": text}, self._timeout)
+        except (urllib.error.URLError, OSError, ValueError):
+            _logger.exception("Telegram notification failed")
+
+
 def build_notifier(sink: str | None = None) -> Notifier:
     """Resolve the configured notifier (env ``FINSKILLOS_NOTIFY_SINK``)."""
 
     resolved = (sink or os.getenv("FINSKILLOS_NOTIFY_SINK", "log")).strip().lower()
     if resolved in ("", "none", "null", "off"):
         return NullNotifier()
-    # "log" and any unknown value fall back to the safe logging sink. Outbound
-    # adapters (Slice 177+) register additional cases here.
+    if resolved == "telegram":
+        token = os.getenv("FINSKILLOS_TELEGRAM_BOT_TOKEN", "").strip()
+        chat_id = os.getenv("FINSKILLOS_TELEGRAM_CHAT_ID", "").strip()
+        if token and chat_id:
+            return TelegramNotifier(token=token, chat_id=chat_id)
+        _logger.warning(
+            "FINSKILLOS_NOTIFY_SINK=telegram but bot token / chat id are not set; "
+            "falling back to the log sink."
+        )
+        return LogNotifier()
+    # "log" and any unknown value fall back to the safe logging sink.
     return LogNotifier()
 
 

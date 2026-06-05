@@ -10,6 +10,7 @@ from finskillos.notifications import (
     LogNotifier,
     Notification,
     NullNotifier,
+    TelegramNotifier,
     build_notifier,
     notification_from_worker_summary,
 )
@@ -111,3 +112,48 @@ def test_worker_emit_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(notif, "build_notifier", _boom)
     # Must swallow — a notification failure can never break a cycle.
     worker._emit_cycle_notification({"status": "DONE"})
+
+
+# --- Slice 177: optional Telegram adapter (offline, injected sender) ---------
+
+
+def test_telegram_notifier_posts_message_via_injected_sender() -> None:
+    captured: dict[str, object] = {}
+
+    def fake_sender(url: str, payload: dict[str, str], timeout: float) -> None:
+        captured["url"] = url
+        captured["payload"] = payload
+        captured["timeout"] = timeout
+
+    notifier = TelegramNotifier(token="TOK", chat_id="42", sender=fake_sender)
+    notifier.notify(
+        Notification(
+            kind="worker_cycle", level="error", title="Failed", message="ValueError"
+        )
+    )
+    assert "botTOK/sendMessage" in captured["url"]
+    assert captured["payload"]["chat_id"] == "42"
+    assert "[ERROR] Failed" in captured["payload"]["text"]
+
+
+def test_telegram_notifier_swallows_send_errors() -> None:
+    def boom(url: str, payload: dict[str, str], timeout: float) -> None:
+        raise OSError("network down")
+
+    notifier = TelegramNotifier(token="t", chat_id="c", sender=boom)
+    # Must not raise — a send failure can never break a worker cycle.
+    notifier.notify(Notification(kind="x", level="info", title="t", message="m"))
+
+
+def test_build_notifier_telegram_requires_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("FINSKILLOS_NOTIFY_SINK", "telegram")
+    monkeypatch.delenv("FINSKILLOS_TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("FINSKILLOS_TELEGRAM_CHAT_ID", raising=False)
+    # No credentials → safe fallback to the log sink.
+    assert isinstance(build_notifier(), LogNotifier)
+
+    monkeypatch.setenv("FINSKILLOS_TELEGRAM_BOT_TOKEN", "tok")
+    monkeypatch.setenv("FINSKILLOS_TELEGRAM_CHAT_ID", "chat")
+    assert isinstance(build_notifier(), TelegramNotifier)

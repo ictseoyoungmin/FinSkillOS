@@ -98,6 +98,7 @@ protocols.
 174  Scheduled Daily/Weekly Reports (Phase 6)
 175  Event-Week Briefing (Phase 6)
 176  Worker Notification Hook (Phase 6)
+177  Optional Telegram Notification Adapter (Phase 6)
 ```
 
 ## Validation Baseline
@@ -289,7 +290,10 @@ boundary (narration only — never judgment/direction).
   (`Notification` / `Notifier` / `NullNotifier` / `LogNotifier` / `build_notifier`
   via `FINSKILLOS_NOTIFY_SINK`); `run_cycle` emits on DONE/ERROR (guarded). The
   seam for 177.
-- [ ] **177 Optional Telegram adapter** (gated off).
+- [x] **177 Optional Telegram adapter** (slice 177) — `TelegramNotifier`
+  (injectable sender, stdlib urllib, swallows errors) behind `build_notifier`'s
+  `telegram` sink; off unless `FINSKILLOS_NOTIFY_SINK=telegram` + token/chat id
+  set (else log fallback). Offline-tested.
 - [ ] **178 On-demand LLM explanation boundary** (narration only).
 
 ### Standing open (env-blocked)
