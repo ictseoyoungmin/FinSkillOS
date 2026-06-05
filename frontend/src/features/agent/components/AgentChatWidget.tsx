@@ -4,10 +4,11 @@ import {
   applyImportPositions,
   previewImportPositions,
 } from "@/features/portfolio/api";
-import type {
-  MissionControlData,
-  PortfolioImportResult,
-} from "@/features/portfolio/types";
+import type { MissionControlData } from "@/features/portfolio/types";
+import {
+  applyTradeImport,
+  previewTradeImport,
+} from "@/features/trades/api";
 import {
   fetchAgentProviders,
   sendAgentChat,
@@ -98,7 +99,7 @@ export function AgentChatWidget() {
   const [busy, setBusy] = useState(false);
   const [dragHover, setDragHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [preview, setPreview] = useState<Record<number, PortfolioImportResult>>({});
+  const [preview, setPreview] = useState<Record<number, string>>({});
   const [pos, setPos] = useState(() => loadStored("fso-chat-pos", { right: 24, bottom: 24 }));
   const [size, setSize] = useState(() => loadStored("fso-chat-size", { w: 520, h: 600 }));
 
@@ -256,8 +257,15 @@ export function AgentChatWidget() {
   const onPreview = async (idx: number, action: ProposedActionVM) => {
     setBusy(true);
     try {
-      const result = await previewImportPositions(action.normalizedCsv);
-      setPreview((p) => ({ ...p, [idx]: result }));
+      let label: string;
+      if (action.kind === "trades_import") {
+        const r = await previewTradeImport(action.normalizedCsv);
+        label = `${r.valid} valid / ${r.invalid} invalid`;
+      } else {
+        const r = await previewImportPositions(action.normalizedCsv);
+        label = `${r.adds} add / ${r.updates} update`;
+      }
+      setPreview((p) => ({ ...p, [idx]: label }));
     } finally {
       setBusy(false);
     }
@@ -266,20 +274,24 @@ export function AgentChatWidget() {
   const onConfirm = async (idx: number, action: ProposedActionVM) => {
     setBusy(true);
     try {
-      const result = await applyImportPositions(action.normalizedCsv);
-      if (result.snapshot) {
-        queryClient.setQueryData<MissionControlData>(
-          ["mission-control"],
-          result.snapshot,
-        );
+      let applied: string;
+      if (action.kind === "trades_import") {
+        const r = await applyTradeImport(action.normalizedCsv);
+        applied = `Recorded ${r.valid} trade entr${r.valid === 1 ? "y" : "ies"}.`;
+        void queryClient.invalidateQueries({ queryKey: ["trade-memory"] });
+      } else {
+        const r = await applyImportPositions(action.normalizedCsv);
+        applied = `Applied — ${r.adds} added, ${r.updates} updated.`;
+        if (r.snapshot) {
+          queryClient.setQueryData<MissionControlData>(
+            ["mission-control"],
+            r.snapshot,
+          );
+        }
       }
       setTurns((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: `Applied — ${result.adds} added, ${result.updates} updated.`,
-          time: now(),
-        },
+        { role: "assistant", content: applied, time: now() },
       ]);
       setPreview((p) => {
         const next = { ...p };
@@ -423,8 +435,7 @@ export function AgentChatWidget() {
                         onClick={() => onConfirm(idx, turn.action!)}
                         data-testid="chat-action-confirm"
                       >
-                        Confirm — {preview[idx].adds} add / {preview[idx].updates}{" "}
-                        update
+                        Confirm — {preview[idx]}
                       </button>
                     ) : (
                       <button
@@ -433,7 +444,8 @@ export function AgentChatWidget() {
                         onClick={() => onPreview(idx, turn.action!)}
                         data-testid="chat-action-preview"
                       >
-                        Preview import ({turn.action.rowCount} holdings)
+                        Preview {turn.action.kind === "trades_import" ? "trades" : "import"} ({turn.action.rowCount}{" "}
+                        {turn.action.kind === "trades_import" ? "trades" : "holdings"})
                       </button>
                     )}
                   </div>

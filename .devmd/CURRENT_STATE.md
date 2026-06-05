@@ -119,6 +119,7 @@ protocols.
 195  LLM-Assisted Free-Form Ingestion (v3 Phase 11)
 196  Chat Widget Wider + Resizable + Polish (v3 Phase 11)
 197  Fix Over-Aggressive Chat Boundary (v3 Phase 11)
+198  Trades-Paste Ingestion (v3 Phase 11)
 ```
 
 ## Validation Baseline

@@ -116,12 +116,12 @@ class ChatRequest(CamelModel):
 
 
 class ProposedActionVM(CamelModel):
-    kind: Literal["portfolio_import"]
+    kind: Literal["portfolio_import", "trades_import"]
     summary: str
     normalized_csv: str
     row_count: int
     warnings: list[str] = Field(default_factory=list)
-    apply_endpoint: str = "/api/mission-control/import-positions"
+    apply_endpoint: str
 
 
 class ChatResponse(CamelModel):

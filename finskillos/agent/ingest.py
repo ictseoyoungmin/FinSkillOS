@@ -23,6 +23,10 @@ __all__ = [
     "IngestProposal",
     "parse_portfolio_paste",
     "proposal_from_records",
+    "TradeRow",
+    "TradeIngestProposal",
+    "parse_trades_paste",
+    "trades_from_records",
 ]
 
 _TICKER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9.\-]{0,31}$")
@@ -203,6 +207,176 @@ def parse_portfolio_paste(text: str) -> IngestProposal:
     if not rows and not warnings:
         warnings.append("No holdings could be read from the pasted text.")
     return IngestProposal(rows=rows, warnings=warnings)
+
+
+# --- trades ------------------------------------------------------------------
+
+_TRADE_CSV_COLUMNS = (
+    "trade_date",
+    "ticker",
+    "side",
+    "strategy_type",
+    "result_pnl",
+    "result_pnl_pct",
+    "r_multiple",
+    "mistake_tags",
+    "sector",
+    "theme",
+    "notes",
+)
+_SIDE_ALIASES = {
+    "long": "LONG",
+    "buy": "BUY",
+    "bought": "BUY",
+    "short": "SHORT",
+    "sell": "SELL",
+    "sold": "SELL",
+    "watch": "WATCH",
+    "exit": "EXIT_REVIEW",
+    "exit_review": "EXIT_REVIEW",
+    "other": "OTHER",
+}
+_VALID_SIDES = {"LONG", "SHORT", "WATCH", "EXIT_REVIEW", "OTHER", "BUY", "SELL"}
+_ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+@dataclass(frozen=True)
+class TradeRow:
+    trade_date: str
+    ticker: str
+    side: str
+    result_pnl: str | None = None
+    strategy_type: str | None = None
+    notes: str | None = None
+    sector: str | None = None
+    theme: str | None = None
+
+
+@dataclass(frozen=True)
+class TradeIngestProposal:
+    rows: list[TradeRow] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def normalized_csv(self) -> str:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(_TRADE_CSV_COLUMNS)
+        for row in self.rows:
+            writer.writerow(
+                [
+                    row.trade_date,
+                    row.ticker,
+                    row.side,
+                    row.strategy_type or "",
+                    row.result_pnl or "",
+                    "",  # result_pnl_pct
+                    "",  # r_multiple
+                    "",  # mistake_tags
+                    row.sector or "",
+                    row.theme or "",
+                    row.notes or "",
+                ]
+            )
+        return buffer.getvalue()
+
+
+def _normalize_side(raw: str) -> str | None:
+    token = str(raw).strip()
+    upper = token.upper()
+    if upper in _VALID_SIDES:
+        return upper
+    return _SIDE_ALIASES.get(token.lower())
+
+
+def _today_iso() -> str:
+    from datetime import date as _date
+
+    return _date.today().isoformat()
+
+
+def trades_from_records(records: list[dict]) -> TradeIngestProposal:
+    """Build a trade-journal proposal from structured records (LLM-extracted)."""
+
+    rows: list[TradeRow] = []
+    warnings: list[str] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        ticker = str(record.get("ticker", "")).strip().upper()
+        if not _TICKER_RE.match(ticker):
+            warnings.append(f"Skipped a trade with no valid ticker: {record!r}")
+            continue
+        side = _normalize_side(record.get("side", ""))
+        if side is None:
+            warnings.append(
+                f"{ticker}: unknown side {record.get('side')!r} "
+                "(use long/short/buy/sell/watch/exit)."
+            )
+            continue
+        raw_date = str(record.get("trade_date") or record.get("date") or "").strip()
+        trade_date = raw_date if _ISO_DATE_RE.fullmatch(raw_date) else _today_iso()
+        pnl = record.get("result_pnl", record.get("pnl"))
+        rows.append(
+            TradeRow(
+                trade_date=trade_date,
+                ticker=ticker,
+                side=side,
+                result_pnl=_clean_number(str(pnl)) if pnl not in (None, "") else None,
+                strategy_type=(str(record["strategy_type"]).strip() or None)
+                if record.get("strategy_type")
+                else None,
+                notes=(str(record["notes"]).strip() or None)
+                if record.get("notes")
+                else None,
+                sector=(str(record["sector"]).strip() or None)
+                if record.get("sector")
+                else None,
+                theme=(str(record["theme"]).strip() or None)
+                if record.get("theme")
+                else None,
+            )
+        )
+    return TradeIngestProposal(rows=rows, warnings=warnings)
+
+
+def parse_trades_paste(text: str) -> TradeIngestProposal:
+    """Light deterministic parse of pasted trades — header CSV or
+    ``TICKER SIDE [YYYY-MM-DD] [pnl]`` lines. Free-form is better handled by the
+    LLM extraction; this is the offline fallback."""
+
+    records: list[dict] = []
+    header: list[str] | None = None
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = _split_line(line)
+        lowered = [p.lower() for p in parts]
+        if header is None and "ticker" in lowered and "side" in lowered:
+            header = [p.lower().replace(" ", "_") for p in parts]
+            continue
+        if header is not None:
+            records.append(
+                {header[i]: parts[i] for i in range(min(len(header), len(parts)))}
+            )
+            continue
+        # positional: ticker, side, [date], [pnl]
+        if len(parts) < 2:
+            continue
+        record: dict = {"ticker": parts[0], "side": parts[1]}
+        for token in parts[2:]:
+            if _ISO_DATE_RE.fullmatch(token):
+                record["trade_date"] = token
+            elif _clean_number(token) is not None:
+                record["result_pnl"] = token
+        records.append(record)
+    proposal = trades_from_records(records)
+    if not proposal.rows and not proposal.warnings:
+        proposal = TradeIngestProposal(
+            rows=[], warnings=["No trades could be read from the pasted text."]
+        )
+    return proposal
 
 
 def proposal_from_records(records: list[dict]) -> IngestProposal:

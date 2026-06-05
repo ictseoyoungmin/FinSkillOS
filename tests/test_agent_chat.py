@@ -151,6 +151,31 @@ def test_llm_holdings_block_becomes_extracted_action() -> None:
     assert "```" not in reply.reply  # block stripped from the visible reply
 
 
+def test_llm_trades_block_becomes_trades_action() -> None:
+    provider = _StubProvider(
+        _block(
+            '{"trades":[{"ticker":"TSLA","side":"long","trade_date":"2026-06-01",'
+            '"result_pnl":250000}]}'
+        )
+    )
+    reply = run_chat([ChatMessage("user", "i went long tsla")], provider=provider)
+    assert reply.proposed_action is not None
+    assert reply.proposed_action.kind == "trades_import"
+    assert reply.proposed_action.apply_endpoint == "/api/trade-memory/import"
+    assert reply.proposed_action.normalized_csv.startswith("trade_date,ticker,side")
+
+
+def test_deterministic_trades_fallback_when_no_block() -> None:
+    provider = _StubProvider("Logged.")  # no block
+    reply = run_chat(
+        [ChatMessage("user", "NVDA long 2026-06-01 250000\nTSLA sell 2026-05-20 -120000")],
+        provider=provider,
+    )
+    assert reply.proposed_action is not None
+    assert reply.proposed_action.kind == "trades_import"
+    assert reply.proposed_action.row_count == 2
+
+
 def test_no_block_falls_back_to_deterministic_parser() -> None:
     provider = _StubProvider("Recorded.")  # no json block
     reply = run_chat(

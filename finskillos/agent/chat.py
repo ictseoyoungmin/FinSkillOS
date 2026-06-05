@@ -20,9 +20,10 @@ import re
 from dataclasses import dataclass, field
 
 from finskillos.agent.ingest import (
-    IngestProposal,
     parse_portfolio_paste,
+    parse_trades_paste,
     proposal_from_records,
+    trades_from_records,
 )
 from finskillos.llm.provider import LLMProvider, build_provider
 
@@ -43,15 +44,22 @@ SYSTEM_PROMPT = (
     "or trades. (It is fine to *say* that you don't do those things.) Answer the "
     "user's actual question — including questions about your features or tools — "
     "clearly and concisely.\n\n"
-    "When the user gives you holdings to record — in any free-form text, a messy "
-    "list, or an attached screenshot — extract them and END your reply with a "
-    "fenced code block exactly like:\n"
+    "When the user gives you holdings or trades to record — in any free-form "
+    "text, a messy list, or an attached screenshot — extract them and END your "
+    "reply with ONE fenced json block.\n"
+    "For current holdings:\n"
     "```json\n"
     '{"holdings": [{"ticker": "NVDA", "quantity": 10, "market_value": 25000000, '
     '"sector": "Semiconductors", "theme": "AI"}]}\n'
     "```\n"
-    "Use plain numbers (no commas or currency symbols). Omit fields you don't "
-    "know. If there are no holdings to record, do not include the block."
+    "For past trades (a trade journal):\n"
+    "```json\n"
+    '{"trades": [{"ticker": "TSLA", "side": "LONG", "trade_date": "2026-06-01", '
+    '"result_pnl": 250000, "notes": "breakout"}]}\n'
+    "```\n"
+    "side is one of LONG, SHORT, WATCH, EXIT_REVIEW, OTHER (or buy/sell). Use "
+    "plain numbers (no commas or currency symbols); use YYYY-MM-DD dates. Omit "
+    "fields you don't know. If there's nothing to record, include no block."
 )
 
 # Narrow chat boundary: block genuine trade DIRECTIVES, price PREDICTIONS, and
@@ -82,7 +90,6 @@ _CHAT_DIRECTIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
 )
 
 _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
-_HOLDINGS_KEY = '"holdings"'
 
 _SAFE_FALLBACK = (
     "I can help you record holdings, trades, and watchlists. Paste your holdings "
@@ -99,12 +106,19 @@ class ChatMessage:
     images: tuple[str, ...] = ()
 
 
+_KIND_ENDPOINT = {
+    "portfolio_import": "/api/mission-control/import-positions",
+    "trades_import": "/api/trade-memory/import",
+}
+
+
 @dataclass(frozen=True)
 class ProposedAction:
     kind: str
     summary: str
     normalized_csv: str
     row_count: int
+    apply_endpoint: str
     warnings: list[str] = field(default_factory=list)
 
 
@@ -147,40 +161,52 @@ def _guarded(text: str) -> str:
     return cleaned
 
 
-def _action_from_proposal(proposal: IngestProposal, source: str) -> ProposedAction | None:
+def _action_from_proposal(proposal, kind: str, source: str) -> ProposedAction | None:
     if not proposal.rows:
         return None
+    noun = "holdings" if kind == "portfolio_import" else "trades"
     return ProposedAction(
-        kind="portfolio_import",
-        summary=f"{len(proposal.rows)} holdings {source}.",
+        kind=kind,
+        summary=f"{len(proposal.rows)} {noun} {source}.",
         normalized_csv=proposal.normalized_csv,
         row_count=len(proposal.rows),
+        apply_endpoint=_KIND_ENDPOINT[kind],
         warnings=proposal.warnings,
     )
 
 
-def _extract_llm_holdings(reply: str) -> tuple[str, IngestProposal | None]:
-    """Pull a ```json {"holdings": [...]} ``` block from the reply.
+def _extract_llm_action(reply: str) -> tuple[str, ProposedAction | None]:
+    """Pull a ```json {"holdings"|"trades": [...]} ``` block from the reply.
 
-    Returns the reply with the block removed + a proposal (validated through the
-    same ingest checks), or (reply, None) when there is no usable block.
+    Returns the reply with the block removed + a proposed action (validated
+    through the same ingest checks), or (reply, None) when there is no usable
+    block.
     """
 
     for match in _JSON_BLOCK_RE.finditer(reply or ""):
         blob = match.group(1)
-        if _HOLDINGS_KEY not in blob:
-            continue
         try:
             data = json.loads(blob)
         except (ValueError, TypeError):
             continue
-        holdings = data.get("holdings") if isinstance(data, dict) else None
-        if not isinstance(holdings, list) or not holdings:
+        if not isinstance(data, dict):
             continue
-        proposal = proposal_from_records(holdings)
-        if proposal.rows:
+        action: ProposedAction | None = None
+        if isinstance(data.get("holdings"), list) and data["holdings"]:
+            action = _action_from_proposal(
+                proposal_from_records(data["holdings"]),
+                "portfolio_import",
+                "extracted from your message",
+            )
+        elif isinstance(data.get("trades"), list) and data["trades"]:
+            action = _action_from_proposal(
+                trades_from_records(data["trades"]),
+                "trades_import",
+                "extracted from your message",
+            )
+        if action is not None:
             cleaned = (reply[: match.start()] + reply[match.end() :]).strip()
-            return cleaned or "I prepared an import from what you gave me.", proposal
+            return cleaned or "I prepared an import from what you gave me.", action
     return reply, None
 
 
@@ -205,12 +231,14 @@ def run_chat(
     vision = bool(getattr(provider, "supports_vision", lambda: False)())
     image_count = sum(len(m.images) for m in messages)
 
-    # Deterministic fallback proposal from the raw pasted text (covers structured
-    # paste even when the model emits no extraction block).
-    deterministic = _action_from_proposal(
-        parse_portfolio_paste(_last_user(messages)), "parsed from your message"
+    # Deterministic fallback from the raw pasted text (covers structured paste
+    # even when the model emits no extraction block): holdings first, then trades.
+    last_text = _last_user(messages)
+    action = _action_from_proposal(
+        parse_portfolio_paste(last_text), "portfolio_import", "parsed from your message"
+    ) or _action_from_proposal(
+        parse_trades_paste(last_text), "trades_import", "parsed from your message"
     )
-    action = deterministic
 
     image_note = ""
     if image_count and not vision:
@@ -228,12 +256,9 @@ def run_chat(
         ]
         try:
             raw = provider.chat(wire).text
-            cleaned, llm_proposal = _extract_llm_holdings(raw)
+            cleaned, llm_action = _extract_llm_action(raw)
             reply = _guarded(cleaned)
             # Prefer the model's extraction (handles free-form text + screenshots).
-            llm_action = _action_from_proposal(
-                llm_proposal, "extracted from your message"
-            ) if llm_proposal else None
             if llm_action is not None:
                 action = llm_action
         except Exception:  # noqa: BLE001 - any provider/transport failure → safe note

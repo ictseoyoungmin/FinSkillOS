@@ -5,7 +5,35 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from api.main import create_app
-from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
+from finskillos.agent.ingest import (
+    parse_portfolio_paste,
+    parse_trades_paste,
+    proposal_from_records,
+    trades_from_records,
+)
+
+
+def test_parse_trades_paste_positional_and_csv() -> None:
+    proposal = parse_trades_paste(
+        "NVDA long 2026-06-01 250000\nTSLA sold 2026-05-20 -120000"
+    )
+    assert [(r.ticker, r.side, r.trade_date) for r in proposal.rows] == [
+        ("NVDA", "LONG", "2026-06-01"),
+        ("TSLA", "SELL", "2026-05-20"),
+    ]
+    assert proposal.normalized_csv.startswith("trade_date,ticker,side")
+
+
+def test_trades_from_records_normalizes_side_and_warns() -> None:
+    proposal = trades_from_records(
+        [
+            {"ticker": "aapl", "side": "buy", "date": "2026-06-05", "pnl": "50000"},
+            {"ticker": "MSFT", "side": "nonsense"},  # bad side → warn
+        ]
+    )
+    assert [r.ticker for r in proposal.rows] == ["AAPL"]
+    assert proposal.rows[0].side == "BUY"
+    assert any("side" in w for w in proposal.warnings)
 
 
 def test_proposal_from_records_validates_like_the_parser() -> None:

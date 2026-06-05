@@ -45,7 +45,7 @@ export interface ChatMessageVM {
 }
 
 export interface ProposedActionVM {
-  kind: "portfolio_import";
+  kind: "portfolio_import" | "trades_import";
   summary: string;
   normalizedCsv: string;
   rowCount: number;

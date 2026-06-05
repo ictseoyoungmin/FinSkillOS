@@ -189,6 +189,7 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
             normalized_csv=reply.proposed_action.normalized_csv,
             row_count=reply.proposed_action.row_count,
             warnings=reply.proposed_action.warnings,
+            apply_endpoint=reply.proposed_action.apply_endpoint,
         )
     return ChatResponse(
         reply=reply.reply,
