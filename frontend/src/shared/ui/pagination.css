@@ -1,0 +1,37 @@
+.fso-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fso-pagination span {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fso-text-muted);
+}
+
+.fso-pagination button {
+  font-family: var(--fso-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  color: var(--fso-text-muted);
+  cursor: pointer;
+}
+
+.fso-pagination button:not(:disabled):hover {
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-text);
+}
+
+.fso-pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

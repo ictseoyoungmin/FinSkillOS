@@ -8,6 +8,8 @@ export { Metric } from "./Metric";
 export type { MetricProps } from "./Metric";
 export { OriginTag } from "./OriginTag";
 export type { DataOrigin, OriginTagProps } from "./OriginTag";
+export { Pagination } from "./Pagination";
+export type { PaginationProps } from "./Pagination";
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
 export { JudgmentHeader } from "./JudgmentHeader";

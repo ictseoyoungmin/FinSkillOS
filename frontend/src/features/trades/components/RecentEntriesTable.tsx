@@ -1,7 +1,10 @@
-import { Panel } from "@/shared/ui";
+import { Pagination, Panel } from "@/shared/ui";
 import { toNumber } from "@/shared/lib/format";
+import { usePagination } from "@/shared/hooks/usePagination";
 import type { TradeEntryVM } from "../types";
 import "./recent-entries-table.css";
+
+const PAGE_SIZE = 10;
 
 export interface RecentEntriesTableProps {
   entries: TradeEntryVM[];
@@ -25,6 +28,10 @@ export function RecentEntriesTable({
   busyId,
 }: RecentEntriesTableProps) {
   const showActions = Boolean(onEdit || onDelete);
+  const { visible, page, pageCount, prev, next } = usePagination(
+    entries,
+    PAGE_SIZE,
+  );
   if (entries.length === 0) {
     return (
       <Panel
@@ -61,7 +68,7 @@ export function RecentEntriesTable({
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry) => (
+          {visible.map((entry) => (
             <tr key={entry.id}>
               <td className="fso-trade-mono">{entry.tradeDate}</td>
               <td>{entry.ticker}</td>
@@ -113,6 +120,13 @@ export function RecentEntriesTable({
           ))}
         </tbody>
       </table>
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPrev={prev}
+        onNext={next}
+        label="Recent entries pagination"
+      />
     </Panel>
   );
 }

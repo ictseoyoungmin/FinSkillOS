@@ -1,9 +1,12 @@
 import { Fragment } from "react";
-import { Panel } from "@/shared/ui";
+import { Pagination, Panel } from "@/shared/ui";
 import { toNumber } from "@/shared/lib/format";
+import { usePagination } from "@/shared/hooks/usePagination";
 import type { EventBadgeTone, EventRiskRow } from "../types";
 import { EventStatusBadge } from "./EventStatusBadge";
 import "./event-risk-table.css";
+
+const PAGE_SIZE = 8;
 
 export interface EventRiskTableProps {
   title?: string;
@@ -23,6 +26,10 @@ export function EventRiskTable({
   toneMap,
   testId,
 }: EventRiskTableProps) {
+  const { visible, page, pageCount, prev, next } = usePagination(
+    events,
+    PAGE_SIZE,
+  );
   if (events.length === 0) {
     return (
       <Panel title={title} badge="0" badgeTone="info" testId={testId}>
@@ -53,7 +60,7 @@ export function EventRiskTable({
           </tr>
         </thead>
         <tbody>
-          {events.map((event) => {
+          {visible.map((event) => {
             const scoreDrivers = event.scoreDrivers ?? [];
             const heldTickers = event.heldTickers ?? [];
             const hasLinkage = scoreDrivers.length > 0 || heldTickers.length > 0;
@@ -137,6 +144,13 @@ export function EventRiskTable({
           })}
         </tbody>
       </table>
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPrev={prev}
+        onNext={next}
+        label={`${title} pagination`}
+      />
     </Panel>
   );
 }

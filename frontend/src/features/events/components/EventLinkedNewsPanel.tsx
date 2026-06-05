@@ -1,6 +1,9 @@
-import { Panel } from "@/shared/ui";
+import { Pagination, Panel } from "@/shared/ui";
+import { usePagination } from "@/shared/hooks/usePagination";
 import type { EventLinkedNewsVM } from "../types";
 import "./event-linked-news-panel.css";
+
+const PAGE_SIZE = 6;
 
 export interface EventLinkedNewsPanelProps {
   articles: EventLinkedNewsVM[];
@@ -11,6 +14,10 @@ export interface EventLinkedNewsPanelProps {
  * Mirrors the Streamlit Slice-11 page join, in compact form.
  */
 export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
+  const { visible, page, pageCount, prev, next } = usePagination(
+    articles,
+    PAGE_SIZE,
+  );
   if (articles.length === 0) {
     return (
       <Panel
@@ -31,7 +38,7 @@ export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
       testId="event-linked-news"
     >
       <ul className="fso-event-linked-list">
-        {articles.map((article) => (
+        {visible.map((article) => (
           <li className="fso-event-linked-row" key={`${article.url}`}>
             <a
               href={article.url}
@@ -49,6 +56,13 @@ export function EventLinkedNewsPanel({ articles }: EventLinkedNewsPanelProps) {
           </li>
         ))}
       </ul>
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPrev={prev}
+        onNext={next}
+        label="Linked news pagination"
+      />
     </Panel>
   );
 }

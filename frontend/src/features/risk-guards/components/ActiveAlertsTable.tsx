@@ -1,6 +1,9 @@
-import { Panel } from "@/shared/ui";
+import { Pagination, Panel } from "@/shared/ui";
+import { usePagination } from "@/shared/hooks/usePagination";
 import type { ActiveAlertItem, AlertSeverity } from "../types";
 import "./active-alerts-table.css";
+
+const PAGE_SIZE = 8;
 
 export interface ActiveAlertsTableProps {
   alerts: ActiveAlertItem[];
@@ -28,6 +31,10 @@ const SEVERITY_LABEL: Record<AlertSeverity, string> = {
  * modifies positions.
  */
 export function ActiveAlertsTable({ alerts }: ActiveAlertsTableProps) {
+  const { visible, page, pageCount, prev, next } = usePagination(
+    alerts,
+    PAGE_SIZE,
+  );
   if (alerts.length === 0) {
     return (
       <Panel
@@ -63,7 +70,7 @@ export function ActiveAlertsTable({ alerts }: ActiveAlertsTableProps) {
           </tr>
         </thead>
         <tbody>
-          {alerts.map((alert, index) => {
+          {visible.map((alert, index) => {
             const tone = SEVERITY_TONE[alert.severity];
             const key = `${alert.guardName}-${alert.alertDate}-${index}`;
             return (
@@ -85,6 +92,13 @@ export function ActiveAlertsTable({ alerts }: ActiveAlertsTableProps) {
           })}
         </tbody>
       </table>
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPrev={prev}
+        onNext={next}
+        label="Active alerts pagination"
+      />
     </Panel>
   );
 }

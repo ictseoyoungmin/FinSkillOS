@@ -106,6 +106,7 @@ protocols.
 182  Eliminate Layout Void — Evidence Tabs (v3 Phase 8)
 183  Use Horizontal Space — Mission/Risk/Catalyst (v3 Phase 8)
 184  System Ops History Density (v3 Phase 8)
+185  Reusable Pagination for Long Lists (v3 Phase 8)
 ```
 
 ## Validation Baseline
