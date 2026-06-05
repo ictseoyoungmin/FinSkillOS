@@ -22,6 +22,7 @@ PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "calculate_indicators.py",
     ROOT / "scripts" / "refresh_worker.py",
     ROOT / "scripts" / "run_regime_scan.py",
+    ROOT / "scripts" / "migration_safety_check.py",
 )
 
 

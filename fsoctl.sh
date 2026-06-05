@@ -40,6 +40,7 @@ Setup / lifecycle
   logs [svc]       Follow logs (all services, or one)
 
 Data / operations
+  check            Migration safety preflight (DB revision vs code head)
   migrate          Apply database migrations (alembic upgrade head)
   seed             Seed the sample account + System folder (idempotent)
   refresh          Run one refresh cycle now (market → news → indicators → regime)
@@ -64,9 +65,16 @@ cmd_build() {
   ${COMPOSE} build ${APP_SERVICES}
 }
 
+cmd_check() {
+  ${COMPOSE} up -d postgres
+  ${COMPOSE} run --rm api python scripts/migration_safety_check.py "$@"
+}
+
 cmd_migrate() {
   c_blue "Applying database migrations"
   ${COMPOSE} up -d postgres
+  # Heads-up preflight; never blocks the upgrade itself.
+  ${COMPOSE} run --rm api python scripts/migration_safety_check.py || true
   ${COMPOSE} run --rm migrate
 }
 
@@ -151,6 +159,7 @@ main() {
     restart) cmd_restart "$@" ;;
     status) cmd_status "$@" ;;
     logs) cmd_logs "$@" ;;
+    check) cmd_check "$@" ;;
     migrate) cmd_migrate "$@" ;;
     seed) cmd_seed "$@" ;;
     refresh) cmd_refresh "$@" ;;

@@ -143,6 +143,22 @@ Restore requires the explicit `--confirm-restore` (or `FINSKILLOS_CONFIRM_RESTOR
 and uses confirmed clean-restore semantics. Back up before a risky migration or a
 data-repair protocol.
 
+## Migration safety preflight (Slice 170)
+
+Before an upgrade or restore, check the DB revision against the code's migration
+head:
+
+```bash
+./fsoctl.sh check                  # or: docker compose run --rm api python scripts/migration_safety_check.py
+```
+
+States: `UP_TO_DATE` / `PENDING_UPGRADE` (run `./fsoctl.sh migrate`) /
+`UNINITIALISED` (fresh DB) / `UNKNOWN_REVISION` (**the DB is at a revision the
+code doesn't know — the code is likely older than the DB; align the code version
+before upgrading**, exit 3) / `DB_UNREACHABLE` (exit 4). `./fsoctl.sh migrate`
+runs this as a non-blocking heads-up first. Add `--require-current` to make a
+pending upgrade exit non-zero (for scripted gates).
+
 ## Verify (before/after changes)
 
 ```bash

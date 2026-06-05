@@ -91,6 +91,7 @@ protocols.
 167  Cross-tab Evidence Graph (Phase 4)
 168  Weekly Evidence Report (Phase 4)
 169  Operator CLI / Bootstrap (fsoctl.sh) (Phase 5)
+170  Upgrade / Migration Safety Check (Phase 5)
 ```
 
 ## Validation Baseline
@@ -249,7 +250,10 @@ safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
   over docker compose (setup/build/up/down/status/logs/migrate/seed/refresh/
   backup/restore/verify); `verify`+`build` rebuild app images first (baked-image
   lesson). Runbook "Operator CLI" section; ops-test coverage.
-- [ ] **170 Upgrade / migration safety check** — preflight alembic head vs DB.
+- [x] **170 Upgrade / migration safety check** (slice 170) —
+  `scripts/migration_safety_check.py` (DB revision vs code head:
+  UP_TO_DATE/PENDING/UNINITIALISED/UNKNOWN_REVISION(exit 3)/DB_UNREACHABLE);
+  `fsoctl.sh check` + non-blocking preflight in `migrate`. Runbook section.
 - [ ] **171 Backup-restore drill UX**.
 - [ ] **172 Local data-dir policy / release profile**.
 - [ ] **173 Versioned release notes / CHANGELOG**.
