@@ -213,16 +213,22 @@ class GeminiProvider:
         return True
 
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult:
+        messages: list[ChatMessage] = []
+        if system and system.strip():
+            messages.append({"role": "system", "content": system.strip()})
+        messages.append({"role": "user", "content": prompt})
+        return self.chat(messages)
+
+    def chat(self, messages: list[ChatMessage]) -> LLMResult:
         transport = self._transport or _default_http_transport
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{self._model}:generateContent"
         )
-        parts = []
-        if system and system.strip():
-            parts.append({"text": system.strip()})
-        parts.append({"text": prompt})
-        payload = {"contents": [{"parts": parts}]}
+        system_instruction, contents = _gemini_contents(messages)
+        payload: dict = {"contents": contents}
+        if system_instruction:
+            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": self._api_key or "",
@@ -230,15 +236,6 @@ class GeminiProvider:
         data = transport(url, payload, headers)
         text = _extract_gemini_text(data)
         return LLMResult(text=text, provider=self.kind, model=self._model, offline=False)
-
-    def chat(self, messages: list[ChatMessage]) -> LLMResult:
-        system = _system_of(messages)
-        convo = "\n".join(
-            f"{m.get('role')}: {m.get('content', '')}"
-            for m in messages
-            if m.get("role") != "system"
-        )
-        return self.complete(convo, system=system)
 
 
 class LocalOpenAIProvider:
@@ -405,6 +402,58 @@ def _default_http_transport(url: str, payload: dict, headers: dict) -> dict:
     )
     with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
         return json.loads(response.read().decode("utf-8"))
+
+
+def _parse_data_url(url: str) -> tuple[str, str] | None:
+    """`data:image/png;base64,XXXX` → (mime, base64) or None."""
+
+    if not url.startswith("data:"):
+        return None
+    try:
+        header, encoded = url.split(",", 1)
+    except ValueError:
+        return None
+    mime = header[5:].split(";")[0] or "image/png"
+    return mime, encoded
+
+
+def _gemini_part(part) -> dict | None:
+    if isinstance(part, str):
+        return {"text": part}
+    if isinstance(part, dict):
+        if part.get("type") == "text":
+            return {"text": part.get("text", "")}
+        if part.get("type") == "image_url":
+            parsed = _parse_data_url((part.get("image_url") or {}).get("url", ""))
+            if parsed:
+                mime, encoded = parsed
+                return {"inline_data": {"mime_type": mime, "data": encoded}}
+    return None
+
+
+def _gemini_contents(messages: list[ChatMessage]) -> tuple[str, list[dict]]:
+    """Map OpenAI-style messages → (systemInstruction text, Gemini contents).
+
+    `assistant`→`model`; string or parts content; image_url data URLs →
+    inline_data so a vision model reads attached screenshots.
+    """
+
+    system_texts: list[str] = []
+    contents: list[dict] = []
+    for message in messages:
+        role = message.get("role")
+        content = message.get("content")
+        if role == "system":
+            if isinstance(content, str):
+                system_texts.append(content)
+            continue
+        g_role = "model" if role == "assistant" else "user"
+        if isinstance(content, list):
+            parts = [p for p in (_gemini_part(item) for item in content) if p]
+        else:
+            parts = [{"text": str(content)}]
+        contents.append({"role": g_role, "parts": parts or [{"text": ""}]})
+    return "\n".join(system_texts).strip(), contents
 
 
 def _extract_gemini_text(data: dict) -> str:

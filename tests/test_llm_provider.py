@@ -83,6 +83,40 @@ def test_local_openai_parses_injected_transport_response() -> None:
     assert result.text == "local-text"
 
 
+def test_gemini_chat_maps_system_roles_and_image_parts() -> None:
+    captured: dict = {}
+
+    def transport(url, payload, headers):
+        captured["payload"] = payload
+        return {"candidates": [{"content": {"parts": [{"text": "saw it"}]}}]}
+
+    provider = GeminiProvider(transport=transport)
+    result = provider.chat(
+        [
+            {"role": "system", "content": "SYS"},
+            {"role": "assistant", "content": "earlier"},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "read this"},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": "data:image/png;base64,QUJD"},
+                    },
+                ],
+            },
+        ]
+    )
+    assert result.text == "saw it"
+    payload = captured["payload"]
+    assert payload["systemInstruction"]["parts"][0]["text"] == "SYS"
+    # assistant → model role
+    assert payload["contents"][0]["role"] == "model"
+    user_parts = payload["contents"][-1]["parts"]
+    assert user_parts[0] == {"text": "read this"}
+    assert user_parts[1]["inline_data"] == {"mime_type": "image/png", "data": "QUJD"}
+
+
 def test_bad_response_shape_raises() -> None:
     provider = GeminiProvider(transport=lambda u, p, h: {"oops": 1})
     with pytest.raises(RuntimeError):
