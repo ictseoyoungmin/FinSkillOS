@@ -6,6 +6,8 @@ export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 export { Metric } from "./Metric";
 export type { MetricProps } from "./Metric";
+export { OriginTag } from "./OriginTag";
+export type { DataOrigin, OriginTagProps } from "./OriginTag";
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
 export { JudgmentHeader } from "./JudgmentHeader";

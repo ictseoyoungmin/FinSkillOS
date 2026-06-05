@@ -1,4 +1,4 @@
-import { Panel } from "@/shared/ui";
+import { OriginTag, Panel } from "@/shared/ui";
 import { formatKrw, formatPct } from "@/shared/lib/format";
 import type {
   PortfolioReconciliation,
@@ -9,6 +9,8 @@ import "./portfolio-snapshot-panel.css";
 export interface PortfolioSnapshotPanelProps {
   snapshot: PortfolioSnapshotPanelData;
   reconciliation?: PortfolioReconciliation;
+  /** Live only: mark computed values (weight %) as DERIVED (Slice 180). */
+  markDerived?: boolean;
 }
 
 /**
@@ -20,6 +22,7 @@ export interface PortfolioSnapshotPanelProps {
 export function PortfolioSnapshotPanel({
   snapshot,
   reconciliation,
+  markDerived = false,
 }: PortfolioSnapshotPanelProps) {
   const overLimit = snapshot.overSingleLimitTickers;
   return (
@@ -49,6 +52,9 @@ export function PortfolioSnapshotPanel({
             <span className="fso-portfolio-snapshot-weight">
               {formatPct(snapshot.largestPositionWeightPct)}
             </span>
+            {markDerived && snapshot.largestPositionTicker ? (
+              <OriginTag origin="derived" testId="snapshot-weight-origin" />
+            ) : null}
           </dd>
         </div>
       </dl>

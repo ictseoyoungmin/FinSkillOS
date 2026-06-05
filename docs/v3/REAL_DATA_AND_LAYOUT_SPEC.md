@@ -51,6 +51,12 @@ is real or sample). The screenshots show the cockpit running fully live
    so derived vs stored is visually distinguishable where it matters, and
    empty-states never show a fabricated number. Extends the existing source/state
    chips rather than inventing a parallel system.
+   - **Implemented (Slice 180):** `frontend/src/shared/ui/OriginTag.tsx` — a tiny
+     chip with `origin = live | derived | sample | empty`. Reference usage:
+     Mission Control's "Largest" weight % (a DERIVED value) carries an
+     `OriginTag origin="derived"` in **live mode only** (`markDerived={source ===
+     "live"}`), so the fixture visual baseline is unchanged. Roll-out to other
+     derived values / explicit empty-states is the per-tab work (181+).
 3. **Seed honesty:** seeded sample rows (sample account / System folder) are
    legitimate *real* rows once a user keeps them, but the "Clear sample" path
    (slice 158) + an explicit "this is seeded sample data" marker let the user

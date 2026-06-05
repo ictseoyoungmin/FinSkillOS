@@ -127,6 +127,7 @@ export function MissionControlPage() {
             <PortfolioSnapshotPanel
               snapshot={payload.portfolio}
               reconciliation={payload.reconciliation}
+              markDerived={payload.source === "live"}
             />
           </div>
           {payload.constraints && payload.constraints.length > 0 ? (

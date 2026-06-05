@@ -1,0 +1,32 @@
+.fso-origin-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--fso-line);
+  font-family: var(--fso-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-text-muted-2);
+  vertical-align: middle;
+}
+
+.fso-origin-live {
+  border-color: color-mix(in srgb, var(--fso-green) 55%, var(--fso-line));
+  color: var(--fso-green);
+}
+
+.fso-origin-derived {
+  border-color: color-mix(in srgb, var(--fso-cyan) 55%, var(--fso-line));
+  color: var(--fso-cyan);
+}
+
+.fso-origin-sample {
+  border-color: color-mix(in srgb, var(--fso-amber) 55%, var(--fso-line));
+  color: var(--fso-amber);
+}
+
+.fso-origin-empty {
+  color: var(--fso-text-muted);
+}
