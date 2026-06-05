@@ -9,6 +9,7 @@ import { OsTickerStrip } from "./OsTickerStrip";
 import { OsDbUnavailableBanner } from "./OsDbUnavailableBanner";
 import { OsStatusBar } from "./OsStatusBar";
 import { OsCommandPalette } from "./OsCommandPalette";
+import { AgentChatWidget } from "@/features/agent/components/AgentChatWidget";
 import { navItemForPath } from "./nav-config";
 import "./os-shell.css";
 
@@ -83,6 +84,7 @@ export function OsShell({ children }: OsShellProps) {
         staleFlags={systemStatus?.staleFlags ?? ["system_status_pending"]}
       />
       <OsCommandPalette open={paletteOpen} onClose={closePalette} />
+      <AgentChatWidget />
     </div>
   );
 }

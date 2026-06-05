@@ -36,3 +36,25 @@ export interface IngestProposalResponse {
   applyEndpoint: string;
   boundary: string;
 }
+
+export interface ChatMessageVM {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ProposedActionVM {
+  kind: "portfolio_import";
+  summary: string;
+  normalizedCsv: string;
+  rowCount: number;
+  warnings: string[];
+  applyEndpoint: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  provider: string;
+  ready: boolean;
+  proposedAction: ProposedActionVM | null;
+  boundary: string;
+}

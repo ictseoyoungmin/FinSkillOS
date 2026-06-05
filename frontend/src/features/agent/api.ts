@@ -1,9 +1,29 @@
 import { ApiError, getJson } from "@/shared/api/client";
 import type {
   AgentProvidersResponse,
+  ChatMessageVM,
+  ChatResponse,
   IngestProposalResponse,
   LLMProviderKind,
 } from "./types";
+
+export async function sendAgentChat(
+  messages: ChatMessageVM[],
+  signal?: AbortSignal,
+): Promise<ChatResponse> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const response = await fetch(`${base}/agent/chat`, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as ChatResponse;
+}
 
 export async function ingestPortfolioPaste(
   text: string,

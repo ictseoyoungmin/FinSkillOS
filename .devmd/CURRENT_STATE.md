@@ -113,6 +113,7 @@ protocols.
 189  Agent Ingestion Parser + Preview (v3 Phase 11)
 190  Agent Paste-Import UI (v3 Phase 11)
 191  Agent Chat Backend + Local-LLM Wiring (v3 Phase 11)
+192  Agent Chat Widget (v3 Phase 11)
 ```
 
 ## Validation Baseline
