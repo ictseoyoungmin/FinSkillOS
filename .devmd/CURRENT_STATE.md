@@ -102,6 +102,7 @@ protocols.
 178  On-demand LLM Explanation Boundary (Phase 6)
 179  Real-Data Audit + Integrity Guard (v3 Phase 7)
 180  Data Authenticity Contract (OriginTag) (v3 Phase 7)
+181  Shared Panel Density Pass (v3 Phase 8)
 ```
 
 ## Validation Baseline
@@ -157,10 +158,14 @@ brokerage/execution boundary (deferred). **Phase 7–8 ACTIVE** (user: "phase7-8
 - [x] **180 Data authenticity contract** (v3) — shared `OriginTag`
   (live/derived/sample/empty) chip; reference usage on Mission Control's derived
   weight % (live-gated → fixture baseline unchanged).
-- [ ] 181+ per-tab roll-out (mark derived values; empty-states show
-  `OriginTag origin="empty"` not a fabricated 0) · Phase 8 layout audit +
-  per-tab density redesign. **These are UI-visual; benefit from user direction on
-  which cards/tabs to prioritize + the env-blocked Playwright baseline regen.**
+- [x] **181 Shared panel density pass** (v3 Phase 8) — tightened the shared
+  `Panel` chrome (head/body padding + gap), densifying all 10 tabs evenly
+  ("전체 탭 균등"). **Drifts all `@visual` baselines — user regenerates** via
+  `npm run test:visual:update` (decided 2026-06-05).
+- [ ] Next (Phase 7 + 8 per-tab, even pass): structural redensification
+  (tabularize Ops protocol-run history + Control Room evidence stack; disclosure
+  for detail; dead-gutter trims) + Phase-7 honesty roll-out (`OriginTag` on
+  derived values; explicit empty-states). User regenerates baselines per slice.
 
 Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
 via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.
