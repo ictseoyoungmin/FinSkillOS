@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMissionControl } from "@/features/portfolio/api";
+import { AgentIngestPanel } from "@/features/agent/components/AgentIngestPanel";
 import { CapitalMapPanel } from "@/features/portfolio/components/CapitalMapPanel";
 import { ConstraintSummaryPanel } from "@/features/portfolio/components/ConstraintSummaryPanel";
 import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTimeline";
@@ -195,6 +196,16 @@ export function MissionControlPage() {
             payload.systemStatus.db.toUpperCase() === "LIVE"
           }
           onMutated={(next) =>
+            queryClient.setQueryData(["mission-control"], next)
+          }
+        />
+        {/* v3 Phase 11 (190): agent paste-import sits beside the editor. */}
+        <AgentIngestPanel
+          editable={
+            payload.source === "live" &&
+            payload.systemStatus.db.toUpperCase() === "LIVE"
+          }
+          onApplied={(next) =>
             queryClient.setQueryData(["mission-control"], next)
           }
         />

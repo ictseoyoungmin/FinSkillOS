@@ -111,6 +111,7 @@ protocols.
 187  LLM Provider Abstraction (v3 Phase 10)
 188  Ops LLM Provider Switcher (v3 Phase 10)
 189  Agent Ingestion Parser + Preview (v3 Phase 11)
+190  Agent Paste-Import UI (v3 Phase 11)
 ```
 
 ## Validation Baseline

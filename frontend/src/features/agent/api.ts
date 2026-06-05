@@ -1,5 +1,28 @@
 import { ApiError, getJson } from "@/shared/api/client";
-import type { AgentProvidersResponse, LLMProviderKind } from "./types";
+import type {
+  AgentProvidersResponse,
+  IngestProposalResponse,
+  LLMProviderKind,
+} from "./types";
+
+export async function ingestPortfolioPaste(
+  text: string,
+  signal?: AbortSignal,
+): Promise<IngestProposalResponse> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const url = `${base}/agent/ingest`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ target: "portfolio", text }),
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as IngestProposalResponse;
+}
 
 export async function fetchAgentProviders(
   signal?: AbortSignal,
