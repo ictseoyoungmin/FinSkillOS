@@ -32,3 +32,22 @@ conservative, opt-in contract the user decides on explicitly.
 - The descriptive-only product boundary is never relaxed for the cockpit at large.
 - Any execution capability is isolated, paper-first, off by default, and gated by
   its own contract — never reachable from the agent ingestion or narration paths.
+
+## Implemented — Slice 200 (the boundary stub only)
+
+`finskillos/brokerage/adapter.py`:
+- `BrokerageReadAdapter` protocol — **read-only** (`available` / `fetch_positions`
+  / `fetch_trades` / `snapshot`). **No order / execution method by design.**
+- `BrokerageSnapshot` carries records in the exact shape `proposal_from_records`
+  / `trades_from_records` accept, so a future broker feeds the same confirm-gated
+  import — no new write power.
+- `NullBrokerageAdapter` (default) + `build_brokerage_adapter()`
+  (`FINSKILLOS_BROKERAGE_ADAPTER`, every value → null; no real adapter ships).
+- `EXECUTION_BOUNDARY` constant states execution is out of scope — a separate,
+  later, conservative, paper-first, default-off, explicitly-authorized decision.
+
+Tests (`tests/test_brokerage_boundary.py`): default null + empty; unknown name →
+null; **no execution attribute** (place_order/execute/buy/sell/trade); Null
+satisfies the read protocol; a broker snapshot flows into the existing proposals.
+
+Execution itself remains **not implemented** and out of scope.

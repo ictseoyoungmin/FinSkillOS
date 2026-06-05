@@ -121,6 +121,7 @@ protocols.
 197  Fix Over-Aggressive Chat Boundary (v3 Phase 11)
 198  Trades-Paste Ingestion (v3 Phase 11)
 199  Watchlist via Chat (v3 Phase 11)
+200  Brokerage Read-Only Extension Boundary (v3 Phase 12)
 ```
 
 ## Validation Baseline
