@@ -48,7 +48,7 @@ Data / operations
   migrate          Apply database migrations (alembic upgrade head)
   seed             Seed the sample account + System folder (idempotent)
   refresh          Run one refresh cycle now (market → news → indicators → regime)
-  report [period]  Write a daily|weekly evidence report to data/exports (default daily)
+  report [period]  Write a daily|weekly|event-week report to data/exports (default daily)
   backup [path]    Back up Postgres to backups/ (or the given path)
   drill [path]     Backup-restore drill: back up to backups/, then verify the dump
   restore <file>   Restore Postgres from a dump (requires --confirm-restore; destructive)

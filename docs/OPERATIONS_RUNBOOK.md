@@ -167,13 +167,15 @@ live bind mount.
 Write a descriptive evidence report to `data/exports/`:
 
 ```bash
-./fsoctl.sh report           # daily brief  → data/exports/report_daily_<date>.md
-./fsoctl.sh report weekly    # weekly report → data/exports/report_weekly_<date>.md
+./fsoctl.sh report             # daily brief   → data/exports/report_daily_<date>.md
+./fsoctl.sh report weekly      # weekly report → data/exports/report_weekly_<date>.md
+./fsoctl.sh report event-week  # catalyst week → data/exports/report_event-week_<date>.md
 ```
 
 The **daily brief** is regime + portfolio + upcoming catalysts; the **weekly
-report** adds the trade-process review (Slice 168). Both are descriptive only and
-wording-scanned. Schedule via cron, e.g. a daily `0 7 * * *  cd <repo> &&
+report** adds the trade-process review (Slice 168); the **event-week briefing**
+(Slice 175) is a forward-looking list of catalysts in the next 7 days with their
+risk score and which holdings they touch. All descriptive only and wording-scanned. Schedule via cron, e.g. a daily `0 7 * * *  cd <repo> &&
 ./fsoctl.sh report` and a weekly `0 7 * * 1 … ./fsoctl.sh report weekly`.
 
 ## Backup / restore

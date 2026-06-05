@@ -8,6 +8,7 @@ against the database; the assembled markdown is wording-scanned in the builder.
 Examples:
   python scripts/generate_report.py --period daily
   python scripts/generate_report.py --period weekly --stdout
+  python scripts/generate_report.py --period event-week
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--period",
-        choices=("daily", "weekly"),
+        choices=("daily", "weekly", "event-week"),
         default="daily",
         help="Which report to generate (default daily).",
     )

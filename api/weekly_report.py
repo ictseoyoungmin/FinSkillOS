@@ -28,6 +28,7 @@ from finskillos.ui.view_models.trade_memory_vm import render_weekly_review_markd
 __all__ = [
     "build_weekly_evidence_markdown",
     "build_daily_brief_markdown",
+    "build_event_week_briefing_markdown",
     "build_report_markdown",
 ]
 
@@ -82,13 +83,81 @@ def build_daily_brief_markdown(session: Session, *, today: date) -> str:
     return markdown
 
 
+def build_event_week_briefing_markdown(
+    session: Session, *, today: date, horizon_days: int = 7
+) -> str:
+    """Forward-looking briefing of catalysts in the next ``horizon_days`` — 175.
+
+    Lists upcoming events within the window (sorted by date) with their risk
+    label / score and which current holdings they touch. Preparation / exposure
+    framing only — never a trade directive."""
+
+    from datetime import timedelta
+
+    vm = build_event_radar_view_model(session, today=today)
+    window_end = today + timedelta(days=horizon_days)
+    upcoming = sorted(
+        (
+            event
+            for event in vm.upcoming
+            if event.days_to_event is not None
+            and 0 <= event.days_to_event <= horizon_days
+        ),
+        key=lambda e: (e.start_date, -float(e.event_risk_score)),
+    )
+
+    lines = [
+        "# Event-Week Briefing",
+        f"_{today.isoformat()} → {window_end.isoformat()} · upcoming catalysts_",
+        "",
+        f"## Catalysts in the next {horizon_days} days ({len(upcoming)})",
+    ]
+    if not upcoming:
+        lines.append(f"- No catalysts in the next {horizon_days} days.")
+    else:
+        for event in upcoming:
+            held = (
+                "touches " + ", ".join(event.held_tickers)
+                if event.held_tickers
+                else "no current holdings"
+            )
+            lines.append(
+                f"- {event.start_date.isoformat()} · {event.title} "
+                f"(in {event.days_to_event}d) — risk {event.risk_label} "
+                f"{_num(event.event_risk_score)}; {held}"
+            )
+
+    linked = [e for e in upcoming if e.held_tickers]
+    lines.append("")
+    lines.append("## Holdings exposure")
+    if linked:
+        touched = sorted({t for e in linked for t in e.held_tickers})
+        lines.append(
+            f"- {len(linked)} upcoming event(s) touch current holdings: "
+            + ", ".join(touched)
+        )
+    else:
+        lines.append("- No upcoming events touch current holdings.")
+
+    markdown = (
+        "\n".join(lines)
+        + "\n\n---\n_Preparation / exposure summary — not a trade directive._\n"
+    )
+    _assert_safe(markdown)
+    return markdown
+
+
 def build_report_markdown(session: Session, *, period: str, today: date) -> str:
-    """Dispatch to the daily / weekly builder by ``period`` (Slice 174)."""
+    """Dispatch to the report builder by ``period`` (Slices 174 / 175)."""
     if period == "weekly":
         return build_weekly_evidence_markdown(session, today=today)
     if period == "daily":
         return build_daily_brief_markdown(session, today=today)
-    raise ValueError(f"unknown report period {period!r} (expected daily|weekly)")
+    if period == "event-week":
+        return build_event_week_briefing_markdown(session, today=today)
+    raise ValueError(
+        f"unknown report period {period!r} (expected daily|weekly|event-week)"
+    )
 
 
 def _no_account_report(title: str) -> str:

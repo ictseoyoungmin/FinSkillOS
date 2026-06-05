@@ -96,6 +96,7 @@ protocols.
 172  Local Data-dir Policy / Release Profile (Phase 5)
 173  Versioned Release Notes / CHANGELOG (Phase 5)
 174  Scheduled Daily/Weekly Reports (Phase 6)
+175  Event-Week Briefing (Phase 6)
 ```
 
 ## Validation Baseline
@@ -280,7 +281,9 @@ boundary (narration only — never judgment/direction).
   / `build_report_markdown` + `scripts/generate_report.py` (--period daily|weekly
   → `data/exports/report_<period>_<date>.md`) + `fsoctl.sh report`. Descriptive,
   wording-scanned.
-- [ ] **175 Event-week briefing**.
+- [x] **175 Event-week briefing** (slice 175) — `build_event_week_briefing_markdown`
+  (catalysts in the next 7d, sorted, with risk score + held-ticker linkage +
+  holdings-exposure rollup); `report event-week` period. Descriptive.
 - [ ] **176 Worker notification hook**.
 - [ ] **177 Optional Telegram adapter** (gated off).
 - [ ] **178 On-demand LLM explanation boundary** (narration only).
