@@ -41,6 +41,8 @@ _ALLOWED_SETTING_KEYS = {
     "FINSKILLOS_NEWS_RSS_TICKERS",
     "FINSKILLOS_NEWS_RSS_SOURCE",
     "FINSKILLOS_NEWS_RSS_LANGUAGE",
+    # v3 Phase 10: the active LLM provider for the agent narrator (Ops switcher).
+    "FINSKILLOS_LLM_PROVIDER",
 }
 
 _ALLOWED_SETTING_KEYS_TUPLE = tuple(sorted(_ALLOWED_SETTING_KEYS))

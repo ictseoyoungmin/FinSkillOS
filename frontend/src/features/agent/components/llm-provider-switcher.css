@@ -1,0 +1,97 @@
+.fso-llm-provider-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.fso-llm-provider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--fso-line-soft);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-bg-2) 60%, transparent);
+}
+
+.fso-llm-provider-row--active {
+  border-color: var(--fso-cyan-2);
+  background: color-mix(in srgb, var(--fso-cyan) 10%, transparent);
+}
+
+.fso-llm-provider-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fso-llm-provider-label {
+  font-family: var(--fso-font-head);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fso-text);
+}
+
+.fso-llm-provider-active-pill {
+  margin-left: auto;
+  font-family: var(--fso-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fso-cyan);
+}
+
+.fso-llm-provider-desc {
+  margin: 0;
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}
+
+.fso-llm-provider-reason {
+  margin: 0;
+  font-family: var(--fso-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-llm-provider-select {
+  margin-top: 4px;
+  align-self: flex-start;
+  font-family: var(--fso-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid var(--fso-line);
+  background: color-mix(in srgb, var(--fso-bg-2) 70%, transparent);
+  color: var(--fso-text-muted);
+  cursor: pointer;
+}
+
+.fso-llm-provider-select:not(:disabled):hover {
+  border-color: var(--fso-cyan-2);
+  color: var(--fso-text);
+}
+
+.fso-llm-provider-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fso-llm-provider-boundary {
+  margin: 10px 0 0;
+  font-size: 10.5px;
+  color: var(--fso-text-muted-2);
+}
+
+.fso-llm-provider-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--fso-text-muted);
+}

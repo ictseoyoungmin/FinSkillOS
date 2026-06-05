@@ -38,4 +38,38 @@ class AgentToolsResponse(CamelModel):
     )
 
 
-__all__ = ["AgentToolVM", "AgentToolsResponse"]
+class LLMProviderVM(CamelModel):
+    """One selectable LLM provider for the Ops switcher."""
+
+    kind: Literal["echo", "claude_code", "gemini", "local"]
+    label: str
+    description: str
+    default_model: str
+    requires: list[str] = Field(default_factory=list)
+    needs_network: bool = False
+    ready: bool = False
+    reason: str = ""
+
+
+class AgentProvidersResponse(CamelModel):
+    """The LLM provider catalogue + the active selection (v3 Phase 10)."""
+
+    active: Literal["echo", "claude_code", "gemini", "local"]
+    providers: list[LLMProviderVM]
+    boundary: str = (
+        "Provider switching changes the narrator backend only — the "
+        "descriptive-only output boundary is enforced regardless of provider."
+    )
+
+
+class ProviderSwitchRequest(CamelModel):
+    kind: Literal["echo", "claude_code", "gemini", "local"]
+
+
+__all__ = [
+    "AgentToolVM",
+    "AgentToolsResponse",
+    "LLMProviderVM",
+    "AgentProvidersResponse",
+    "ProviderSwitchRequest",
+]

@@ -10,6 +10,7 @@ import {
   setWorkerLiveMode,
   retryWorkerJob,
 } from "@/features/system-ops/api";
+import { LLMProviderSwitcher } from "@/features/agent/components/LLMProviderSwitcher";
 import { CollectionControlPanel } from "@/features/collection-control/components/CollectionControlPanel";
 import { DataInvariantPanel } from "@/features/system-ops/components/DataInvariantPanel";
 import { DataProvenancePanel } from "@/features/system-ops/components/DataProvenancePanel";
@@ -569,6 +570,8 @@ export function SystemOpsPage() {
       ) : activeTab === "collection" ? (
         <CollectionControlPanel />
       ) : activeTab === "runtime" ? (
+        <>
+        <LLMProviderSwitcher />
         <RuntimeSettingsDashboard
           draft={runtimeDraft}
           sections={runtimeSections}
@@ -588,6 +591,7 @@ export function SystemOpsPage() {
           onResetOverrides={() => resetOverridesMutation.mutate()}
           isResetting={resetOverridesMutation.isPending}
         />
+        </>
       ) : (
         <WorkerStatusDashboard workerStatus={payload.workerStatus} />
       )}
