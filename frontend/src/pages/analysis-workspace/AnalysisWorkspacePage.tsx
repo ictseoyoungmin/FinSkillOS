@@ -82,6 +82,21 @@ export function AnalysisWorkspacePage() {
             tickers={payload.missingData}
             setupHint={payload.setupHint}
           />
+          {/* v3 Phase 8 (182): interpretation + watchpoints flow in the (shorter)
+              side rail to fill space beside the taller universe table. */}
+          <InterpretationPanel
+            bullets={[
+              payload.interpretation.verdict,
+              payload.interpretation.whyItMatters,
+              payload.interpretation.whatRemainsUncertain,
+            ]}
+          />
+          <WatchpointsPanel
+            watchpoints={payload.watchpoints.map((watchpoint) => ({
+              label: watchpoint.title,
+              description: watchpoint.note,
+            }))}
+          />
         </aside>
       </div>
       <p
@@ -90,19 +105,6 @@ export function AnalysisWorkspacePage() {
       >
         {payload.safetyCaption} Stored data only.
       </p>
-      <InterpretationPanel
-        bullets={[
-          payload.interpretation.verdict,
-          payload.interpretation.whyItMatters,
-          payload.interpretation.whatRemainsUncertain,
-        ]}
-      />
-      <WatchpointsPanel
-        watchpoints={payload.watchpoints.map((watchpoint) => ({
-          label: watchpoint.title,
-          description: watchpoint.note,
-        }))}
-      />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );

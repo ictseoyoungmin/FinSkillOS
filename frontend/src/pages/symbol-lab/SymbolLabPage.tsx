@@ -290,6 +290,21 @@ export function SymbolLabPage() {
             interpretation={payload.interpretation}
             safetyCaption={payload.safetyCaption}
           />
+          {/* v3 Phase 8 (182): integrated interpretation + review watchpoints flow
+              in the main column to fill space beside the taller context rail. */}
+          <InterpretationPanel
+            bullets={[
+              payload.integratedInterpretation.verdict,
+              payload.integratedInterpretation.whyItMatters,
+              payload.integratedInterpretation.whatRemainsUncertain,
+            ]}
+          />
+          <WatchpointsPanel
+            watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
+              label: watchpoint.title,
+              description: watchpoint.note,
+            }))}
+          />
         </div>
         <aside className="fso-symbol-lab-side" aria-label="Position + Risk context">
           <div data-testid="symbol-position-context">
@@ -314,19 +329,6 @@ export function SymbolLabPage() {
           <RegimeContextPanel regime={payload.regime} />
         </aside>
       </div>
-      <InterpretationPanel
-        bullets={[
-          payload.integratedInterpretation.verdict,
-          payload.integratedInterpretation.whyItMatters,
-          payload.integratedInterpretation.whatRemainsUncertain,
-        ]}
-      />
-      <WatchpointsPanel
-        watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
-          label: watchpoint.title,
-          description: watchpoint.note,
-        }))}
-      />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );

@@ -94,6 +94,26 @@ export function ControlRoomGrid({
             }
           />
           <InterpretationCards cards={data.interpretationCards} />
+          {/* v3 Phase 8 (182): the evidence graph + interpretation + watchpoints
+              flow inside the (widest) center column so it fills the vertical
+              space beside the taller Risk-Firewall rail instead of leaving a
+              void and pushing these sections far below the fold. */}
+          {data.evidenceGraph && data.evidenceGraph.nodes.length > 0 ? (
+            <EvidenceGraphPanel graph={data.evidenceGraph} />
+          ) : null}
+          <InterpretationPanel
+            bullets={[
+              data.interpretation.verdict,
+              data.interpretation.whyItMatters,
+              data.interpretation.whatRemainsUncertain,
+            ]}
+          />
+          <WatchpointsPanel
+            watchpoints={data.watchpoints.map((watchpoint) => ({
+              label: watchpoint.title,
+              description: watchpoint.note,
+            }))}
+          />
         </section>
 
         <section
@@ -106,22 +126,6 @@ export function ControlRoomGrid({
           <WatchlistCard items={data.watchlist} />
         </section>
       </div>
-      {data.evidenceGraph && data.evidenceGraph.nodes.length > 0 ? (
-        <EvidenceGraphPanel graph={data.evidenceGraph} />
-      ) : null}
-      <InterpretationPanel
-        bullets={[
-          data.interpretation.verdict,
-          data.interpretation.whyItMatters,
-          data.interpretation.whatRemainsUncertain,
-        ]}
-      />
-      <WatchpointsPanel
-        watchpoints={data.watchpoints.map((watchpoint) => ({
-          label: watchpoint.title,
-          description: watchpoint.note,
-        }))}
-      />
       <SafetyCaption>{data.safetyCaption}</SafetyCaption>
     </div>
   );

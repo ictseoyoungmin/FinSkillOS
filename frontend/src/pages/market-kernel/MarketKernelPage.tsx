@@ -131,6 +131,22 @@ export function MarketKernelPage() {
           <div data-testid="market-kernel-chart-panel">
             <CandlePanel header={payload.header} bars={payload.bars} />
           </div>
+          {/* v3 Phase 8 (182): integrated interpretation + watchpoints flow under
+              the chart (the short column) to fill the space beside the taller
+              indicator/event side rail instead of leaving a void below. */}
+          <InterpretationPanel
+            bullets={[
+              payload.integratedInterpretation.verdict,
+              payload.integratedInterpretation.whyItMatters,
+              payload.integratedInterpretation.whatRemainsUncertain,
+            ]}
+          />
+          <WatchpointsPanel
+            watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
+              label: watchpoint.title,
+              description: watchpoint.note,
+            }))}
+          />
         </div>
         <aside className="fso-market-kernel-side" aria-label="Market interpretation">
           <IndicatorSnapshotPanel indicators={payload.indicators} />
@@ -142,19 +158,6 @@ export function MarketKernelPage() {
           />
         </aside>
       </div>
-      <InterpretationPanel
-        bullets={[
-          payload.integratedInterpretation.verdict,
-          payload.integratedInterpretation.whyItMatters,
-          payload.integratedInterpretation.whatRemainsUncertain,
-        ]}
-      />
-      <WatchpointsPanel
-        watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
-          label: watchpoint.title,
-          description: watchpoint.note,
-        }))}
-      />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );

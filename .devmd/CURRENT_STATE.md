@@ -103,6 +103,7 @@ protocols.
 179  Real-Data Audit + Integrity Guard (v3 Phase 7)
 180  Data Authenticity Contract (OriginTag) (v3 Phase 7)
 181  Shared Panel Density Pass (v3 Phase 8)
+182  Eliminate Layout Void — Evidence Tabs (v3 Phase 8)
 ```
 
 ## Validation Baseline
@@ -162,10 +163,15 @@ brokerage/execution boundary (deferred). **Phase 7–8 ACTIVE** (user: "phase7-8
   `Panel` chrome (head/body padding + gap), densifying all 10 tabs evenly
   ("전체 탭 균등"). **Drifts all `@visual` baselines — user regenerates** via
   `npm run test:visual:update` (decided 2026-06-05).
-- [ ] Next (Phase 7 + 8 per-tab, even pass): structural redensification
-  (tabularize Ops protocol-run history + Control Room evidence stack; disclosure
-  for detail; dead-gutter trims) + Phase-7 honesty roll-out (`OriginTag` on
-  derived values; explicit empty-states). User regenerates baselines per slice.
+- [x] **182 Eliminate layout void — evidence tabs** (v3 Phase 8) — the mid-page
+  void is column-height imbalance (tall rail vs short chart/center + full-width
+  trailing sections pushed down). Flowed the trailing Interpretation/Watchpoints
+  into the **shorter** column on Control Room (center), Market Kernel + Symbol Lab
+  (chart main), Analysis Workspace (side rail). Drifts those 4 `@visual`
+  baselines — user regenerates.
+- [ ] Next: remaining 6 tabs (Mission, Risk, News, Catalyst, Trade Memory, Ops —
+  different structures; **best after viewing the 4 evidence tabs**, since the work
+  is blind) + Phase-7 honesty roll-out (`OriginTag` derived/empty).
 
 Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
 via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.
