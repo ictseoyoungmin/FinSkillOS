@@ -25,6 +25,7 @@ from api.schemas.agent import (
     LLMProviderVM,
     ProposedActionVM,
     ProviderSwitchRequest,
+    WatchlistOpVM,
 )
 from finskillos.agent.chat import ChatMessage, run_chat
 from finskillos.agent.ingest import parse_portfolio_paste
@@ -183,6 +184,13 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
     )
     action = None
     if reply.proposed_action is not None:
+        watchlist = None
+        if reply.proposed_action.watchlist is not None:
+            watchlist = WatchlistOpVM(
+                add=list(reply.proposed_action.watchlist.add),
+                remove=list(reply.proposed_action.watchlist.remove),
+                folder=reply.proposed_action.watchlist.folder,
+            )
         action = ProposedActionVM(
             kind=reply.proposed_action.kind,
             summary=reply.proposed_action.summary,
@@ -190,6 +198,7 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
             row_count=reply.proposed_action.row_count,
             warnings=reply.proposed_action.warnings,
             apply_endpoint=reply.proposed_action.apply_endpoint,
+            watchlist=watchlist,
         )
     return ChatResponse(
         reply=reply.reply,

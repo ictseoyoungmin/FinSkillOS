@@ -44,13 +44,20 @@ export interface ChatMessageVM {
   images?: string[];
 }
 
+export interface WatchlistOpVM {
+  add: string[];
+  remove: string[];
+  folder: string;
+}
+
 export interface ProposedActionVM {
-  kind: "portfolio_import" | "trades_import";
+  kind: "portfolio_import" | "trades_import" | "watch_update";
   summary: string;
   normalizedCsv: string;
   rowCount: number;
   warnings: string[];
   applyEndpoint: string;
+  watchlist?: WatchlistOpVM | null;
 }
 
 export interface ChatResponse {

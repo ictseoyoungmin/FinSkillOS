@@ -176,6 +176,26 @@ def test_deterministic_trades_fallback_when_no_block() -> None:
     assert reply.proposed_action.row_count == 2
 
 
+def test_watchlist_deterministic_and_llm_block() -> None:
+    # deterministic (echo emits no block)
+    reply = run_chat(
+        [ChatMessage("user", "add NVDA TSLA to my watchlist")],
+        provider=EchoProvider(),
+    )
+    assert reply.proposed_action is not None
+    assert reply.proposed_action.kind == "watch_update"
+    assert reply.proposed_action.watchlist.add == ("NVDA", "TSLA")
+    assert reply.proposed_action.apply_endpoint.endswith("collection-control")
+
+    # LLM block
+    provider = _StubProvider(
+        _block('{"watchlist":{"add":["AAPL"],"remove":[],"folder":"AI"}}')
+    )
+    reply2 = run_chat([ChatMessage("user", "track apple")], provider=provider)
+    assert reply2.proposed_action.kind == "watch_update"
+    assert reply2.proposed_action.watchlist.folder == "AI"
+
+
 def test_no_block_falls_back_to_deterministic_parser() -> None:
     provider = _StubProvider("Recorded.")  # no json block
     reply = run_chat(

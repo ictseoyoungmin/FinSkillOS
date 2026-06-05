@@ -27,6 +27,9 @@ __all__ = [
     "TradeIngestProposal",
     "parse_trades_paste",
     "trades_from_records",
+    "WatchlistOp",
+    "parse_watchlist_request",
+    "watchlist_from_block",
 ]
 
 _TICKER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9.\-]{0,31}$")
@@ -377,6 +380,76 @@ def parse_trades_paste(text: str) -> TradeIngestProposal:
             rows=[], warnings=["No trades could be read from the pasted text."]
         )
     return proposal
+
+
+# --- watchlist ---------------------------------------------------------------
+
+_DEFAULT_WATCH_FOLDER = "Watchlist"
+_WATCH_KW = re.compile(r"\bwatch\s?list\b|\bwatch\b|관심\s?종목|워치", re.IGNORECASE)
+_WATCH_REMOVE_KW = re.compile(r"\bremove\b|\bdelete\b|\bdrop\b|빼|삭제|제외", re.IGNORECASE)
+_WATCH_STOP = {
+    "ADD", "REMOVE", "DELETE", "DROP", "TO", "FROM", "MY", "THE", "A", "AN",
+    "AND", "OR", "LIST", "WATCH", "PLEASE", "ON", "IN", "OF", "FOLDER",
+}
+
+
+@dataclass(frozen=True)
+class WatchlistOp:
+    add: tuple[str, ...] = ()
+    remove: tuple[str, ...] = ()
+    folder: str = _DEFAULT_WATCH_FOLDER
+
+
+def _watch_tickers(text: str) -> list[str]:
+    out: list[str] = []
+    for token in re.findall(r"\b[A-Z]{1,6}\b", text):
+        if token not in _WATCH_STOP and token not in out:
+            out.append(token)
+    return out
+
+
+def parse_watchlist_request(
+    text: str, *, folder: str = _DEFAULT_WATCH_FOLDER
+) -> WatchlistOp | None:
+    """Deterministic watch intent: requires a watch keyword + uppercase tickers."""
+
+    if not _WATCH_KW.search(text):
+        return None
+    tickers = tuple(_watch_tickers(text))
+    if not tickers:
+        return None
+    if _WATCH_REMOVE_KW.search(text):
+        return WatchlistOp(remove=tickers, folder=folder)
+    return WatchlistOp(add=tickers, folder=folder)
+
+
+def _valid_tickers(values) -> tuple[str, ...]:
+    out: list[str] = []
+    for value in values or []:
+        ticker = str(value).strip().upper()
+        if _TICKER_RE.match(ticker) and ticker not in out:
+            out.append(ticker)
+    return tuple(out)
+
+
+def watchlist_from_block(data: dict) -> WatchlistOp | None:
+    """Parse a `{"watchlist": [...] | {add, remove, folder}}` block."""
+
+    watchlist = data.get("watchlist") if isinstance(data, dict) else None
+    if watchlist is None:
+        return None
+    if isinstance(watchlist, list):
+        add = _valid_tickers(watchlist)
+        return WatchlistOp(add=add) if add else None
+    if isinstance(watchlist, dict):
+        add = _valid_tickers(watchlist.get("add"))
+        remove = _valid_tickers(watchlist.get("remove"))
+        folder = str(watchlist.get("folder") or _DEFAULT_WATCH_FOLDER).strip()
+        if add or remove:
+            return WatchlistOp(
+                add=add, remove=remove, folder=folder or _DEFAULT_WATCH_FOLDER
+            )
+    return None
 
 
 def proposal_from_records(records: list[dict]) -> IngestProposal:

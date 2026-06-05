@@ -20,10 +20,13 @@ import re
 from dataclasses import dataclass, field
 
 from finskillos.agent.ingest import (
+    WatchlistOp,
     parse_portfolio_paste,
     parse_trades_paste,
+    parse_watchlist_request,
     proposal_from_records,
     trades_from_records,
+    watchlist_from_block,
 )
 from finskillos.llm.provider import LLMProvider, build_provider
 
@@ -56,6 +59,10 @@ SYSTEM_PROMPT = (
     "```json\n"
     '{"trades": [{"ticker": "TSLA", "side": "LONG", "trade_date": "2026-06-01", '
     '"result_pnl": 250000, "notes": "breakout"}]}\n'
+    "```\n"
+    "For watchlist changes:\n"
+    "```json\n"
+    '{"watchlist": {"add": ["NVDA", "TSLA"], "remove": [], "folder": "Watchlist"}}\n'
     "```\n"
     "side is one of LONG, SHORT, WATCH, EXIT_REVIEW, OTHER (or buy/sell). Use "
     "plain numbers (no commas or currency symbols); use YYYY-MM-DD dates. Omit "
@@ -120,6 +127,25 @@ class ProposedAction:
     row_count: int
     apply_endpoint: str
     warnings: list[str] = field(default_factory=list)
+    watchlist: WatchlistOp | None = None
+
+
+def _watch_action(op: WatchlistOp | None, source: str) -> ProposedAction | None:
+    if op is None or (not op.add and not op.remove):
+        return None
+    bits = []
+    if op.add:
+        bits.append(f"add {', '.join(op.add)}")
+    if op.remove:
+        bits.append(f"remove {', '.join(op.remove)}")
+    return ProposedAction(
+        kind="watch_update",
+        summary=f"Watch folder '{op.folder}': {' · '.join(bits)} ({source}).",
+        normalized_csv="",
+        row_count=len(op.add) + len(op.remove),
+        apply_endpoint="/api/system-ops/collection-control",
+        watchlist=op,
+    )
 
 
 @dataclass(frozen=True)
@@ -204,6 +230,10 @@ def _extract_llm_action(reply: str) -> tuple[str, ProposedAction | None]:
                 "trades_import",
                 "extracted from your message",
             )
+        elif data.get("watchlist") is not None:
+            action = _watch_action(
+                watchlist_from_block(data), "extracted from your message"
+            )
         if action is not None:
             cleaned = (reply[: match.start()] + reply[match.end() :]).strip()
             return cleaned or "I prepared an import from what you gave me.", action
@@ -234,10 +264,16 @@ def run_chat(
     # Deterministic fallback from the raw pasted text (covers structured paste
     # even when the model emits no extraction block): holdings first, then trades.
     last_text = _last_user(messages)
-    action = _action_from_proposal(
-        parse_portfolio_paste(last_text), "portfolio_import", "parsed from your message"
-    ) or _action_from_proposal(
-        parse_trades_paste(last_text), "trades_import", "parsed from your message"
+    action = (
+        _action_from_proposal(
+            parse_portfolio_paste(last_text),
+            "portfolio_import",
+            "parsed from your message",
+        )
+        or _action_from_proposal(
+            parse_trades_paste(last_text), "trades_import", "parsed from your message"
+        )
+        or _watch_action(parse_watchlist_request(last_text), "parsed from your message")
     )
 
     image_note = ""

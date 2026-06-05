@@ -8,9 +8,29 @@ from api.main import create_app
 from finskillos.agent.ingest import (
     parse_portfolio_paste,
     parse_trades_paste,
+    parse_watchlist_request,
     proposal_from_records,
     trades_from_records,
+    watchlist_from_block,
 )
+
+
+def test_parse_watchlist_request_add_remove_and_keyword_required() -> None:
+    add = parse_watchlist_request("add NVDA TSLA to my watchlist")
+    assert add is not None and add.add == ("NVDA", "TSLA") and add.folder == "Watchlist"
+    rem = parse_watchlist_request("remove AAPL from watchlist")
+    assert rem is not None and rem.remove == ("AAPL",)
+    # No watch keyword → not a watchlist request.
+    assert parse_watchlist_request("buy some NVDA") is None
+
+
+def test_watchlist_from_block_list_and_object() -> None:
+    assert watchlist_from_block({"watchlist": ["nvda", "tsla"]}).add == ("NVDA", "TSLA")
+    op = watchlist_from_block(
+        {"watchlist": {"add": ["NVDA"], "remove": ["AAPL"], "folder": "AI"}}
+    )
+    assert op.add == ("NVDA",) and op.remove == ("AAPL",) and op.folder == "AI"
+    assert watchlist_from_block({"watchlist": {}}) is None
 
 
 def test_parse_trades_paste_positional_and_csv() -> None:

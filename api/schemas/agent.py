@@ -115,13 +115,20 @@ class ChatRequest(CamelModel):
     messages: list[ChatMessageVM] = Field(..., max_length=50)
 
 
+class WatchlistOpVM(CamelModel):
+    add: list[str] = Field(default_factory=list)
+    remove: list[str] = Field(default_factory=list)
+    folder: str = "Watchlist"
+
+
 class ProposedActionVM(CamelModel):
-    kind: Literal["portfolio_import", "trades_import"]
+    kind: Literal["portfolio_import", "trades_import", "watch_update"]
     summary: str
     normalized_csv: str
     row_count: int
     warnings: list[str] = Field(default_factory=list)
     apply_endpoint: str
+    watchlist: WatchlistOpVM | None = None
 
 
 class ChatResponse(CamelModel):
@@ -148,6 +155,7 @@ __all__ = [
     "IngestProposalResponse",
     "ChatMessageVM",
     "ChatRequest",
+    "WatchlistOpVM",
     "ProposedActionVM",
     "ChatResponse",
 ]

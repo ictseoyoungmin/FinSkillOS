@@ -10,6 +10,12 @@ import {
   previewTradeImport,
 } from "@/features/trades/api";
 import {
+  addFolderSymbol,
+  createFolder,
+  fetchCollectionControl,
+  removeFolderSymbol,
+} from "@/features/collection-control/api";
+import {
   fetchAgentProviders,
   sendAgentChat,
   switchAgentProvider,
@@ -271,6 +277,52 @@ export function AgentChatWidget() {
     }
   };
 
+  const onApplyWatchlist = async (idx: number, action: ProposedActionVM) => {
+    const op = action.watchlist;
+    if (!op) return;
+    setBusy(true);
+    try {
+      let data = await fetchCollectionControl();
+      let folder = data.folders.find(
+        (f) => f.name.toLowerCase() === op.folder.toLowerCase(),
+      );
+      if (!folder) {
+        data = await createFolder(op.folder);
+        folder = data.folders.find(
+          (f) => f.name.toLowerCase() === op.folder.toLowerCase(),
+        );
+      }
+      if (folder) {
+        for (const ticker of op.add) await addFolderSymbol(folder.id, ticker);
+        for (const ticker of op.remove) await removeFolderSymbol(folder.id, ticker);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["collection-control"] });
+      const parts: string[] = [];
+      if (op.add.length) parts.push(`added ${op.add.join(", ")}`);
+      if (op.remove.length) parts.push(`removed ${op.remove.join(", ")}`);
+      setTurns((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Watch folder "${op.folder}" — ${parts.join(", ")}.`,
+          time: now(),
+        },
+      ]);
+      setPreview((p) => {
+        const next = { ...p };
+        delete next[idx];
+        return next;
+      });
+    } catch {
+      setTurns((prev) => [
+        ...prev,
+        { role: "assistant", content: "Couldn't update the watchlist.", time: now() },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onConfirm = async (idx: number, action: ProposedActionVM) => {
     setBusy(true);
     try {
@@ -428,7 +480,16 @@ export function AgentChatWidget() {
                         {turn.action.warnings.length} warning(s)
                       </div>
                     ) : null}
-                    {preview[idx] ? (
+                    {turn.action.kind === "watch_update" ? (
+                      <button
+                        className="fso-chat-confirm"
+                        disabled={busy}
+                        onClick={() => onApplyWatchlist(idx, turn.action!)}
+                        data-testid="chat-action-watchlist"
+                      >
+                        Apply to watchlist
+                      </button>
+                    ) : preview[idx] ? (
                       <button
                         className="fso-chat-confirm"
                         disabled={busy}
