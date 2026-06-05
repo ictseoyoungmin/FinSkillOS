@@ -77,33 +77,38 @@ export function RiskFirewallPage() {
         />
       </div>
       <RiskFirewallDataStateBand payload={payload} />
+      {/* v3 Phase 8 (183): 2-column layout — the tall guard ladder beside a side
+          column that stacks alerts + protocol + interpretation + watchpoints, so
+          the right half is used instead of left over as a void. */}
       <div className="fso-risk-firewall-grid">
         <div data-testid="risk-firewall-guard-results">
           <GuardResultCard guards={payload.guards} />
         </div>
-        <div data-testid="risk-firewall-active-alerts">
-          <ActiveAlertsTable alerts={payload.activeAlerts} />
-        </div>
-        <div data-testid="risk-firewall-protocol">
-          <RiskProtocolPanel
-            protocol={payload.protocol}
-            safetyCaption={payload.safetyCaption}
+        <div className="fso-risk-firewall-side">
+          <div data-testid="risk-firewall-active-alerts">
+            <ActiveAlertsTable alerts={payload.activeAlerts} />
+          </div>
+          <div data-testid="risk-firewall-protocol">
+            <RiskProtocolPanel
+              protocol={payload.protocol}
+              safetyCaption={payload.safetyCaption}
+            />
+          </div>
+          <InterpretationPanel
+            bullets={[
+              payload.interpretation.verdict,
+              payload.interpretation.whyItMatters,
+              payload.interpretation.whatRemainsUncertain,
+            ]}
+          />
+          <WatchpointsPanel
+            watchpoints={payload.watchpoints.map((watchpoint) => ({
+              label: watchpoint.title,
+              description: watchpoint.note,
+            }))}
           />
         </div>
       </div>
-      <InterpretationPanel
-        bullets={[
-          payload.interpretation.verdict,
-          payload.interpretation.whyItMatters,
-          payload.interpretation.whatRemainsUncertain,
-        ]}
-      />
-      <WatchpointsPanel
-        watchpoints={payload.watchpoints.map((watchpoint) => ({
-          label: watchpoint.title,
-          description: watchpoint.note,
-        }))}
-      />
       <SafetyCaption>{payload.safetyCaption}</SafetyCaption>
     </div>
   );

@@ -83,7 +83,6 @@ export function CatalystWatchPage() {
             events={payload.holdingsLinked}
             toneMap={payload.dateStatusBadgeTone}
           />
-          <EventLinkedNewsPanel articles={payload.linkedNews} />
         </div>
         <div className="fso-catalyst-watch-col">
           <InterpretationPanel
@@ -94,6 +93,9 @@ export function CatalystWatchPage() {
             title="Watchpoints"
           />
           <EventCatalogEvidence payload={payload} />
+          {/* v3 Phase 8 (183): the long linked-news list fills the side column
+              beside the taller event tables instead of stretching col 1. */}
+          <EventLinkedNewsPanel articles={payload.linkedNews} />
         </div>
       </div>
       <div data-testid="catalyst-watch-safety-caption">

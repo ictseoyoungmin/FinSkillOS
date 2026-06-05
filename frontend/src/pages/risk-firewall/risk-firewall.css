@@ -5,10 +5,19 @@
 }
 
 .fso-risk-firewall-grid {
+  /* v3 Phase 8 (183): guard ladder beside a side column that stacks the shorter
+     alerts / protocol / interpretation / watchpoints panels. */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
+}
+
+.fso-risk-firewall-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
 }
 
 .fso-risk-firewall-evidence-row {

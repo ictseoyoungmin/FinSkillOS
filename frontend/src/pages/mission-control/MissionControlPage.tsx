@@ -135,21 +135,6 @@ export function MissionControlPage() {
               <ConstraintSummaryPanel constraints={payload.constraints} />
             </div>
           ) : null}
-          <div data-testid="mission-portfolio-editor">
-            <PortfolioEditorPanel
-              positions={payload.positions ?? []}
-              reconciliation={payload.reconciliation}
-              totalValue={payload.portfolio.totalValue}
-              cashValue={payload.portfolio.cashValue}
-              editable={
-                payload.source === "live" &&
-                payload.systemStatus.db.toUpperCase() === "LIVE"
-              }
-              onMutated={(next) =>
-                queryClient.setQueryData(["mission-control"], next)
-              }
-            />
-          </div>
         </div>
         <div className="fso-mission-control-stack">
           <div data-testid="mission-milestone-timeline">
@@ -192,6 +177,27 @@ export function MissionControlPage() {
             </div>
           </div>
         </div>
+      </div>
+      {/* v3 Phase 8 (183): the portfolio editor is a wide full-width row (a
+          2-column form internally) instead of a tall narrow column that left the
+          right half of the grid empty. */}
+      <div
+        className="fso-mission-control-editor-row"
+        data-testid="mission-portfolio-editor"
+      >
+        <PortfolioEditorPanel
+          positions={payload.positions ?? []}
+          reconciliation={payload.reconciliation}
+          totalValue={payload.portfolio.totalValue}
+          cashValue={payload.portfolio.cashValue}
+          editable={
+            payload.source === "live" &&
+            payload.systemStatus.db.toUpperCase() === "LIVE"
+          }
+          onMutated={(next) =>
+            queryClient.setQueryData(["mission-control"], next)
+          }
+        />
       </div>
       <div className="fso-mission-control-caption-row">
         <p
