@@ -48,6 +48,7 @@ Data / operations
   migrate          Apply database migrations (alembic upgrade head)
   seed             Seed the sample account + System folder (idempotent)
   refresh          Run one refresh cycle now (market → news → indicators → regime)
+  report [period]  Write a daily|weekly evidence report to data/exports (default daily)
   backup [path]    Back up Postgres to backups/ (or the given path)
   drill [path]     Backup-restore drill: back up to backups/, then verify the dump
   restore <file>   Restore Postgres from a dump (requires --confirm-restore; destructive)
@@ -153,6 +154,14 @@ cmd_refresh() {
   ${COMPOSE} run --rm worker python scripts/refresh_worker.py --once
 }
 
+cmd_report() {
+  local period="${1:-daily}"
+  c_blue "Generating ${period} report → data/exports/"
+  ${COMPOSE} up -d postgres
+  ${COMPOSE} run --rm -v "${ROOT_DIR}/data:/app/data" api \
+    python scripts/generate_report.py --period "${period}"
+}
+
 cmd_backup() {
   bash scripts/backup_postgres.sh "$@"
 }
@@ -201,6 +210,7 @@ main() {
     migrate) cmd_migrate "$@" ;;
     seed) cmd_seed "$@" ;;
     refresh) cmd_refresh "$@" ;;
+    report) cmd_report "$@" ;;
     backup) cmd_backup "$@" ;;
     drill) cmd_drill "$@" ;;
     restore) cmd_restore "$@" ;;

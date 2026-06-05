@@ -25,7 +25,11 @@ from finskillos.services.reflection_service import ReflectionService
 from finskillos.ui.view_models.event_radar_vm import build_event_radar_view_model
 from finskillos.ui.view_models.trade_memory_vm import render_weekly_review_markdown
 
-__all__ = ["build_weekly_evidence_markdown"]
+__all__ = [
+    "build_weekly_evidence_markdown",
+    "build_daily_brief_markdown",
+    "build_report_markdown",
+]
 
 
 def build_weekly_evidence_markdown(session: Session, *, today: date) -> str:
@@ -33,11 +37,7 @@ def build_weekly_evidence_markdown(session: Session, *, today: date) -> str:
 
     account = _resolve_account(session)
     if account is None:
-        return (
-            "# Weekly Evidence Report\n\n"
-            "No account baseline is stored yet. Seed a sample account or import a "
-            "portfolio to populate the weekly evidence report.\n"
-        )
+        return _no_account_report("Weekly Evidence Report")
 
     sections = [
         _regime_section(session),
@@ -54,6 +54,49 @@ def build_weekly_evidence_markdown(session: Session, *, today: date) -> str:
     )
     _assert_safe(markdown)
     return markdown
+
+
+def build_daily_brief_markdown(session: Session, *, today: date) -> str:
+    """Render the shorter daily brief (regime + portfolio + catalysts) — Slice 174.
+
+    Same descriptive sections as the weekly report minus the trade-process
+    review; intended for a daily cadence."""
+
+    account = _resolve_account(session)
+    if account is None:
+        return _no_account_report("Daily Brief")
+
+    sections = [
+        _regime_section(session),
+        _portfolio_section(session, account.id),
+        _catalyst_section(session, today=today),
+    ]
+    body = "\n\n".join(sections)
+    markdown = (
+        f"# Daily Brief\n"
+        f"_{today.isoformat()} · descriptive evidence summary_\n\n"
+        f"{body}\n\n---\n"
+        "_Descriptive evidence only — not a return forecast or trade directive._\n"
+    )
+    _assert_safe(markdown)
+    return markdown
+
+
+def build_report_markdown(session: Session, *, period: str, today: date) -> str:
+    """Dispatch to the daily / weekly builder by ``period`` (Slice 174)."""
+    if period == "weekly":
+        return build_weekly_evidence_markdown(session, today=today)
+    if period == "daily":
+        return build_daily_brief_markdown(session, today=today)
+    raise ValueError(f"unknown report period {period!r} (expected daily|weekly)")
+
+
+def _no_account_report(title: str) -> str:
+    return (
+        f"# {title}\n\n"
+        "No account baseline is stored yet. Seed a sample account or import a "
+        "portfolio to populate this report.\n"
+    )
 
 
 def _resolve_account(session: Session):

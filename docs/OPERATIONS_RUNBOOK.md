@@ -162,6 +162,20 @@ live bind mount.
   touched. Back up first. (`POST /api/system-ops/data-repair` dry-run;
   `?confirm=true` to apply.)
 
+## Reports (Slice 174)
+
+Write a descriptive evidence report to `data/exports/`:
+
+```bash
+./fsoctl.sh report           # daily brief  → data/exports/report_daily_<date>.md
+./fsoctl.sh report weekly    # weekly report → data/exports/report_weekly_<date>.md
+```
+
+The **daily brief** is regime + portfolio + upcoming catalysts; the **weekly
+report** adds the trade-process review (Slice 168). Both are descriptive only and
+wording-scanned. Schedule via cron, e.g. a daily `0 7 * * *  cd <repo> &&
+./fsoctl.sh report` and a weekly `0 7 * * 1 … ./fsoctl.sh report weekly`.
+
 ## Backup / restore
 
 ```bash

@@ -26,6 +26,7 @@ PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "backup_verify.py",
     ROOT / "scripts" / "data_dir_report.py",
     ROOT / "scripts" / "release_notes.py",
+    ROOT / "scripts" / "generate_report.py",
 )
 
 
