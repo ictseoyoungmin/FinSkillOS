@@ -17,9 +17,13 @@ from api.schemas.agent import (
     AgentProvidersResponse,
     AgentToolsResponse,
     AgentToolVM,
+    IngestProposalResponse,
+    IngestRequest,
+    IngestRowVM,
     LLMProviderVM,
     ProviderSwitchRequest,
 )
+from finskillos.agent.ingest import parse_portfolio_paste
 from finskillos.llm.provider import DEFAULT_PROVIDER, provider_catalog
 from finskillos.runtime_settings import read_runtime_value
 
@@ -109,6 +113,40 @@ def switch_agent_provider(payload: ProviderSwitchRequest) -> AgentProvidersRespo
         )
         session.commit()
         return _providers_response(session)
+
+
+@router.post(
+    "/agent/ingest",
+    response_model=IngestProposalResponse,
+    summary="Parse pasted holdings text into a reviewable proposal (no mutation).",
+)
+def agent_ingest(payload: IngestRequest) -> IngestProposalResponse:
+    """Parse free-form pasted text into a structured, **not-yet-applied** proposal.
+
+    Deterministic + offline. Performs no DB write — the user reviews the rows +
+    warnings, then applies via the existing dry-run → confirm import.
+    """
+
+    proposal = parse_portfolio_paste(payload.text)
+    rows = [
+        IngestRowVM(
+            ticker=row.ticker,
+            quantity=row.quantity,
+            market_value=row.market_value,
+            average_cost=row.average_cost,
+            sector=row.sector,
+            theme=row.theme,
+            strategy_type=row.strategy_type,
+        )
+        for row in proposal.rows
+    ]
+    return IngestProposalResponse(
+        target=payload.target,
+        row_count=len(rows),
+        rows=rows,
+        warnings=proposal.warnings,
+        normalized_csv=proposal.normalized_csv,
+    )
 
 
 __all__ = ["router"]
