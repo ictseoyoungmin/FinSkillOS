@@ -97,6 +97,7 @@ protocols.
 173  Versioned Release Notes / CHANGELOG (Phase 5)
 174  Scheduled Daily/Weekly Reports (Phase 6)
 175  Event-Week Briefing (Phase 6)
+176  Worker Notification Hook (Phase 6)
 ```
 
 ## Validation Baseline
@@ -284,7 +285,10 @@ boundary (narration only — never judgment/direction).
 - [x] **175 Event-week briefing** (slice 175) — `build_event_week_briefing_markdown`
   (catalysts in the next 7d, sorted, with risk score + held-ticker linkage +
   holdings-exposure rollup); `report event-week` period. Descriptive.
-- [ ] **176 Worker notification hook**.
+- [x] **176 Worker notification hook** (slice 176) — `finskillos/notifications.py`
+  (`Notification` / `Notifier` / `NullNotifier` / `LogNotifier` / `build_notifier`
+  via `FINSKILLOS_NOTIFY_SINK`); `run_cycle` emits on DONE/ERROR (guarded). The
+  seam for 177.
 - [ ] **177 Optional Telegram adapter** (gated off).
 - [ ] **178 On-demand LLM explanation boundary** (narration only).
 

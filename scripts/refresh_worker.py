@@ -395,8 +395,23 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
             _persist_worker_cycle(session, summary)
     except Exception as exc:
         _record_failed_worker_cycle(summary, exc)
+        _emit_cycle_notification(summary)
         raise WorkerCycleFailed(summary) from exc
+    _emit_cycle_notification(summary)
     return summary
+
+
+def _emit_cycle_notification(summary: dict[str, Any]) -> None:
+    """Send the configured cycle notification (Slice 176); never breaks a cycle."""
+    try:
+        from finskillos.notifications import (
+            build_notifier,
+            notification_from_worker_summary,
+        )
+
+        build_notifier().notify(notification_from_worker_summary(summary))
+    except Exception:  # noqa: BLE001 - notification must not fail the worker
+        logger.exception("Failed to emit refresh worker notification")
 
 
 def _persist_worker_cycle(session, summary: dict[str, Any]) -> None:
