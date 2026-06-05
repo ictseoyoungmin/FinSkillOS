@@ -15,6 +15,7 @@ from finskillos.db.repositories import NewsArticleRepository, WorkerCycleRunRepo
 ROOT = Path(__file__).resolve().parents[1]
 BACKUP_SCRIPT = ROOT / "scripts" / "backup_postgres.sh"
 RESTORE_SCRIPT = ROOT / "scripts" / "restore_postgres.sh"
+FSOCTL_SCRIPT = ROOT / "fsoctl.sh"
 PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "refresh_market_data.py",
     ROOT / "scripts" / "refresh_news.py",
@@ -25,7 +26,7 @@ PYTHON_OPERATION_SCRIPTS = (
 
 
 def test_backup_and_restore_scripts_parse_as_bash() -> None:
-    for script in (BACKUP_SCRIPT, RESTORE_SCRIPT):
+    for script in (BACKUP_SCRIPT, RESTORE_SCRIPT, FSOCTL_SCRIPT):
         result = subprocess.run(
             ["bash", "-n", str(script)],
             cwd=ROOT,
@@ -34,6 +35,31 @@ def test_backup_and_restore_scripts_parse_as_bash() -> None:
             text=True,
         )
         assert result.returncode == 0, result.stderr
+
+
+def test_fsoctl_help_lists_core_commands() -> None:
+    # Slice 169: the operator CLI exposes a discoverable help surface.
+    result = subprocess.run(
+        ["bash", str(FSOCTL_SCRIPT), "help"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    for command in ("setup", "build", "up", "down", "backup", "restore", "verify"):
+        assert command in result.stdout, command
+
+
+def test_fsoctl_unknown_command_exits_nonzero() -> None:
+    result = subprocess.run(
+        ["bash", str(FSOCTL_SCRIPT), "definitely-not-a-command"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
 
 
 def test_python_operation_scripts_expose_help() -> None:

@@ -90,6 +90,7 @@ protocols.
 166  Portfolio Constraint Summary v2 (Phase 4)
 167  Cross-tab Evidence Graph (Phase 4)
 168  Weekly Evidence Report (Phase 4)
+169  Operator CLI / Bootstrap (fsoctl.sh) (Phase 5)
 ```
 
 ## Validation Baseline
@@ -241,8 +242,20 @@ baselines are unchanged (no Playwright regen).
   `WeeklyEvidenceReportPanel` (build / copy / download). Live-gated.
   **Phase 4 complete (163–168).**
 
+#### Phase 5 — personal deployment / packaging (active)
+Local release ergonomics: one-command bootstrap, backup/restore drill, migration
+safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
+- [x] **169 Operator CLI / Bootstrap** (slice 169) — `fsoctl.sh` one entrypoint
+  over docker compose (setup/build/up/down/status/logs/migrate/seed/refresh/
+  backup/restore/verify); `verify`+`build` rebuild app images first (baked-image
+  lesson). Runbook "Operator CLI" section; ops-test coverage.
+- [ ] **170 Upgrade / migration safety check** — preflight alembic head vs DB.
+- [ ] **171 Backup-restore drill UX**.
+- [ ] **172 Local data-dir policy / release profile**.
+- [ ] **173 Versioned release notes / CHANGELOG**.
+
 #### Later phases (see ROADMAP.md)
-Phase 5 packaging · Phase 6 optional automation/LLM-narration.
+Phase 6 optional automation/LLM-narration.
 
 ### Standing open (env-blocked)
 - [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift

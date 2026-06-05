@@ -7,6 +7,26 @@ the "how do I actually use it every day" doc. Architecture/contracts live in
 
 All commands run from the repo root. Everything is Docker — no host Python/Node.
 
+## Operator CLI — `fsoctl.sh` (Slice 169)
+
+`./fsoctl.sh` is the one-command entrypoint that wraps the workflow below. Run
+`./fsoctl.sh help` for the full surface. Common commands:
+
+```bash
+./fsoctl.sh setup            # first-time: build → DB → migrate → seed → start
+./fsoctl.sh up               # start the stack   ./fsoctl.sh down   # stop (keeps data)
+./fsoctl.sh status           # service states    ./fsoctl.sh logs worker
+./fsoctl.sh refresh          # one refresh cycle now
+./fsoctl.sh backup           # → backups/finskillos_<ts>.sql
+./fsoctl.sh restore <file> --confirm-restore
+./fsoctl.sh build            # rebuild app images (do this after editing app code)
+./fsoctl.sh verify           # rebuild app images, then run the Docker test gate
+```
+
+`build`/`verify` rebuild first because the app services bake their source at build
+time (no bind-mount), so a `run`/`up` against edited code needs a fresh image. The
+raw `docker compose …` commands below are what each wrapper runs.
+
 ## Services (docker-compose.yml)
 
 | Service | Role | Port |
