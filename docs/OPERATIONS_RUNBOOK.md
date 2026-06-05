@@ -143,6 +143,33 @@ Restore requires the explicit `--confirm-restore` (or `FINSKILLOS_CONFIRM_RESTOR
 and uses confirmed clean-restore semantics. Back up before a risky migration or a
 data-repair protocol.
 
+### Backup-restore drill (Slice 171)
+
+A backup is only as good as its last verified restore. Two levels:
+
+```bash
+./fsoctl.sh drill                  # back up to backups/, then verify the dump
+```
+
+`drill` runs `scripts/backup_verify.py`, which checks the dump is non-trivial,
+ends with pg_dump's completion marker (not truncated), and declares every core
+table (`accounts`, `portfolio_snapshots`, `positions`, `trades`, `market_bars`,
+`alembic_version`). Status `OK` (exit 0) / `SUSPECT` (exit 3) / `MISSING` (exit 4).
+
+**Full drill** — prove a dump actually restores, without touching live data, by
+restoring into a throwaway database:
+
+```bash
+docker compose exec -T postgres createdb -U finskillos finskillos_drill
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U finskillos \
+  -d finskillos_drill < backups/<dump>.sql
+docker compose exec -T postgres psql -U finskillos -d finskillos_drill \
+  -c "select count(*) from accounts;"      # sanity check
+docker compose exec -T postgres dropdb -U finskillos finskillos_drill
+```
+
+Run the full drill periodically and before any risky migration / restore.
+
 ## Migration safety preflight (Slice 170)
 
 Before an upgrade or restore, check the DB revision against the code's migration

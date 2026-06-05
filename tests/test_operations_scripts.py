@@ -23,6 +23,7 @@ PYTHON_OPERATION_SCRIPTS = (
     ROOT / "scripts" / "refresh_worker.py",
     ROOT / "scripts" / "run_regime_scan.py",
     ROOT / "scripts" / "migration_safety_check.py",
+    ROOT / "scripts" / "backup_verify.py",
 )
 
 
@@ -406,3 +407,50 @@ def test_refresh_worker_once_records_error_cycle_on_failure(tmp_path) -> None:
     finally:
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+# --- Slice 171: backup verify -----------------------------------------------
+
+from scripts.backup_verify import CORE_TABLES, verify  # noqa: E402
+
+_COMPLETE = "-- PostgreSQL database dump complete\n"
+
+
+def _synthetic_dump(tables: tuple[str, ...], *, complete: bool = True) -> str:
+    body = "".join(
+        f"CREATE TABLE public.{name} (id integer NOT NULL);\n" for name in tables
+    )
+    header = "-- PostgreSQL database dump\n" + "x" * 300 + "\n"
+    return header + body + (_COMPLETE if complete else "")
+
+
+def test_backup_verify_accepts_a_complete_dump(tmp_path: Path) -> None:
+    dump = tmp_path / "good.sql"
+    dump.write_text(_synthetic_dump(CORE_TABLES), encoding="utf-8")
+    report = verify(dump)
+    assert report["ok"] is True
+    assert report["status"] == "OK"
+    assert report["missing_tables"] == []
+
+
+def test_backup_verify_flags_a_truncated_dump(tmp_path: Path) -> None:
+    dump = tmp_path / "truncated.sql"
+    dump.write_text(_synthetic_dump(CORE_TABLES, complete=False), encoding="utf-8")
+    report = verify(dump)
+    assert report["ok"] is False
+    assert report["status"] == "SUSPECT"
+    assert "completion marker" in report["detail"]
+
+
+def test_backup_verify_flags_missing_core_tables(tmp_path: Path) -> None:
+    dump = tmp_path / "partial.sql"
+    dump.write_text(_synthetic_dump(CORE_TABLES[:-1]), encoding="utf-8")
+    report = verify(dump)
+    assert report["ok"] is False
+    assert "alembic_version" in report["missing_tables"]
+
+
+def test_backup_verify_reports_missing_file(tmp_path: Path) -> None:
+    report = verify(tmp_path / "nope.sql")
+    assert report["status"] == "MISSING"
+    assert report["ok"] is False

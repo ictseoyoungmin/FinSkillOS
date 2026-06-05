@@ -92,6 +92,7 @@ protocols.
 168  Weekly Evidence Report (Phase 4)
 169  Operator CLI / Bootstrap (fsoctl.sh) (Phase 5)
 170  Upgrade / Migration Safety Check (Phase 5)
+171  Backup-restore Drill UX (Phase 5)
 ```
 
 ## Validation Baseline
@@ -254,7 +255,10 @@ safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
   `scripts/migration_safety_check.py` (DB revision vs code head:
   UP_TO_DATE/PENDING/UNINITIALISED/UNKNOWN_REVISION(exit 3)/DB_UNREACHABLE);
   `fsoctl.sh check` + non-blocking preflight in `migrate`. Runbook section.
-- [ ] **171 Backup-restore drill UX**.
+- [x] **171 Backup-restore drill UX** (slice 171) — `scripts/backup_verify.py`
+  (dump integrity: completion marker + core tables, OK/SUSPECT/MISSING) +
+  `fsoctl.sh drill` (backup → verify); runbook full-drill (restore into a
+  throwaway DB) procedure.
 - [ ] **172 Local data-dir policy / release profile**.
 - [ ] **173 Versioned release notes / CHANGELOG**.
 

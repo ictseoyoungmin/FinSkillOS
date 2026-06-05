@@ -45,6 +45,7 @@ Data / operations
   seed             Seed the sample account + System folder (idempotent)
   refresh          Run one refresh cycle now (market → news → indicators → regime)
   backup [path]    Back up Postgres to backups/ (or the given path)
+  drill [path]     Backup-restore drill: back up to backups/, then verify the dump
   restore <file>   Restore Postgres from a dump (requires --confirm-restore; destructive)
 
 Verification
@@ -132,6 +133,15 @@ cmd_backup() {
   bash scripts/backup_postgres.sh "$@"
 }
 
+cmd_drill() {
+  # Back up to backups/, then verify the dump is complete + declares core tables.
+  local out="${1:-backups/finskillos_drill_$(date -u +%Y%m%d_%H%M%S).sql}"
+  c_blue "Backup-restore drill → ${out}"
+  bash scripts/backup_postgres.sh "${out}"
+  ${COMPOSE} run --rm --no-deps -v "${ROOT_DIR}/backups:/app/backups" api \
+    python scripts/backup_verify.py "${out}"
+}
+
 cmd_restore() {
   [ "$#" -ge 1 ] || die "restore requires a dump file: ./fsoctl.sh restore <file> --confirm-restore"
   bash scripts/restore_postgres.sh "$@"
@@ -164,6 +174,7 @@ main() {
     seed) cmd_seed "$@" ;;
     refresh) cmd_refresh "$@" ;;
     backup) cmd_backup "$@" ;;
+    drill) cmd_drill "$@" ;;
     restore) cmd_restore "$@" ;;
     verify) cmd_verify "$@" ;;
     help | -h | --help) usage ;;
