@@ -70,6 +70,10 @@ class ProviderSpec:
     needs_network: bool = False
 
 
+# A chat message is {"role": "system"|"user"|"assistant", "content": str}.
+ChatMessage = dict
+
+
 @runtime_checkable
 class LLMProvider(Protocol):
     kind: ProviderKind
@@ -77,6 +81,22 @@ class LLMProvider(Protocol):
     def available(self) -> ProviderAvailability: ...
 
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult: ...
+
+    def chat(self, messages: list[ChatMessage]) -> LLMResult: ...
+
+
+def _last_user(messages: list[ChatMessage]) -> str:
+    for message in reversed(messages):
+        if message.get("role") == "user":
+            return str(message.get("content", ""))
+    return ""
+
+
+def _system_of(messages: list[ChatMessage]) -> str | None:
+    for message in messages:
+        if message.get("role") == "system":
+            return str(message.get("content", ""))
+    return None
 
 
 # --- adapters --------------------------------------------------------------
@@ -98,6 +118,16 @@ class EchoProvider:
         prefix = f"[{system.strip()}] " if system and system.strip() else ""
         return LLMResult(
             text=f"{prefix}{body}",
+            provider=self.kind,
+            model=self._model,
+            offline=True,
+        )
+
+    def chat(self, messages: list[ChatMessage]) -> LLMResult:
+        # Deterministic offline stub — acknowledge the latest user turn.
+        last = _last_user(messages).strip()
+        return LLMResult(
+            text=f"Noted: {last}" if last else "How can I help with your records?",
             provider=self.kind,
             model=self._model,
             offline=True,
@@ -133,6 +163,14 @@ class ClaudeCodeProvider:
         runner = self._runner or _default_claude_runner
         text = runner(prompt, system)
         return LLMResult(text=text, provider=self.kind, model=self._model, offline=False)
+
+    def chat(self, messages: list[ChatMessage]) -> LLMResult:
+        prompt = "\n".join(
+            f"{m.get('role')}: {m.get('content', '')}"
+            for m in messages
+            if m.get("role") != "system"
+        )
+        return self.complete(prompt, system=_system_of(messages))
 
 
 class GeminiProvider:
@@ -181,6 +219,15 @@ class GeminiProvider:
         text = _extract_gemini_text(data)
         return LLMResult(text=text, provider=self.kind, model=self._model, offline=False)
 
+    def chat(self, messages: list[ChatMessage]) -> LLMResult:
+        system = _system_of(messages)
+        convo = "\n".join(
+            f"{m.get('role')}: {m.get('content', '')}"
+            for m in messages
+            if m.get("role") != "system"
+        )
+        return self.complete(convo, system=system)
+
 
 class LocalOpenAIProvider:
     """localhost OpenAI-compatible server (llama.cpp / vLLM). Injectable transport."""
@@ -191,7 +238,7 @@ class LocalOpenAIProvider:
         self,
         *,
         base_url: str | None = None,
-        model: str = "local-model",
+        model: str | None = None,
         transport: HttpTransport | None = None,
     ) -> None:
         self._base_url = (
@@ -199,7 +246,7 @@ class LocalOpenAIProvider:
             or os.getenv("FINSKILLOS_LOCAL_LLM_BASE_URL")
             or "http://localhost:8000"
         ).rstrip("/")
-        self._model = model
+        self._model = model or os.getenv("FINSKILLOS_LOCAL_LLM_MODEL") or "local-llama"
         self._transport = transport
 
     def available(self) -> ProviderAvailability:
@@ -214,13 +261,23 @@ class LocalOpenAIProvider:
         )
 
     def complete(self, prompt: str, *, system: str | None = None) -> LLMResult:
-        transport = self._transport or _default_http_transport
-        url = f"{self._base_url}/v1/chat/completions"
-        messages = []
+        messages: list[ChatMessage] = []
         if system and system.strip():
             messages.append({"role": "system", "content": system.strip()})
         messages.append({"role": "user", "content": prompt})
-        payload = {"model": self._model, "messages": messages}
+        return self.chat(messages)
+
+    def chat(self, messages: list[ChatMessage]) -> LLMResult:
+        transport = self._transport or _default_http_transport
+        url = f"{self._base_url}/v1/chat/completions"
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 768,
+            # Qwen / thinking models: keep the reply free of <think> traces.
+            "chat_template_kwargs": {"enable_thinking": False},
+        }
         data = transport(url, payload, {"Content-Type": "application/json"})
         text = _extract_openai_text(data)
         return LLMResult(text=text, provider=self.kind, model=self._model, offline=False)
@@ -255,7 +312,7 @@ PROVIDER_SPECS: tuple[ProviderSpec, ...] = (
         kind="local",
         label="Local LLM (llama.cpp / vLLM)",
         description="A localhost OpenAI-compatible server.",
-        default_model="local-model",
+        default_model="local-llama",
         requires=("FINSKILLOS_LOCAL_LLM_BASE_URL",),
     ),
 )

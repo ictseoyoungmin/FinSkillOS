@@ -30,7 +30,9 @@ def live_client(monkeypatch, tmp_path):
         engine.dispose()
 
 
-def test_providers_catalogue_lists_four_with_active_default() -> None:
+def test_providers_catalogue_lists_four_with_active_default(monkeypatch) -> None:
+    # Neutralize any deployment default (the api container sets it to "local").
+    monkeypatch.delenv("FINSKILLOS_LLM_PROVIDER", raising=False)
     body = TestClient(create_app()).get("/api/agent/providers").json()
     assert {p["kind"] for p in body["providers"]} == {
         "echo",

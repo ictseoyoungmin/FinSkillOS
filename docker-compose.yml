@@ -66,6 +66,15 @@ services:
       FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS: ${FINSKILLOS_CONTROL_ROOM_STALE_AFTER_DAYS:-3}
       FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS: ${FINSKILLOS_CONTROL_ROOM_MARKET_STALE_AFTER_DAYS:-}
       FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS: ${FINSKILLOS_CONTROL_ROOM_WATCHLIST_STALE_AFTER_DAYS:-}
+      # v3 Phase 11: agent LLM provider. Default to the local llama.cpp gateway on
+      # the host (reachable from the container via host.docker.internal). Override
+      # the provider in the Ops tab or via these env vars.
+      FINSKILLOS_LLM_PROVIDER: ${FINSKILLOS_LLM_PROVIDER:-local}
+      FINSKILLOS_LOCAL_LLM_BASE_URL: ${FINSKILLOS_LOCAL_LLM_BASE_URL:-http://host.docker.internal:18080}
+      FINSKILLOS_LOCAL_LLM_MODEL: ${FINSKILLOS_LOCAL_LLM_MODEL:-local-llama}
+      FINSKILLOS_GEMINI_API_KEY: ${FINSKILLOS_GEMINI_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     depends_on:

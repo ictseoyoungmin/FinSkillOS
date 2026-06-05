@@ -103,6 +103,37 @@ class IngestProposalResponse(CamelModel):
     )
 
 
+class ChatMessageVM(CamelModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., max_length=200_000)
+
+
+class ChatRequest(CamelModel):
+    messages: list[ChatMessageVM] = Field(..., max_length=50)
+
+
+class ProposedActionVM(CamelModel):
+    kind: Literal["portfolio_import"]
+    summary: str
+    normalized_csv: str
+    row_count: int
+    warnings: list[str] = Field(default_factory=list)
+    apply_endpoint: str = "/api/mission-control/import-positions"
+
+
+class ChatResponse(CamelModel):
+    """An agent chat turn. Any mutation is a proposed action the user confirms."""
+
+    reply: str
+    provider: str
+    ready: bool
+    proposed_action: ProposedActionVM | None = None
+    boundary: str = (
+        "Descriptive bookkeeping assistant — no buy/sell advice, no orders. "
+        "Proposed imports are applied only after you confirm."
+    )
+
+
 __all__ = [
     "AgentToolVM",
     "AgentToolsResponse",
@@ -112,4 +143,8 @@ __all__ = [
     "IngestRequest",
     "IngestRowVM",
     "IngestProposalResponse",
+    "ChatMessageVM",
+    "ChatRequest",
+    "ProposedActionVM",
+    "ChatResponse",
 ]

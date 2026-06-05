@@ -17,14 +17,18 @@ from api.schemas.agent import (
     AgentProvidersResponse,
     AgentToolsResponse,
     AgentToolVM,
+    ChatRequest,
+    ChatResponse,
     IngestProposalResponse,
     IngestRequest,
     IngestRowVM,
     LLMProviderVM,
+    ProposedActionVM,
     ProviderSwitchRequest,
 )
+from finskillos.agent.chat import ChatMessage, run_chat
 from finskillos.agent.ingest import parse_portfolio_paste
-from finskillos.llm.provider import DEFAULT_PROVIDER, provider_catalog
+from finskillos.llm.provider import DEFAULT_PROVIDER, build_provider, provider_catalog
 from finskillos.runtime_settings import read_runtime_value
 
 router = APIRouter(tags=["agent"])
@@ -146,6 +150,47 @@ def agent_ingest(payload: IngestRequest) -> IngestProposalResponse:
         rows=rows,
         warnings=proposal.warnings,
         normalized_csv=proposal.normalized_csv,
+    )
+
+
+def _active_provider_kind() -> str:
+    with get_session_scope() as session:
+        return (
+            read_runtime_value(
+                _LLM_PROVIDER_KEY, default=DEFAULT_PROVIDER, session=session
+            )
+            or DEFAULT_PROVIDER
+        )
+
+
+@router.post(
+    "/agent/chat",
+    response_model=ChatResponse,
+    summary="Agent bookkeeping chat on the active LLM provider (no auto-mutation).",
+)
+def agent_chat(payload: ChatRequest) -> ChatResponse:
+    """Run a chat turn on the active provider. Descriptive-only; any import is a
+    proposed action the user confirms — this endpoint never writes to the DB."""
+
+    provider = build_provider(_active_provider_kind())
+    reply = run_chat(
+        [ChatMessage(role=m.role, content=m.content) for m in payload.messages],
+        provider=provider,
+    )
+    action = None
+    if reply.proposed_action is not None:
+        action = ProposedActionVM(
+            kind=reply.proposed_action.kind,
+            summary=reply.proposed_action.summary,
+            normalized_csv=reply.proposed_action.normalized_csv,
+            row_count=reply.proposed_action.row_count,
+            warnings=reply.proposed_action.warnings,
+        )
+    return ChatResponse(
+        reply=reply.reply,
+        provider=reply.provider,
+        ready=reply.ready,
+        proposed_action=action,
     )
 
 

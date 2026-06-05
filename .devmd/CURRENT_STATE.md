@@ -112,6 +112,7 @@ protocols.
 188  Ops LLM Provider Switcher (v3 Phase 10)
 189  Agent Ingestion Parser + Preview (v3 Phase 11)
 190  Agent Paste-Import UI (v3 Phase 11)
+191  Agent Chat Backend + Local-LLM Wiring (v3 Phase 11)
 ```
 
 ## Validation Baseline
