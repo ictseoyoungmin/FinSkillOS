@@ -9,6 +9,14 @@ The product is descriptive throughout — market state, risk interpretation,
 portfolio constraints, reflection support — never buy/sell directives or order
 placement.
 
+## v0.6 — Phase 6 · Optional automation / reports / alerts (174–178)
+
+Additive, gated (default off / safe sink), offline-safe, descriptive-only. Daily /
+weekly reports · event-week briefing · worker notification hook · optional
+Telegram adapter · on-demand LLM explanation boundary (narrates evidence /
+reflection prompts only — output guard-scanned so it can never emit judgment or
+trade direction).
+
 ## v0.5 — Phase 5 · Personal deployment / packaging (169–173)
 
 - **169** — Operator CLI / Bootstrap (`fsoctl.sh`): one entrypoint over docker

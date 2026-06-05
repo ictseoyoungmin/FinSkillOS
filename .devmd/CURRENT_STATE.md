@@ -99,6 +99,7 @@ protocols.
 175  Event-Week Briefing (Phase 6)
 176  Worker Notification Hook (Phase 6)
 177  Optional Telegram Notification Adapter (Phase 6)
+178  On-demand LLM Explanation Boundary (Phase 6)
 ```
 
 ## Validation Baseline
@@ -274,11 +275,8 @@ safety, data-dir policy, versioned release notes. Mostly ops tooling + docs.
   commits for a git range) + `fsoctl.sh release-notes`. **Phase 5 complete
   (169–173).**
 
-#### Phase 6 — optional automation / reports / alerts (active)
-Additive, gated (default off), offline-safe, descriptive-only. Slice plan: 174
-daily/weekly reports · 175 event-week briefing · 176 worker notification hook ·
-177 optional Telegram adapter (gated off) · 178 on-demand LLM explanation
-boundary (narration only — never judgment/direction).
+#### Phase 6 — optional automation / reports / alerts — DONE (174–178)
+Additive, gated (default off), offline-safe, descriptive-only.
 - [x] **174 Scheduled daily/weekly reports** (slice 174) — `build_daily_brief_markdown`
   / `build_report_markdown` + `scripts/generate_report.py` (--period daily|weekly
   → `data/exports/report_<period>_<date>.md`) + `fsoctl.sh report`. Descriptive,
@@ -294,7 +292,11 @@ boundary (narration only — never judgment/direction).
   (injectable sender, stdlib urllib, swallows errors) behind `build_notifier`'s
   `telegram` sink; off unless `FINSKILLOS_NOTIFY_SINK=telegram` + token/chat id
   set (else log fallback). Offline-tested.
-- [ ] **178 On-demand LLM explanation boundary** (narration only).
+- [x] **178 On-demand LLM explanation boundary** (slice 178) —
+  `finskillos/llm_explanation.py` (`ExplanationRequest`/`narrate`/`EchoExplainer`;
+  output forbidden-wording guard → `ExplanationBoundaryError` so a narrator can
+  never emit judgment/direction) + `scripts/explain.py`. Offline echo default.
+  **Phase 6 complete (174–178). ROADMAP Phases 0–6 all delivered.**
 
 ### Standing open (env-blocked)
 - [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift
