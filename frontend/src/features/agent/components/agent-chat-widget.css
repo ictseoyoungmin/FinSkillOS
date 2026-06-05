@@ -31,9 +31,9 @@
 }
 
 .fso-chat-panel {
-  width: 420px;
-  max-width: calc(100vw - 40px);
-  max-height: 560px;
+  position: relative;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px);
   background: var(--fso-panel);
   border: 1px solid var(--fso-line);
   border-radius: var(--fso-radius-md);
@@ -45,7 +45,29 @@
   transform: scale(0.9) translateY(10px);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.2s ease, opacity 0.18s ease;
+  transition: opacity 0.18s ease;
+}
+
+/* Top-left resize handle (panel is anchored bottom-right). */
+.fso-chat-resize {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  z-index: 6;
+  cursor: nwse-resize;
+  background: linear-gradient(
+    135deg,
+    var(--fso-cyan-2) 0%,
+    var(--fso-cyan-2) 32%,
+    transparent 33%
+  );
+  border-top-left-radius: var(--fso-radius-md);
+  opacity: 0.6;
+}
+.fso-chat-resize:hover {
+  opacity: 1;
 }
 
 .fso-chat-open .fso-chat-panel {
@@ -305,12 +327,19 @@
 }
 
 .fso-chat-bubble {
-  padding: 8px 11px;
+  padding: 9px 12px;
   border-radius: 12px;
   font-size: 12.5px;
-  line-height: 1.45;
-  white-space: pre-wrap;
+  line-height: 1.5;
   word-break: break-word;
+}
+
+.fso-chat-user .fso-chat-bubble {
+  white-space: pre-wrap;
+}
+
+.fso-chat-li {
+  padding-left: 4px;
 }
 
 .fso-chat-user .fso-chat-bubble {

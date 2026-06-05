@@ -117,6 +117,7 @@ protocols.
 193  Chat Widget Mockup Parity + Image/Vision (v3 Phase 11)
 194  Gemini Multi-turn + Vision (v3 Phase 11)
 195  LLM-Assisted Free-Form Ingestion (v3 Phase 11)
+196  Chat Widget Wider + Resizable + Polish (v3 Phase 11)
 ```
 
 ## Validation Baseline

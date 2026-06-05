@@ -50,6 +50,38 @@ function now(): string {
   });
 }
 
+function loadStored<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Minimal, safe inline markdown: **bold**, bullet lines, line breaks. */
+function renderRich(text: string) {
+  return text.split("\n").map((line, i) => {
+    const trimmed = line.trimStart();
+    const isBullet = /^[*-]\s+/.test(trimmed);
+    const body = isBullet ? trimmed.replace(/^[*-]\s+/, "") : line;
+    const segs = body.split(/(\*\*[^*]+\*\*)/g).map((seg, j) =>
+      seg.startsWith("**") && seg.endsWith("**") ? (
+        <strong key={j}>{seg.slice(2, -2)}</strong>
+      ) : (
+        <span key={j}>{seg}</span>
+      ),
+    );
+    return isBullet ? (
+      <div key={i} className="fso-chat-li">
+        • {segs}
+      </div>
+    ) : (
+      <div key={i}>{segs.length ? segs : <br />}</div>
+    );
+  });
+}
+
 /**
  * Floating agent chat widget (v3 Phase 11 / Slice 192-193). Mockup-parity:
  * drag-to-move, in-widget provider picker, screenshot attach (drag-drop +
@@ -67,10 +99,8 @@ export function AgentChatWidget() {
   const [dragHover, setDragHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [preview, setPreview] = useState<Record<number, PortfolioImportResult>>({});
-  const [pos, setPos] = useState<{ right: number; bottom: number }>({
-    right: 20,
-    bottom: 20,
-  });
+  const [pos, setPos] = useState(() => loadStored("fso-chat-pos", { right: 24, bottom: 24 }));
+  const [size, setSize] = useState(() => loadStored("fso-chat-size", { w: 520, h: 600 }));
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -78,6 +108,24 @@ export function AgentChatWidget() {
   const dragState = useRef<{ x: number; y: number; r: number; b: number } | null>(
     null,
   );
+  const resizeState = useRef<{ x: number; y: number; w: number; h: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("fso-chat-pos", JSON.stringify(pos));
+    } catch {
+      /* ignore */
+    }
+  }, [pos]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("fso-chat-size", JSON.stringify(size));
+    } catch {
+      /* ignore */
+    }
+  }, [size]);
 
   const providersQuery = useQuery({
     queryKey: ["agent-providers"],
@@ -97,18 +145,27 @@ export function AgentChatWidget() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [turns, open]);
 
-  // Drag-to-move from the header.
+  // Drag-to-move (header) + drag-to-resize (top-left handle).
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (!dragState.current) return;
-      const d = dragState.current;
-      setPos({
-        right: Math.max(8, d.r - (e.clientX - d.x)),
-        bottom: Math.max(8, d.b - (e.clientY - d.y)),
-      });
+      if (dragState.current) {
+        const d = dragState.current;
+        setPos({
+          right: Math.max(8, d.r - (e.clientX - d.x)),
+          bottom: Math.max(8, d.b - (e.clientY - d.y)),
+        });
+      } else if (resizeState.current) {
+        const r = resizeState.current;
+        // Top-left handle on a bottom-right-anchored panel: left/up grows it.
+        setSize({
+          w: Math.max(340, Math.min(window.innerWidth * 0.92, r.w + (r.x - e.clientX))),
+          h: Math.max(360, Math.min(window.innerHeight * 0.85, r.h + (r.y - e.clientY))),
+        });
+      }
     };
     const onUp = () => {
       dragState.current = null;
+      resizeState.current = null;
       document.body.style.userSelect = "";
     };
     window.addEventListener("mousemove", onMove);
@@ -121,6 +178,12 @@ export function AgentChatWidget() {
 
   const startDrag = (e: React.MouseEvent) => {
     dragState.current = { x: e.clientX, y: e.clientY, r: pos.right, b: pos.bottom };
+    document.body.style.userSelect = "none";
+  };
+
+  const startResize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    resizeState.current = { x: e.clientX, y: e.clientY, w: size.w, h: size.h };
     document.body.style.userSelect = "none";
   };
 
@@ -241,6 +304,7 @@ export function AgentChatWidget() {
         className={`fso-chat-panel${dragHover ? " fso-chat-drag" : ""}`}
         role="dialog"
         aria-label="Agent chat"
+        style={{ width: size.w, height: size.h }}
         onDragEnter={(e) => {
           e.preventDefault();
           setDragHover(true);
@@ -259,6 +323,12 @@ export function AgentChatWidget() {
         {dragHover ? (
           <div className="fso-chat-drop-overlay">Drop screenshot here</div>
         ) : null}
+
+        <div
+          className="fso-chat-resize"
+          onMouseDown={startResize}
+          title="Drag to resize"
+        />
 
         <div className="fso-chat-header" onMouseDown={startDrag}>
           <span className="fso-chat-dot" />
@@ -325,7 +395,11 @@ export function AgentChatWidget() {
               </div>
               <div className="fso-chat-body">
                 {turn.content ? (
-                  <div className="fso-chat-bubble">{turn.content}</div>
+                  <div className="fso-chat-bubble">
+                    {turn.role === "assistant"
+                      ? renderRich(turn.content)
+                      : turn.content}
+                  </div>
                 ) : null}
                 {turn.images && turn.images.length > 0 ? (
                   <div className="fso-chat-imgs">
