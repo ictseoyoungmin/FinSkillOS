@@ -142,7 +142,14 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   `workflow_and_memory/project_stabilization_backlog_2026_06_03.md`.
 - **P1–P3 diagnostics** (D-001…D-010, slices 118–125) — DONE.
 
-### Phase roadmap — `docs/ROADMAP.md`
+### Phase roadmap — `docs/ROADMAP.md` (v2.1) · `docs/v3/` (v3, next)
+**v2.1 Phases 0–6 COMPLETE (slices ≤178).** Next arc — agent-operated, real-data
+cockpit — planned in [`docs/v3/`](../docs/v3/README.md): Phase 7 real-data
+integrity · 8 layout redesign · 9 agent tool contract · 10 LLM provider switching
+(Ops) · 11 agent ingestion (paste/screenshot → dry-run → confirm → DB) · 12
+brokerage/execution boundary (deferred). Slices continue at **179**. Awaiting the
+user's chosen entry point ("phase 7 진행" or similar).
+
 Phase 0 (stabilization) DONE via 139–144. **Phase 1 — daily operating loop — DONE
 via 145–150. Phase 2 — data trust / provider resilience — DONE via 151–155.
 Phase 3 — portfolio / journal real-use input — DONE via 157–162** (reconciliation,

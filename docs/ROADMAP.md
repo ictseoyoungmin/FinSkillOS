@@ -1,5 +1,9 @@
 # FinSkillOS Roadmap (2026-06-03)
 
+> **Phases 0–6 are COMPLETE (slices ≤178).** The next arc — agent-operated,
+> real-data cockpit (Phases 7–12) — is planned in [`docs/v3/`](v3/README.md).
+> This file is retained as the v2.1 history.
+
 Phased roadmap from the external review. Goal ordering: **close Phase 0–2
 (stabilize → operate → trust the data) before adding new analysis features.**
 Hard constraint throughout: descriptive evidence-to-judgment only — never
