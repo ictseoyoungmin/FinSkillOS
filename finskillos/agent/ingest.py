@@ -385,7 +385,11 @@ def parse_trades_paste(text: str) -> TradeIngestProposal:
 # --- watchlist ---------------------------------------------------------------
 
 _DEFAULT_WATCH_FOLDER = "Watchlist"
-_WATCH_KW = re.compile(r"\bwatch\s?list\b|\bwatch\b|관심\s?종목|워치", re.IGNORECASE)
+# Require an explicit watchlist intent (not a bare "watch", which false-fires on
+# "watch out …"). The LLM block handles looser phrasing for capable models.
+_WATCH_KW = re.compile(
+    r"\bwatch\s?list\b|관심\s?종목|워치\s?리스트|워치리스트", re.IGNORECASE
+)
 _WATCH_REMOVE_KW = re.compile(r"\bremove\b|\bdelete\b|\bdrop\b|빼|삭제|제외", re.IGNORECASE)
 _WATCH_STOP = {
     "ADD", "REMOVE", "DELETE", "DROP", "TO", "FROM", "MY", "THE", "A", "AN",

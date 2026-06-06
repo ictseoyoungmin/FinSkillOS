@@ -122,6 +122,7 @@ protocols.
 198  Trades-Paste Ingestion (v3 Phase 11)
 199  Watchlist via Chat (v3 Phase 11)
 200  Brokerage Read-Only Extension Boundary (v3 Phase 12)
+201  Self-Review Polish (guard/watchlist/widget) (v3)
 ```
 
 ## Validation Baseline

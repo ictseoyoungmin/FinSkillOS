@@ -69,18 +69,22 @@ SYSTEM_PROMPT = (
     "fields you don't know. If there's nothing to record, include no block."
 )
 
-# Narrow chat boundary: block genuine trade DIRECTIVES, price PREDICTIONS, and
-# guaranteed-return claims — but allow the assistant to *describe* itself (e.g.
-# "I don't give buy/sell advice") and to use ordinary words like 확실/반드시. This
-# is intentionally narrower than the risk-alert guard (assert_no_forbidden_wording),
-# which blocks any buy/sell mention and is wrong for conversation.
+# Narrow chat boundary: block genuine trade DIRECTIVES (advice framed as an
+# instruction), price PREDICTIONS, and guaranteed-return claims — but allow the
+# assistant to *describe* itself ("I don't give buy/sell advice") and to record
+# trades descriptively ("logged your long TSLA", "you bought AAPL"). This is
+# intentionally narrower than the risk-alert guard (assert_no_forbidden_wording),
+# which blocks any buy/sell mention and is wrong for a bookkeeping conversation.
+# NB: a bare "long TSLA" / "buy NVDA" is *not* blocked — for a journaling agent
+# that wording is descriptive bookkeeping, not advice. Directives are caught by
+# the imperative framing ("should buy", "buy now", "지금 매수하세요") below.
 _CHAT_DIRECTIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\b(buy|sell)\s+now\b", re.IGNORECASE),
+    re.compile(r"\b(buy|sell)\s+(it|now|today|more)\b", re.IGNORECASE),
     re.compile(
-        r"\b(should|must|recommend|need to)\s+(buy|sell|buying|selling)\b",
+        r"\b(should|must|recommend|need to|ought to)\s+"
+        r"(buy|sell|buying|selling|short|long|go\s+long|go\s+short)\b",
         re.IGNORECASE,
     ),
-    re.compile(r"\b(buy|sell|short|long)\s+\$?[A-Z]{1,6}\b"),
     re.compile(
         r"\bwill\s+(rise|fall|surge|soar|drop|plunge|go\s+up|go\s+down)\b",
         re.IGNORECASE,
@@ -89,8 +93,7 @@ _CHAT_DIRECTIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
         r"\bguaranteed\s+(return|returns|profit|profits|gain|gains|reward)\b",
         re.IGNORECASE,
     ),
-    re.compile(r"지금\s*(사라|사세요|사요|매수|매수해|매수하)"),
-    re.compile(r"지금\s*(팔아|파세요|파요|매도|매도해|매도하)"),
+    re.compile(r"지금\s*(사라|사세요|사요|매수해|매수하세요|팔아|파세요|매도해|매도하세요)"),
     re.compile(r"(사세요|사라|팔아라|파세요|매수하세요|매도하세요)"),
     re.compile(r"(수익|원금)\s*보장"),
     re.compile(r"반드시\s*(사|팔|매수|매도|오)"),

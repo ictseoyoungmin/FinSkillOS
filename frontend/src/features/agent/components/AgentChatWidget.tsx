@@ -66,22 +66,43 @@ function loadStored<T>(key: string, fallback: T): T {
   }
 }
 
-/** Minimal, safe inline markdown: **bold**, bullet lines, line breaks. */
+/** Render **bold** / `code` inline, safely (no raw HTML). */
+function renderInline(text: string, keyBase: string) {
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((seg, j) => {
+    if (seg.startsWith("**") && seg.endsWith("**")) {
+      return <strong key={`${keyBase}-${j}`}>{seg.slice(2, -2)}</strong>;
+    }
+    if (seg.startsWith("`") && seg.endsWith("`")) {
+      return <code key={`${keyBase}-${j}`}>{seg.slice(1, -1)}</code>;
+    }
+    return <span key={`${keyBase}-${j}`}>{seg}</span>;
+  });
+}
+
+/** Minimal, safe markdown: headings, *, -, and 1. lists, **bold**, `code`. */
 function renderRich(text: string) {
   return text.split("\n").map((line, i) => {
     const trimmed = line.trimStart();
-    const isBullet = /^[*-]\s+/.test(trimmed);
-    const body = isBullet ? trimmed.replace(/^[*-]\s+/, "") : line;
-    const segs = body.split(/(\*\*[^*]+\*\*)/g).map((seg, j) =>
-      seg.startsWith("**") && seg.endsWith("**") ? (
-        <strong key={j}>{seg.slice(2, -2)}</strong>
-      ) : (
-        <span key={j}>{seg}</span>
-      ),
-    );
-    return isBullet ? (
+    const heading = /^#{1,6}\s+/.test(trimmed);
+    const bullet = /^[*-]\s+/.test(trimmed);
+    const numbered = /^(\d+)\.\s+/.exec(trimmed);
+    if (heading) {
+      return (
+        <div key={i} className="fso-chat-h">
+          {renderInline(trimmed.replace(/^#{1,6}\s+/, ""), `${i}`)}
+        </div>
+      );
+    }
+    const body = bullet
+      ? trimmed.replace(/^[*-]\s+/, "")
+      : numbered
+        ? trimmed.replace(/^\d+\.\s+/, "")
+        : line;
+    const segs = renderInline(body, `${i}`);
+    return bullet || numbered ? (
       <div key={i} className="fso-chat-li">
-        • {segs}
+        {bullet ? "• " : `${numbered![1]}. `}
+        {segs}
       </div>
     ) : (
       <div key={i}>{segs.length ? segs : <br />}</div>
@@ -151,6 +172,26 @@ export function AgentChatWidget() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [turns, open]);
+
+  // Close the provider picker on outside click / Escape.
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".fso-chat-picker") && !target.closest(".fso-chat-model")) {
+        setPickerOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPickerOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [pickerOpen]);
 
   // Drag-to-move (header) + drag-to-resize (top-left handle).
   useEffect(() => {

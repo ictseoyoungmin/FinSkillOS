@@ -70,6 +70,17 @@ def test_descriptive_self_description_is_not_blocked() -> None:
         assert reply.reply == text, reply.reply
 
 
+def test_trade_recording_wording_is_not_blocked() -> None:
+    # The journaling agent legitimately describes long/short/bought trades.
+    for text in (
+        "Recorded your trade: long TSLA on 2026-06-01, +250,000.",
+        "Got it — I logged a short NVDA entry.",
+        "Saved: you bought AAPL. Anything else to record?",
+    ):
+        reply = run_chat([ChatMessage("user", "log it")], provider=_StubProvider(text))
+        assert reply.reply == text, reply.reply
+
+
 def test_real_directives_and_predictions_are_blocked() -> None:
     for text in (
         "You should buy NVDA right now.",

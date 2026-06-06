@@ -22,6 +22,8 @@ def test_parse_watchlist_request_add_remove_and_keyword_required() -> None:
     assert rem is not None and rem.remove == ("AAPL",)
     # No watch keyword → not a watchlist request.
     assert parse_watchlist_request("buy some NVDA") is None
+    # A bare "watch" must not false-fire (e.g. "watch out …").
+    assert parse_watchlist_request("watch out, NVDA AAPL look wild") is None
 
 
 def test_watchlist_from_block_list_and_object() -> None:

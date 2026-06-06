@@ -342,6 +342,20 @@
   padding-left: 4px;
 }
 
+.fso-chat-h {
+  font-weight: 600;
+  color: var(--fso-text);
+  margin-top: 2px;
+}
+
+.fso-chat-bubble code {
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fso-cyan) 12%, transparent);
+}
+
 .fso-chat-user .fso-chat-bubble {
   background: color-mix(in srgb, var(--fso-cyan) 22%, var(--fso-panel-2));
   color: var(--fso-text);
