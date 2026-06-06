@@ -14,7 +14,7 @@ class AgentToolVM(CamelModel):
 
     name: str
     summary: str
-    category: Literal["portfolio", "trades", "watch", "reports"]
+    category: Literal["portfolio", "trades", "watch", "reports", "read"]
     mutating: bool
     dry_run_supported: bool
     method: str

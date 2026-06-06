@@ -38,7 +38,7 @@ def test_agent_tools_have_a_complete_shape() -> None:
     }
     for tool in tools:
         assert expected <= set(tool.keys()), tool
-        assert tool["category"] in {"portfolio", "trades", "watch", "reports"}
+        assert tool["category"] in {"portfolio", "trades", "watch", "reports", "read"}
         assert tool["method"] in {"GET", "POST", "PUT", "PATCH", "DELETE"}
 
 

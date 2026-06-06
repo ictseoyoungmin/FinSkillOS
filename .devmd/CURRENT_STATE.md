@@ -123,6 +123,7 @@ protocols.
 199  Watchlist via Chat (v3 Phase 11)
 200  Brokerage Read-Only Extension Boundary (v3 Phase 12)
 201  Self-Review Polish (guard/watchlist/widget) (v3)
+202  Agent Read Scope (grounded chat + read tools) (v3)
 ```
 
 ## Validation Baseline

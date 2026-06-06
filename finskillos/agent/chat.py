@@ -257,7 +257,10 @@ def _wire_content(message: ChatMessage, *, vision: bool):
 
 
 def run_chat(
-    messages: list[ChatMessage], *, provider: LLMProvider | None = None
+    messages: list[ChatMessage],
+    *,
+    provider: LLMProvider | None = None,
+    context: str = "",
 ) -> ChatReply:
     provider = provider or build_provider()
     availability = provider.available()
@@ -289,6 +292,8 @@ def run_chat(
 
     if availability.ready:
         wire = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if context.strip():
+            wire.append({"role": "system", "content": context.strip()})
         wire += [
             {"role": m.role, "content": _wire_content(m, vision=vision)}
             for m in messages

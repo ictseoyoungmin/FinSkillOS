@@ -26,7 +26,22 @@ from api.schemas.mission_control import (
 )
 from api.schemas.trade_memory import TradeEntryInput, TradeImportRequest
 
-ToolCategory = Literal["portfolio", "trades", "watch", "reports"]
+ToolCategory = Literal["portfolio", "trades", "watch", "reports", "read"]
+
+
+def _read_tool(name: str, summary: str, path: str) -> AgentTool:
+    """A read-only GET tool over an existing live read model."""
+
+    return AgentTool(
+        name=name,
+        summary=summary,
+        category="read",
+        mutating=False,
+        dry_run_supported=False,
+        method="GET",
+        path=path,
+        input_schema={},
+    )
 
 
 @dataclass(frozen=True)
@@ -195,6 +210,48 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         method="GET",
         path="/api/trade-memory/weekly-evidence-report",
         input_schema={},
+    ),
+    # Read tools — let the agent ground answers in the live read models. The chat
+    # also injects a compact state snapshot (finskillos/agent/context.py).
+    _read_tool(
+        "read.control_room",
+        "Operating state, regime, portfolio tape, risk + catalyst summary.",
+        "/api/control-room",
+    ),
+    _read_tool(
+        "read.risk_firewall",
+        "Risk guard ladder + active alerts (descriptive).",
+        "/api/risk-firewall",
+    ),
+    _read_tool(
+        "read.market_kernel",
+        "Market regime + indicators + event overlay for a symbol.",
+        "/api/market-kernel",
+    ),
+    _read_tool(
+        "read.analysis_workspace",
+        "Index universe strength + regime context.",
+        "/api/analysis-workspace",
+    ),
+    _read_tool(
+        "read.events",
+        "Upcoming + holdings-linked catalyst events.",
+        "/api/event-radar",
+    ),
+    _read_tool(
+        "read.news",
+        "Holdings-relevant + latest stored news.",
+        "/api/news-intelligence",
+    ),
+    _read_tool(
+        "read.trade_memory",
+        "Trade journal entries + performance + weekly review.",
+        "/api/trade-memory",
+    ),
+    _read_tool(
+        "read.system_status",
+        "System Ops: data sources, worker, protocol history, freshness.",
+        "/api/system-ops",
     ),
 )
 

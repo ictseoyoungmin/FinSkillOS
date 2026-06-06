@@ -185,3 +185,36 @@ separate, conservative decision.
 - **Testing.** `echo`/stub provider + canned proposals; no network. Each tool +
   the ingestion pipeline gets offline integration tests. Docker gate after
   rebuild, as always.
+
+---
+
+## Read-scope expansion + screen interpretation (2026-06-06)
+
+The agent's value grows with how much of the user's state it can *read* and how
+naturally the user can ask about it. Two additions, both descriptive-only.
+
+### Read scope — grounded chat
+- **State context.** `finskillos/agent/context.py::build_state_context(session)`
+  assembles a compact, descriptive snapshot — portfolio (total / cash / positions
+  / largest %), market regime (+ mode / risk), risk-guard ladder status counts,
+  watchlist size, last trade date. The chat endpoint reads it per turn and injects
+  it as a system message, so the agent answers "what's my biggest position?",
+  "what regime are we in?", "which guards are active?" from real data instead of
+  guessing. Defensive: any unreadable piece is omitted, never an error. **No
+  advice** — the context is factual state and is labelled read-only.
+- **Read tools.** The Phase-9 catalogue gains a `read` category over the existing
+  live read models: `read.control_room`, `read.risk_firewall`,
+  `read.market_kernel`, `read.analysis_workspace`, `read.events`, `read.news`,
+  `read.trade_memory`, `read.system_status`. All GET, non-mutating — grounding /
+  discovery, never new write power.
+
+### Screen interpretation
+- The widget can **capture the current cockpit screen** (client-side canvas
+  rasterization of the app DOM — no OS screen-capture permission) and send it to a
+  vision-capable provider with an "interpret this screen" prompt. The agent then
+  *describes* what's on screen (which tab, what the cards say) — read-only
+  narration, bounded by the same descriptive-only output guard. Falls back to the
+  "switch to a vision model" note on a text-only provider (Phase 11 image path).
+
+Boundary unchanged: reads and screen narration are descriptive; the only writes
+remain the confirm-gated portfolio / trades / watch imports.
