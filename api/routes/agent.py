@@ -203,6 +203,7 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
             warnings=reply.proposed_action.warnings,
             apply_endpoint=reply.proposed_action.apply_endpoint,
             watchlist=watchlist,
+            protocol=reply.proposed_action.protocol,
         )
     return ChatResponse(
         reply=reply.reply,

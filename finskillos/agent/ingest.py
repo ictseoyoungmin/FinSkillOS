@@ -30,6 +30,10 @@ __all__ = [
     "WatchlistOp",
     "parse_watchlist_request",
     "watchlist_from_block",
+    "PROTOCOL_KEYS",
+    "PROTOCOL_LABELS",
+    "parse_protocol_request",
+    "protocol_from_block",
 ]
 
 _TICKER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9.\-]{0,31}$")
@@ -453,6 +457,92 @@ def watchlist_from_block(data: dict) -> WatchlistOp | None:
             return WatchlistOp(
                 add=add, remove=remove, folder=folder or _DEFAULT_WATCH_FOLDER
             )
+    return None
+
+
+# --- operational protocols ---------------------------------------------------
+
+# The idempotent System Ops protocols an agent may trigger (operational, not
+# trading). Setup-only protocols (seed_*) are intentionally excluded.
+PROTOCOL_LABELS: dict[str, str] = {
+    "refresh_market_data": "refresh market data",
+    "refresh_news": "refresh news",
+    "calculate_indicators": "recalculate indicators",
+    "recompute_regime": "recompute the market regime",
+    "run_risk_guards": "re-run the risk guards",
+    "refresh_events": "refresh catalyst events",
+}
+PROTOCOL_KEYS = tuple(PROTOCOL_LABELS)
+
+# Conservative intent patterns: each needs an explicit refresh/recompute/run verb
+# next to its target, so "what's my regime?" does not trigger a recompute.
+_PROTOCOL_INTENTS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            r"recompute.*regime|regime.*(recompute|re-?evaluate)"
+            r"|(레짐|국면|regime).*(재계산|재평가|다시\s*계산)",
+            re.IGNORECASE,
+        ),
+        "recompute_regime",
+    ),
+    (
+        re.compile(
+            r"(re-?run|rerun).*(risk\s*guard|guard)|run.*risk\s*guard"
+            r"|(risk\s*guard|guard|가드|리스크\s*가드).*(재실행|다시\s*(돌려|실행|평가)|재평가)"
+            r"|가드.*다시",
+            re.IGNORECASE,
+        ),
+        "run_risk_guards",
+    ),
+    (
+        re.compile(
+            r"refresh.*news|news.*(refresh|update)|(뉴스).*(새로고침|갱신|업데이트)",
+            re.IGNORECASE,
+        ),
+        "refresh_news",
+    ),
+    (
+        re.compile(
+            r"refresh.*event|event.*(refresh|update)"
+            r"|(이벤트|카탈리스트|catalyst).*(새로고침|갱신|업데이트)",
+            re.IGNORECASE,
+        ),
+        "refresh_events",
+    ),
+    (
+        re.compile(
+            r"(re-?calculate|recompute).*indicator|indicator.*(recalculate|update)"
+            r"|(지표).*(계산|재계산|업데이트)",
+            re.IGNORECASE,
+        ),
+        "calculate_indicators",
+    ),
+    (
+        re.compile(
+            r"refresh.*market.*data|(market|price)\s*data.*(refresh|update)"
+            r"|(시장|시세|가격).*(데이터)?.*(새로고침|갱신|업데이트)",
+            re.IGNORECASE,
+        ),
+        "refresh_market_data",
+    ),
+)
+
+
+def parse_protocol_request(text: str) -> str | None:
+    """Deterministic operational-protocol intent → protocol key, or None."""
+
+    for pattern, key in _PROTOCOL_INTENTS:
+        if pattern.search(text):
+            return key
+    return None
+
+
+def protocol_from_block(data: dict) -> str | None:
+    """Parse a `{"protocol": "recompute_regime"}` block."""
+
+    key = data.get("protocol") if isinstance(data, dict) else None
+    if isinstance(key, str) and key in PROTOCOL_LABELS:
+        return key
     return None
 
 

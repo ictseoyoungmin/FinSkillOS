@@ -51,13 +51,14 @@ export interface WatchlistOpVM {
 }
 
 export interface ProposedActionVM {
-  kind: "portfolio_import" | "trades_import" | "watch_update";
+  kind: "portfolio_import" | "trades_import" | "watch_update" | "run_protocol";
   summary: string;
   normalizedCsv: string;
   rowCount: number;
   warnings: string[];
   applyEndpoint: string;
   watchlist?: WatchlistOpVM | null;
+  protocol?: string | null;
 }
 
 export interface ChatResponse {

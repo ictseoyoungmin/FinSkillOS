@@ -26,7 +26,7 @@ from api.schemas.mission_control import (
 )
 from api.schemas.trade_memory import TradeEntryInput, TradeImportRequest
 
-ToolCategory = Literal["portfolio", "trades", "watch", "reports", "read"]
+ToolCategory = Literal["portfolio", "trades", "watch", "reports", "read", "ops"]
 
 
 def _read_tool(name: str, summary: str, path: str) -> AgentTool:
@@ -39,6 +39,23 @@ def _read_tool(name: str, summary: str, path: str) -> AgentTool:
         mutating=False,
         dry_run_supported=False,
         method="GET",
+        path=path,
+        input_schema={},
+    )
+
+
+def _ops_tool(name: str, summary: str, path: str) -> AgentTool:
+    """An idempotent System Ops operational protocol (refresh / recompute /
+    re-run). Operational, never trading — the only mutations the product boundary
+    allows besides bookkeeping."""
+
+    return AgentTool(
+        name=name,
+        summary=summary,
+        category="ops",
+        mutating=True,
+        dry_run_supported=False,
+        method="POST",
         path=path,
         input_schema={},
     )
@@ -252,6 +269,37 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "read.system_status",
         "System Ops: data sources, worker, protocol history, freshness.",
         "/api/system-ops",
+    ),
+    # Operational protocols — idempotent refresh / recompute / re-run (not trading).
+    _ops_tool(
+        "ops.refresh_market_data",
+        "Refresh stored market bars from the provider.",
+        "/api/system-ops/refresh-market-data",
+    ),
+    _ops_tool(
+        "ops.refresh_news",
+        "Refresh stored news metadata.",
+        "/api/system-ops/refresh-news",
+    ),
+    _ops_tool(
+        "ops.calculate_indicators",
+        "Recalculate indicators from stored bars.",
+        "/api/system-ops/calculate-indicators",
+    ),
+    _ops_tool(
+        "ops.recompute_regime",
+        "Recompute the market regime from stored data.",
+        "/api/system-ops/recompute-regime",
+    ),
+    _ops_tool(
+        "ops.run_risk_guards",
+        "Re-run the risk guard ladder.",
+        "/api/system-ops/run-risk-guards",
+    ),
+    _ops_tool(
+        "ops.refresh_events",
+        "Refresh stored catalyst events.",
+        "/api/system-ops/refresh-events",
     ),
 )
 

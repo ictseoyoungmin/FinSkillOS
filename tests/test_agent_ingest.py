@@ -7,12 +7,29 @@ from fastapi.testclient import TestClient
 from api.main import create_app
 from finskillos.agent.ingest import (
     parse_portfolio_paste,
+    parse_protocol_request,
     parse_trades_paste,
     parse_watchlist_request,
     proposal_from_records,
+    protocol_from_block,
     trades_from_records,
     watchlist_from_block,
 )
+
+
+def test_parse_protocol_request_intents() -> None:
+    assert parse_protocol_request("regime 재계산해줘") == "recompute_regime"
+    assert parse_protocol_request("리스크 가드 다시 돌려줘") == "run_risk_guards"
+    assert parse_protocol_request("뉴스 새로고침") == "refresh_news"
+    assert parse_protocol_request("recompute the regime") == "recompute_regime"
+    # A plain question must NOT trigger a (mutating) recompute.
+    assert parse_protocol_request("what regime are we in?") is None
+    assert parse_protocol_request("내 regime 뭐야") is None
+
+
+def test_protocol_from_block_validates_key() -> None:
+    assert protocol_from_block({"protocol": "run_risk_guards"}) == "run_risk_guards"
+    assert protocol_from_block({"protocol": "delete_everything"}) is None
 
 
 def test_parse_watchlist_request_add_remove_and_keyword_required() -> None:

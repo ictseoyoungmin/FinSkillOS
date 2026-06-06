@@ -15,6 +15,18 @@ import {
   fetchCollectionControl,
   removeFolderSymbol,
 } from "@/features/collection-control/api";
+import { runSystemOpsProtocol } from "@/features/system-ops/api";
+import type { ProtocolKey } from "@/features/system-ops/types";
+
+// Protocols → the React-Query keys to refresh after a successful run.
+const PROTOCOL_REFRESH: Record<string, string[]> = {
+  recompute_regime: ["control-room", "market-kernel", "mission-control"],
+  run_risk_guards: ["risk-firewall", "control-room"],
+  refresh_news: ["news-intelligence", "control-room"],
+  refresh_events: ["event-radar", "control-room"],
+  refresh_market_data: ["market-kernel", "control-room"],
+  calculate_indicators: ["market-kernel", "symbol-lab"],
+};
 import {
   fetchAgentProviders,
   sendAgentChat,
@@ -396,6 +408,37 @@ export function AgentChatWidget() {
     }
   };
 
+  const onRunProtocol = async (idx: number, action: ProposedActionVM) => {
+    if (!action.protocol) return;
+    setBusy(true);
+    try {
+      const result = await runSystemOpsProtocol(action.protocol as ProtocolKey);
+      (PROTOCOL_REFRESH[action.protocol] ?? []).forEach((key) =>
+        queryClient.invalidateQueries({ queryKey: [key] }),
+      );
+      setTurns((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `${result.status} — ${result.message}`,
+          time: now(),
+        },
+      ]);
+      setPreview((p) => {
+        const next = { ...p };
+        delete next[idx];
+        return next;
+      });
+    } catch {
+      setTurns((prev) => [
+        ...prev,
+        { role: "assistant", content: "Couldn't run that operation.", time: now() },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onConfirm = async (idx: number, action: ProposedActionVM) => {
     setBusy(true);
     try {
@@ -561,6 +604,15 @@ export function AgentChatWidget() {
                         data-testid="chat-action-watchlist"
                       >
                         Apply to watchlist
+                      </button>
+                    ) : turn.action.kind === "run_protocol" ? (
+                      <button
+                        className="fso-chat-confirm"
+                        disabled={busy}
+                        onClick={() => onRunProtocol(idx, turn.action!)}
+                        data-testid="chat-action-protocol"
+                      >
+                        Run
                       </button>
                     ) : preview[idx] ? (
                       <button

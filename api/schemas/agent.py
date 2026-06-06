@@ -14,7 +14,7 @@ class AgentToolVM(CamelModel):
 
     name: str
     summary: str
-    category: Literal["portfolio", "trades", "watch", "reports", "read"]
+    category: Literal["portfolio", "trades", "watch", "reports", "read", "ops"]
     mutating: bool
     dry_run_supported: bool
     method: str
@@ -122,13 +122,16 @@ class WatchlistOpVM(CamelModel):
 
 
 class ProposedActionVM(CamelModel):
-    kind: Literal["portfolio_import", "trades_import", "watch_update"]
+    kind: Literal[
+        "portfolio_import", "trades_import", "watch_update", "run_protocol"
+    ]
     summary: str
     normalized_csv: str
     row_count: int
     warnings: list[str] = Field(default_factory=list)
     apply_endpoint: str
     watchlist: WatchlistOpVM | None = None
+    protocol: str | None = None
 
 
 class ChatResponse(CamelModel):

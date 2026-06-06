@@ -20,11 +20,14 @@ import re
 from dataclasses import dataclass, field
 
 from finskillos.agent.ingest import (
+    PROTOCOL_LABELS,
     WatchlistOp,
     parse_portfolio_paste,
+    parse_protocol_request,
     parse_trades_paste,
     parse_watchlist_request,
     proposal_from_records,
+    protocol_from_block,
     trades_from_records,
     watchlist_from_block,
 )
@@ -66,6 +69,14 @@ SYSTEM_PROMPT = (
     "```json\n"
     '{"watchlist": {"add": ["NVDA", "TSLA"], "remove": [], "folder": "Watchlist"}}\n'
     "```\n"
+    "When the user asks to refresh data or re-run an operation (refresh market "
+    "data / news / events, recalculate indicators, recompute regime, re-run risk "
+    "guards), end your reply with:\n"
+    "```json\n"
+    '{"protocol": "recompute_regime"}\n'
+    "```\n"
+    "(protocol is one of: refresh_market_data, refresh_news, calculate_indicators, "
+    "recompute_regime, run_risk_guards, refresh_events.)\n"
     "side is one of LONG, SHORT, WATCH, EXIT_REVIEW, OTHER (or buy/sell). Use "
     "plain numbers (no commas or currency symbols); use YYYY-MM-DD dates. Omit "
     "fields you don't know. If there's nothing to record, include no block."
@@ -133,6 +144,20 @@ class ProposedAction:
     apply_endpoint: str
     warnings: list[str] = field(default_factory=list)
     watchlist: WatchlistOp | None = None
+    protocol: str | None = None
+
+
+def _protocol_action(key: str | None, source: str) -> ProposedAction | None:
+    if key is None or key not in PROTOCOL_LABELS:
+        return None
+    return ProposedAction(
+        kind="run_protocol",
+        summary=f"Run operation: {PROTOCOL_LABELS[key]} ({source}).",
+        normalized_csv="",
+        row_count=1,
+        apply_endpoint="/api/system-ops",
+        protocol=key,
+    )
 
 
 def _watch_action(op: WatchlistOp | None, source: str) -> ProposedAction | None:
@@ -239,6 +264,10 @@ def _extract_llm_action(reply: str) -> tuple[str, ProposedAction | None]:
             action = _watch_action(
                 watchlist_from_block(data), "extracted from your message"
             )
+        elif data.get("protocol") is not None:
+            action = _protocol_action(
+                protocol_from_block(data), "from your message"
+            )
         if action is not None:
             cleaned = (reply[: match.start()] + reply[match.end() :]).strip()
             return cleaned or "I prepared an import from what you gave me.", action
@@ -282,6 +311,7 @@ def run_chat(
             parse_trades_paste(last_text), "trades_import", "parsed from your message"
         )
         or _watch_action(parse_watchlist_request(last_text), "parsed from your message")
+        or _protocol_action(parse_protocol_request(last_text), "from your message")
     )
 
     image_note = ""

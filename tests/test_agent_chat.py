@@ -207,6 +207,20 @@ def test_watchlist_deterministic_and_llm_block() -> None:
     assert reply2.proposed_action.watchlist.folder == "AI"
 
 
+def test_protocol_intent_becomes_run_protocol_action() -> None:
+    reply = run_chat(
+        [ChatMessage("user", "리스크 가드 다시 돌려줘")], provider=EchoProvider()
+    )
+    assert reply.proposed_action is not None
+    assert reply.proposed_action.kind == "run_protocol"
+    assert reply.proposed_action.protocol == "run_risk_guards"
+
+    provider = _StubProvider(_block('{"protocol":"recompute_regime"}'))
+    reply2 = run_chat([ChatMessage("user", "refresh it")], provider=provider)
+    assert reply2.proposed_action.kind == "run_protocol"
+    assert reply2.proposed_action.protocol == "recompute_regime"
+
+
 def test_no_block_falls_back_to_deterministic_parser() -> None:
     provider = _StubProvider("Recorded.")  # no json block
     reply = run_chat(
