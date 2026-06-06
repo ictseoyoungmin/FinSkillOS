@@ -52,6 +52,14 @@ SYSTEM_PROMPT = (
     "predict prices or market direction as fact ('it will rise'), and do not "
     "promise guaranteed returns. Everything else — explaining state, risks, "
     "regime, reasoning, your features and tools — answer fully and concretely.\n\n"
+    "If you need data you don't have in the context to answer (upcoming events, "
+    "recent news, recent trades, or a specific ticker's indicators), reply with "
+    "ONLY this block and nothing else — the data will be fetched and you'll answer "
+    "on the next turn:\n"
+    "```json\n"
+    '{"need": ["events", "NVDA"]}\n'
+    "```\n"
+    "(targets: events, news, trades, or any ticker symbol.)\n\n"
     "When the user gives you holdings or trades to record — in any free-form "
     "text, a messy list, or an attached screenshot — extract them and END your "
     "reply with ONE fenced json block.\n"
@@ -241,6 +249,21 @@ def _action_from_proposal(proposal, kind: str, source: str) -> ProposedAction | 
     )
 
 
+def _extract_need(reply: str) -> list[str]:
+    """A `{"need": [...]}` data request from the model → list of targets, or []."""
+
+    for match in _JSON_BLOCK_RE.finditer(reply or ""):
+        try:
+            data = json.loads(match.group(1))
+        except (ValueError, TypeError):
+            continue
+        if isinstance(data, dict) and isinstance(data.get("need"), list):
+            targets = [str(t).strip() for t in data["need"] if str(t).strip()]
+            if targets:
+                return targets
+    return []
+
+
 def _extract_llm_actions(reply: str) -> tuple[str, list[ProposedAction]]:
     """Pull a ```json {…} ``` block from the reply into proposed actions.
 
@@ -313,6 +336,7 @@ def run_chat(
     *,
     provider: LLMProvider | None = None,
     context: str = "",
+    fetch_more=None,
 ) -> ChatReply:
     provider = provider or build_provider()
     availability = provider.available()
@@ -364,6 +388,22 @@ def run_chat(
         ]
         try:
             raw = provider.chat(wire).text
+            # Single-round tool call: if the model asks for data it lacks, fetch it
+            # and let it answer once more (capable models; bounded to one round).
+            need = _extract_need(raw)
+            if need and fetch_more is not None:
+                extra = fetch_more(need)
+                if extra and extra.strip():
+                    wire2 = list(wire) + [
+                        {"role": "assistant", "content": raw},
+                        {"role": "system", "content": extra.strip()},
+                        {
+                            "role": "user",
+                            "content": "Now answer my previous question using the "
+                            "data above.",
+                        },
+                    ]
+                    raw = provider.chat(wire2).text
             cleaned, llm_actions = _extract_llm_actions(raw)
             reply = _guarded(cleaned)
             # Prefer the model's extraction (handles free-form text + screenshots).

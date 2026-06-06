@@ -207,6 +207,42 @@ def test_watchlist_deterministic_and_llm_block() -> None:
     assert reply2.proposed_action.watchlist.folder == "AI"
 
 
+def test_tool_call_loop_fetches_then_answers() -> None:
+    calls: list = []
+
+    class _TwoTurn:
+        kind = "gemini"
+
+        def available(self):
+            return ProviderAvailability(True, "ok")
+
+        def supports_vision(self):
+            return False
+
+        def chat(self, messages):
+            calls.append(messages)
+            if len(calls) == 1:
+                return LLMResult(_block('{"need":["events"]}'), "gemini", "m", False)
+            return LLMResult("The next event is NVDA earnings.", "gemini", "m", False)
+
+    reply = run_chat(
+        [ChatMessage("user", "다음 이벤트 뭐야")],
+        provider=_TwoTurn(),
+        fetch_more=lambda targets: "Upcoming events: NVDA earnings (2026-06-23).",
+    )
+    assert len(calls) == 2
+    assert reply.reply == "The next event is NVDA earnings."
+    # The fetched data was injected into the second call.
+    assert any("NVDA earnings" in str(m.get("content")) for m in calls[1])
+
+
+def test_need_block_without_fetcher_does_not_loop() -> None:
+    provider = _StubProvider(_block('{"need":["events"]}'))  # no fetch_more
+    reply = run_chat([ChatMessage("user", "events?")], provider=provider)
+    # No fetcher → no second call; the (stripped) first reply stands.
+    assert reply.proposed_actions == []
+
+
 def test_multi_step_chains_protocols_in_pipeline_order() -> None:
     reply = run_chat(
         [ChatMessage("user", "시장 데이터 새로고침하고 리스크 가드 다시 돌려줘")],

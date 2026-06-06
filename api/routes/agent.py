@@ -184,14 +184,20 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
         query_context = build_query_context(session, last_user)
         if query_context:
             context = f"{context}\n\n{query_context}" if context else query_context
-    reply = run_chat(
-        [
-            ChatMessage(role=m.role, content=m.content, images=tuple(m.images))
-            for m in payload.messages
-        ],
-        provider=provider,
-        context=context,
-    )
+
+        def fetch_more(targets: list[str]) -> str:
+            # The model requested data mid-turn → fetch via the same query reader.
+            return build_query_context(session, " ".join(targets))
+
+        reply = run_chat(
+            [
+                ChatMessage(role=m.role, content=m.content, images=tuple(m.images))
+                for m in payload.messages
+            ],
+            provider=provider,
+            context=context,
+            fetch_more=fetch_more,
+        )
     actions = [_to_action_vm(a) for a in reply.proposed_actions]
     return ChatResponse(
         reply=reply.reply,
