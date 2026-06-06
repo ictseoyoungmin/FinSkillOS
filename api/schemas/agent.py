@@ -135,11 +135,16 @@ class ProposedActionVM(CamelModel):
 
 
 class ChatResponse(CamelModel):
-    """An agent chat turn. Any mutation is a proposed action the user confirms."""
+    """An agent chat turn. Any mutation is a proposed action the user confirms.
+
+    ``proposed_actions`` may hold several (e.g. a multi-step "refresh + re-run
+    guards"); ``proposed_action`` is the first, kept for compatibility.
+    """
 
     reply: str
     provider: str
     ready: bool
+    proposed_actions: list[ProposedActionVM] = Field(default_factory=list)
     proposed_action: ProposedActionVM | None = None
     boundary: str = (
         "Descriptive bookkeeping assistant — no buy/sell advice, no orders. "

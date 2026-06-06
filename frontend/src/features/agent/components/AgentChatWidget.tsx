@@ -50,7 +50,7 @@ interface ChatTurn {
   content: string;
   time: string;
   images?: string[];
-  action?: ProposedActionVM | null;
+  actions?: ProposedActionVM[];
 }
 
 const GREETING: ChatTurn = {
@@ -138,7 +138,7 @@ export function AgentChatWidget() {
   const [busy, setBusy] = useState(false);
   const [dragHover, setDragHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [preview, setPreview] = useState<Record<number, string>>({});
+  const [preview, setPreview] = useState<Record<string, string>>({});
   const [pos, setPos] = useState(() => loadStored("fso-chat-pos", { right: 24, bottom: 24 }));
   const [size, setSize] = useState(() => loadStored("fso-chat-size", { w: 520, h: 600 }));
 
@@ -286,7 +286,7 @@ export function AgentChatWidget() {
           role: "assistant",
           content: result.reply,
           time: now(),
-          action: result.proposedAction,
+          actions: result.proposedActions,
         },
       ]);
     } catch {
@@ -345,7 +345,7 @@ export function AgentChatWidget() {
     }
   };
 
-  const onPreview = async (idx: number, action: ProposedActionVM) => {
+  const onPreview = async (pkey: string, action: ProposedActionVM) => {
     setBusy(true);
     try {
       let label: string;
@@ -356,13 +356,13 @@ export function AgentChatWidget() {
         const r = await previewImportPositions(action.normalizedCsv);
         label = `${r.adds} add / ${r.updates} update`;
       }
-      setPreview((p) => ({ ...p, [idx]: label }));
+      setPreview((p) => ({ ...p, [pkey]: label }));
     } finally {
       setBusy(false);
     }
   };
 
-  const onApplyWatchlist = async (idx: number, action: ProposedActionVM) => {
+  const onApplyWatchlist = async (pkey: string, action: ProposedActionVM) => {
     const op = action.watchlist;
     if (!op) return;
     setBusy(true);
@@ -395,7 +395,7 @@ export function AgentChatWidget() {
       ]);
       setPreview((p) => {
         const next = { ...p };
-        delete next[idx];
+        delete next[pkey];
         return next;
       });
     } catch {
@@ -408,7 +408,7 @@ export function AgentChatWidget() {
     }
   };
 
-  const onRunProtocol = async (idx: number, action: ProposedActionVM) => {
+  const onRunProtocol = async (pkey: string, action: ProposedActionVM) => {
     if (!action.protocol) return;
     setBusy(true);
     try {
@@ -426,7 +426,7 @@ export function AgentChatWidget() {
       ]);
       setPreview((p) => {
         const next = { ...p };
-        delete next[idx];
+        delete next[pkey];
         return next;
       });
     } catch {
@@ -439,7 +439,7 @@ export function AgentChatWidget() {
     }
   };
 
-  const onConfirm = async (idx: number, action: ProposedActionVM) => {
+  const onConfirm = async (pkey: string, action: ProposedActionVM) => {
     setBusy(true);
     try {
       let applied: string;
@@ -463,7 +463,7 @@ export function AgentChatWidget() {
       ]);
       setPreview((p) => {
         const next = { ...p };
-        delete next[idx];
+        delete next[pkey];
         return next;
       });
     } finally {
@@ -588,54 +588,65 @@ export function AgentChatWidget() {
                     ))}
                   </div>
                 ) : null}
-                {turn.action && turn.action.rowCount > 0 ? (
-                  <div className="fso-chat-action" data-testid="chat-proposed-action">
-                    <div className="fso-chat-action-head">{turn.action.summary}</div>
-                    {turn.action.warnings.length > 0 ? (
-                      <div className="fso-chat-action-warn">
-                        {turn.action.warnings.length} warning(s)
+                {(turn.actions ?? [])
+                  .filter((a) => a.rowCount > 0)
+                  .map((action, ai) => {
+                    const pkey = `${idx}:${ai}`;
+                    return (
+                      <div
+                        key={ai}
+                        className="fso-chat-action"
+                        data-testid="chat-proposed-action"
+                      >
+                        <div className="fso-chat-action-head">{action.summary}</div>
+                        {action.warnings.length > 0 ? (
+                          <div className="fso-chat-action-warn">
+                            {action.warnings.length} warning(s)
+                          </div>
+                        ) : null}
+                        {action.kind === "watch_update" ? (
+                          <button
+                            className="fso-chat-confirm"
+                            disabled={busy}
+                            onClick={() => onApplyWatchlist(pkey, action)}
+                            data-testid="chat-action-watchlist"
+                          >
+                            Apply to watchlist
+                          </button>
+                        ) : action.kind === "run_protocol" ? (
+                          <button
+                            className="fso-chat-confirm"
+                            disabled={busy}
+                            onClick={() => onRunProtocol(pkey, action)}
+                            data-testid="chat-action-protocol"
+                          >
+                            Run
+                          </button>
+                        ) : preview[pkey] ? (
+                          <button
+                            className="fso-chat-confirm"
+                            disabled={busy}
+                            onClick={() => onConfirm(pkey, action)}
+                            data-testid="chat-action-confirm"
+                          >
+                            Confirm — {preview[pkey]}
+                          </button>
+                        ) : (
+                          <button
+                            className="fso-chat-preview"
+                            disabled={busy}
+                            onClick={() => onPreview(pkey, action)}
+                            data-testid="chat-action-preview"
+                          >
+                            Preview{" "}
+                            {action.kind === "trades_import" ? "trades" : "import"} (
+                            {action.rowCount}{" "}
+                            {action.kind === "trades_import" ? "trades" : "holdings"})
+                          </button>
+                        )}
                       </div>
-                    ) : null}
-                    {turn.action.kind === "watch_update" ? (
-                      <button
-                        className="fso-chat-confirm"
-                        disabled={busy}
-                        onClick={() => onApplyWatchlist(idx, turn.action!)}
-                        data-testid="chat-action-watchlist"
-                      >
-                        Apply to watchlist
-                      </button>
-                    ) : turn.action.kind === "run_protocol" ? (
-                      <button
-                        className="fso-chat-confirm"
-                        disabled={busy}
-                        onClick={() => onRunProtocol(idx, turn.action!)}
-                        data-testid="chat-action-protocol"
-                      >
-                        Run
-                      </button>
-                    ) : preview[idx] ? (
-                      <button
-                        className="fso-chat-confirm"
-                        disabled={busy}
-                        onClick={() => onConfirm(idx, turn.action!)}
-                        data-testid="chat-action-confirm"
-                      >
-                        Confirm — {preview[idx]}
-                      </button>
-                    ) : (
-                      <button
-                        className="fso-chat-preview"
-                        disabled={busy}
-                        onClick={() => onPreview(idx, turn.action!)}
-                        data-testid="chat-action-preview"
-                      >
-                        Preview {turn.action.kind === "trades_import" ? "trades" : "import"} ({turn.action.rowCount}{" "}
-                        {turn.action.kind === "trades_import" ? "trades" : "holdings"})
-                      </button>
-                    )}
-                  </div>
-                ) : null}
+                    );
+                  })}
                 <span className="fso-chat-time">{turn.time}</span>
               </div>
             </div>

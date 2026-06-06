@@ -23,7 +23,7 @@ from finskillos.agent.ingest import (
     PROTOCOL_LABELS,
     WatchlistOp,
     parse_portfolio_paste,
-    parse_protocol_request,
+    parse_protocol_requests,
     parse_trades_paste,
     parse_watchlist_request,
     proposal_from_records,
@@ -71,11 +71,15 @@ SYSTEM_PROMPT = (
     "```\n"
     "When the user asks to refresh data or re-run an operation (refresh market "
     "data / news / events, recalculate indicators, recompute regime, re-run risk "
-    "guards), end your reply with:\n"
+    "guards), end your reply with a protocol block. One operation:\n"
     "```json\n"
     '{"protocol": "recompute_regime"}\n'
     "```\n"
-    "(protocol is one of: refresh_market_data, refresh_news, calculate_indicators, "
+    "Several at once (multi-step, in order):\n"
+    "```json\n"
+    '{"protocols": ["refresh_market_data", "run_risk_guards"]}\n'
+    "```\n"
+    "(each is one of: refresh_market_data, refresh_news, calculate_indicators, "
     "recompute_regime, run_risk_guards, refresh_events.)\n"
     "side is one of LONG, SHORT, WATCH, EXIT_REVIEW, OTHER (or buy/sell). Use "
     "plain numbers (no commas or currency symbols); use YYYY-MM-DD dates. Omit "
@@ -183,7 +187,13 @@ class ChatReply:
     reply: str
     provider: str
     ready: bool
-    proposed_action: ProposedAction | None = None
+    proposed_actions: list[ProposedAction] = field(default_factory=list)
+
+    @property
+    def proposed_action(self) -> ProposedAction | None:
+        """The primary proposed action (compat); None when there are none."""
+
+        return self.proposed_actions[0] if self.proposed_actions else None
 
 
 def _last_user(messages: list[ChatMessage]) -> str:
@@ -231,12 +241,12 @@ def _action_from_proposal(proposal, kind: str, source: str) -> ProposedAction | 
     )
 
 
-def _extract_llm_action(reply: str) -> tuple[str, ProposedAction | None]:
-    """Pull a ```json {"holdings"|"trades": [...]} ``` block from the reply.
+def _extract_llm_actions(reply: str) -> tuple[str, list[ProposedAction]]:
+    """Pull a ```json {…} ``` block from the reply into proposed actions.
 
-    Returns the reply with the block removed + a proposed action (validated
-    through the same ingest checks), or (reply, None) when there is no usable
-    block.
+    Supports holdings / trades / watchlist / protocol (single) and `protocols`
+    (a list, for multi-step). Returns the reply with the block removed + the
+    actions, or (reply, []) when there is no usable block.
     """
 
     for match in _JSON_BLOCK_RE.finditer(reply or ""):
@@ -247,31 +257,42 @@ def _extract_llm_action(reply: str) -> tuple[str, ProposedAction | None]:
             continue
         if not isinstance(data, dict):
             continue
-        action: ProposedAction | None = None
+        actions: list[ProposedAction] = []
         if isinstance(data.get("holdings"), list) and data["holdings"]:
             action = _action_from_proposal(
                 proposal_from_records(data["holdings"]),
                 "portfolio_import",
                 "extracted from your message",
             )
+            actions = [action] if action else []
         elif isinstance(data.get("trades"), list) and data["trades"]:
             action = _action_from_proposal(
                 trades_from_records(data["trades"]),
                 "trades_import",
                 "extracted from your message",
             )
+            actions = [action] if action else []
         elif data.get("watchlist") is not None:
             action = _watch_action(
                 watchlist_from_block(data), "extracted from your message"
             )
+            actions = [action] if action else []
+        elif isinstance(data.get("protocols"), list):
+            actions = [
+                a
+                for a in (
+                    _protocol_action(protocol_from_block({"protocol": key}), "from your message")
+                    for key in data["protocols"]
+                )
+                if a is not None
+            ]
         elif data.get("protocol") is not None:
-            action = _protocol_action(
-                protocol_from_block(data), "from your message"
-            )
-        if action is not None:
+            action = _protocol_action(protocol_from_block(data), "from your message")
+            actions = [action] if action else []
+        if actions:
             cleaned = (reply[: match.start()] + reply[match.end() :]).strip()
-            return cleaned or "I prepared an import from what you gave me.", action
-    return reply, None
+            return cleaned or "I prepared that from what you gave me.", actions
+    return reply, []
 
 
 def _wire_content(message: ChatMessage, *, vision: bool):
@@ -301,7 +322,7 @@ def run_chat(
     # Deterministic fallback from the raw pasted text (covers structured paste
     # even when the model emits no extraction block): holdings first, then trades.
     last_text = _last_user(messages)
-    action = (
+    single = (
         _action_from_proposal(
             parse_portfolio_paste(last_text),
             "portfolio_import",
@@ -311,8 +332,19 @@ def run_chat(
             parse_trades_paste(last_text), "trades_import", "parsed from your message"
         )
         or _watch_action(parse_watchlist_request(last_text), "parsed from your message")
-        or _protocol_action(parse_protocol_request(last_text), "from your message")
     )
+    if single is not None:
+        actions = [single]
+    else:
+        # Multiple operational protocols may be chained in one message.
+        actions = [
+            a
+            for a in (
+                _protocol_action(key, "from your message")
+                for key in parse_protocol_requests(last_text)
+            )
+            if a is not None
+        ]
 
     image_note = ""
     if image_count and not vision:
@@ -332,11 +364,11 @@ def run_chat(
         ]
         try:
             raw = provider.chat(wire).text
-            cleaned, llm_action = _extract_llm_action(raw)
+            cleaned, llm_actions = _extract_llm_actions(raw)
             reply = _guarded(cleaned)
             # Prefer the model's extraction (handles free-form text + screenshots).
-            if llm_action is not None:
-                action = llm_action
+            if llm_actions:
+                actions = llm_actions
         except Exception:  # noqa: BLE001 - any provider/transport failure → safe note
             reply = (
                 "The language model is unreachable right now, but I can still "
@@ -352,5 +384,5 @@ def run_chat(
         reply=f"{image_note}{reply}".strip(),
         provider=provider.kind,
         ready=availability.ready,
-        proposed_action=action,
+        proposed_actions=actions,
     )

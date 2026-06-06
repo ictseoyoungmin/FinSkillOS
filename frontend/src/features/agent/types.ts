@@ -65,6 +65,7 @@ export interface ChatResponse {
   reply: string;
   provider: string;
   ready: boolean;
+  proposedActions: ProposedActionVM[];
   proposedAction: ProposedActionVM | null;
   boundary: string;
 }

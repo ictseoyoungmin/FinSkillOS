@@ -129,6 +129,7 @@ protocols.
 205  Chat-Triggered Operational Protocols (v3)
 206  Active Query-Aware Read (events/news/trades) (v3)
 207  Per-Symbol Detail in Query Context (v3)
+208  Multi-Step Chained Actions (v3)
 ```
 
 ## Validation Baseline

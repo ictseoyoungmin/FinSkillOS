@@ -33,6 +33,7 @@ __all__ = [
     "PROTOCOL_KEYS",
     "PROTOCOL_LABELS",
     "parse_protocol_request",
+    "parse_protocol_requests",
     "protocol_from_block",
 ]
 
@@ -529,12 +530,32 @@ _PROTOCOL_INTENTS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 
 def parse_protocol_request(text: str) -> str | None:
-    """Deterministic operational-protocol intent → protocol key, or None."""
+    """Deterministic operational-protocol intent → first protocol key, or None."""
 
     for pattern, key in _PROTOCOL_INTENTS:
         if pattern.search(text):
             return key
     return None
+
+
+# Sensible execution order for multi-step: refresh sources → derive → evaluate.
+_PROTOCOL_PIPELINE = (
+    "refresh_market_data",
+    "refresh_news",
+    "refresh_events",
+    "calculate_indicators",
+    "recompute_regime",
+    "run_risk_guards",
+)
+
+
+def parse_protocol_requests(text: str) -> list[str]:
+    """All operational-protocol intents in the text (for multi-step requests like
+    'refresh data and re-run the guards'), de-duplicated and ordered as a pipeline
+    (refresh sources first, evaluate last)."""
+
+    found = {key for pattern, key in _PROTOCOL_INTENTS if pattern.search(text)}
+    return [key for key in _PROTOCOL_PIPELINE if key in found]
 
 
 def protocol_from_block(data: dict) -> str | None:

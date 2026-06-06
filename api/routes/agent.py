@@ -192,30 +192,33 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
         provider=provider,
         context=context,
     )
-    action = None
-    if reply.proposed_action is not None:
-        watchlist = None
-        if reply.proposed_action.watchlist is not None:
-            watchlist = WatchlistOpVM(
-                add=list(reply.proposed_action.watchlist.add),
-                remove=list(reply.proposed_action.watchlist.remove),
-                folder=reply.proposed_action.watchlist.folder,
-            )
-        action = ProposedActionVM(
-            kind=reply.proposed_action.kind,
-            summary=reply.proposed_action.summary,
-            normalized_csv=reply.proposed_action.normalized_csv,
-            row_count=reply.proposed_action.row_count,
-            warnings=reply.proposed_action.warnings,
-            apply_endpoint=reply.proposed_action.apply_endpoint,
-            watchlist=watchlist,
-            protocol=reply.proposed_action.protocol,
-        )
+    actions = [_to_action_vm(a) for a in reply.proposed_actions]
     return ChatResponse(
         reply=reply.reply,
         provider=reply.provider,
         ready=reply.ready,
-        proposed_action=action,
+        proposed_actions=actions,
+        proposed_action=actions[0] if actions else None,
+    )
+
+
+def _to_action_vm(action) -> ProposedActionVM:
+    watchlist = None
+    if action.watchlist is not None:
+        watchlist = WatchlistOpVM(
+            add=list(action.watchlist.add),
+            remove=list(action.watchlist.remove),
+            folder=action.watchlist.folder,
+        )
+    return ProposedActionVM(
+        kind=action.kind,
+        summary=action.summary,
+        normalized_csv=action.normalized_csv,
+        row_count=action.row_count,
+        warnings=action.warnings,
+        apply_endpoint=action.apply_endpoint,
+        watchlist=watchlist,
+        protocol=action.protocol,
     )
 
 

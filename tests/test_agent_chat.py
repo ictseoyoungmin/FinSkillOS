@@ -207,6 +207,27 @@ def test_watchlist_deterministic_and_llm_block() -> None:
     assert reply2.proposed_action.watchlist.folder == "AI"
 
 
+def test_multi_step_chains_protocols_in_pipeline_order() -> None:
+    reply = run_chat(
+        [ChatMessage("user", "시장 데이터 새로고침하고 리스크 가드 다시 돌려줘")],
+        provider=EchoProvider(),
+    )
+    keys = [a.protocol for a in reply.proposed_actions]
+    # Refresh source before evaluate (pipeline order), both present.
+    assert keys == ["refresh_market_data", "run_risk_guards"]
+
+
+def test_llm_protocols_list_block() -> None:
+    provider = _StubProvider(
+        _block('{"protocols":["recompute_regime","run_risk_guards"]}')
+    )
+    reply = run_chat([ChatMessage("user", "do it")], provider=provider)
+    assert [a.protocol for a in reply.proposed_actions] == [
+        "recompute_regime",
+        "run_risk_guards",
+    ]
+
+
 def test_protocol_intent_becomes_run_protocol_action() -> None:
     reply = run_chat(
         [ChatMessage("user", "리스크 가드 다시 돌려줘")], provider=EchoProvider()
