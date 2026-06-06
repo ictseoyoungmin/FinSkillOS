@@ -128,6 +128,7 @@ protocols.
 204  Loosen Agent Prompt + Expand State Context (v3)
 205  Chat-Triggered Operational Protocols (v3)
 206  Active Query-Aware Read (events/news/trades) (v3)
+207  Per-Symbol Detail in Query Context (v3)
 ```
 
 ## Validation Baseline

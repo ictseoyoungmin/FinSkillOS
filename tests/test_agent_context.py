@@ -51,6 +51,44 @@ def test_query_context_fetches_events_on_intent() -> None:
     assert build_query_context(None, "events?") == ""
 
 
+def test_query_context_symbol_detail() -> None:
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
+    from finskillos.db.models.indicator import IndicatorSnapshot
+    from finskillos.db.models.market import MarketBar
+
+    session = _seeded_session()
+    session.add(
+        MarketBar(
+            ticker="NVDA",
+            timeframe="1d",
+            bar_time=datetime(2026, 6, 1, tzinfo=timezone.utc),
+            open=Decimal("200"),
+            high=Decimal("220"),
+            low=Decimal("195"),
+            close=Decimal("218.66"),
+            volume=1000,
+            source="mock",
+        )
+    )
+    session.add(
+        IndicatorSnapshot(
+            ticker="NVDA",
+            timeframe="1d",
+            snapshot_time=datetime(2026, 6, 1, tzinfo=timezone.utc),
+            rsi_14=Decimal("58.2"),
+            trend_state="BULLISH",
+        )
+    )
+    session.commit()
+
+    detail = build_query_context(session, "NVDA 지표 보여줘")
+    assert "NVDA:" in detail and "RSI" in detail
+    # Non-ticker uppercase word with no stored data → no symbol section.
+    assert "NVDA:" not in build_query_context(session, "RSI 설명해줘")
+
+
 def test_context_is_grounded_into_chat(monkeypatch) -> None:
     from finskillos.agent.chat import ChatMessage, run_chat
     from finskillos.llm.provider import LLMResult, ProviderAvailability

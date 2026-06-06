@@ -135,6 +135,12 @@ def build_state_context(session) -> str:
 _EVENT_Q = re.compile(r"event|이벤트|카탈리스트|catalyst|일정", re.IGNORECASE)
 _NEWS_Q = re.compile(r"news|뉴스|기사|헤드라인|headline", re.IGNORECASE)
 _TRADE_Q = re.compile(r"trade|거래|매매|journal|저널|내역|체결", re.IGNORECASE)
+# Uppercase words that are not tickers (kept short; the data-exists check catches
+# the rest). Avoids needless lookups on common acronyms.
+_SYMBOL_STOP = {
+    "RSI", "EMA", "PNL", "AND", "THE", "FOR", "USD", "KRW", "OK", "DB", "API",
+    "FOMC", "CPI", "PPI", "ETF", "IPO", "CEO", "AI", "NEW", "ALL", "ANY",
+}
 
 
 def build_query_context(session, question: str) -> str:
@@ -197,6 +203,42 @@ def build_query_context(session, question: str) -> str:
                 sections.append(f"Recent trades: {items}.")
         except Exception:  # noqa: BLE001
             pass
+
+    # Per-symbol detail when the question names a ticker that has stored data
+    # (the data-exists filter removes non-ticker uppercase words like RSI/FOMC).
+    try:
+        from finskillos.data_sources.dto import DEFAULT_TIMEFRAME
+        from finskillos.db.repositories import IndicatorRepository, MarketRepository
+
+        candidates = [
+            t
+            for t in dict.fromkeys(re.findall(r"\b[A-Z]{2,6}\b", question))
+            if t not in _SYMBOL_STOP
+        ]
+        if candidates:
+            indicators = IndicatorRepository(session)
+            market = MarketRepository(session)
+            for ticker in candidates[:3]:
+                close = market.latest_close(ticker, DEFAULT_TIMEFRAME)
+                snapshot = indicators.latest_for(ticker, DEFAULT_TIMEFRAME)
+                if close is None and snapshot is None:
+                    continue
+                bits: list[str] = []
+                if close is not None:
+                    bits.append(f"close {close}")
+                if snapshot is not None:
+                    if snapshot.rsi_14 is not None:
+                        bits.append(f"RSI {snapshot.rsi_14}")
+                    if snapshot.trend_state:
+                        bits.append(f"trend {snapshot.trend_state}")
+                    if snapshot.momentum_score is not None:
+                        bits.append(f"momentum {snapshot.momentum_score}")
+                sections.append(
+                    f"{ticker}: {', '.join(bits)} "
+                    "(stored indicators, descriptive — not a signal)."
+                )
+    except Exception:  # noqa: BLE001
+        pass
 
     if not sections:
         return ""
