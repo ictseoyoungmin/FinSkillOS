@@ -124,6 +124,7 @@ protocols.
 200  Brokerage Read-Only Extension Boundary (v3 Phase 12)
 201  Self-Review Polish (guard/watchlist/widget) (v3)
 202  Agent Read Scope (grounded chat + read tools) (v3)
+203  Screen Interpretation (capture → vision) (v3)
 ```
 
 ## Validation Baseline

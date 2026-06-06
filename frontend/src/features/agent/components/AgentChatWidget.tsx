@@ -258,23 +258,13 @@ export function AgentChatWidget() {
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
-  const onSend = async () => {
-    const text = input.trim();
-    if ((text === "" && attachments.length === 0) || busy) return;
-    const images = attachments.map((a) => a.dataUrl);
-    const userTurn: ChatTurn = {
-      role: "user",
-      content: text,
-      time: now(),
-      images,
-    };
+  const submit = async (text: string, images: string[]) => {
+    if ((text === "" && images.length === 0) || busy) return;
+    const userTurn: ChatTurn = { role: "user", content: text, time: now(), images };
     const history = [...turns, userTurn]
       .filter((t) => t.role === "user" || t.role === "assistant")
       .map((t) => ({ role: t.role, content: t.content, images: t.images ?? [] }));
     setTurns((prev) => [...prev, userTurn]);
-    setInput("");
-    setAttachments([]);
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
     setBusy(true);
     try {
       const result = await sendAgentChat(history);
@@ -290,14 +280,56 @@ export function AgentChatWidget() {
     } catch {
       setTurns((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "The agent is unreachable right now.",
-          time: now(),
-        },
+        { role: "assistant", content: "The agent is unreachable right now.", time: now() },
       ]);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onSend = async () => {
+    const text = input.trim();
+    const images = attachments.map((a) => a.dataUrl);
+    if ((text === "" && images.length === 0) || busy) return;
+    setInput("");
+    setAttachments([]);
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    await submit(text, images);
+  };
+
+  // Capture the current cockpit screen (true pixels via the Screen Capture API)
+  // and ask the agent to describe it. Needs a vision-capable provider.
+  const captureScreen = async () => {
+    if (busy) return;
+    const md = navigator.mediaDevices;
+    if (!md?.getDisplayMedia) {
+      setTurns((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "Screen capture isn't supported here — drag-drop or attach a " +
+            "screenshot with ＋ instead.",
+          time: now(),
+        },
+      ]);
+      return;
+    }
+    try {
+      const stream = await md.getDisplayMedia({ video: true, audio: false });
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      await video.play();
+      await new Promise((r) => setTimeout(r, 250));
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      stream.getTracks().forEach((t) => t.stop());
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      await submit("Describe what's on this screen.", [dataUrl]);
+    } catch {
+      /* user cancelled the share dialog */
     }
   };
 
@@ -589,6 +621,15 @@ export function AgentChatWidget() {
             onClick={() => fileRef.current?.click()}
           >
             ＋
+          </button>
+          <button
+            className="fso-chat-attach"
+            title="Explain the current screen"
+            disabled={busy}
+            onClick={() => void captureScreen()}
+            data-testid="agent-chat-capture"
+          >
+            🖥
           </button>
           <input
             ref={fileRef}
