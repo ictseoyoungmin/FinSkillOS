@@ -55,20 +55,24 @@ def build_state_context(session) -> str:
     except Exception:  # noqa: BLE001
         pass
 
-    # Latest market regime.
+    # Latest market regime (+ its descriptive interpretation).
     try:
         from finskillos.services.regime_service import RegimeService
 
         regime = RegimeService(session).get_latest_regime()
         if regime is not None:
-            lines.append(
+            regime_line = (
                 f"Market regime: {regime.regime} (mode {regime.decision_mode}, "
                 f"risk {regime.risk_level})."
             )
+            if regime.what_it_means:
+                regime_line += f" {regime.what_it_means.strip()}"
+            lines.append(regime_line)
     except Exception:  # noqa: BLE001
         pass
 
-    # Risk guard ladder (status counts only — descriptive).
+    # Risk guard ladder — per-guard status + reason, so the agent can explain
+    # *why* each guard is in its state (descriptive, no advice).
     try:
         from finskillos.services.risk_guard_service import RiskGuardService
 
@@ -76,8 +80,14 @@ def build_state_context(session) -> str:
         counts = Counter(result.status for result in report.results)
         breakdown = ", ".join(f"{n} {status}" for status, n in counts.items())
         lines.append(
-            f"Risk guards: {breakdown} (overall {report.overall_status})."
+            f"Risk guards ({breakdown}; overall {report.overall_status}):"
         )
+        for result in report.results:
+            reason = (result.message or result.title or "").strip()
+            lines.append(
+                f"  · [{result.status}] {result.title}"
+                + (f" — {reason}" if reason and reason != result.title else "")
+            )
     except Exception:  # noqa: BLE001
         pass
 
