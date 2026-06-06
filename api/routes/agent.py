@@ -28,7 +28,7 @@ from api.schemas.agent import (
     WatchlistOpVM,
 )
 from finskillos.agent.chat import ChatMessage, run_chat
-from finskillos.agent.context import build_state_context
+from finskillos.agent.context import build_query_context, build_state_context
 from finskillos.agent.ingest import parse_portfolio_paste
 from finskillos.llm.provider import DEFAULT_PROVIDER, build_provider, provider_catalog
 from finskillos.runtime_settings import read_runtime_value
@@ -176,8 +176,14 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
     proposed action the user confirms — this endpoint never writes to the DB."""
 
     provider = build_provider(_active_provider_kind())
+    last_user = next(
+        (m.content for m in reversed(payload.messages) if m.role == "user"), ""
+    )
     with get_session_scope() as session:
         context = build_state_context(session)
+        query_context = build_query_context(session, last_user)
+        if query_context:
+            context = f"{context}\n\n{query_context}" if context else query_context
     reply = run_chat(
         [
             ChatMessage(role=m.role, content=m.content, images=tuple(m.images))

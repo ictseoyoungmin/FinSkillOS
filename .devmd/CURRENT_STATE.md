@@ -127,6 +127,7 @@ protocols.
 203  Screen Interpretation (capture → vision) (v3)
 204  Loosen Agent Prompt + Expand State Context (v3)
 205  Chat-Triggered Operational Protocols (v3)
+206  Active Query-Aware Read (events/news/trades) (v3)
 ```
 
 ## Validation Baseline

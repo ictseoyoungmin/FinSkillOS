@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from finskillos.agent.context import build_state_context
+from finskillos.agent.context import build_query_context, build_state_context
 from finskillos.db.base import Base
 from finskillos.db.seed import seed_default_account
 
@@ -33,6 +33,22 @@ def test_context_summarizes_seeded_state_descriptively() -> None:
         assert forbidden not in lowered
     # weight is a clean percentage, not a raw fraction.
     assert "%" in context
+
+
+def test_query_context_fetches_events_on_intent() -> None:
+    from datetime import date
+
+    from finskillos.services.event_service import EventService
+
+    session = _seeded_session()
+    EventService(session).seed_sample_events(today=date.today())
+    session.commit()
+
+    on_intent = build_query_context(session, "다가오는 이벤트 뭐 있어?")
+    assert "Upcoming events:" in on_intent
+    # No matching intent → empty (don't bloat every turn).
+    assert build_query_context(session, "안녕하세요") == ""
+    assert build_query_context(None, "events?") == ""
 
 
 def test_context_is_grounded_into_chat(monkeypatch) -> None:

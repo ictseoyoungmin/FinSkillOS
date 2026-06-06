@@ -9,11 +9,19 @@ missing piece is simply omitted, never an error.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 
 from finskillos.config import get_settings
 
-__all__ = ["build_state_context"]
+__all__ = ["build_state_context", "build_query_context"]
+
+
+def _account(session):
+    from finskillos.db.repositories import AccountRepository
+
+    settings = get_settings()
+    return AccountRepository(session).get_by_name(settings.default_account_name)
 
 
 def build_state_context(session) -> str:
@@ -121,4 +129,77 @@ def build_state_context(session) -> str:
     return (
         "Current account state (descriptive, read-only — use it to answer "
         "questions accurately; never turn it into advice):\n" + body
+    )
+
+
+_EVENT_Q = re.compile(r"event|이벤트|카탈리스트|catalyst|일정", re.IGNORECASE)
+_NEWS_Q = re.compile(r"news|뉴스|기사|헤드라인|headline", re.IGNORECASE)
+_TRADE_Q = re.compile(r"trade|거래|매매|journal|저널|내역|체결", re.IGNORECASE)
+
+
+def build_query_context(session, question: str) -> str:
+    """Question-aware read: fetch the specific read models the question is about
+    (events / news / recent trades) and return a descriptive block for this turn.
+    Empty when the question matches none or nothing is stored. Read-only."""
+
+    if session is None or not (question or "").strip():
+        return ""
+
+    try:
+        account = _account(session)
+    except Exception:  # noqa: BLE001
+        account = None
+
+    sections: list[str] = []
+
+    if _EVENT_Q.search(question):
+        try:
+            from datetime import date
+
+            from finskillos.services.event_service import EventService
+
+            events = EventService(session).list_upcoming(today=date.today(), limit=5)
+            if events:
+                items = "; ".join(
+                    f"{e.title} ({e.start_date.isoformat()})" for e in events
+                )
+                sections.append(f"Upcoming events: {items}.")
+        except Exception:  # noqa: BLE001
+            pass
+
+    if _NEWS_Q.search(question) and account is not None:
+        try:
+            from finskillos.services.news_service import NewsService
+
+            rows = NewsService(session).list_holdings_relevant_articles(
+                account_id=account.id, limit=5
+            )
+            if rows:
+                items = "; ".join(
+                    f"{article.title} ({article.source}, {article.sentiment_label})"
+                    for article, _ in rows
+                )
+                sections.append(f"Recent holdings-relevant news: {items}.")
+        except Exception:  # noqa: BLE001
+            pass
+
+    if _TRADE_Q.search(question) and account is not None:
+        try:
+            from finskillos.db.repositories import TradeRepository
+
+            trades = TradeRepository(session).list_recent(account.id, limit=5)
+            if trades:
+                items = "; ".join(
+                    f"{t.trade_date.isoformat()} {t.ticker} {t.side}"
+                    + (f" pnl {t.result_pnl}" if t.result_pnl is not None else "")
+                    for t in trades
+                )
+                sections.append(f"Recent trades: {items}.")
+        except Exception:  # noqa: BLE001
+            pass
+
+    if not sections:
+        return ""
+    return "Relevant data for this question (descriptive, read-only):\n" + "\n".join(
+        f"- {section}" for section in sections
     )
