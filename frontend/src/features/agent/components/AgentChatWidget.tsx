@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   applyImportPositions,
   previewImportPositions,
+  updateSnapshotBaseline,
 } from "@/features/portfolio/api";
 import type { MissionControlData } from "@/features/portfolio/types";
 import {
@@ -139,6 +140,8 @@ export function AgentChatWidget() {
   const [dragHover, setDragHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [preview, setPreview] = useState<Record<string, string>>({});
+  // Actions that have already been applied/run — prevents double-apply.
+  const [applied, setApplied] = useState<Set<string>>(new Set());
   const [pos, setPos] = useState(() => loadStored("fso-chat-pos", { right: 24, bottom: 24 }));
   const [size, setSize] = useState(() => loadStored("fso-chat-size", { w: 520, h: 600 }));
 
@@ -385,6 +388,7 @@ export function AgentChatWidget() {
       const parts: string[] = [];
       if (op.add.length) parts.push(`added ${op.add.join(", ")}`);
       if (op.remove.length) parts.push(`removed ${op.remove.join(", ")}`);
+      setApplied((s) => new Set(s).add(pkey));
       setTurns((prev) => [
         ...prev,
         {
@@ -416,6 +420,7 @@ export function AgentChatWidget() {
       (PROTOCOL_REFRESH[action.protocol] ?? []).forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] }),
       );
+      setApplied((s) => new Set(s).add(pkey));
       setTurns((prev) => [
         ...prev,
         {
@@ -450,13 +455,29 @@ export function AgentChatWidget() {
       } else {
         const r = await applyImportPositions(action.normalizedCsv);
         applied = `Applied — ${r.adds} added, ${r.updates} updated.`;
-        if (r.snapshot) {
+        let snapshot = r.snapshot ?? null;
+        // Auto-reconcile the snapshot baseline so the total matches the new
+        // positions + cash (avoids the "off by N%" reconciliation error).
+        const recon = snapshot?.reconciliation;
+        if (recon && recon.status !== "OK") {
+          try {
+            snapshot = await updateSnapshotBaseline({
+              totalValue: recon.reconciledTotal,
+              cashValue: recon.cashValue,
+            });
+            applied += " Baseline reconciled.";
+          } catch {
+            /* leave the baseline as-is on failure */
+          }
+        }
+        if (snapshot) {
           queryClient.setQueryData<MissionControlData>(
             ["mission-control"],
-            r.snapshot,
+            snapshot,
           );
         }
       }
+      setApplied((s) => new Set(s).add(pkey));
       setTurns((prev) => [
         ...prev,
         { role: "assistant", content: applied, time: now() },
@@ -604,7 +625,11 @@ export function AgentChatWidget() {
                             {action.warnings.length} warning(s)
                           </div>
                         ) : null}
-                        {action.kind === "watch_update" ? (
+                        {applied.has(pkey) ? (
+                          <span className="fso-chat-done" data-testid="chat-action-done">
+                            ✓ Done
+                          </span>
+                        ) : action.kind === "watch_update" ? (
                           <button
                             className="fso-chat-confirm"
                             disabled={busy}

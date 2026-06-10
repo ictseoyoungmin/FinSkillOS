@@ -389,6 +389,15 @@
   color: var(--fso-amber);
 }
 
+.fso-chat-done {
+  align-self: flex-start;
+  font-family: var(--fso-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fso-green);
+}
+
 .fso-chat-preview,
 .fso-chat-confirm {
   align-self: flex-start;

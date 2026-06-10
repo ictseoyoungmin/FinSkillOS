@@ -132,6 +132,7 @@ protocols.
 208  Multi-Step Chained Actions (v3)
 209  Tool-Calling Loop (need → fetch → answer) (v3)
 210  FX Rate + USD→KRW Ingestion Conversion (v3)
+211  Baseline Auto-Reconcile + Double-Apply Guard (v3)
 ```
 
 ## Validation Baseline
