@@ -133,6 +133,7 @@ protocols.
 209  Tool-Calling Loop (need → fetch → answer) (v3)
 210  FX Rate + USD→KRW Ingestion Conversion (v3)
 211  Baseline Auto-Reconcile + Double-Apply Guard (v3)
+212  v4 Planning Docs (Toss API, read-only)
 ```
 
 ## Validation Baseline
