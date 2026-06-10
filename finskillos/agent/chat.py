@@ -19,6 +19,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
+from finskillos.agent.fx import usd_krw_rate
 from finskillos.agent.ingest import (
     PROTOCOL_LABELS,
     WatchlistOp,
@@ -66,8 +67,14 @@ SYSTEM_PROMPT = (
     "For current holdings:\n"
     "```json\n"
     '{"holdings": [{"ticker": "NVDA", "quantity": 10, "market_value": 25000000, '
-    '"sector": "Semiconductors", "theme": "AI"}]}\n'
+    '"currency": "KRW", "sector": "Semiconductors", "theme": "AI"}]}\n'
     "```\n"
+    "Extract EVERY holding row — do not skip any. Map company names (Korean or "
+    "English, e.g. 마이크론→MU, 아메리칸 슈퍼컨덕터→AMSC, 버티브→VRT, 마벨→MRVL, "
+    "서비스나우→NOW, 스노우플레이크→SNOW) to their US ticker. Use the evaluation / "
+    "market value column as market_value and the ORIGINAL number (no manual "
+    'currency conversion). Set "currency" to "USD" when the value has $ or '
+    '"KRW" when it has ₩.\n'
     "For past trades (a trade journal):\n"
     "```json\n"
     '{"trades": [{"ticker": "TSLA", "side": "LONG", "trade_date": "2026-06-01", '
@@ -264,7 +271,9 @@ def _extract_need(reply: str) -> list[str]:
     return []
 
 
-def _extract_llm_actions(reply: str) -> tuple[str, list[ProposedAction]]:
+def _extract_llm_actions(
+    reply: str, *, usd_krw_rate=None
+) -> tuple[str, list[ProposedAction]]:
     """Pull a ```json {…} ``` block from the reply into proposed actions.
 
     Supports holdings / trades / watchlist / protocol (single) and `protocols`
@@ -283,7 +292,7 @@ def _extract_llm_actions(reply: str) -> tuple[str, list[ProposedAction]]:
         actions: list[ProposedAction] = []
         if isinstance(data.get("holdings"), list) and data["holdings"]:
             action = _action_from_proposal(
-                proposal_from_records(data["holdings"]),
+                proposal_from_records(data["holdings"], usd_krw_rate=usd_krw_rate),
                 "portfolio_import",
                 "extracted from your message",
             )
@@ -346,9 +355,11 @@ def run_chat(
     # Deterministic fallback from the raw pasted text (covers structured paste
     # even when the model emits no extraction block): holdings first, then trades.
     last_text = _last_user(messages)
+    # Only resolve an FX rate when the paste actually looks like USD ($).
+    rate = usd_krw_rate() if "$" in last_text else None
     single = (
         _action_from_proposal(
-            parse_portfolio_paste(last_text),
+            parse_portfolio_paste(last_text, usd_krw_rate=rate),
             "portfolio_import",
             "parsed from your message",
         )
@@ -404,7 +415,7 @@ def run_chat(
                         },
                     ]
                     raw = provider.chat(wire2).text
-            cleaned, llm_actions = _extract_llm_actions(raw)
+            cleaned, llm_actions = _extract_llm_actions(raw, usd_krw_rate=rate)
             reply = _guarded(cleaned)
             # Prefer the model's extraction (handles free-form text + screenshots).
             if llm_actions:

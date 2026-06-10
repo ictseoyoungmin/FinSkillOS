@@ -131,6 +131,7 @@ protocols.
 207  Per-Symbol Detail in Query Context (v3)
 208  Multi-Step Chained Actions (v3)
 209  Tool-Calling Loop (need → fetch → answer) (v3)
+210  FX Rate + USD→KRW Ingestion Conversion (v3)
 ```
 
 ## Validation Baseline

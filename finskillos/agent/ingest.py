@@ -16,7 +16,8 @@ from __future__ import annotations
 import csv
 import io
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from decimal import Decimal, InvalidOperation
 
 __all__ = [
     "IngestRow",
@@ -83,6 +84,25 @@ class IngestProposal:
                 ]
             )
         return buffer.getvalue()
+
+
+def _to_krw(value: str | None, rate) -> str | None:
+    """Convert a numeric string from USD to KRW (rounded), or pass through."""
+
+    if value is None or rate is None:
+        return value
+    try:
+        return str(int((Decimal(value) * Decimal(str(rate))).to_integral_value()))
+    except (InvalidOperation, ValueError, TypeError):
+        return value
+
+
+def _row_to_krw(row: IngestRow, rate) -> IngestRow:
+    return replace(
+        row,
+        market_value=_to_krw(row.market_value, rate),
+        average_cost=_to_krw(row.average_cost, rate) if row.average_cost else None,
+    )
 
 
 def _clean_number(token: str) -> str | None:
@@ -181,8 +201,11 @@ def _row_positional(parts: list[str]) -> tuple[IngestRow | None, str | None]:
     )
 
 
-def parse_portfolio_paste(text: str) -> IngestProposal:
-    """Parse free-form pasted holdings into a structured, reviewable proposal."""
+def parse_portfolio_paste(text: str, *, usd_krw_rate=None) -> IngestProposal:
+    """Parse free-form pasted holdings into a structured, reviewable proposal.
+
+    When a line is in USD (a ``$`` appears) and ``usd_krw_rate`` is given, the
+    row's market value / average cost are converted to KRW for storage."""
 
     rows: list[IngestRow] = []
     warnings: list[str] = []
@@ -210,6 +233,8 @@ def parse_portfolio_paste(text: str) -> IngestProposal:
             warnings.append(f"Duplicate ticker {row.ticker} — kept the first.")
             continue
         seen_tickers.add(row.ticker)
+        if usd_krw_rate is not None and "$" in raw_line:
+            row = _row_to_krw(row, usd_krw_rate)
         rows.append(row)
 
     if not rows and not warnings:
@@ -567,11 +592,12 @@ def protocol_from_block(data: dict) -> str | None:
     return None
 
 
-def proposal_from_records(records: list[dict]) -> IngestProposal:
+def proposal_from_records(records: list[dict], *, usd_krw_rate=None) -> IngestProposal:
     """Build a proposal from already-structured records (e.g. LLM-extracted).
 
     Same validation as the text parser, so an LLM extraction can never bypass
-    the ticker / numeric checks before reaching the import.
+    the ticker / numeric checks. A record with ``currency == "USD"`` is converted
+    to KRW with ``usd_krw_rate`` when supplied.
     """
 
     rows: list[IngestRow] = []
@@ -596,19 +622,20 @@ def proposal_from_records(records: list[dict]) -> IngestProposal:
             continue
         seen.add(ticker)
         avg_raw = record.get("average_cost") or record.get("avg_cost")
-        rows.append(
-            IngestRow(
-                ticker=ticker,
-                quantity=qty,
-                market_value=value,
-                average_cost=_clean_number(str(avg_raw)) if avg_raw else None,
-                sector=(str(record["sector"]).strip() or None)
-                if record.get("sector")
-                else None,
-                theme=(str(record["theme"]).strip() or None)
-                if record.get("theme")
-                else None,
-                strategy_type=str(record.get("strategy_type") or "swing"),
-            )
+        row = IngestRow(
+            ticker=ticker,
+            quantity=qty,
+            market_value=value,
+            average_cost=_clean_number(str(avg_raw)) if avg_raw else None,
+            sector=(str(record["sector"]).strip() or None)
+            if record.get("sector")
+            else None,
+            theme=(str(record["theme"]).strip() or None)
+            if record.get("theme")
+            else None,
+            strategy_type=str(record.get("strategy_type") or "swing"),
         )
+        if usd_krw_rate is not None and str(record.get("currency", "")).upper() == "USD":
+            row = _row_to_krw(row, usd_krw_rate)
+        rows.append(row)
     return IngestProposal(rows=rows, warnings=warnings)
