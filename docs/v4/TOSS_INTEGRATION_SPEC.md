@@ -25,9 +25,11 @@ Base URL: `https://openapi.tossinvest.com`. REST only.
 | Order Info | `GET /api/v1/buying-power` · `/sellable-quantity` · `/commissions` | read context |
 | Order History | `GET /api/v1/orders?status=OPEN` · `/orders/{id}` | pending orders (read) |
 
-Note: order-history `status=CLOSED` (executed history) returns `400
-closed-not-supported` upstream today — so executed trades can't be auto-journaled
-yet; holdings is the portfolio source.
+Note: `status=CLOSED` (executed history by `from`/`to` with `cursor`/`limit`
+pagination → FILLED/CANCELED/REJECTED + full `execution`) is the trade-history
+query feeding Phase 14b. `closed-not-supported` is a documented error code in the
+catalog (like 401/404/429), handled generically as a `TossApiError` — not a claim
+the endpoint is off. Holdings is the portfolio source.
 
 ## Endpoints we DO NOT use (excluded — buy/sell)
 `POST /api/v1/orders` (create), `/orders/{id}/modify`, `/orders/{id}/cancel`.

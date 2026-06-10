@@ -24,6 +24,13 @@ The plumbing every later phase needs, and nothing user-visible yet.
   portfolio import (reuses Phase 11 dry-run → confirm + the Phase-210 currency
   conversion + Phase-211 baseline reconcile). Replaces the manual paste.
 
+## Phase 14b — Trade Memory API overhaul
+Per the user: remove the Trade Memory **fixture + manual-entry form/UI**; make it
+API/DB-driven. Trade sync reads `GET /api/v1/orders?status=CLOSED` (from/to + cursor
+pagination → FILLED/CANCELED/REJECTED + execution detail) — the trade-history query.
+The agent **trade-paste import** (slice 198) is a general alternative input. Detail:
+[PHASE_14b_Trade_Memory_API_Overhaul.md](PHASE_14b_Trade_Memory_API_Overhaul.md).
+
 ## Phase 15 — Exchange rate via Toss
 - `/api/v1/exchange-rate` (KRW↔USD) as an FX `fetcher` for `usd_krw_rate`
   (slice 210) — prefer Toss when configured, fall back to Yahoo/default.

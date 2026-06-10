@@ -134,6 +134,7 @@ protocols.
 210  FX Rate + USD→KRW Ingestion Conversion (v3)
 211  Baseline Auto-Reconcile + Double-Apply Guard (v3)
 212  v4 Planning Docs (Toss API, read-only)
+213  v4 Phase 13: Toss Client + OAuth Foundation
 ```
 
 ## Validation Baseline
