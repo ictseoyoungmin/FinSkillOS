@@ -219,8 +219,12 @@ def _build_market_adapter(adapter_name: str):
         return MockMarketDataAdapter()
     if adapter_name == "yahoo":
         return YahooChartMarketDataAdapter()
+    if adapter_name == "toss":
+        from finskillos.brokerage.toss.market import TossMarketDataAdapter
+
+        return TossMarketDataAdapter()
     raise ValueError(
-        "FINSKILLOS_MARKET_REFRESH_ADAPTER must be one of: mock, yahoo"
+        "FINSKILLOS_MARKET_REFRESH_ADAPTER must be one of: mock, yahoo, toss"
     )
 
 
