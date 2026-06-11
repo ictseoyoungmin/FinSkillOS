@@ -126,6 +126,22 @@ class BrokerageSyncResponse(CamelModel):
     )
 
 
+class TossStatusResponse(CamelModel):
+    """Read-only Toss connection status for the Ops panel + agent context.
+
+    ``configured`` = creds present; ``connected`` = accounts reachable with the
+    token. Account number is masked. No order placement — read-only."""
+
+    configured: bool
+    connected: bool
+    account_no: str | None = None
+    account_seq: str | None = None
+    account_type: str | None = None
+    cash_krw: str | None = None
+    last_portfolio_sync: str | None = None
+    note: str
+
+
 class TradeSyncResponse(CamelModel):
     """Result of importing executed Toss orders into the trade journal.
 

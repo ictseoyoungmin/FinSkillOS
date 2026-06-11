@@ -270,6 +270,11 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "System Ops: data sources, worker, protocol history, freshness.",
         "/api/system-ops",
     ),
+    _read_tool(
+        "read.toss_status",
+        "Toss brokerage connection: configured/connected, account, cash, last sync.",
+        "/api/agent/toss/status",
+    ),
     # Operational protocols — idempotent refresh / recompute / re-run (not trading).
     _ops_tool(
         "ops.refresh_market_data",

@@ -26,6 +26,7 @@ from api.schemas.agent import (
     LLMProviderVM,
     ProposedActionVM,
     ProviderSwitchRequest,
+    TossStatusResponse,
     TradeSyncResponse,
     WatchlistOpVM,
 )
@@ -309,6 +310,60 @@ def agent_sync_trades_apply() -> TradeSyncResponse:
         added=added,
         skipped=int(result.get("skipped", 0)),
         note=f"Imported {added} executed trade(s) from Toss.",
+    )
+
+
+def _mask_account_no(value: str) -> str:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return f"****{digits[-4:]}" if len(digits) >= 4 else "****"
+
+
+@router.get(
+    "/agent/toss/status",
+    response_model=TossStatusResponse,
+    summary="Read-only Toss connection status (account, cash, last sync).",
+)
+def agent_toss_status() -> TossStatusResponse:
+    """Whether Toss is configured + reachable, with the masked account, cash, and
+    last portfolio-sync date. Read-only — no order placement; never raises."""
+
+    from finskillos.brokerage.toss.adapter import TossBrokerageAdapter
+    from finskillos.brokerage.toss.client import TossClient
+    from finskillos.brokerage.toss.config import load_toss_config
+
+    if not load_toss_config().configured:
+        return TossStatusResponse(
+            configured=False, connected=False, note="Toss is not configured."
+        )
+
+    last_sync = None
+    with get_session_scope() as session:
+        if session is not None:
+            last_sync = read_runtime_value(
+                "FINSKILLOS_TOSS_LAST_SYNC", session=session
+            )
+
+    client = TossClient()
+    try:
+        accounts = client.accounts()
+        account = accounts[0] if isinstance(accounts, list) and accounts else None
+        cash = TossBrokerageAdapter(client).fetch_cash(usd_krw_rate())
+    except Exception as exc:  # noqa: BLE001 - status check never raises
+        return TossStatusResponse(
+            configured=True,
+            connected=False,
+            last_portfolio_sync=last_sync,
+            note=f"Toss configured but unreachable ({type(exc).__name__}).",
+        )
+    return TossStatusResponse(
+        configured=True,
+        connected=True,
+        account_no=_mask_account_no(str(account.get("accountNo", ""))) if account else None,
+        account_seq=str(account.get("accountSeq")) if account else None,
+        account_type=account.get("accountType") if account else None,
+        cash_krw=str(cash) if cash is not None else None,
+        last_portfolio_sync=last_sync,
+        note="Connected." if account else "Connected, but no account returned.",
     )
 
 
