@@ -176,3 +176,17 @@ def test_client_has_no_order_write_methods() -> None:
         "sell",
     ):
         assert not hasattr(client, forbidden), forbidden
+
+
+def test_exchange_rate_sends_currency_params() -> None:
+    seen = []
+
+    def transport(method, url, headers, body):
+        if url.endswith("/oauth2/token"):
+            return 200, {"access_token": "TKN", "expires_in": 3600}
+        seen.append(url)
+        return 200, {"result": {"rate": "1380.5"}}
+
+    out = TossClient(_cfg(), transport=transport).exchange_rate(base="USD", quote="KRW")
+    assert out == {"rate": "1380.5"}
+    assert "baseCurrency=USD" in seen[0] and "quoteCurrency=KRW" in seen[0]

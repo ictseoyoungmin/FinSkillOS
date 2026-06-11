@@ -58,8 +58,11 @@ class TossClient:
     def holdings(self) -> dict:
         return self._get("/api/v1/holdings", account=True)
 
-    def exchange_rate(self) -> dict:
-        return self._get("/api/v1/exchange-rate")
+    def exchange_rate(self, *, base: str = "USD", quote: str = "KRW") -> dict:
+        return self._get(
+            "/api/v1/exchange-rate",
+            params={"baseCurrency": base, "quoteCurrency": quote},
+        )
 
     def stocks(self, symbols: list[str]) -> dict:
         return self._get("/api/v1/stocks", params={"symbols": ",".join(symbols)})
@@ -67,10 +70,18 @@ class TossClient:
     def prices(self, symbols: list[str]) -> dict:
         return self._get("/api/v1/prices", params={"symbols": ",".join(symbols)})
 
-    def candles(self, symbol: str, *, interval: str = "1d") -> dict:
-        return self._get(
-            "/api/v1/candles", params={"symbol": symbol, "interval": interval}
-        )
+    def candles(
+        self,
+        symbol: str,
+        *,
+        interval: str = "1d",
+        count: int = 200,
+        before: str | None = None,
+    ) -> dict:
+        params: dict = {"symbol": symbol, "interval": interval, "count": str(count)}
+        if before:
+            params["before"] = before
+        return self._get("/api/v1/candles", params=params)
 
     def orders(
         self,

@@ -59,3 +59,19 @@ def test_chat_usd_paste_is_converted(monkeypatch) -> None:
     assert action is not None and action.kind == "portfolio_import"
     # Converted to KRW (millions), not the raw dollar figures.
     assert "4761639" in action.normalized_csv
+
+
+def test_default_prefers_toss_then_yahoo(monkeypatch) -> None:
+    from decimal import Decimal
+
+    monkeypatch.setattr(fx_mod, "_toss_usd_krw", lambda: Decimal("1400"))
+    assert fx_mod._default_usd_krw() == Decimal("1400")  # Toss wins
+    monkeypatch.setattr(fx_mod, "_toss_usd_krw", lambda: None)
+    monkeypatch.setattr(fx_mod, "_yahoo_usd_krw", lambda: Decimal("1330"))
+    assert fx_mod._default_usd_krw() == Decimal("1330")  # falls back to Yahoo
+
+
+def test_toss_usd_krw_none_when_unconfigured(monkeypatch) -> None:
+    for var in ("FINSKILLOS_TOSS_CLIENT_ID", "FINSKILLOS_TOSS_CLIENT_SECRET"):
+        monkeypatch.delenv(var, raising=False)
+    assert fx_mod._toss_usd_krw() is None

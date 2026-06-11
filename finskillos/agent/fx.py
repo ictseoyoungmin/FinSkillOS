@@ -44,7 +44,7 @@ def usd_krw_rate(*, fetcher=None) -> Decimal:
         return _CACHE["rate"]
 
     try:
-        rate = (fetcher or _yahoo_usd_krw)()
+        rate = (fetcher or _default_usd_krw)()
         if rate is not None and rate > 0:
             _CACHE["rate"] = rate
             _CACHE["at"] = now
@@ -53,6 +53,29 @@ def usd_krw_rate(*, fetcher=None) -> Decimal:
         pass
 
     return _CACHE["rate"] or DEFAULT_USD_KRW
+
+
+def _default_usd_krw() -> Decimal | None:
+    """Prefer the Toss exchange rate when configured (v4 Phase 15), else Yahoo."""
+
+    try:
+        rate = _toss_usd_krw()
+        if rate is not None and rate > 0:
+            return rate
+    except Exception:  # noqa: BLE001 - Toss optional; fall through to Yahoo
+        pass
+    return _yahoo_usd_krw()
+
+
+def _toss_usd_krw() -> Decimal | None:
+    from finskillos.brokerage.toss.client import TossClient
+    from finskillos.brokerage.toss.config import load_toss_config
+
+    if not load_toss_config().configured:
+        return None
+    data = TossClient().exchange_rate(base="USD", quote="KRW")
+    rate = data.get("rate") if isinstance(data, dict) else None
+    return Decimal(str(rate)) if rate not in (None, "") else None
 
 
 def _yahoo_usd_krw() -> Decimal | None:
