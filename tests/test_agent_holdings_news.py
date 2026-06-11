@@ -57,3 +57,32 @@ def test_refresh_holdings_news_route_exists() -> None:
     # Fixture-first (no DB in tests) → 200 with the acknowledgement shell.
     res = TestClient(create_app()).post("/api/system-ops/refresh-holdings-news")
     assert res.status_code == 200
+
+
+def test_materiality_keyword_boosts_importance() -> None:
+    from finskillos.agent.context import _news_importance
+    earnings = _news_importance(_article(0), [_impact()])  # _article title is "t"
+    # an earnings headline outscores a plain same-age one
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+    def art(title):
+        return SimpleNamespace(title=title, published_at=datetime.now(tz=timezone.utc))
+    assert _news_importance(art("Oracle Q4 earnings beat"), [_impact()]) > _news_importance(
+        art("Oracle hosts a conference"), [_impact()]
+    )
+    assert earnings >= 0.0
+
+
+def test_dedupe_drops_same_wire_story() -> None:
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    from finskillos.agent.context import _dedupe_news
+    def art(title):
+        return SimpleNamespace(title=title, published_at=datetime.now(tz=timezone.utc))
+    rows = [
+        (art("Tech stocks today chip stocks pull back hard"), [_impact()]),
+        (art("Tech stocks today chip stocks pull back fast"), [_impact()]),
+        (art("Oracle earnings beat estimates"), [_impact()]),
+    ]
+    assert len(_dedupe_news(rows)) == 2  # first two share the first 6 words

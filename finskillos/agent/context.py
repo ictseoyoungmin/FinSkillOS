@@ -17,26 +17,54 @@ from finskillos.config import get_settings
 
 _RISK_WEIGHT = {"RED": 0.6, "ORANGE": 0.4, "YELLOW": 0.2}
 _SENTIMENT_WEIGHT = {"NEGATIVE": 0.3, "MIXED": 0.2, "POSITIVE": 0.15}
+_RECENCY_HALF_LIFE_DAYS = 3.0  # today ≈ 0.5, 3d ≈ 0.25, 6d ≈ 0.125
+# Material catalysts — these move a stock far more than routine coverage.
+_MATERIAL_KEYWORDS = re.compile(
+    r"earnings|guidance|revenue|profit|miss(?:es|ed)?|beat|upgrade|downgrade|"
+    r"lawsuit|sued|investigat|\bsec\b|\bfda\b|approv|recall|halt|bankrupt|default|"
+    r"merger|acquir|acquisition|buyback|dividend|delist|fraud|probe|"
+    r"실적|가이던스|인수|합병|감자|유상증자|무상증자|상장폐지|소송|배당|자사주",
+    re.IGNORECASE,
+)
 
 
 def _news_importance(article, impacts) -> float:
-    """Heuristic importance: classifier impact + risk + sentiment + recency.
+    """Heuristic importance: classifier impact + risk + sentiment + materiality +
+    recency (3-day half-life). yfinance holdings news often has impact_score 0 (no
+    keyword rule), so risk / sentiment / materiality / recency carry the weight.
 
-    yfinance holdings news often has impact_score 0 (no keyword rule), so risk /
-    sentiment (from signal inference) and recency carry most of the weight."""
+    The heuristic narrows to a shortlist; the LLM re-ranks it into the final answer
+    (the system prompt asks it to summarise the most important items)."""
 
     published = getattr(article, "published_at", None)
     recency = 0.0
     if published is not None:
         pub = published if published.tzinfo else published.replace(tzinfo=timezone.utc)
-        age_days = max(0, (datetime.now(tz=timezone.utc) - pub).days)
-        recency = max(0.0, 0.5 - 0.05 * age_days)
+        age_days = max(0.0, (datetime.now(tz=timezone.utc) - pub).total_seconds() / 86400)
+        recency = 0.5 * (0.5 ** (age_days / _RECENCY_HALF_LIFE_DAYS))
     impact = max((float(i.impact_score) for i in impacts), default=0.0)
     risk = max((_RISK_WEIGHT.get(i.risk_level, 0.0) for i in impacts), default=0.0)
     sentiment = max(
         (_SENTIMENT_WEIGHT.get(i.sentiment_label, 0.0) for i in impacts), default=0.0
     )
-    return impact + risk + sentiment + recency
+    title = getattr(article, "title", "") or ""
+    materiality = 0.35 if _MATERIAL_KEYWORDS.search(title) else 0.0
+    return impact + risk + sentiment + materiality + recency
+
+
+def _dedupe_news(ranked):
+    """Drop near-duplicate headlines (same first 6 words) — the same wire story is
+    often linked to several holdings."""
+
+    seen: set[str] = set()
+    out = []
+    for article, impacts in ranked:
+        key = " ".join((getattr(article, "title", "") or "").lower().split()[:6])
+        if key and key in seen:
+            continue
+        seen.add(key)
+        out.append((article, impacts))
+    return out
 
 __all__ = ["build_state_context", "build_query_context"]
 
@@ -225,8 +253,10 @@ def build_query_context(session, question: str, *, only: str | None = None) -> s
                 account_id=account.id, limit=30
             )
             if rows:
-                ranked = sorted(
-                    rows, key=lambda r: _news_importance(r[0], r[1]), reverse=True
+                ranked = _dedupe_news(
+                    sorted(
+                        rows, key=lambda r: _news_importance(r[0], r[1]), reverse=True
+                    )
                 )[:5]
                 lines = []
                 for idx, (article, impacts) in enumerate(ranked, start=1):
