@@ -276,6 +276,16 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/agent/trades/by-day",
     ),
     _read_tool(
+        "read.trades_by_weekday",
+        "Trade activity + FIFO realized P&L by weekday (Mon–Sun).",
+        "/api/agent/trades/by-weekday",
+    ),
+    _read_tool(
+        "read.trade_performance",
+        "Per-ticker FIFO realized P&L + win rate, ranked.",
+        "/api/agent/trades/performance",
+    ),
+    _read_tool(
         "read.system_status",
         "System Ops: data sources, worker, protocol history, freshness.",
         "/api/system-ops",

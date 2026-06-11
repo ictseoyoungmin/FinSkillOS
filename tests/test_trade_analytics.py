@@ -78,3 +78,33 @@ def test_by_ticker_endpoint_no_db() -> None:
     # session=None offline → available=false with a clear note (never 500).
     body = TestClient(create_app()).get("/api/agent/trades/by-ticker?ticker=NVDA").json()
     assert body["available"] is False and body["ticker"] == "NVDA"
+
+
+def test_ticker_summary_has_fifo_realized_and_winrate() -> None:
+    session = _session()
+    account = _seed(session)
+    s = summarize_ticker_trades(session, account.id, "NVDA")
+    # buy 10@100 + 5@110, sell 8@130 → FIFO realized (130-100)*8 = 240
+    from decimal import Decimal
+    assert Decimal(s["realized_pnl"]) == Decimal("240")
+    assert s["closed_count"] == 1 and s["wins"] == 1 and s["win_rate"] == 1.0
+
+
+def test_weekday_and_performance() -> None:
+    from finskillos.services.trade_analytics_service import (
+        summarize_by_weekday,
+        summarize_ticker_performance,
+    )
+
+    session = _session()
+    account = _seed(session)
+    wk = {r["weekday"]: r for r in summarize_by_weekday(session, account.id)}
+    assert len(wk) == 7
+    perf = summarize_ticker_performance(session, account.id)
+    nvda = next(r for r in perf if r["ticker"] == "NVDA")
+    assert nvda["wins"] == 1 and nvda["win_rate"] == 1.0
+
+
+def test_new_trade_tools_registered() -> None:
+    names = {t["name"] for t in TestClient(create_app()).get("/api/agent/tools").json()["tools"]}
+    assert {"read.trades_by_weekday", "read.trade_performance"} <= names

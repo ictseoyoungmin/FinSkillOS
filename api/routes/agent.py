@@ -42,8 +42,12 @@ from api.schemas.agent import (
     TossStockVM,
     TradeDailyResponse,
     TradeDailyVM,
+    TradePerformanceResponse,
+    TradePerformanceVM,
     TradeSyncResponse,
     TradeTickerSummaryResponse,
+    TradeWeekdayResponse,
+    TradeWeekdayVM,
     WatchlistOpVM,
 )
 from finskillos.agent.chat import ChatMessage, run_chat
@@ -491,6 +495,55 @@ def agent_trades_by_day(days: int = 30) -> TradeDailyResponse:
         days=days,
         rows=[TradeDailyVM(**r) for r in rows],
         note=f"{len(rows)} active day(s) in the last {days} days.",
+    )
+
+
+@router.get(
+    "/agent/trades/by-weekday",
+    response_model=TradeWeekdayResponse,
+    summary="Trade activity + FIFO realized P&L by weekday (Mon–Sun).",
+)
+def agent_trades_by_weekday() -> TradeWeekdayResponse:
+    """Descriptive weekday breakdown. Read-only."""
+
+    from finskillos.services.trade_analytics_service import summarize_by_weekday
+
+    with get_session_scope() as session:
+        if session is None:
+            return TradeWeekdayResponse(available=False, note="Database unavailable.")
+        account = _resolve_account_ro(session)
+        if account is None:
+            return TradeWeekdayResponse(available=True, note="No account yet.")
+        rows = summarize_by_weekday(session, account.id)
+    return TradeWeekdayResponse(
+        available=True, rows=[TradeWeekdayVM(**r) for r in rows]
+    )
+
+
+@router.get(
+    "/agent/trades/performance",
+    response_model=TradePerformanceResponse,
+    summary="Per-ticker FIFO realized P&L + win rate, ranked.",
+)
+def agent_trades_performance(top: int = 25) -> TradePerformanceResponse:
+    """Descriptive per-ticker realized performance. Read-only."""
+
+    from finskillos.services.trade_analytics_service import (
+        summarize_ticker_performance,
+    )
+
+    top = max(1, min(top, 200))
+    with get_session_scope() as session:
+        if session is None:
+            return TradePerformanceResponse(available=False, note="DB unavailable.")
+        account = _resolve_account_ro(session)
+        if account is None:
+            return TradePerformanceResponse(available=True, note="No account yet.")
+        rows = summarize_ticker_performance(session, account.id, top=top)
+    return TradePerformanceResponse(
+        available=True,
+        rows=[TradePerformanceVM(**r) for r in rows],
+        note=f"{len(rows)} ticker(s) with closed trades.",
     )
 
 

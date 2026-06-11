@@ -157,8 +157,47 @@ class TradeTickerSummaryResponse(CamelModel):
     total_fees: str | None = None
     avg_buy_price: str | None = None
     avg_sell_price: str | None = None
+    realized_pnl: str | None = None
+    closed_count: int = 0
+    wins: int = 0
+    losses: int = 0
+    win_rate: float | None = None
     first_date: str | None = None
     last_date: str | None = None
+    note: str = ""
+
+
+class TradeWeekdayVM(CamelModel):
+    weekday: str
+    trade_count: int
+    buy_count: int
+    sell_count: int
+    realized_pnl: str
+    win_rate: float | None = None
+
+
+class TradeWeekdayResponse(CamelModel):
+    """Trade activity + FIFO realized P&L by weekday (Mon–Sun). Read-only."""
+
+    available: bool
+    rows: list[TradeWeekdayVM] = Field(default_factory=list)
+    note: str = ""
+
+
+class TradePerformanceVM(CamelModel):
+    ticker: str
+    realized_pnl: str
+    closed_count: int
+    wins: int
+    losses: int
+    win_rate: float | None = None
+
+
+class TradePerformanceResponse(CamelModel):
+    """Per-ticker FIFO realized P&L + win rate, ranked. Read-only."""
+
+    available: bool
+    rows: list[TradePerformanceVM] = Field(default_factory=list)
     note: str = ""
 
 
