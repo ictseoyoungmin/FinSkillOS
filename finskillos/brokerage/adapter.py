@@ -79,10 +79,16 @@ def build_brokerage_adapter(name: str | None = None) -> BrokerageReadAdapter:
     """Resolve the configured brokerage adapter (env
     ``FINSKILLOS_BROKERAGE_ADAPTER``; default ``null``).
 
-    No real adapter is registered yet — every value resolves to the empty
-    ``NullBrokerageAdapter``. A future read-only broker adapter registers here and
-    feeds the existing import flow; it never gains execution power.
+    ``toss`` resolves to the read-only Toss adapter (v4); anything else (incl. the
+    default) is the empty ``NullBrokerageAdapter``. Every adapter feeds the existing
+    confirm-gated import flow and none gains execution power.
     """
 
-    _ = (name or os.getenv("FINSKILLOS_BROKERAGE_ADAPTER", "null")).strip().lower()
+    resolved = (
+        name or os.getenv("FINSKILLOS_BROKERAGE_ADAPTER", "null")
+    ).strip().lower()
+    if resolved == "toss":
+        from finskillos.brokerage.toss.adapter import TossBrokerageAdapter
+
+        return TossBrokerageAdapter()
     return NullBrokerageAdapter()

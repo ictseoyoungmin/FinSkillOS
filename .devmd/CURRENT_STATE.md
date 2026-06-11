@@ -135,6 +135,7 @@ protocols.
 211  Baseline Auto-Reconcile + Double-Apply Guard (v3)
 212  v4 Planning Docs (Toss API, read-only)
 213  v4 Phase 13: Toss Client + OAuth Foundation
+214  v4 Phase 14: Toss Holdings Sync (backend)
 ```
 
 ## Validation Baseline

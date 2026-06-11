@@ -104,6 +104,28 @@ class IngestProposalResponse(CamelModel):
     )
 
 
+class BrokerageSyncResponse(CamelModel):
+    """Holdings pulled from a read-only brokerage (Toss) as a **not-yet-applied**
+    portfolio-import proposal. ``available=false`` when the broker isn't configured.
+
+    Applying reuses the existing dry-run → confirm import (POST ``normalizedCsv``
+    to ``/api/mission-control/import-positions``); this endpoint never mutates.
+    """
+
+    available: bool
+    source: str
+    row_count: int
+    rows: list[IngestRowVM] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    normalized_csv: str = ""
+    note: str
+    apply_endpoint: str = "/api/mission-control/import-positions"
+    boundary: str = (
+        "Preview only — nothing is written until you confirm the import. "
+        "Descriptive bookkeeping; no orders or trades."
+    )
+
+
 class ChatMessageVM(CamelModel):
     role: Literal["user", "assistant"]
     content: str = Field(..., max_length=200_000)

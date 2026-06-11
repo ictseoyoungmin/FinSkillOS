@@ -39,6 +39,10 @@ __all__ = [
 ]
 
 _TICKER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9.\-]{0,31}$")
+# Structured sources (brokerage API / LLM extraction) also carry KR 6-digit codes
+# (e.g. 005930). Accept those too — but only on the structured path, not the loose
+# positional text parser, where a bare number must not be mistaken for a ticker.
+_SYMBOL_RE = re.compile(r"^([A-Za-z][A-Za-z0-9.\-]{0,31}|\d{6})$")
 _CSV_COLUMNS = (
     "ticker",
     "quantity",
@@ -607,7 +611,7 @@ def proposal_from_records(records: list[dict], *, usd_krw_rate=None) -> IngestPr
         if not isinstance(record, dict):
             continue
         ticker = str(record.get("ticker", "")).strip().upper()
-        if not _TICKER_RE.match(ticker):
+        if not _SYMBOL_RE.match(ticker):
             warnings.append(f"Skipped a record with no valid ticker: {record!r}")
             continue
         qty = _clean_number(str(record.get("quantity", "")))

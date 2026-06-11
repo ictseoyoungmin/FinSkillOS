@@ -17,6 +17,7 @@ from api.schemas.agent import (
     AgentProvidersResponse,
     AgentToolsResponse,
     AgentToolVM,
+    BrokerageSyncResponse,
     ChatRequest,
     ChatResponse,
     IngestProposalResponse,
@@ -29,7 +30,9 @@ from api.schemas.agent import (
 )
 from finskillos.agent.chat import ChatMessage, run_chat
 from finskillos.agent.context import build_query_context, build_state_context
-from finskillos.agent.ingest import parse_portfolio_paste
+from finskillos.agent.fx import usd_krw_rate
+from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
+from finskillos.brokerage.adapter import build_brokerage_adapter
 from finskillos.llm.provider import DEFAULT_PROVIDER, build_provider, provider_catalog
 from finskillos.runtime_settings import read_runtime_value
 
@@ -153,6 +156,66 @@ def agent_ingest(payload: IngestRequest) -> IngestProposalResponse:
         rows=rows,
         warnings=proposal.warnings,
         normalized_csv=proposal.normalized_csv,
+    )
+
+
+@router.post(
+    "/agent/sync/holdings",
+    response_model=BrokerageSyncResponse,
+    summary="Pull holdings from the read-only Toss brokerage as an import proposal.",
+)
+def agent_sync_holdings() -> BrokerageSyncResponse:
+    """Read the user's real holdings from Toss into a **not-yet-applied** portfolio
+    import proposal (USD positions converted to KRW). No DB write — the user
+    reviews + confirms via the existing dry-run → confirm import."""
+
+    adapter = build_brokerage_adapter("toss")
+    if not adapter.available():
+        return BrokerageSyncResponse(
+            available=False,
+            source="toss",
+            row_count=0,
+            note=(
+                "Toss is not configured. Set FINSKILLOS_TOSS_CLIENT_ID / "
+                "_CLIENT_SECRET / _ACCOUNT_SEQ to sync holdings."
+            ),
+        )
+    try:
+        records = adapter.fetch_positions()
+    except Exception as exc:  # noqa: BLE001 - surface read failure, never 500
+        return BrokerageSyncResponse(
+            available=True,
+            source="toss",
+            row_count=0,
+            warnings=[f"Toss holdings read failed: {type(exc).__name__}."],
+            note="Could not read holdings from Toss. Check credentials / account.",
+        )
+    rate = usd_krw_rate() if any(
+        str(r.get("currency", "")).upper() == "USD" for r in records
+    ) else None
+    proposal = proposal_from_records(records, usd_krw_rate=rate)
+    rows = [
+        IngestRowVM(
+            ticker=row.ticker,
+            quantity=row.quantity,
+            market_value=row.market_value,
+            average_cost=row.average_cost,
+            sector=row.sector,
+            theme=row.theme,
+            strategy_type=row.strategy_type,
+        )
+        for row in proposal.rows
+    ]
+    return BrokerageSyncResponse(
+        available=True,
+        source="toss",
+        row_count=len(rows),
+        rows=rows,
+        warnings=proposal.warnings,
+        normalized_csv=proposal.normalized_csv,
+        note=(
+            f"{len(rows)} holding(s) read from Toss. Review, then confirm to import."
+        ),
     )
 
 
