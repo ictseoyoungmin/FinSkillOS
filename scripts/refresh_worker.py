@@ -241,6 +241,41 @@ def _build_news_adapter(config: WorkerConfig):
     )
 
 
+def _maybe_sync_toss_portfolio(session, summary: dict[str, Any]) -> None:
+    """Once a day, replace the portfolio + cash from the Toss source of truth.
+
+    Gated to one run per UTC day via the ``FINSKILLOS_TOSS_LAST_SYNC`` setting;
+    disabled when Toss is unconfigured or ``FINSKILLOS_TOSS_SYNC_ENABLED`` is off.
+    Any failure is recorded in the summary and never breaks the refresh cycle."""
+
+    from finskillos.brokerage.adapter import build_brokerage_adapter
+    from finskillos.db.repositories import SystemOpsSettingsRepository
+    from finskillos.services.brokerage_sync_service import sync_toss_portfolio
+
+    adapter = build_brokerage_adapter("toss")
+    if not adapter.available():
+        summary["tossSync"] = {"status": "SKIPPED", "reason": "not_configured"}
+        return
+    if not read_runtime_bool(
+        "FINSKILLOS_TOSS_SYNC_ENABLED", default=True, session=session
+    ):
+        summary["tossSync"] = {"status": "SKIPPED", "reason": "disabled"}
+        return
+    today = datetime.now(tz=UTC).date().isoformat()
+    last = read_runtime_value("FINSKILLOS_TOSS_LAST_SYNC", session=session)
+    if last == today:
+        summary["tossSync"] = {"status": "SKIPPED", "reason": "already_today"}
+        return
+    try:
+        result = sync_toss_portfolio(session, adapter=adapter)
+        SystemOpsSettingsRepository(session).patch(
+            {"FINSKILLOS_TOSS_LAST_SYNC": today}, updated_by="worker_toss_sync"
+        )
+        summary["tossSync"] = result
+    except Exception as exc:  # noqa: BLE001 - a sync error must not fail the cycle
+        summary["tossSync"] = {"status": "ERROR", "detail": type(exc).__name__}
+
+
 def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     """Run one refresh cycle and return a structured summary."""
 
@@ -391,6 +426,7 @@ def run_cycle(config: WorkerConfig) -> dict[str, Any]:
                     "confidence": str(output.confidence),
                 }
 
+            _maybe_sync_toss_portfolio(session, summary)
             summary["finishedAt"] = datetime.now(tz=UTC).isoformat()
             _persist_worker_cycle(session, summary)
     except Exception as exc:

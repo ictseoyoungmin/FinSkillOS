@@ -43,6 +43,10 @@ _ALLOWED_SETTING_KEYS = {
     "FINSKILLOS_NEWS_RSS_LANGUAGE",
     # v3 Phase 10: the active LLM provider for the agent narrator (Ops switcher).
     "FINSKILLOS_LLM_PROVIDER",
+    # v4 Phase 14: daily Toss portfolio auto-sync (worker). LAST_SYNC is the
+    # worker's once-a-day gate (ISO date); SYNC_ENABLED toggles the behaviour.
+    "FINSKILLOS_TOSS_SYNC_ENABLED",
+    "FINSKILLOS_TOSS_LAST_SYNC",
 }
 
 _ALLOWED_SETTING_KEYS_TUPLE = tuple(sorted(_ALLOWED_SETTING_KEYS))

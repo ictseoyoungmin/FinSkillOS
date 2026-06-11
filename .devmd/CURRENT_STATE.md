@@ -139,6 +139,7 @@ protocols.
 215  v4 Phase 14: "Sync from Toss" Button (frontend)
 216  Wire Toss / FX env to api container
 217  v4: Toss Replace-Sync Service (holdings + cash)
+218  v4 Phase 14: Worker Daily Toss Auto-Sync
 ```
 
 ## Validation Baseline
