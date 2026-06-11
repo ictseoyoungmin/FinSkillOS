@@ -142,6 +142,45 @@ class TossStatusResponse(CamelModel):
     note: str
 
 
+class TradeTickerSummaryResponse(CamelModel):
+    """Per-ticker trade summary over the journal (counts, amounts, net, avg prices).
+    Amounts are KRW. Read-only; available=false when no DB/account."""
+
+    available: bool
+    ticker: str
+    trade_count: int = 0
+    buy_count: int = 0
+    sell_count: int = 0
+    total_buy_amount: str | None = None
+    total_sell_amount: str | None = None
+    net_cashflow: str | None = None
+    total_fees: str | None = None
+    avg_buy_price: str | None = None
+    avg_sell_price: str | None = None
+    first_date: str | None = None
+    last_date: str | None = None
+    note: str = ""
+
+
+class TradeDailyVM(CamelModel):
+    date: str
+    trade_count: int
+    buy_count: int
+    sell_count: int
+    buy_amount: str
+    sell_amount: str
+    net: str
+
+
+class TradeDailyResponse(CamelModel):
+    """Daily trade activity over the last N days. Read-only."""
+
+    available: bool
+    days: int
+    rows: list[TradeDailyVM] = Field(default_factory=list)
+    note: str = ""
+
+
 class HoldingsNewsResponse(CamelModel):
     """Result of refreshing per-holding news (Toss tickers × yfinance). Read-only;
     ``status`` is APPLIED / SKIPPED (Toss unconfigured) / ERROR."""

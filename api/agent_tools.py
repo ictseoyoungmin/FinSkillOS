@@ -266,6 +266,16 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/trade-memory",
     ),
     _read_tool(
+        "read.trades_by_ticker",
+        "Per-ticker trade summary (counts, amounts, net cashflow, avg prices, dates).",
+        "/api/agent/trades/by-ticker",
+    ),
+    _read_tool(
+        "read.trades_by_day",
+        "Daily trade activity over the last N days (count, sides, amounts, net).",
+        "/api/agent/trades/by-day",
+    ),
+    _read_tool(
         "read.system_status",
         "System Ops: data sources, worker, protocol history, freshness.",
         "/api/system-ops",

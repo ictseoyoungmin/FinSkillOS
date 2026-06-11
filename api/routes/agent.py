@@ -40,7 +40,10 @@ from api.schemas.agent import (
     TossStatusResponse,
     TossStocksResponse,
     TossStockVM,
+    TradeDailyResponse,
+    TradeDailyVM,
     TradeSyncResponse,
+    TradeTickerSummaryResponse,
     WatchlistOpVM,
 )
 from finskillos.agent.chat import ChatMessage, run_chat
@@ -416,6 +419,78 @@ def agent_toss_status() -> TossStatusResponse:
         cash_krw=str(cash) if cash is not None else None,
         last_portfolio_sync=last_sync,
         note="Connected." if account else "Connected, but no account returned.",
+    )
+
+
+def _resolve_account_ro(session):
+    from finskillos.config import get_settings
+    from finskillos.db.repositories import AccountRepository
+
+    accounts = AccountRepository(session)
+    account = accounts.get_by_name(get_settings().default_account_name)
+    if account is not None:
+        return account
+    rows = accounts.list_all()
+    return rows[0] if rows else None
+
+
+@router.get(
+    "/agent/trades/by-ticker",
+    response_model=TradeTickerSummaryResponse,
+    summary="Per-ticker trade summary (counts, amounts, net, avg prices, dates).",
+)
+def agent_trades_by_ticker(ticker: str = "") -> TradeTickerSummaryResponse:
+    """Descriptive trade history summary for one ticker. Read-only."""
+
+    from finskillos.services.trade_analytics_service import summarize_ticker_trades
+
+    symbol = (ticker or "").strip().upper()
+    if not symbol:
+        return TradeTickerSummaryResponse(
+            available=False, ticker="", note="No ticker provided."
+        )
+    with get_session_scope() as session:
+        if session is None:
+            return TradeTickerSummaryResponse(
+                available=False, ticker=symbol, note="Database unavailable."
+            )
+        account = _resolve_account_ro(session)
+        if account is None:
+            return TradeTickerSummaryResponse(
+                available=True, ticker=symbol, note="No account / trades yet."
+            )
+        data = summarize_ticker_trades(session, account.id, symbol)
+    return TradeTickerSummaryResponse(
+        available=True,
+        note=f"{data.get('trade_count', 0)} trade(s) for {symbol}.",
+        **{k: v for k, v in data.items() if k != "ticker"},
+        ticker=symbol,
+    )
+
+
+@router.get(
+    "/agent/trades/by-day",
+    response_model=TradeDailyResponse,
+    summary="Daily trade activity over the last N days (count, sides, amounts, net).",
+)
+def agent_trades_by_day(days: int = 30) -> TradeDailyResponse:
+    """Descriptive day-by-day trade activity. Read-only."""
+
+    from finskillos.services.trade_analytics_service import summarize_daily_trades
+
+    days = max(1, min(days, 365))
+    with get_session_scope() as session:
+        if session is None:
+            return TradeDailyResponse(available=False, days=days, note="DB unavailable.")
+        account = _resolve_account_ro(session)
+        if account is None:
+            return TradeDailyResponse(available=True, days=days, note="No account yet.")
+        rows = summarize_daily_trades(session, account.id, days=days)
+    return TradeDailyResponse(
+        available=True,
+        days=days,
+        rows=[TradeDailyVM(**r) for r in rows],
+        note=f"{len(rows)} active day(s) in the last {days} days.",
     )
 
 
