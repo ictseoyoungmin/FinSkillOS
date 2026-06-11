@@ -9,6 +9,7 @@ so this can run unattended (the user opted into automatic daily sync).
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 
@@ -155,7 +156,13 @@ def sync_toss_trades(session, *, adapter: BrokerageReadAdapter | None = None) ->
     added = skipped = 0
     for record in records:
         order_id = record.get("order_id")
-        event_key = f"toss:{order_id}" if order_id else None
+        # Toss orderIds are long opaque tokens (~80 chars); hash to fit the
+        # event_key column (varchar 80) while staying stable + unique for dedup.
+        event_key = (
+            f"toss:{hashlib.sha1(str(order_id).encode()).hexdigest()}"
+            if order_id
+            else None
+        )
         if event_key and event_key in existing:
             skipped += 1
             continue
