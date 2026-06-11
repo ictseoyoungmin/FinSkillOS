@@ -105,6 +105,12 @@ class TossClient:
         """Single order detail (any status — FILLED/CANCELED/REJECTED included)."""
         return self._get(f"/api/v1/orders/{order_id}", account=True)
 
+    def buying_power(self, *, currency: str = "KRW") -> dict:
+        """Cash-based buying power for a currency → ``{currency, cashBuyingPower}``."""
+        return self._get(
+            "/api/v1/buying-power", params={"currency": currency}, account=True
+        )
+
     # --- plumbing ----------------------------------------------------------
 
     def _get(self, path: str, *, params: dict | None = None, account: bool = False) -> dict:

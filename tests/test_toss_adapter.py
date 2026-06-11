@@ -64,6 +64,21 @@ def test_fetch_positions_maps_kr_and_us_holdings() -> None:
     assert by_ticker["AAPL"]["currency"] == "USD"
 
 
+def test_fetch_cash_combines_krw_and_usd() -> None:
+    from decimal import Decimal
+
+    def transport(method, url, headers, body):
+        if url.endswith("/oauth2/token"):
+            return 200, {"access_token": "TKN", "expires_in": 3600}
+        if "currency=USD" in url:
+            return 200, {"result": {"currency": "USD", "cashBuyingPower": "100"}}
+        return 200, {"result": {"currency": "KRW", "cashBuyingPower": "7000000"}}
+
+    adapter = TossBrokerageAdapter(TossClient(_cfg(), transport=transport))
+    # 7,000,000 KRW + 100 USD * 1350 = 7,135,000
+    assert adapter.fetch_cash(Decimal("1350")) == Decimal("7135000")
+
+
 def test_no_trade_method_or_execution() -> None:
     adapter = TossBrokerageAdapter(_client_with_holdings())
     assert adapter.fetch_trades() == []  # Phase 14b

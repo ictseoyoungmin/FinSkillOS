@@ -8,6 +8,8 @@ order method, and this adapter adds none.
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
 from finskillos.brokerage.adapter import BrokerageSnapshot
 from finskillos.brokerage.toss.client import TossClient
 
@@ -52,6 +54,31 @@ class TossBrokerageAdapter:
                 }
             )
         return records
+
+    def fetch_cash(self, usd_krw_rate=None) -> Decimal | None:
+        """Total cash in KRW from Toss buying-power (KRW + USD→KRW). None on
+        failure so the caller can keep the existing baseline cash."""
+
+        if not self.available():
+            return None
+        try:
+            total = self._buying_power_krw("KRW")
+            usd = self._buying_power_krw("USD")
+        except Exception:  # noqa: BLE001 - cash read is best-effort
+            return None
+        if usd is not None and usd_krw_rate is not None:
+            total += usd * Decimal(str(usd_krw_rate))
+        return total
+
+    def _buying_power_krw(self, currency: str) -> Decimal | None:
+        data = self._client.buying_power(currency=currency)
+        raw = data.get("cashBuyingPower") if isinstance(data, dict) else None
+        if raw in (None, ""):
+            return Decimal("0") if currency == "KRW" else None
+        try:
+            return Decimal(str(raw))
+        except (InvalidOperation, ValueError):
+            return Decimal("0") if currency == "KRW" else None
 
     def fetch_trades(self) -> list[dict]:
         # Trade-history sync (CLOSED order executions → journal) is Phase 14b.

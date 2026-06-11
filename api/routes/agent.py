@@ -35,6 +35,7 @@ from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
 from finskillos.brokerage.adapter import build_brokerage_adapter
 from finskillos.llm.provider import DEFAULT_PROVIDER, build_provider, provider_catalog
 from finskillos.runtime_settings import read_runtime_value
+from finskillos.services.brokerage_sync_service import sync_toss_portfolio
 
 router = APIRouter(tags=["agent"])
 
@@ -215,6 +216,55 @@ def agent_sync_holdings() -> BrokerageSyncResponse:
         normalized_csv=proposal.normalized_csv,
         note=(
             f"{len(rows)} holding(s) read from Toss. Review, then confirm to import."
+        ),
+    )
+
+
+@router.post(
+    "/agent/sync/holdings/apply",
+    response_model=BrokerageSyncResponse,
+    summary="Replace the portfolio + baseline from Toss (source of truth, no confirm).",
+)
+def agent_sync_holdings_apply() -> BrokerageSyncResponse:
+    """Pull holdings + cash from Toss and **replace** the recorded portfolio +
+    snapshot baseline (stale tickers removed, USD→KRW). The broker side is
+    read-only; this writes the bookkeeping DB directly (the user opted into
+    source-of-truth sync). Skips cleanly when Toss is unconfigured."""
+
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        try:
+            result = sync_toss_portfolio(session)
+        except Exception as exc:  # noqa: BLE001 - never 500 the sync
+            return BrokerageSyncResponse(
+                available=True,
+                source="toss",
+                row_count=0,
+                warnings=[f"Toss sync failed: {type(exc).__name__}."],
+                note="Could not sync from Toss. Check credentials / account.",
+            )
+    if result.get("status") == "SKIPPED":
+        return BrokerageSyncResponse(
+            available=False,
+            source="toss",
+            row_count=0,
+            note=(
+                "Toss is not configured. Set FINSKILLOS_TOSS_CLIENT_ID / "
+                "_CLIENT_SECRET / _ACCOUNT_SEQ to sync holdings."
+            ),
+        )
+    cash = result.get("cash")
+    return BrokerageSyncResponse(
+        available=True,
+        source="toss",
+        row_count=int(result.get("positions", 0)),
+        warnings=list(result.get("warnings", [])),
+        note=(
+            f"Replaced portfolio from Toss — {result.get('positions', 0)} position(s), "
+            f"cash ₩{cash}. Snapshot baseline updated."
         ),
     )
 
