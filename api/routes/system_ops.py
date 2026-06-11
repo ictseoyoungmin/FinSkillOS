@@ -234,6 +234,68 @@ def run_refresh_holdings_news() -> ProtocolRunResult:
     )
 
 
+def _invoke_sync_toss_holdings(session) -> tuple[str, str, str]:
+    from finskillos.services.brokerage_sync_service import sync_toss_portfolio
+
+    result = sync_toss_portfolio(session)
+    if result.get("status") == "SKIPPED":
+        return "NOOP", "Toss is not configured; portfolio not synced.", ""
+    return (
+        "OK",
+        f"Replaced portfolio from Toss — {result.get('positions', 0)} position(s), "
+        f"cash ₩{result.get('cash')}. Baseline updated.",
+        "",
+    )
+
+
+@router.post(
+    "/system-ops/sync-toss-holdings",
+    response_model=ProtocolRunResult,
+    summary="Replace the portfolio + baseline from Toss (source of truth).",
+)
+def run_sync_toss_holdings() -> ProtocolRunResult:
+    return _run_protocol(
+        key="sync_toss_holdings",
+        fixture_message=(
+            "Toss holdings sync acknowledged. Fixture-first shell did not "
+            "touch the database."
+        ),
+        runner=_invoke_sync_toss_holdings,
+    )
+
+
+def _invoke_sync_toss_trades(session) -> tuple[str, str, str]:
+    from finskillos.services.brokerage_sync_service import sync_toss_trades
+
+    result = sync_toss_trades(session)
+    state = result.get("status")
+    if state == "SKIPPED":
+        return "NOOP", "Toss is not configured; trades not synced.", ""
+    if state == "PENDING_TOSS":
+        return "NOOP", "Toss has not enabled executed-order history yet.", ""
+    return (
+        "OK",
+        f"Imported {result.get('added', 0)} executed trade(s) from Toss.",
+        "",
+    )
+
+
+@router.post(
+    "/system-ops/sync-toss-trades",
+    response_model=ProtocolRunResult,
+    summary="Import executed Toss orders into the trade journal.",
+)
+def run_sync_toss_trades() -> ProtocolRunResult:
+    return _run_protocol(
+        key="sync_toss_trades",
+        fixture_message=(
+            "Toss trade sync acknowledged. Fixture-first shell did not "
+            "touch the database."
+        ),
+        runner=_invoke_sync_toss_trades,
+    )
+
+
 @router.post(
     "/system-ops/calculate-indicators",
     response_model=ProtocolRunResult,

@@ -37,6 +37,8 @@ ProtocolKey = Literal[
     "seed_sample_events",
     "refresh_events",
     "refresh_holdings_news",
+    "sync_toss_holdings",
+    "sync_toss_trades",
 ]
 
 ProtocolStatus = Literal["OK", "NOOP", "ERROR", "QUEUED"]

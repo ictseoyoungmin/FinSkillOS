@@ -86,3 +86,21 @@ def test_dedupe_drops_same_wire_story() -> None:
         (art("Oracle earnings beat estimates"), [_impact()]),
     ]
     assert len(_dedupe_news(rows)) == 2  # first two share the first 6 words
+
+
+def test_toss_sync_protocol_intents() -> None:
+    assert parse_protocol_request("토스에서 포트폴리오 동기화해줘") == "sync_toss_holdings"
+    assert parse_protocol_request("sync holdings from toss") == "sync_toss_holdings"
+    assert parse_protocol_request("토스 동기화해줘") == "sync_toss_holdings"
+    assert parse_protocol_request("토스 거래 동기화") == "sync_toss_trades"
+    assert parse_protocol_request("sync trades from toss") == "sync_toss_trades"
+    # news refresh is not mistaken for a portfolio sync
+    assert parse_protocol_request("보유 뉴스 갱신") == "refresh_holdings_news"
+
+
+def test_toss_sync_tools_and_routes() -> None:
+    client = TestClient(create_app())
+    names = {t["name"] for t in client.get("/api/agent/tools").json()["tools"]}
+    assert {"ops.sync_toss_holdings", "ops.sync_toss_trades"} <= names
+    for path in ("/api/system-ops/sync-toss-holdings", "/api/system-ops/sync-toss-trades"):
+        assert client.post(path).status_code == 200  # fixture-first shell (no DB)

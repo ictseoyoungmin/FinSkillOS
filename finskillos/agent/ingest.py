@@ -502,12 +502,33 @@ PROTOCOL_LABELS: dict[str, str] = {
     "run_risk_guards": "re-run the risk guards",
     "refresh_events": "refresh catalyst events",
     "refresh_holdings_news": "refresh news for my holdings",
+    "sync_toss_holdings": "sync my portfolio from Toss",
+    "sync_toss_trades": "sync my trades from Toss",
 }
 PROTOCOL_KEYS = tuple(PROTOCOL_LABELS)
 
 # Conservative intent patterns: each needs an explicit refresh/recompute/run verb
 # next to its target, so "what's my regime?" does not trigger a recompute.
 _PROTOCOL_INTENTS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            r"(toss|토스).{0,15}(거래|체결|trade).{0,15}(sync|동기화|가져|import|업데이트)"
+            r"|(sync|동기화|import).{0,15}(거래|체결|trade).{0,15}(toss|토스)",
+            re.IGNORECASE,
+        ),
+        "sync_toss_trades",
+    ),
+    (
+        re.compile(
+            r"(toss|토스).{0,15}(포트폴리오|보유|portfolio|holding).{0,12}"
+            r"(sync|동기화|업데이트|갱신|가져)"
+            r"|(sync|동기화|업데이트).{0,15}(포트폴리오|보유|portfolio|holding)"
+            r".{0,12}(toss|토스)"
+            r"|(toss|토스)\s*(에서|에)?\s*(동기화|sync)",
+            re.IGNORECASE,
+        ),
+        "sync_toss_holdings",
+    ),
     (
         re.compile(
             r"recompute.*regime|regime.*(recompute|re-?evaluate)"
@@ -579,6 +600,8 @@ def parse_protocol_request(text: str) -> str | None:
 
 # Sensible execution order for multi-step: refresh sources → derive → evaluate.
 _PROTOCOL_PIPELINE = (
+    "sync_toss_holdings",
+    "sync_toss_trades",
     "refresh_market_data",
     "refresh_news",
     "refresh_holdings_news",

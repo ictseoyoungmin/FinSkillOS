@@ -317,6 +317,16 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/system-ops/refresh-holdings-news",
     ),
     _ops_tool(
+        "ops.sync_toss_holdings",
+        "Replace the portfolio + baseline from Toss (source of truth).",
+        "/api/system-ops/sync-toss-holdings",
+    ),
+    _ops_tool(
+        "ops.sync_toss_trades",
+        "Import executed Toss orders into the trade journal.",
+        "/api/system-ops/sync-toss-trades",
+    ),
+    _ops_tool(
         "ops.calculate_indicators",
         "Recalculate indicators from stored bars.",
         "/api/system-ops/calculate-indicators",
