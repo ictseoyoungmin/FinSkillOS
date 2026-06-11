@@ -275,6 +275,21 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "Toss brokerage connection: configured/connected, account, cash, last sync.",
         "/api/agent/toss/status",
     ),
+    _read_tool(
+        "read.toss_stocks",
+        "Toss stock master for symbols: name, market, currency, status, KR flags.",
+        "/api/agent/toss/stocks",
+    ),
+    _read_tool(
+        "read.toss_holdings_warnings",
+        "Descriptive risk flags on held symbols (정리매매/거래정지/투자경고/VI).",
+        "/api/agent/toss/holdings-warnings",
+    ),
+    _read_tool(
+        "read.toss_market_calendar",
+        "KR/US market session hours + whether the market is open now.",
+        "/api/agent/toss/market-calendar",
+    ),
     # Operational protocols — idempotent refresh / recompute / re-run (not trading).
     _ops_tool(
         "ops.refresh_market_data",

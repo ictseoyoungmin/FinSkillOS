@@ -26,7 +26,12 @@ from api.schemas.agent import (
     LLMProviderVM,
     ProposedActionVM,
     ProviderSwitchRequest,
+    TossHoldingsWarningsResponse,
+    TossHoldingWarningVM,
+    TossMarketCalendarResponse,
     TossStatusResponse,
+    TossStocksResponse,
+    TossStockVM,
     TradeSyncResponse,
     WatchlistOpVM,
 )
@@ -365,6 +370,187 @@ def agent_toss_status() -> TossStatusResponse:
         last_portfolio_sync=last_sync,
         note="Connected." if account else "Connected, but no account returned.",
     )
+
+
+def _toss_client_or_none():
+    from finskillos.brokerage.toss.client import TossClient
+    from finskillos.brokerage.toss.config import load_toss_config
+
+    return TossClient() if load_toss_config().configured else None
+
+
+def _stock_vm(item: dict) -> TossStockVM:
+    kr = item.get("koreanMarketDetail") or {}
+    return TossStockVM(
+        symbol=str(item.get("symbol", "")),
+        name=item.get("name"),
+        english_name=item.get("englishName"),
+        market=item.get("market"),
+        currency=item.get("currency"),
+        security_type=item.get("securityType"),
+        status=item.get("status"),
+        trading_suspended=bool(kr.get("krxTradingSuspended")),
+        liquidation_trading=bool(kr.get("liquidationTrading")),
+    )
+
+
+@router.get(
+    "/agent/toss/stocks",
+    response_model=TossStocksResponse,
+    summary="Toss stock master (name / market / currency / status / KR flags).",
+)
+def agent_toss_stocks(symbols: str = "") -> TossStocksResponse:
+    """Reference data for the given comma-separated symbols. Read-only."""
+
+    wanted = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    client = _toss_client_or_none()
+    if client is None:
+        return TossStocksResponse(available=False, note="Toss is not configured.")
+    if not wanted:
+        return TossStocksResponse(available=True, note="No symbols requested.")
+    try:
+        raw = client.stocks(wanted)
+    except Exception as exc:  # noqa: BLE001 - read-only, never 500
+        return TossStocksResponse(
+            available=True, note=f"Toss stock lookup failed ({type(exc).__name__})."
+        )
+    items = raw if isinstance(raw, list) else []
+    return TossStocksResponse(
+        available=True, stocks=[_stock_vm(it) for it in items if isinstance(it, dict)]
+    )
+
+
+def _held_symbols(client) -> list[str]:
+    data = client.holdings()
+    items = data.get("items") if isinstance(data, dict) else None
+    return [
+        str(it.get("symbol"))
+        for it in (items or [])
+        if isinstance(it, dict) and it.get("symbol")
+    ]
+
+
+@router.get(
+    "/agent/toss/holdings-warnings",
+    response_model=TossHoldingsWarningsResponse,
+    summary="Descriptive risk flags on held symbols (정리매매/거래정지/투자경고/VI).",
+)
+def agent_toss_holdings_warnings() -> TossHoldingsWarningsResponse:
+    """Observation-only risk flags from the Toss stock master + buy-warnings for the
+    currently-held symbols. No advice; never raises."""
+
+    _WATCH = {"OVERHEATED", "INVESTMENT_WARNING", "VI_STATIC", "VI_DYNAMIC",
+              "VI_STATIC_AND_DYNAMIC", "STOCK_WARRANTS"}
+    client = _toss_client_or_none()
+    if client is None:
+        return TossHoldingsWarningsResponse(
+            available=False, note="Toss is not configured."
+        )
+    try:
+        symbols = _held_symbols(client)
+        masters = {}
+        if symbols:
+            masters = {
+                s.symbol: s for s in (_stock_vm(it) for it in client.stocks(symbols))
+            }
+    except Exception as exc:  # noqa: BLE001
+        return TossHoldingsWarningsResponse(
+            available=True, note=f"Toss read failed ({type(exc).__name__})."
+        )
+    out: list[TossHoldingWarningVM] = []
+    for symbol in symbols:
+        master = masters.get(symbol)
+        flags: list[str] = []
+        severity = "INFO"
+        if master is not None:
+            if master.liquidation_trading:
+                flags.append("정리매매")
+                severity = "RISK"
+            if master.trading_suspended:
+                flags.append("거래정지")
+                severity = "RISK"
+            if master.status and master.status != "ACTIVE":
+                flags.append(f"상장상태 {master.status}")
+                severity = "RISK"
+        try:
+            warn = client._get(f"/api/v1/stocks/{symbol}/warnings")
+        except Exception:  # noqa: BLE001 - per-symbol best effort
+            warn = []
+        for w in warn if isinstance(warn, list) else []:
+            wt = str(w.get("warningType", "")) if isinstance(w, dict) else ""
+            if wt:
+                flags.append(wt)
+                if wt in {"INVESTMENT_RISK", "LIQUIDATION_TRADING"}:
+                    severity = "RISK"
+                elif severity != "RISK" and wt in _WATCH:
+                    severity = "WATCH"
+        if flags:
+            out.append(
+                TossHoldingWarningVM(
+                    symbol=symbol,
+                    name=master.name if master else None,
+                    severity=severity,  # type: ignore[arg-type]
+                    flags=flags,
+                )
+            )
+    note = "No active warnings on held symbols." if not out else f"{len(out)} flagged."
+    return TossHoldingsWarningsResponse(available=True, warnings=out, note=note)
+
+
+@router.get(
+    "/agent/toss/market-calendar",
+    response_model=TossMarketCalendarResponse,
+    summary="KR / US market session hours + whether the market is open now.",
+)
+def agent_toss_market_calendar(country: str = "US") -> TossMarketCalendarResponse:
+    """Read-only session calendar; ``isOpenNow`` from today's session windows."""
+
+    code = country.strip().upper()
+    if code not in {"US", "KR"}:
+        code = "US"
+    client = _toss_client_or_none()
+    if client is None:
+        return TossMarketCalendarResponse(
+            available=False, country=code, note="Toss is not configured."
+        )
+    try:
+        raw = client._get(f"/api/v1/market-calendar/{code}")
+    except Exception as exc:  # noqa: BLE001
+        return TossMarketCalendarResponse(
+            available=True, country=code, note=f"Calendar read failed ({type(exc).__name__})."
+        )
+    today = raw.get("today", {}) if isinstance(raw, dict) else {}
+    sessions = {
+        k: v
+        for k, v in today.items()
+        if k not in ("date", "integrated") and isinstance(v, dict)
+    }
+    if isinstance(today.get("integrated"), dict):
+        sessions = {k: v for k, v in today["integrated"].items() if isinstance(v, dict)}
+    return TossMarketCalendarResponse(
+        available=True,
+        country=code,
+        date=today.get("date"),
+        is_open_now=_is_open_now(sessions),
+        sessions=sessions,
+        note="Open now." if _is_open_now(sessions) else "Closed now.",
+    )
+
+
+def _is_open_now(sessions: dict) -> bool:
+    now = datetime.now(tz=timezone.utc)
+    for session in sessions.values():
+        start, end = session.get("startTime"), session.get("endTime")
+        if not start or not end:
+            continue
+        try:
+            s = datetime.fromisoformat(str(start))
+            e = datetime.fromisoformat(str(end))
+        except ValueError:
+            continue
+        if s.tzinfo and s <= now <= e:
+            return True
+    return False
 
 
 def _active_provider_kind() -> str:

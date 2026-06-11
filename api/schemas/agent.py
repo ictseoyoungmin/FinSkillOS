@@ -142,6 +142,54 @@ class TossStatusResponse(CamelModel):
     note: str
 
 
+class TossStockVM(CamelModel):
+    symbol: str
+    name: str | None = None
+    english_name: str | None = None
+    market: str | None = None
+    currency: str | None = None
+    security_type: str | None = None
+    status: str | None = None
+    trading_suspended: bool = False
+    liquidation_trading: bool = False
+
+
+class TossStocksResponse(CamelModel):
+    """Toss stock master for the given symbols (name / market / status / KR flags).
+    Read-only reference data; ``available=false`` when Toss isn't configured."""
+
+    available: bool
+    stocks: list[TossStockVM] = Field(default_factory=list)
+    note: str = ""
+
+
+class TossHoldingWarningVM(CamelModel):
+    symbol: str
+    name: str | None = None
+    severity: Literal["INFO", "WATCH", "RISK"]
+    flags: list[str] = Field(default_factory=list)
+
+
+class TossHoldingsWarningsResponse(CamelModel):
+    """Descriptive risk flags on currently-held symbols (정리매매 / 거래정지 /
+    상장폐지 / 투자경고·위험 / 단기과열 / VI). Read-only — observation, not advice."""
+
+    available: bool
+    warnings: list[TossHoldingWarningVM] = Field(default_factory=list)
+    note: str = ""
+
+
+class TossMarketCalendarResponse(CamelModel):
+    """KR / US session hours + whether the market is currently open. Read-only."""
+
+    available: bool
+    country: str
+    date: str | None = None
+    is_open_now: bool = False
+    sessions: dict = Field(default_factory=dict)
+    note: str = ""
+
+
 class TradeSyncResponse(CamelModel):
     """Result of importing executed Toss orders into the trade journal.
 
