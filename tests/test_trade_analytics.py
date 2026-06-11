@@ -108,3 +108,39 @@ def test_weekday_and_performance() -> None:
 def test_new_trade_tools_registered() -> None:
     names = {t["name"] for t in TestClient(create_app()).get("/api/agent/tools").json()["tools"]}
     assert {"read.trades_by_weekday", "read.trade_performance"} <= names
+
+
+def test_signed_fifo_handles_short_and_streaks_and_holding() -> None:
+    from datetime import date
+    from types import SimpleNamespace
+
+    from finskillos.services.trade_analytics_service import _fifo_realized
+
+    def tr(side, q, p, d):
+        return SimpleNamespace(side=side, quantity=Decimal(q), price=Decimal(p), trade_date=d)
+
+    # long round-trip (+300, 10d) then short round-trip sell-open/buy-cover (+100, 2d)
+    r = _fifo_realized([
+        tr("BUY", "10", "100", date(2026, 1, 1)),
+        tr("SELL", "10", "130", date(2026, 1, 11)),
+        tr("SELL", "5", "200", date(2026, 1, 20)),   # opens short
+        tr("BUY", "5", "180", date(2026, 1, 22)),    # covers short → +100
+    ])
+    assert Decimal(str(r["realized_pnl"])) == Decimal("400")
+    assert r["wins"] == 2 and r["avg_holding_days"] == 6.0
+    assert r["max_win_streak"] == 2 and r["current_streak"] == 2
+
+    # two consecutive losing closes → loss streak 2, current −2
+    r2 = _fifo_realized([
+        tr("BUY", "1", "100", date(2026, 1, 1)), tr("SELL", "1", "90", date(2026, 1, 2)),
+        tr("BUY", "1", "100", date(2026, 1, 3)), tr("SELL", "1", "80", date(2026, 1, 4)),
+    ])
+    assert r2["max_loss_streak"] == 2 and r2["current_streak"] == -2
+
+
+def test_ticker_summary_exposes_holding_and_streak() -> None:
+    session = _session()
+    account = _seed(session)
+    s = summarize_ticker_trades(session, account.id, "NVDA")
+    assert "avg_holding_days" in s and s["max_win_streak"] >= 1
+    assert s["avg_holding_days"] == 4.0  # buys 06-01, sell 06-05

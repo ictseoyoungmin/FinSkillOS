@@ -24,48 +24,79 @@ _SELL = {"SELL", "SHORT"}
 _WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 
-def _fifo_realized(trades) -> dict:
-    """FIFO-match SELLs against prior BUYs → realized P&L + win/loss per close.
+def _sign(x) -> int:
+    return (x > 0) - (x < 0)
 
-    Long-only model (BUY opens, SELL closes); a SELL with no matching BUY is
-    skipped (no cost basis). Returns realized events for further grouping.
-    Amounts/prices are KRW. The same-day order follows trade_date then insertion.
+
+def _streaks(realized_seq) -> dict:
+    """Max win/loss streak + current signed streak over ordered closes."""
+
+    max_win = max_loss = run = run_sign = 0
+    for realized in realized_seq:
+        s = _sign(realized)
+        if s == 0:
+            continue
+        run = run + 1 if s == run_sign else 1
+        run_sign = s
+        if s > 0:
+            max_win = max(max_win, run)
+        else:
+            max_loss = max(max_loss, run)
+    return {
+        "max_win_streak": max_win,
+        "max_loss_streak": max_loss,
+        "current_streak": run_sign * run,  # + winning, − losing
+    }
+
+
+def _fifo_realized(trades) -> dict:
+    """Signed-FIFO realized P&L — handles **long and short** positions.
+
+    Each trade is a signed delta (BUY +qty, SELL −qty). A delta opposite to the
+    front lot closes it FIFO (long lot closed by a sell, short lot closed by a
+    buy); a same-direction delta opens/extends a lot. Realized per close, holding
+    days (entry→exit), win/loss, and streaks. Amounts/prices KRW.
     """
 
-    lots: deque[list] = deque()  # [remaining_qty, buy_price]
-    events: list[tuple] = []  # (close_date, realized) per closing SELL
+    lots: deque[list] = deque()  # [signed_qty, price, entry_date]
+    events: list[tuple] = []  # (close_date, realized, holding_days)
     for trade in trades:
         qty = trade.quantity or Decimal("0")
+        if qty <= 0:
+            continue
         price = trade.price or Decimal("0")
-        if trade.side in _BUY:
-            if qty > 0:
-                lots.append([qty, price])
-        elif trade.side in _SELL:
-            remaining = qty
-            realized = Decimal("0")
-            matched_any = False
-            while remaining > 0 and lots:
-                lot = lots[0]
-                matched = min(remaining, lot[0])
-                realized += (price - lot[1]) * matched
-                lot[0] -= matched
-                remaining -= matched
-                matched_any = True
-                if lot[0] <= 0:
-                    lots.popleft()
-            if matched_any:
-                events.append((trade.trade_date, realized))
-    wins = sum(1 for _, r in events if r > 0)
-    losses = sum(1 for _, r in events if r < 0)
+        delta = qty if trade.side in _BUY else -qty
+        while delta != 0 and lots and _sign(delta) != _sign(lots[0][0]):
+            lot = lots[0]
+            matched = min(abs(delta), abs(lot[0]))
+            realized = (
+                (price - lot[1]) * matched
+                if lot[0] > 0  # closing a long
+                else (lot[1] - price) * matched  # closing a short
+            )
+            events.append((trade.trade_date, realized, (trade.trade_date - lot[2]).days))
+            lot[0] -= _sign(lot[0]) * matched
+            delta -= _sign(delta) * matched
+            if lot[0] == 0:
+                lots.popleft()
+        if delta != 0:
+            lots.append([delta, price, trade.trade_date])
+
+    wins = sum(1 for _, r, _ in events if r > 0)
+    losses = sum(1 for _, r, _ in events if r < 0)
     decided = wins + losses
-    return {
-        "realized_pnl": sum((r for _, r in events), Decimal("0")),
+    holds = [h for _, _, h in events]
+    result = {
+        "realized_pnl": sum((r for _, r, _ in events), Decimal("0")),
         "closed_count": len(events),
         "wins": wins,
         "losses": losses,
         "win_rate": (wins / decided) if decided else None,
+        "avg_holding_days": round(sum(holds) / len(holds), 1) if holds else None,
         "events": events,
     }
+    result.update(_streaks([r for _, r, _ in events]))
+    return result
 
 
 def _sum(values) -> Decimal:
@@ -108,6 +139,10 @@ def summarize_ticker_trades(session, account_id, ticker: str) -> dict:
         "wins": fifo["wins"],
         "losses": fifo["losses"],
         "win_rate": round(win_rate, 4) if win_rate is not None else None,
+        "avg_holding_days": fifo["avg_holding_days"],
+        "max_win_streak": fifo["max_win_streak"],
+        "max_loss_streak": fifo["max_loss_streak"],
+        "current_streak": fifo["current_streak"],
         "first_date": trades[0].trade_date.isoformat(),
         "last_date": trades[-1].trade_date.isoformat(),
     }
@@ -136,7 +171,7 @@ def summarize_by_weekday(session, account_id, *, days: int = 3650) -> list[dict]
             b["sell"] += 1
     # realized per close → attribute to the close's weekday (per-ticker FIFO).
     for ticker in {t.ticker for t in trades}:
-        for close_date, realized in _fifo_realized(
+        for close_date, realized, _hold in _fifo_realized(
             repo.list_by_ticker(account_id, ticker)
         )["events"]:
             if start <= close_date <= end:
@@ -179,6 +214,7 @@ def summarize_ticker_performance(session, account_id, *, top: int = 25) -> list[
             "wins": fifo["wins"],
             "losses": fifo["losses"],
             "win_rate": round(wr, 4) if wr is not None else None,
+            "avg_holding_days": fifo["avg_holding_days"],
         })
     rows.sort(key=lambda r: Decimal(r["realized_pnl"]), reverse=True)
     return rows[: max(1, top)]

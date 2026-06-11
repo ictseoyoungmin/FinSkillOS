@@ -162,6 +162,10 @@ class TradeTickerSummaryResponse(CamelModel):
     wins: int = 0
     losses: int = 0
     win_rate: float | None = None
+    avg_holding_days: float | None = None
+    max_win_streak: int = 0
+    max_loss_streak: int = 0
+    current_streak: int = 0
     first_date: str | None = None
     last_date: str | None = None
     note: str = ""
@@ -191,6 +195,7 @@ class TradePerformanceVM(CamelModel):
     wins: int
     losses: int
     win_rate: float | None = None
+    avg_holding_days: float | None = None
 
 
 class TradePerformanceResponse(CamelModel):
