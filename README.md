@@ -1,8 +1,31 @@
-# FinSkillOS v2.1 / v4.2 Cockpit
+# FinSkillOS
 
-FinSkillOS is a personal investment operating system. The current product
-surface is a FastAPI read-only adapter plus a Vite React v4.2
-Evidence-to-Judgment cockpit. Streamlit is kept as a debug/admin surface.
+FinSkillOS is a personal investment **operating system** — a descriptive,
+read-only cockpit that turns market + portfolio data into interpretation, never
+into buy/sell instructions. The product surface is a FastAPI adapter plus a Vite
+React v4.2 Evidence-to-Judgment cockpit, with an analyst **agent** and a real,
+read-only **brokerage integration**. Streamlit is kept as a debug/admin surface.
+
+**Hard boundary:** no buy/sell recommendations, no order placement, no execution.
+Outputs are descriptive (market state, risk interpretation, portfolio constraints,
+watchpoints, reflection, operational protocols).
+
+## Features (상세 문서)
+
+Capability detail lives in `docs/features/` (linked here; the README stays an
+overview):
+
+- [Agent capabilities](docs/features/agent_capabilities.md) — chat with live
+  working-step streaming, the read/ops/bookkeeping tool contract, grounded
+  answers + tool-calling loop, confirm-gated ingestion, importance-ranked news.
+- [Toss Securities integration](docs/features/toss_integration.md) — read-only
+  brokerage: daily source-of-truth portfolio sync, executed-trade + news sync,
+  P&L / prices / stock master / warnings / calendar reads. No order placement.
+- [Trade journal + analytics](docs/features/trade_analytics.md) — FIFO realized
+  P&L, win rate, by-ticker / by-day / by-weekday / performance analysis.
+
+Planning/architecture references: `docs/v2_1/` (foundation), `docs/v3/` (agent
+arc), `docs/v4/` (Toss arc), `.devmd/CURRENT_STATE.md` (live slice board).
 
 ## 1. 구현 순서 / 참고 문서
 
@@ -46,6 +69,20 @@ docker compose start
 
 > **주의.** `docker compose down -v`는 Postgres 볼륨을 삭제합니다. 일상적인
 > stop/start나 스키마 복구에는 사용하지 마세요.
+
+### 선택: Agent LLM + Toss 연동
+
+`.env` (참고: `.env.example`) 로 설정합니다. 모두 비워두면 비활성화됩니다.
+
+- **Agent LLM** — `FINSKILLOS_LLM_PROVIDER`(local/gemini), 로컬 LLM
+  base URL, `FINSKILLOS_GEMINI_API_KEY`.
+- **Toss 증권 (read-only)** — `FINSKILLOS_TOSS_CLIENT_ID` /
+  `_CLIENT_SECRET` / `_ACCOUNT_SEQ`. 설정 시 워커가 매일 포트폴리오·거래·뉴스를
+  동기화합니다. 매수/매도 호출은 없습니다. 자세한 내용:
+  [Toss integration](docs/features/toss_integration.md).
+
+`.env` 변경 후에는 `docker compose up -d api worker` 로 컨테이너를 재생성해야
+반영됩니다.
 
 ## 4. 이미 떠 있는 환경에서 마이그레이션만 다시 적용 (스키마 mismatch 복구)
 
