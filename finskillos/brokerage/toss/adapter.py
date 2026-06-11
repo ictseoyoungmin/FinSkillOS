@@ -14,6 +14,42 @@ from finskillos.brokerage.adapter import BrokerageSnapshot
 from finskillos.brokerage.toss.client import TossClient
 
 
+def _order_to_trade_record(order: dict) -> dict | None:
+    """Toss CLOSED order → trade-journal record. Skips unfilled orders."""
+
+    if not isinstance(order, dict):
+        return None
+    execution = order.get("execution") or {}
+    filled = execution.get("filledQuantity")
+    try:
+        if filled is None or Decimal(str(filled)) <= 0:
+            return None
+    except (InvalidOperation, ValueError):
+        return None
+    filled_at = execution.get("filledAt") or order.get("orderedAt") or ""
+    commission = execution.get("commission")
+    tax = execution.get("tax")
+    fees = None
+    try:
+        if commission is not None or tax is not None:
+            fees = str(Decimal(str(commission or 0)) + Decimal(str(tax or 0)))
+    except (InvalidOperation, ValueError):
+        fees = None
+    return {
+        "order_id": order.get("orderId"),
+        "ticker": order.get("symbol"),
+        "side": order.get("side"),
+        "trade_date": str(filled_at)[:10],
+        "quantity": execution.get("filledQuantity"),
+        "price": execution.get("averageFilledPrice"),
+        "amount": execution.get("filledAmount"),
+        "fees": fees,
+        "currency": order.get("currency"),
+        "status": order.get("status"),
+        "order_type": order.get("orderType"),
+    }
+
+
 class TossBrokerageAdapter:
     name = "toss"
 
@@ -81,8 +117,30 @@ class TossBrokerageAdapter:
             return Decimal("0") if currency == "KRW" else None
 
     def fetch_trades(self) -> list[dict]:
-        # Trade-history sync (CLOSED order executions → journal) is Phase 14b.
-        return []
+        """Executed orders (CLOSED) → trade records, following cursor pagination.
+
+        Maps each filled order's execution to a record the trade journal accepts.
+        Propagates ``TossApiError`` (incl. the current ``closed-not-supported``
+        gate) so the sync layer can report it. Empty when Toss is unconfigured."""
+
+        if not self.available():
+            return []
+        records: list[dict] = []
+        cursor: str | None = None
+        for _ in range(50):  # bound pagination
+            page = self._client.orders(status="CLOSED", cursor=cursor, limit=100)
+            if not isinstance(page, dict):
+                break
+            for order in page.get("orders") or []:
+                record = _order_to_trade_record(order)
+                if record is not None:
+                    records.append(record)
+            if not page.get("hasNext"):
+                break
+            cursor = page.get("nextCursor")
+            if not cursor:
+                break
+        return records
 
     def snapshot(self) -> BrokerageSnapshot:
         return BrokerageSnapshot(

@@ -126,6 +126,18 @@ class BrokerageSyncResponse(CamelModel):
     )
 
 
+class TradeSyncResponse(CamelModel):
+    """Result of importing executed Toss orders into the trade journal.
+
+    ``status`` is APPLIED / SKIPPED (unconfigured) / PENDING_TOSS (Toss has not yet
+    enabled executed-order queries) / ERROR. No order placement — read + journal."""
+
+    status: Literal["APPLIED", "SKIPPED", "PENDING_TOSS", "ERROR"]
+    added: int = 0
+    skipped: int = 0
+    note: str
+
+
 class ChatMessageVM(CamelModel):
     role: Literal["user", "assistant"]
     content: str = Field(..., max_length=200_000)

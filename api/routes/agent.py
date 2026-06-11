@@ -26,6 +26,7 @@ from api.schemas.agent import (
     LLMProviderVM,
     ProposedActionVM,
     ProviderSwitchRequest,
+    TradeSyncResponse,
     WatchlistOpVM,
 )
 from finskillos.agent.chat import ChatMessage, run_chat
@@ -35,7 +36,10 @@ from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
 from finskillos.brokerage.adapter import build_brokerage_adapter
 from finskillos.llm.provider import DEFAULT_PROVIDER, build_provider, provider_catalog
 from finskillos.runtime_settings import read_runtime_value
-from finskillos.services.brokerage_sync_service import sync_toss_portfolio
+from finskillos.services.brokerage_sync_service import (
+    sync_toss_portfolio,
+    sync_toss_trades,
+)
 
 router = APIRouter(tags=["agent"])
 
@@ -266,6 +270,45 @@ def agent_sync_holdings_apply() -> BrokerageSyncResponse:
             f"Replaced portfolio from Toss — {result.get('positions', 0)} position(s), "
             f"cash ₩{cash}. Snapshot baseline updated."
         ),
+    )
+
+
+@router.post(
+    "/agent/sync/trades/apply",
+    response_model=TradeSyncResponse,
+    summary="Import executed Toss orders into the trade journal (read; no confirm).",
+)
+def agent_sync_trades_apply() -> TradeSyncResponse:
+    """Import executed Toss orders (CLOSED) into the trade journal, idempotently.
+    Read-only on the broker; no order placement. Reports PENDING_TOSS while Toss
+    has not yet enabled executed-order queries."""
+
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        try:
+            result = sync_toss_trades(session)
+        except Exception as exc:  # noqa: BLE001 - never 500 the sync
+            return TradeSyncResponse(
+                status="ERROR",
+                note=f"Toss trade sync failed: {type(exc).__name__}.",
+            )
+    state = result.get("status")
+    if state == "SKIPPED":
+        return TradeSyncResponse(status="SKIPPED", note="Toss is not configured.")
+    if state == "PENDING_TOSS":
+        return TradeSyncResponse(
+            status="PENDING_TOSS",
+            note="Toss has not enabled executed-order history yet — no trades synced.",
+        )
+    added = int(result.get("added", 0))
+    return TradeSyncResponse(
+        status="APPLIED",
+        added=added,
+        skipped=int(result.get("skipped", 0)),
+        note=f"Imported {added} executed trade(s) from Toss.",
     )
 
 

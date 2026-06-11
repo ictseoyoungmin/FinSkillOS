@@ -142,3 +142,48 @@ def test_apply_replaces_positions_and_sets_cash(monkeypatch, tmp_path) -> None:
     mc = _client().get("/api/mission-control").json()
     tickers = {p["ticker"] for p in mc["positions"]}
     assert tickers == {"005930", "AAPL"}  # OLD replaced away
+
+
+class _TradeStub:
+    name = "toss"
+
+    def __init__(self, records=None, raises=None):
+        self._records = records or []
+        self._raises = raises
+
+    def available(self):
+        return True
+
+    def fetch_trades(self):
+        if self._raises is not None:
+            raise self._raises
+        return self._records
+
+
+def test_trades_apply_pending_toss(monkeypatch, tmp_path) -> None:
+    from finskillos.brokerage.toss.client import TossApiError
+
+    _live_db(monkeypatch, tmp_path)
+    err = TossApiError(400, {"error": {"code": "closed-not-supported"}})
+    monkeypatch.setattr(
+        sync_service, "build_brokerage_adapter", lambda _n: _TradeStub(raises=err)
+    )
+    body = _client().post("/api/agent/sync/trades/apply").json()
+    assert body["status"] == "PENDING_TOSS"
+
+
+def test_trades_apply_imports(monkeypatch, tmp_path) -> None:
+    _live_db(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        sync_service,
+        "build_brokerage_adapter",
+        lambda _n: _TradeStub(records=[
+            {"order_id": "o1", "ticker": "005930", "side": "BUY",
+             "trade_date": "2026-03-28", "quantity": "10", "price": "70000",
+             "amount": "700000", "fees": "1400", "currency": "KRW",
+             "status": "FILLED", "order_type": "LIMIT"},
+        ]),
+    )
+    body = _client().post("/api/agent/sync/trades/apply").json()
+    assert body["status"] == "APPLIED"
+    assert body["added"] == 1

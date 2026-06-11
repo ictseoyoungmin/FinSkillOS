@@ -282,6 +282,22 @@ def _maybe_sync_toss_portfolio(session, summary: dict[str, Any]) -> None:
         summary["tossSync"] = {"status": "ERROR", "detail": type(exc).__name__}
         logger.warning("Toss portfolio sync failed: %s", type(exc).__name__)
 
+    # Trade journal: import executed orders too (idempotent; PENDING_TOSS until
+    # Toss enables CLOSED queries). Independent of the portfolio sync outcome.
+    try:
+        from finskillos.services.brokerage_sync_service import sync_toss_trades
+
+        trade_result = sync_toss_trades(session, adapter=adapter)
+        summary["tossTradeSync"] = trade_result
+        logger.info(
+            "Toss trade sync %s added=%s",
+            trade_result.get("status"),
+            trade_result.get("added"),
+        )
+    except Exception as exc:  # noqa: BLE001 - a sync error must not fail the cycle
+        summary["tossTradeSync"] = {"status": "ERROR", "detail": type(exc).__name__}
+        logger.warning("Toss trade sync failed: %s", type(exc).__name__)
+
 
 def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     """Run one refresh cycle and return a structured summary."""

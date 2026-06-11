@@ -79,6 +79,57 @@ def test_fetch_cash_combines_krw_and_usd() -> None:
     assert adapter.fetch_cash(Decimal("1350")) == Decimal("7135000")
 
 
+def test_fetch_trades_maps_closed_orders() -> None:
+    page = {
+        "result": {
+            "orders": [
+                {
+                    "orderId": "o1", "symbol": "005930", "side": "BUY",
+                    "orderType": "LIMIT", "status": "FILLED", "currency": "KRW",
+                    "orderedAt": "2026-03-28T09:30:00+09:00",
+                    "execution": {
+                        "filledQuantity": "10", "averageFilledPrice": "70000",
+                        "filledAmount": "700000", "commission": "1400", "tax": "0",
+                        "filledAt": "2026-03-28T09:31:15+09:00",
+                    },
+                },
+                {  # unfilled → skipped
+                    "orderId": "o2", "symbol": "AAPL", "side": "SELL",
+                    "status": "PENDING", "currency": "USD",
+                    "execution": {"filledQuantity": "0"},
+                },
+            ],
+            "nextCursor": None, "hasNext": False,
+        }
+    }
+
+    def transport(method, url, headers, body):
+        if url.endswith("/oauth2/token"):
+            return 200, {"access_token": "TKN", "expires_in": 3600}
+        return 200, page
+
+    recs = TossBrokerageAdapter(TossClient(_cfg(), transport=transport)).fetch_trades()
+    assert len(recs) == 1
+    r = recs[0]
+    assert r["order_id"] == "o1" and r["ticker"] == "005930" and r["side"] == "BUY"
+    assert r["trade_date"] == "2026-03-28" and r["quantity"] == "10"
+    assert r["fees"] == "1400"  # commission + tax
+
+
+def test_fetch_trades_propagates_closed_not_supported() -> None:
+    import pytest
+
+    from finskillos.brokerage.toss.client import TossApiError
+
+    def transport(method, url, headers, body):
+        if url.endswith("/oauth2/token"):
+            return 200, {"access_token": "TKN", "expires_in": 3600}
+        return 400, {"error": {"code": "closed-not-supported"}}
+
+    with pytest.raises(TossApiError):
+        TossBrokerageAdapter(TossClient(_cfg(), transport=transport)).fetch_trades()
+
+
 def test_no_trade_method_or_execution() -> None:
     adapter = TossBrokerageAdapter(_client_with_holdings())
     assert adapter.fetch_trades() == []  # Phase 14b
