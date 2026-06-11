@@ -286,6 +286,11 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/agent/trades/performance",
     ),
     _read_tool(
+        "read.trade_stats",
+        "Account-wide closed-trade stats: win rate, expectancy, profit factor, etc.",
+        "/api/agent/trades/stats",
+    ),
+    _read_tool(
         "read.trade_excursion",
         "MFE/MAE per ticker (max favorable/adverse excursion over holding windows).",
         "/api/agent/trades/excursion",

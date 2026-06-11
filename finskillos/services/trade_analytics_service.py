@@ -18,6 +18,7 @@ __all__ = [
     "summarize_by_weekday",
     "summarize_ticker_performance",
     "summarize_ticker_excursion",
+    "summarize_overall_stats",
 ]
 
 # One closed lot: a portion of a position opened then closed (FIFO).
@@ -115,6 +116,68 @@ def _fifo_realized(trades) -> dict:
     return result
 
 
+def _close_stats(events) -> dict:
+    """Expectancy / profit factor / avg win-loss / win-vs-loss holding from closes.
+
+    Absolute amounts are KRW (approximate for older USD trades); ratios (profit
+    factor, win rate) and holding days are currency-invariant / exact."""
+
+    realized = [e.realized for e in events]
+    wins = [r for r in realized if r > 0]
+    losses = [r for r in realized if r < 0]
+    gross_profit = sum(wins, Decimal("0"))
+    gross_loss = -sum(losses, Decimal("0"))
+    win_holds = [e.holding_days for e in events if e.realized > 0]
+    loss_holds = [e.holding_days for e in events if e.realized < 0]
+
+    def _avg(values):
+        return round(sum(values) / len(values), 1) if values else None
+
+    return {
+        "profit_factor": str(round(gross_profit / gross_loss, 3))
+        if gross_loss > 0
+        else None,
+        "expectancy": str(round(sum(realized, Decimal("0")) / len(realized), 2))
+        if realized
+        else None,
+        "avg_win": str(round(gross_profit / len(wins), 2)) if wins else None,
+        "avg_loss": str(round(-gross_loss / len(losses), 2)) if losses else None,
+        "avg_win_holding_days": _avg(win_holds),
+        "avg_loss_holding_days": _avg(loss_holds),
+        "best_trade": str(max(realized)) if realized else None,
+        "worst_trade": str(min(realized)) if realized else None,
+    }
+
+
+def summarize_overall_stats(session, account_id) -> dict:
+    """Account-wide closed-trade stats: win rate, expectancy, profit factor, etc.
+
+    Positions are FIFO-matched per ticker, then all closes are aggregated."""
+
+    repo = TradeRepository(session)
+    tickers = {t.ticker for t in repo.list_for_account(account_id)}
+    events: list = []
+    for ticker in tickers:
+        events.extend(_fifo_realized(repo.list_by_ticker(account_id, ticker))["events"])
+    if not events:
+        return {"closed_count": 0}
+    wins = sum(1 for e in events if e.realized > 0)
+    losses = sum(1 for e in events if e.realized < 0)
+    decided = wins + losses
+    holds = [e.holding_days for e in events]
+    stats = {
+        "closed_count": len(events),
+        "tickers": len(tickers),
+        "wins": wins,
+        "losses": losses,
+        "win_rate": round(wins / decided, 4) if decided else None,
+        "realized_pnl": str(sum((e.realized for e in events), Decimal("0"))),
+        "avg_holding_days": round(sum(holds) / len(holds), 1) if holds else None,
+    }
+    stats.update(_close_stats(events))
+    return stats
+
+
 def _sum(values) -> Decimal:
     return sum((v or Decimal("0") for v in values), Decimal("0"))
 
@@ -139,7 +202,9 @@ def summarize_ticker_trades(session, account_id, ticker: str) -> dict:
     buy_amt, sell_amt = _sum(t.amount for t in buys), _sum(t.amount for t in sells)
     fifo = _fifo_realized(trades)
     win_rate = fifo["win_rate"]
+    stats = _close_stats(fifo["events"])
     return {
+        **stats,
         "ticker": symbol,
         "trade_count": len(trades),
         "buy_count": len(buys),

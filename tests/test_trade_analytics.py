@@ -207,3 +207,34 @@ def test_excursion_kr_ticker_no_fx_scaling() -> None:
     # KR 6-digit → KRW candles, no FX scaling even without fx_rate passed.
     r = summarize_ticker_excursion(session, account.id, "005930", bar_fetcher=bars)
     assert r["avg_mfe"] == "0.3000"  # (1300-1000)/1000
+
+
+def test_overall_stats_and_per_ticker_metrics() -> None:
+    from finskillos.services.trade_analytics_service import summarize_overall_stats
+
+    session = _session()
+    account = AccountRepository(session).create(name="M3", target_value=Decimal("1"))
+    svc = TradeJournalService(session)
+    # 2 wins (+30,+20), 1 loss (-10)
+    seq = [("NVDA", "BUY", "100"), ("NVDA", "SELL", "130"),
+           ("AAPL", "BUY", "100"), ("AAPL", "SELL", "120"),
+           ("MSFT", "BUY", "100"), ("MSFT", "SELL", "90")]
+    for tk, side, p in seq:
+        d = date(2026, 6, 1) if side == "BUY" else date(2026, 6, 5)
+        svc.create_entry(TradeJournalInput(
+            trade_date=d, ticker=tk, side=side,
+            quantity=Decimal("1"), price=Decimal(p), amount=Decimal(p)))
+    session.commit()
+    st = summarize_overall_stats(session, account.id)
+    assert st["closed_count"] == 3 and st["win_rate"] == round(2 / 3, 4)
+    assert st["profit_factor"] == "5.000"  # 50 / 10
+    assert st["expectancy"] == "13.33"     # (30+20-10)/3
+    assert st["avg_win"] == "25.00" and st["avg_loss"] == "-10.00"
+    # per-ticker also exposes the stats
+    nvda = summarize_ticker_trades(session, account.id, "NVDA")
+    assert nvda["profit_factor"] is None or "best_trade" in nvda
+
+
+def test_trade_stats_tool_registered() -> None:
+    names = {t["name"] for t in TestClient(create_app()).get("/api/agent/tools").json()["tools"]}
+    assert "read.trade_stats" in names

@@ -45,6 +45,7 @@ from api.schemas.agent import (
     TradeExcursionResponse,
     TradePerformanceResponse,
     TradePerformanceVM,
+    TradeStatsResponse,
     TradeSyncResponse,
     TradeTickerSummaryResponse,
     TradeWeekdayResponse,
@@ -497,6 +498,28 @@ def agent_trades_by_day(days: int = 30) -> TradeDailyResponse:
         rows=[TradeDailyVM(**r) for r in rows],
         note=f"{len(rows)} active day(s) in the last {days} days.",
     )
+
+
+@router.get(
+    "/agent/trades/stats",
+    response_model=TradeStatsResponse,
+    summary="Account-wide closed-trade stats (win rate, expectancy, profit factor).",
+)
+def agent_trades_stats() -> TradeStatsResponse:
+    """Descriptive system-level trade statistics. Read-only."""
+
+    from finskillos.services.trade_analytics_service import summarize_overall_stats
+
+    with get_session_scope() as session:
+        if session is None:
+            return TradeStatsResponse(available=False, note="Database unavailable.")
+        account = _resolve_account_ro(session)
+        if account is None:
+            return TradeStatsResponse(available=True, note="No account yet.")
+        data = summarize_overall_stats(session, account.id)
+    if not data.get("closed_count"):
+        return TradeStatsResponse(available=True, note="No closed trades yet.")
+    return TradeStatsResponse(available=True, **data)
 
 
 @router.get(

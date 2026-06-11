@@ -166,8 +166,40 @@ class TradeTickerSummaryResponse(CamelModel):
     max_win_streak: int = 0
     max_loss_streak: int = 0
     current_streak: int = 0
+    profit_factor: str | None = None
+    expectancy: str | None = None
+    avg_win: str | None = None
+    avg_loss: str | None = None
+    avg_win_holding_days: float | None = None
+    avg_loss_holding_days: float | None = None
+    best_trade: str | None = None
+    worst_trade: str | None = None
     first_date: str | None = None
     last_date: str | None = None
+    note: str = ""
+
+
+class TradeStatsResponse(CamelModel):
+    """Account-wide closed-trade stats — win rate, expectancy, profit factor, etc.
+    Absolute amounts KRW (approximate for older USD trades); ratios are exact.
+    Read-only."""
+
+    available: bool
+    closed_count: int = 0
+    tickers: int = 0
+    wins: int = 0
+    losses: int = 0
+    win_rate: float | None = None
+    realized_pnl: str | None = None
+    avg_holding_days: float | None = None
+    profit_factor: str | None = None
+    expectancy: str | None = None
+    avg_win: str | None = None
+    avg_loss: str | None = None
+    avg_win_holding_days: float | None = None
+    avg_loss_holding_days: float | None = None
+    best_trade: str | None = None
+    worst_trade: str | None = None
     note: str = ""
 
 
