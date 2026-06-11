@@ -281,6 +281,16 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/agent/toss/stocks",
     ),
     _read_tool(
+        "read.toss_holdings_detail",
+        "Per-holding P&L (total return, daily, eval P&L) + account overview.",
+        "/api/agent/toss/holdings-detail",
+    ),
+    _read_tool(
+        "read.toss_prices",
+        "Current price per symbol (Toss, comma-separated).",
+        "/api/agent/toss/prices",
+    ),
+    _read_tool(
         "read.toss_holdings_warnings",
         "Descriptive risk flags on held symbols (정리매매/거래정지/투자경고/VI).",
         "/api/agent/toss/holdings-warnings",

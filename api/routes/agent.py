@@ -30,9 +30,13 @@ from api.schemas.agent import (
     LLMProviderVM,
     ProposedActionVM,
     ProviderSwitchRequest,
+    TossHoldingDetailVM,
+    TossHoldingsDetailResponse,
     TossHoldingsWarningsResponse,
     TossHoldingWarningVM,
     TossMarketCalendarResponse,
+    TossPricesResponse,
+    TossPriceVM,
     TossStatusResponse,
     TossStocksResponse,
     TossStockVM,
@@ -460,6 +464,97 @@ def agent_toss_stocks(symbols: str = "") -> TossStocksResponse:
     items = raw if isinstance(raw, list) else []
     return TossStocksResponse(
         available=True, stocks=[_stock_vm(it) for it in items if isinstance(it, dict)]
+    )
+
+
+def _g(block, *path):
+    cur = block
+    for key in path:
+        cur = cur.get(key) if isinstance(cur, dict) else None
+        if cur is None:
+            return None
+    return None if cur is None else str(cur)
+
+
+@router.get(
+    "/agent/toss/holdings-detail",
+    response_model=TossHoldingsDetailResponse,
+    summary="Per-holding P&L from Toss (total return, daily, eval P&L) + overview.",
+)
+def agent_toss_holdings_detail() -> TossHoldingsDetailResponse:
+    """Descriptive performance per holding + the account overview. Read-only."""
+
+    client = _toss_client_or_none()
+    if client is None:
+        return TossHoldingsDetailResponse(available=False, note="Toss is not configured.")
+    try:
+        data = client.holdings()
+    except Exception as exc:  # noqa: BLE001
+        return TossHoldingsDetailResponse(
+            available=True, note=f"Toss holdings read failed ({type(exc).__name__})."
+        )
+    items = data.get("items") if isinstance(data, dict) else None
+    holdings = [
+        TossHoldingDetailVM(
+            symbol=str(it.get("symbol", "")),
+            name=it.get("name"),
+            market_country=it.get("marketCountry"),
+            currency=it.get("currency"),
+            quantity=_g(it, "quantity"),
+            last_price=_g(it, "lastPrice"),
+            average_price=_g(it, "averagePurchasePrice"),
+            market_value=_g(it, "marketValue", "amount"),
+            total_return_rate=_g(it, "profitLoss", "rate"),
+            eval_pnl=_g(it, "profitLoss", "amount"),
+            daily_return_rate=_g(it, "dailyProfitLoss", "rate"),
+            daily_pnl=_g(it, "dailyProfitLoss", "amount"),
+        )
+        for it in (items or [])
+        if isinstance(it, dict) and it.get("symbol")
+    ]
+    return TossHoldingsDetailResponse(
+        available=True,
+        total_return_rate=_g(data, "profitLoss", "rate"),
+        total_return_rate_after_cost=_g(data, "profitLoss", "rateAfterCost"),
+        daily_return_rate=_g(data, "dailyProfitLoss", "rate"),
+        holdings=holdings,
+        note=f"{len(holdings)} holding(s).",
+    )
+
+
+@router.get(
+    "/agent/toss/prices",
+    response_model=TossPricesResponse,
+    summary="Current prices for the given symbols (Toss).",
+)
+def agent_toss_prices(symbols: str = "") -> TossPricesResponse:
+    """Latest price per comma-separated symbol. Read-only."""
+
+    wanted = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    client = _toss_client_or_none()
+    if client is None:
+        return TossPricesResponse(available=False, note="Toss is not configured.")
+    if not wanted:
+        return TossPricesResponse(available=True, note="No symbols requested.")
+    try:
+        raw = client.prices(wanted)
+    except Exception as exc:  # noqa: BLE001
+        return TossPricesResponse(
+            available=True, note=f"Toss price lookup failed ({type(exc).__name__})."
+        )
+    rows = raw if isinstance(raw, list) else []
+    return TossPricesResponse(
+        available=True,
+        prices=[
+            TossPriceVM(
+                symbol=str(r.get("symbol", "")),
+                last_price=_g(r, "lastPrice"),
+                currency=r.get("currency"),
+                timestamp=r.get("timestamp"),
+            )
+            for r in rows
+            if isinstance(r, dict) and r.get("symbol")
+        ],
     )
 
 

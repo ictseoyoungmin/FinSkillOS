@@ -98,3 +98,45 @@ def test_read_tools_registered() -> None:
     names = {t["name"] for t in _client().get("/api/agent/tools").json()["tools"]}
     assert {"read.toss_stocks", "read.toss_holdings_warnings",
             "read.toss_market_calendar"} <= names
+
+
+def test_holdings_detail_maps_pnl(monkeypatch) -> None:
+    class _Stub:
+        def holdings(self):
+            return {
+                "profitLoss": {"rate": "-0.1352", "rateAfterCost": "-0.1371"},
+                "dailyProfitLoss": {"rate": "0.0297"},
+                "items": [
+                    {"symbol": "203650", "name": "드림시큐리티", "marketCountry": "KR",
+                     "currency": "KRW", "quantity": "4", "lastPrice": "2895",
+                     "averagePurchasePrice": "1630",
+                     "marketValue": {"amount": "11580"},
+                     "profitLoss": {"rate": "0.7754", "amount": "5110"},
+                     "dailyProfitLoss": {"rate": "-0.0212", "amount": "-250"}},
+                ],
+            }
+
+    monkeypatch.setattr(agent_route, "_toss_client_or_none", lambda: _Stub())
+    body = _client().get("/api/agent/toss/holdings-detail").json()
+    assert body["available"] is True
+    assert body["totalReturnRate"] == "-0.1352" and body["dailyReturnRate"] == "0.0297"
+    h = body["holdings"][0]
+    assert h["name"] == "드림시큐리티" and h["totalReturnRate"] == "0.7754"
+    assert h["dailyPnl"] == "-250" and h["marketValue"] == "11580"
+
+
+def test_prices_maps_quotes(monkeypatch) -> None:
+    class _Stub:
+        def prices(self, symbols):
+            return [{"symbol": "NVDA", "lastPrice": "96.35", "currency": "USD",
+                     "timestamp": "2026-06-11T22:30:00+09:00"}]
+
+    monkeypatch.setattr(agent_route, "_toss_client_or_none", lambda: _Stub())
+    body = _client().get("/api/agent/toss/prices?symbols=NVDA").json()
+    assert body["available"] is True
+    assert body["prices"][0]["lastPrice"] == "96.35"
+
+
+def test_new_read_tools_registered() -> None:
+    names = {t["name"] for t in _client().get("/api/agent/tools").json()["tools"]}
+    assert {"read.toss_holdings_detail", "read.toss_prices"} <= names

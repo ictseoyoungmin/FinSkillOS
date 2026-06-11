@@ -152,6 +152,48 @@ class HoldingsNewsResponse(CamelModel):
     note: str
 
 
+class TossHoldingDetailVM(CamelModel):
+    symbol: str
+    name: str | None = None
+    market_country: str | None = None
+    currency: str | None = None
+    quantity: str | None = None
+    last_price: str | None = None
+    average_price: str | None = None
+    market_value: str | None = None
+    total_return_rate: str | None = None  # ratio, 0.7754 = +77.54%
+    eval_pnl: str | None = None
+    daily_return_rate: str | None = None
+    daily_pnl: str | None = None
+
+
+class TossHoldingsDetailResponse(CamelModel):
+    """Per-holding P&L from Toss (total return, daily, eval P&L) + overview.
+    Read-only — descriptive performance, not advice."""
+
+    available: bool
+    total_return_rate: str | None = None
+    total_return_rate_after_cost: str | None = None
+    daily_return_rate: str | None = None
+    holdings: list[TossHoldingDetailVM] = Field(default_factory=list)
+    note: str = ""
+
+
+class TossPriceVM(CamelModel):
+    symbol: str
+    last_price: str | None = None
+    currency: str | None = None
+    timestamp: str | None = None
+
+
+class TossPricesResponse(CamelModel):
+    """Current prices for the given symbols (Toss). Read-only."""
+
+    available: bool
+    prices: list[TossPriceVM] = Field(default_factory=list)
+    note: str = ""
+
+
 class TossStockVM(CamelModel):
     symbol: str
     name: str | None = None
