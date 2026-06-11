@@ -144,3 +144,66 @@ def test_ticker_summary_exposes_holding_and_streak() -> None:
     s = summarize_ticker_trades(session, account.id, "NVDA")
     assert "avg_holding_days" in s and s["max_win_streak"] >= 1
     assert s["avg_holding_days"] == 4.0  # buys 06-01, sell 06-05
+
+
+def test_excursion_mfe_mae_with_injected_candles() -> None:
+    from types import SimpleNamespace
+
+    from finskillos.services.trade_analytics_service import summarize_ticker_excursion
+
+    session = _session()
+    account = _seed(session)  # NVDA buys 06-01, sell 06-05
+
+    def bars(_sym, _start):
+        def bar(d, h, lo):
+            return SimpleNamespace(bar_time=d, high=Decimal(h), low=Decimal(lo))
+        return [
+            bar(date(2026, 6, 1), "105", "98"),
+            bar(date(2026, 6, 3), "130", "120"),  # peak
+            bar(date(2026, 6, 5), "122", "95"),   # dip
+        ]
+
+    # NVDA = US ticker → pass fx_rate=1 so same-unit test candles aren't scaled.
+    r = summarize_ticker_excursion(
+        session, account.id, "NVDA", bar_fetcher=bars, fx_rate=Decimal("1")
+    )
+    # entry 100 (FIFO first lot); high 130 → MFE +0.30; low 95 → MAE -0.05
+    assert r["avg_mfe"] == "0.3000" and r["avg_mae"] == "-0.0500"
+    assert r["lots_with_bars"] == 1
+
+
+def test_excursion_no_candles() -> None:
+    session = _session()
+    account = _seed(session)
+    r = __import__(
+        "finskillos.services.trade_analytics_service", fromlist=["x"]
+    ).summarize_ticker_excursion(session, account.id, "NVDA", bar_fetcher=lambda *_: [])
+    assert r["lots_with_bars"] == 0 and r["avg_mfe"] is None
+
+
+def test_excursion_tool_registered() -> None:
+    names = {t["name"] for t in TestClient(create_app()).get("/api/agent/tools").json()["tools"]}
+    assert "read.trade_excursion" in names
+
+
+def test_excursion_kr_ticker_no_fx_scaling() -> None:
+    from types import SimpleNamespace
+
+    from finskillos.services.trade_analytics_service import summarize_ticker_excursion
+
+    session = _session()
+    account = AccountRepository(session).create(name="M2", target_value=Decimal("1"))
+    svc = TradeJournalService(session)
+    for side, d, p in [("BUY", date(2026, 6, 1), "1000"), ("SELL", date(2026, 6, 5), "1100")]:
+        svc.create_entry(TradeJournalInput(
+            trade_date=d, ticker="005930", side=side,
+            quantity=Decimal("1"), price=Decimal(p), amount=Decimal(p)))
+    session.commit()
+
+    def bars(_s, _start):
+        return [SimpleNamespace(bar_time=date(2026, 6, 3), high=Decimal("1300"),
+                               low=Decimal("950"))]
+
+    # KR 6-digit → KRW candles, no FX scaling even without fx_rate passed.
+    r = summarize_ticker_excursion(session, account.id, "005930", bar_fetcher=bars)
+    assert r["avg_mfe"] == "0.3000"  # (1300-1000)/1000

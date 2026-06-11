@@ -6,7 +6,7 @@ executed-order history). Amounts are KRW (the sync converts USD trades). Read-on
 
 from __future__ import annotations
 
-from collections import deque
+from collections import deque, namedtuple
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -17,7 +17,14 @@ __all__ = [
     "summarize_daily_trades",
     "summarize_by_weekday",
     "summarize_ticker_performance",
+    "summarize_ticker_excursion",
 ]
+
+# One closed lot: a portion of a position opened then closed (FIFO).
+CloseEvent = namedtuple(
+    "CloseEvent",
+    "close_date realized holding_days entry_date entry_price direction qty",
+)
 
 _BUY = {"BUY", "LONG"}
 _SELL = {"SELL", "SHORT"}
@@ -59,7 +66,7 @@ def _fifo_realized(trades) -> dict:
     """
 
     lots: deque[list] = deque()  # [signed_qty, price, entry_date]
-    events: list[tuple] = []  # (close_date, realized, holding_days)
+    events: list[CloseEvent] = []
     for trade in trades:
         qty = trade.quantity or Decimal("0")
         if qty <= 0:
@@ -69,12 +76,21 @@ def _fifo_realized(trades) -> dict:
         while delta != 0 and lots and _sign(delta) != _sign(lots[0][0]):
             lot = lots[0]
             matched = min(abs(delta), abs(lot[0]))
+            long_lot = lot[0] > 0
             realized = (
-                (price - lot[1]) * matched
-                if lot[0] > 0  # closing a long
-                else (lot[1] - price) * matched  # closing a short
+                (price - lot[1]) * matched if long_lot else (lot[1] - price) * matched
             )
-            events.append((trade.trade_date, realized, (trade.trade_date - lot[2]).days))
+            events.append(
+                CloseEvent(
+                    close_date=trade.trade_date,
+                    realized=realized,
+                    holding_days=(trade.trade_date - lot[2]).days,
+                    entry_date=lot[2],
+                    entry_price=lot[1],
+                    direction="long" if long_lot else "short",
+                    qty=matched,
+                )
+            )
             lot[0] -= _sign(lot[0]) * matched
             delta -= _sign(delta) * matched
             if lot[0] == 0:
@@ -82,12 +98,12 @@ def _fifo_realized(trades) -> dict:
         if delta != 0:
             lots.append([delta, price, trade.trade_date])
 
-    wins = sum(1 for _, r, _ in events if r > 0)
-    losses = sum(1 for _, r, _ in events if r < 0)
+    wins = sum(1 for e in events if e.realized > 0)
+    losses = sum(1 for e in events if e.realized < 0)
     decided = wins + losses
-    holds = [h for _, _, h in events]
+    holds = [e.holding_days for e in events]
     result = {
-        "realized_pnl": sum((r for _, r, _ in events), Decimal("0")),
+        "realized_pnl": sum((e.realized for e in events), Decimal("0")),
         "closed_count": len(events),
         "wins": wins,
         "losses": losses,
@@ -95,7 +111,7 @@ def _fifo_realized(trades) -> dict:
         "avg_holding_days": round(sum(holds) / len(holds), 1) if holds else None,
         "events": events,
     }
-    result.update(_streaks([r for _, r, _ in events]))
+    result.update(_streaks([e.realized for e in events]))
     return result
 
 
@@ -171,15 +187,13 @@ def summarize_by_weekday(session, account_id, *, days: int = 3650) -> list[dict]
             b["sell"] += 1
     # realized per close → attribute to the close's weekday (per-ticker FIFO).
     for ticker in {t.ticker for t in trades}:
-        for close_date, realized, _hold in _fifo_realized(
-            repo.list_by_ticker(account_id, ticker)
-        )["events"]:
-            if start <= close_date <= end:
-                b = buckets[close_date.weekday()]
-                b["realized"] += realized
-                if realized > 0:
+        for ev in _fifo_realized(repo.list_by_ticker(account_id, ticker))["events"]:
+            if start <= ev.close_date <= end:
+                b = buckets[ev.close_date.weekday()]
+                b["realized"] += ev.realized
+                if ev.realized > 0:
                     b["wins"] += 1
-                elif realized < 0:
+                elif ev.realized < 0:
                     b["losses"] += 1
     rows = []
     for i in range(7):
@@ -254,3 +268,87 @@ def summarize_daily_trades(session, account_id, *, days: int = 30) -> list[dict]
         }
         for day, v in sorted(buckets.items(), reverse=True)
     ]
+
+
+def summarize_ticker_excursion(
+    session, account_id, ticker: str, *, bar_fetcher=None, fx_rate=None
+) -> dict:
+    """MFE/MAE per ticker — max favorable / adverse excursion during each closed
+    lot's holding window, from daily candles.
+
+    For each closed lot, finds candles in [entry_date, close_date] and measures how
+    far price moved in favour / against, as a fraction of entry price:
+      long  → MFE=(maxHigh−entry)/entry, MAE=(minLow−entry)/entry
+      short → MFE=(entry−minLow)/entry,  MAE=(entry−maxHigh)/entry
+
+    Entry prices are stored in KRW (the trade sync converts USD), so US-ticker
+    candles (native USD) are scaled to KRW by ``fx_rate`` to keep the comparison
+    consistent. ``bar_fetcher(ticker, start)`` is injectable (default Toss candles);
+    held tickers often lack stored bars, so this fetches fresh. Read-only.
+    """
+
+    trades = TradeRepository(session).list_by_ticker(account_id, ticker)
+    events = _fifo_realized(trades)["events"]
+    symbol = (ticker or "").strip().upper()
+    if not events:
+        return {"ticker": symbol, "lots": 0}
+
+    if bar_fetcher is None:
+        from finskillos.brokerage.toss.market import TossMarketDataAdapter
+
+        def bar_fetcher(sym, start):
+            return TossMarketDataAdapter().fetch_bars(sym, timeframe="1d", start=start)
+
+    # KR 6-digit symbols are KRW (no FX); US symbols' candles are USD → scale to KRW.
+    is_kr = symbol.isdigit() and len(symbol) == 6
+    if is_kr:
+        rate = Decimal("1")
+    elif fx_rate is not None:
+        rate = Decimal(str(fx_rate))
+    else:
+        from finskillos.agent.fx import usd_krw_rate
+
+        rate = usd_krw_rate()
+
+    start = min(e.entry_date for e in events)
+    try:
+        bars = bar_fetcher(symbol, start)
+    except Exception:  # noqa: BLE001 - excursion is best-effort
+        bars = []
+    by_date: dict = {}
+    for bar in bars or []:
+        bt = bar.bar_time
+        day = bt.date() if hasattr(bt, "date") else bt
+        if bar.high is not None and bar.low is not None:
+            by_date[day] = (bar.high * rate, bar.low * rate)
+
+    mfes: list[Decimal] = []
+    maes: list[Decimal] = []
+    for e in events:
+        entry = e.entry_price
+        if entry == 0:
+            continue
+        window = [
+            hl for day, hl in by_date.items() if e.entry_date <= day <= e.close_date
+        ]
+        if not window:
+            continue
+        hi = max(h for h, _ in window)
+        lo = min(low for _, low in window)
+        if e.direction == "long":
+            mfes.append((hi - entry) / entry)
+            maes.append((lo - entry) / entry)
+        else:  # short
+            mfes.append((entry - lo) / entry)
+            maes.append((entry - hi) / entry)
+
+    n = len(mfes)
+    return {
+        "ticker": symbol,
+        "lots": len(events),
+        "lots_with_bars": n,
+        "avg_mfe": str(round(sum(mfes) / n, 4)) if n else None,
+        "avg_mae": str(round(sum(maes) / n, 4)) if n else None,
+        "best_mfe": str(round(max(mfes), 4)) if n else None,
+        "worst_mae": str(round(min(maes), 4)) if n else None,
+    }

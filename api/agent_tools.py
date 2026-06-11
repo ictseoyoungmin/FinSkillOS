@@ -286,6 +286,11 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/agent/trades/performance",
     ),
     _read_tool(
+        "read.trade_excursion",
+        "MFE/MAE per ticker (max favorable/adverse excursion over holding windows).",
+        "/api/agent/trades/excursion",
+    ),
+    _read_tool(
         "read.system_status",
         "System Ops: data sources, worker, protocol history, freshness.",
         "/api/system-ops",

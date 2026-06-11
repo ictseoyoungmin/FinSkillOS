@@ -206,6 +206,22 @@ class TradePerformanceResponse(CamelModel):
     note: str = ""
 
 
+class TradeExcursionResponse(CamelModel):
+    """MFE/MAE per ticker — max favorable / adverse excursion over each closed lot's
+    holding window (from daily candles, fetched fresh). Ratios of entry price.
+    Read-only; lots_with_bars=0 when no candle coverage."""
+
+    available: bool
+    ticker: str
+    lots: int = 0
+    lots_with_bars: int = 0
+    avg_mfe: str | None = None
+    avg_mae: str | None = None
+    best_mfe: str | None = None
+    worst_mae: str | None = None
+    note: str = ""
+
+
 class TradeDailyVM(CamelModel):
     date: str
     trade_count: int

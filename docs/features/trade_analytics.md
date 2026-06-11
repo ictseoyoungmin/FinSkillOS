@@ -19,6 +19,10 @@ advice. Amounts are KRW.
   rate per weekday (Mon–Sun), to surface day-of-week patterns.
 - **Performance** (`read.trade_performance`) — per-ticker FIFO realized P&L + win
   rate, ranked.
+- **MFE/MAE** (`read.trade_excursion`) — per ticker, the maximum favorable
+  and adverse price excursion during each closed lot's holding window (from
+  daily candles, fetched fresh; US candles scaled to KRW to match entry).
+  Surfaces "exited too early/late" and drawdown-endured patterns.
 - Existing Trade Memory read model — performance by regime / sector / strategy,
   mistake frequency, weekly review.
 

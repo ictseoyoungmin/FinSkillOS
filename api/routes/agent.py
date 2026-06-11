@@ -42,6 +42,7 @@ from api.schemas.agent import (
     TossStockVM,
     TradeDailyResponse,
     TradeDailyVM,
+    TradeExcursionResponse,
     TradePerformanceResponse,
     TradePerformanceVM,
     TradeSyncResponse,
@@ -544,6 +545,53 @@ def agent_trades_performance(top: int = 25) -> TradePerformanceResponse:
         available=True,
         rows=[TradePerformanceVM(**r) for r in rows],
         note=f"{len(rows)} ticker(s) with closed trades.",
+    )
+
+
+@router.get(
+    "/agent/trades/excursion",
+    response_model=TradeExcursionResponse,
+    summary="MFE/MAE per ticker (max favorable/adverse excursion via daily candles).",
+)
+def agent_trades_excursion(ticker: str = "") -> TradeExcursionResponse:
+    """Descriptive MFE/MAE for one ticker's closed lots. Read-only; needs Toss
+    candle coverage (fetched fresh) — lots_with_bars=0 if unavailable."""
+
+    from finskillos.services.trade_analytics_service import summarize_ticker_excursion
+
+    symbol = (ticker or "").strip().upper()
+    if not symbol:
+        return TradeExcursionResponse(
+            available=False, ticker="", note="No ticker provided."
+        )
+    with get_session_scope() as session:
+        if session is None:
+            return TradeExcursionResponse(
+                available=False, ticker=symbol, note="Database unavailable."
+            )
+        account = _resolve_account_ro(session)
+        if account is None:
+            return TradeExcursionResponse(
+                available=True, ticker=symbol, note="No account / trades yet."
+            )
+        try:
+            data = summarize_ticker_excursion(session, account.id, symbol)
+        except Exception as exc:  # noqa: BLE001 - never 500
+            return TradeExcursionResponse(
+                available=True, ticker=symbol,
+                note=f"Excursion read failed ({type(exc).__name__}).",
+            )
+    note = (
+        f"{data.get('lots_with_bars', 0)}/{data.get('lots', 0)} closed lot(s) had "
+        "candle coverage."
+        if data.get("lots")
+        else f"No closed trades for {symbol}."
+    )
+    return TradeExcursionResponse(
+        available=True,
+        note=note,
+        **{k: v for k, v in data.items() if k != "ticker"},
+        ticker=symbol,
     )
 
 
