@@ -15,7 +15,7 @@ import { ProcessJudgmentHeader } from "@/features/trades/components/ProcessJudgm
 import { RecentEntriesTable } from "@/features/trades/components/RecentEntriesTable";
 import { ReviewPromptsPanel } from "@/features/trades/components/ReviewPromptsPanel";
 import { TradeCsvImport } from "@/features/trades/components/TradeCsvImport";
-import { TradeEntryForm } from "@/features/trades/components/TradeEntryForm";
+import { TossTradeSyncPanel } from "@/features/trades/components/TossTradeSyncPanel";
 import { WeeklyEvidenceReportPanel } from "@/features/trades/components/WeeklyEvidenceReportPanel";
 import { TradeMemoryWatchpoints } from "@/features/trades/components/TradeMemoryWatchpoints";
 import { WeeklyMarkdownExport } from "@/features/trades/components/WeeklyMarkdownExport";
@@ -34,7 +34,6 @@ import "./trade-memory.css";
 
 export function TradeMemoryPage() {
   const queryClient = useQueryClient();
-  const [editEntry, setEditEntry] = useState<TradeEntryVM | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const { data, error, failureReason } = useQuery({
@@ -68,9 +67,6 @@ export function TradeMemoryPage() {
     setDeletingId(entry.id);
     try {
       await deleteTradeEntry(entry.id);
-      if (editEntry?.id === entry.id) {
-        setEditEntry(null);
-      }
       await refreshTradeMemory();
     } finally {
       setDeletingId(null);
@@ -162,7 +158,6 @@ export function TradeMemoryPage() {
           </div>
           <RecentEntriesTable
             entries={payload.recentEntries}
-            onEdit={isLive ? setEditEntry : undefined}
             onDelete={isLive ? onDeleteEntry : undefined}
             busyId={deletingId}
           />
@@ -187,15 +182,7 @@ export function TradeMemoryPage() {
           ) : null}
           <WeeklyMarkdownExport markdown={activeWeekly.markdown} />
           {isLive ? <WeeklyEvidenceReportPanel /> : null}
-          <TradeEntryForm
-            rules={payload.formRules}
-            editEntry={editEntry}
-            onCancelEdit={() => setEditEntry(null)}
-            templates={isLive ? payload.formRules.entryTemplates : undefined}
-            onSaved={async () => {
-              await refreshTradeMemory();
-            }}
-          />
+          {isLive ? <TossTradeSyncPanel onSynced={refreshTradeMemory} /> : null}
           <TradeCsvImport
             editable={isLive}
             onImported={refreshTradeMemory}

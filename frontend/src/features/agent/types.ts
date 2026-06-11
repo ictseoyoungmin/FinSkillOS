@@ -73,6 +73,13 @@ export interface BrokerageSyncResponse {
   boundary: string;
 }
 
+export interface TradeSyncResponse {
+  status: "APPLIED" | "SKIPPED" | "PENDING_TOSS" | "ERROR";
+  added: number;
+  skipped: number;
+  note: string;
+}
+
 export interface ChatResponse {
   reply: string;
   provider: string;

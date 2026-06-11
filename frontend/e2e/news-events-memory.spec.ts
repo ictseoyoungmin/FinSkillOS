@@ -72,62 +72,19 @@ test.describe("Slice 13.9 — News Intelligence / Catalyst Watch / Trade Memory"
     await expect(
       page.getByTestId("trade-mistake-frequency-table"),
     ).toBeVisible();
-    await expect(page.getByTestId("trade-entry-form")).toBeVisible();
-    await expect(
-      page.getByTestId("trade-entry-form-disclaimer"),
-    ).toContainText("Reflection");
   });
 
-  test("Trade Memory side selector exposes Slice-12 vocabulary only", async ({
-    page,
-  }) => {
-    await page.goto("/trade-memory");
-    const select = page.getByTestId("trade-entry-form-side");
-    const options = await select.locator("option").allTextContents();
-    expect(options).toEqual([
-      "LONG",
-      "SHORT",
-      "WATCH",
-      "EXIT_REVIEW",
-      "OTHER",
-    ]);
-  });
-
-  test("Trade Memory form stores an entry and refreshes the read model", async ({
+  test("Trade Memory exposes the Toss sync panel (manual form removed)", async ({
     page,
     request,
   }) => {
+    // v4 Phase 14b: the manual entry form is removed; trades come from the Toss
+    // sync (read-only) or CSV import. Live mode shows the sync panel.
     await request.post("/api/system-ops/seed-sample-account");
     await page.goto("/trade-memory");
-    const form = page.getByTestId("trade-entry-form");
-
-    await expect(page.getByTestId("trade-entry-form-state")).toContainText(
-      /Required\s*missing/i,
-    );
-    await form.getByLabel("Trade date").fill("2026-05-28");
-    await form.getByLabel("Ticker").fill("AMD");
-    await expect(page.getByTestId("trade-entry-form-state")).toContainText(
-      /Required\s*ready/i,
-    );
-    await form.getByTestId("trade-entry-form-side").selectOption("WATCH");
-    await form.getByLabel("Strategy").fill("review");
-    await form.getByRole("textbox", { name: "Regime" }).fill("HEALTHY_BULL");
-    await form
-      .getByRole("textbox", { name: "Thesis" })
-      .fill("Process review entry.");
-    await form
-      .getByRole("textbox", { name: "Reason" })
-      .fill("Checklist practice remained calm.");
-    await form
-      .getByRole("textbox", { name: "Notes" })
-      .fill("Reflection-only journal smoke.");
-    await page.getByTestId("trade-entry-form-submit").click();
-
-    await expect(page.getByTestId("trade-entry-form-result")).toContainText("OK");
-    await expect(page.getByTestId("trade-memory-source-state")).toContainText(
-      /Source\s*LIVE/,
-    );
-    await expect(page.getByTestId("recent-entries")).toContainText("AMD");
+    await expect(page.getByTestId("toss-trade-sync")).toBeVisible();
+    await expect(page.getByTestId("toss-trade-sync-button")).toBeVisible();
+    await expect(page.getByTestId("trade-entry-form")).toHaveCount(0);
   });
 
   test("Manual trade entry rejects forbidden wording", async ({ request }) => {

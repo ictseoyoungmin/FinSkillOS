@@ -6,7 +6,24 @@ import type {
   ChatResponse,
   IngestProposalResponse,
   LLMProviderKind,
+  TradeSyncResponse,
 } from "./types";
+
+export async function syncTossTrades(
+  signal?: AbortSignal,
+): Promise<TradeSyncResponse> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const response = await fetch(`${base}/agent/sync/trades/apply`, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as TradeSyncResponse;
+}
 
 export async function syncTossHoldings(
   signal?: AbortSignal,
