@@ -272,8 +272,15 @@ def _maybe_sync_toss_portfolio(session, summary: dict[str, Any]) -> None:
             {"FINSKILLOS_TOSS_LAST_SYNC": today}, updated_by="worker_toss_sync"
         )
         summary["tossSync"] = result
+        logger.info(
+            "Toss portfolio sync %s positions=%s cash=%s",
+            result.get("status"),
+            result.get("positions"),
+            result.get("cash"),
+        )
     except Exception as exc:  # noqa: BLE001 - a sync error must not fail the cycle
         summary["tossSync"] = {"status": "ERROR", "detail": type(exc).__name__}
+        logger.warning("Toss portfolio sync failed: %s", type(exc).__name__)
 
 
 def run_cycle(config: WorkerConfig) -> dict[str, Any]:
