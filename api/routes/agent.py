@@ -20,6 +20,7 @@ from api.schemas.agent import (
     BrokerageSyncResponse,
     ChatRequest,
     ChatResponse,
+    HoldingsNewsResponse,
     IngestProposalResponse,
     IngestRequest,
     IngestRowVM,
@@ -315,6 +316,41 @@ def agent_sync_trades_apply() -> TradeSyncResponse:
         added=added,
         skipped=int(result.get("skipped", 0)),
         note=f"Imported {added} executed trade(s) from Toss.",
+    )
+
+
+@router.post(
+    "/agent/sync/news/apply",
+    response_model=HoldingsNewsResponse,
+    summary="Refresh latest news for held symbols (Toss tickers × yfinance).",
+)
+def agent_sync_news_apply() -> HoldingsNewsResponse:
+    """Fetch + ingest latest news for currently-held Toss symbols into News
+    Intelligence. Read-only on both providers; no order placement."""
+
+    from finskillos.services.holdings_news_service import sync_holdings_news
+
+    with get_session_scope() as session:
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
+            )
+        try:
+            result = sync_holdings_news(session)
+        except Exception as exc:  # noqa: BLE001 - never 500 the sync
+            return HoldingsNewsResponse(
+                status="ERROR", note=f"Holdings news sync failed: {type(exc).__name__}."
+            )
+    if result.get("status") == "SKIPPED":
+        return HoldingsNewsResponse(status="SKIPPED", note="Toss is not configured.")
+    return HoldingsNewsResponse(
+        status="APPLIED",
+        tickers=int(result.get("tickers", 0)),
+        articles=int(result.get("articles", 0)),
+        note=(
+            f"Refreshed news for {result.get('tickers', 0)} holding(s) — "
+            f"{result.get('articles', 0)} article(s)."
+        ),
     )
 
 

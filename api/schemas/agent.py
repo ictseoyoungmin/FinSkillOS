@@ -142,6 +142,16 @@ class TossStatusResponse(CamelModel):
     note: str
 
 
+class HoldingsNewsResponse(CamelModel):
+    """Result of refreshing per-holding news (Toss tickers × yfinance). Read-only;
+    ``status`` is APPLIED / SKIPPED (Toss unconfigured) / ERROR."""
+
+    status: Literal["APPLIED", "SKIPPED", "ERROR"]
+    tickers: int = 0
+    articles: int = 0
+    note: str
+
+
 class TossStockVM(CamelModel):
     symbol: str
     name: str | None = None

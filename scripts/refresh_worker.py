@@ -302,6 +302,23 @@ def _maybe_sync_toss_portfolio(session, summary: dict[str, Any]) -> None:
         summary["tossTradeSync"] = {"status": "ERROR", "detail": type(exc).__name__}
         logger.warning("Toss trade sync failed: %s", type(exc).__name__)
 
+    # Holdings news: latest per-ticker news (Toss held symbols × yfinance) into
+    # News Intelligence. Best-effort; independent of the syncs above.
+    try:
+        from finskillos.services.holdings_news_service import sync_holdings_news
+
+        news_result = sync_holdings_news(session)
+        summary["holdingsNews"] = news_result
+        logger.info(
+            "Holdings news sync %s tickers=%s articles=%s",
+            news_result.get("status"),
+            news_result.get("tickers"),
+            news_result.get("articles"),
+        )
+    except Exception as exc:  # noqa: BLE001 - a sync error must not fail the cycle
+        summary["holdingsNews"] = {"status": "ERROR", "detail": type(exc).__name__}
+        logger.warning("Holdings news sync failed: %s", type(exc).__name__)
+
 
 def run_cycle(config: WorkerConfig) -> dict[str, Any]:
     """Run one refresh cycle and return a structured summary."""
