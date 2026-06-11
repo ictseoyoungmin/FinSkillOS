@@ -1,11 +1,28 @@
 import { ApiError, getJson } from "@/shared/api/client";
 import type {
   AgentProvidersResponse,
+  BrokerageSyncResponse,
   ChatMessageVM,
   ChatResponse,
   IngestProposalResponse,
   LLMProviderKind,
 } from "./types";
+
+export async function syncTossHoldings(
+  signal?: AbortSignal,
+): Promise<BrokerageSyncResponse> {
+  const base = import.meta.env.VITE_API_BASE_URL ?? "/api";
+  const response = await fetch(`${base}/agent/sync/holdings`, {
+    method: "POST",
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as BrokerageSyncResponse;
+}
 
 export async function sendAgentChat(
   messages: ChatMessageVM[],

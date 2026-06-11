@@ -32,6 +32,7 @@ import {
   fetchAgentProviders,
   sendAgentChat,
   switchAgentProvider,
+  syncTossHoldings,
 } from "../api";
 import type {
   AgentProvidersResponse,
@@ -345,6 +346,40 @@ export function AgentChatWidget() {
       await submit("Describe what's on this screen.", [dataUrl]);
     } catch {
       /* user cancelled the share dialog */
+    }
+  };
+
+  const syncToss = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await syncTossHoldings();
+      if (!res.available || res.rowCount === 0) {
+        setTurns((prev) => [
+          ...prev,
+          { role: "assistant", content: res.note, time: now() },
+        ]);
+        return;
+      }
+      const action: ProposedActionVM = {
+        kind: "portfolio_import",
+        summary: `${res.rowCount} holding(s) from Toss`,
+        normalizedCsv: res.normalizedCsv,
+        rowCount: res.rowCount,
+        warnings: res.warnings,
+        applyEndpoint: res.applyEndpoint,
+      };
+      setTurns((prev) => [
+        ...prev,
+        { role: "assistant", content: res.note, time: now(), actions: [action] },
+      ]);
+    } catch {
+      setTurns((prev) => [
+        ...prev,
+        { role: "assistant", content: "Couldn't reach Toss to sync holdings.", time: now() },
+      ]);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -718,6 +753,15 @@ export function AgentChatWidget() {
             data-testid="agent-chat-capture"
           >
             🖥
+          </button>
+          <button
+            className="fso-chat-attach"
+            title="Sync holdings from Toss"
+            disabled={busy}
+            onClick={() => void syncToss()}
+            data-testid="agent-chat-sync-toss"
+          >
+            ⭳
           </button>
           <input
             ref={fileRef}

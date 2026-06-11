@@ -61,6 +61,18 @@ export interface ProposedActionVM {
   protocol?: string | null;
 }
 
+export interface BrokerageSyncResponse {
+  available: boolean;
+  source: string;
+  rowCount: number;
+  rows: IngestRowVM[];
+  warnings: string[];
+  normalizedCsv: string;
+  note: string;
+  applyEndpoint: string;
+  boundary: string;
+}
+
 export interface ChatResponse {
   reply: string;
   provider: string;

@@ -136,6 +136,7 @@ protocols.
 212  v4 Planning Docs (Toss API, read-only)
 213  v4 Phase 13: Toss Client + OAuth Foundation
 214  v4 Phase 14: Toss Holdings Sync (backend)
+215  v4 Phase 14: "Sync from Toss" Button (frontend)
 ```
 
 ## Validation Baseline
