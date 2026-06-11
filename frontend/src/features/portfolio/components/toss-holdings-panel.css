@@ -1,0 +1,29 @@
+.fso-toss-holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fso-toss-holdings-table th,
+.fso-toss-holdings-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--fso-border, rgba(255, 255, 255, 0.08));
+}
+
+.fso-toss-holdings-table th {
+  font-family: var(--fso-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fso-text-dim, #8a93a6);
+}
+
+.fso-toss-holdings-table [data-severity="RISK"] {
+  color: var(--fso-red, #ff5d5d);
+  font-weight: 600;
+}
+
+.fso-toss-holdings-table [data-severity="WATCH"] {
+  color: var(--fso-amber, #f5a524);
+}

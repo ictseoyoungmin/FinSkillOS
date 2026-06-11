@@ -73,6 +73,37 @@ export interface BrokerageSyncResponse {
   boundary: string;
 }
 
+export interface TossStock {
+  symbol: string;
+  name: string | null;
+  englishName: string | null;
+  market: string | null;
+  currency: string | null;
+  securityType: string | null;
+  status: string | null;
+  tradingSuspended: boolean;
+  liquidationTrading: boolean;
+}
+
+export interface TossStocksResponse {
+  available: boolean;
+  stocks: TossStock[];
+  note: string;
+}
+
+export interface TossHoldingWarning {
+  symbol: string;
+  name: string | null;
+  severity: "INFO" | "WATCH" | "RISK";
+  flags: string[];
+}
+
+export interface TossHoldingsWarningsResponse {
+  available: boolean;
+  warnings: TossHoldingWarning[];
+  note: string;
+}
+
 export interface TradeSyncResponse {
   status: "APPLIED" | "SKIPPED" | "PENDING_TOSS" | "ERROR";
   added: number;

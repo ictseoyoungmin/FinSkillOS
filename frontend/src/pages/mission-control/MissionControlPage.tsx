@@ -7,6 +7,7 @@ import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTime
 import { MissionGoalTracker } from "@/features/portfolio/components/MissionGoalTracker";
 import { PortfolioEditorPanel } from "@/features/portfolio/components/PortfolioEditorPanel";
 import { PortfolioSnapshotPanel } from "@/features/portfolio/components/PortfolioSnapshotPanel";
+import { TossHoldingsPanel } from "@/features/portfolio/components/TossHoldingsPanel";
 import { missionControlFixture } from "@/mocks/fixtures/missionControl.fixture";
 import { formatKrw, formatPct } from "@/shared/lib/format";
 import {
@@ -198,6 +199,10 @@ export function MissionControlPage() {
           onMutated={(next) =>
             queryClient.setQueryData(["mission-control"], next)
           }
+        />
+        {/* v4 (229): Toss enrichment — names + descriptive risk flags on holdings. */}
+        <TossHoldingsPanel
+          tickers={(payload.positions ?? []).map((p) => p.ticker)}
         />
         {/* v3 Phase 11 (190): agent paste-import sits beside the editor. */}
         <AgentIngestPanel

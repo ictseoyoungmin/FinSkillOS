@@ -6,8 +6,42 @@ import type {
   ChatResponse,
   IngestProposalResponse,
   LLMProviderKind,
+  TossHoldingsWarningsResponse,
+  TossStocksResponse,
   TradeSyncResponse,
 } from "./types";
+
+const apiBase = () => import.meta.env.VITE_API_BASE_URL ?? "/api";
+
+export async function fetchTossStocks(
+  symbols: string[],
+  signal?: AbortSignal,
+): Promise<TossStocksResponse> {
+  const q = encodeURIComponent(symbols.join(","));
+  const response = await fetch(`${apiBase()}/agent/toss/stocks?symbols=${q}`, {
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as TossStocksResponse;
+}
+
+export async function fetchTossHoldingsWarnings(
+  signal?: AbortSignal,
+): Promise<TossHoldingsWarningsResponse> {
+  const response = await fetch(`${apiBase()}/agent/toss/holdings-warnings`, {
+    credentials: "omit",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as TossHoldingsWarningsResponse;
+}
 
 export async function syncTossTrades(
   signal?: AbortSignal,
