@@ -501,6 +501,7 @@ PROTOCOL_LABELS: dict[str, str] = {
     "recompute_regime": "recompute the market regime",
     "run_risk_guards": "re-run the risk guards",
     "refresh_events": "refresh catalyst events",
+    "refresh_holdings_news": "refresh news for my holdings",
 }
 PROTOCOL_KEYS = tuple(PROTOCOL_LABELS)
 
@@ -523,6 +524,15 @@ _PROTOCOL_INTENTS: tuple[tuple[re.Pattern[str], str], ...] = (
             re.IGNORECASE,
         ),
         "run_risk_guards",
+    ),
+    (
+        re.compile(
+            r"(refresh|update|갱신|새로고침).{0,12}(holding|portfolio|보유|내\s*주식).{0,12}news"
+            r"|(holding|portfolio|보유|포트폴리오|내\s*주식).{0,12}news.{0,12}(refresh|update)"
+            r"|(보유|포트폴리오|내\s*주식).{0,8}뉴스.{0,8}(새로고침|갱신|업데이트)",
+            re.IGNORECASE,
+        ),
+        "refresh_holdings_news",
     ),
     (
         re.compile(
@@ -571,6 +581,7 @@ def parse_protocol_request(text: str) -> str | None:
 _PROTOCOL_PIPELINE = (
     "refresh_market_data",
     "refresh_news",
+    "refresh_holdings_news",
     "refresh_events",
     "calculate_indicators",
     "recompute_regime",

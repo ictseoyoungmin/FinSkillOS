@@ -24,6 +24,7 @@ const PROTOCOL_REFRESH: Record<string, string[]> = {
   recompute_regime: ["control-room", "market-kernel", "mission-control"],
   run_risk_guards: ["risk-firewall", "control-room"],
   refresh_news: ["news-intelligence", "control-room"],
+  refresh_holdings_news: ["news-intelligence", "control-room"],
   refresh_events: ["event-radar", "control-room"],
   refresh_market_data: ["market-kernel", "control-room"],
   calculate_indicators: ["market-kernel", "symbol-lab"],

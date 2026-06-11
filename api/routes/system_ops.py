@@ -204,6 +204,36 @@ def run_refresh_news() -> ProtocolRunResult:
     )
 
 
+def _invoke_refresh_holdings_news(session) -> tuple[str, str, str]:
+    from finskillos.services.holdings_news_service import sync_holdings_news
+
+    result = sync_holdings_news(session)
+    if result.get("status") == "SKIPPED":
+        return "NOOP", "Toss is not configured; no holdings news refreshed.", ""
+    return (
+        "OK",
+        f"Refreshed news for {result.get('tickers', 0)} holding(s) — "
+        f"{result.get('articles', 0)} article(s).",
+        "",
+    )
+
+
+@router.post(
+    "/system-ops/refresh-holdings-news",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: refresh per-holding news (Toss tickers × yfinance).",
+)
+def run_refresh_holdings_news() -> ProtocolRunResult:
+    return _run_protocol(
+        key="refresh_holdings_news",
+        fixture_message=(
+            "Holdings news refresh acknowledged. Fixture-first shell did not "
+            "touch the database."
+        ),
+        runner=_invoke_refresh_holdings_news,
+    )
+
+
 @router.post(
     "/system-ops/calculate-indicators",
     response_model=ProtocolRunResult,

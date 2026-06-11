@@ -302,6 +302,11 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/system-ops/refresh-news",
     ),
     _ops_tool(
+        "ops.refresh_holdings_news",
+        "Refresh latest news for my holdings (Toss tickers × yfinance).",
+        "/api/system-ops/refresh-holdings-news",
+    ),
+    _ops_tool(
         "ops.calculate_indicators",
         "Recalculate indicators from stored bars.",
         "/api/system-ops/calculate-indicators",

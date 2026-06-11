@@ -14,7 +14,8 @@ export type ProtocolKey =
   | "recompute_regime"
   | "run_risk_guards"
   | "seed_sample_events"
-  | "refresh_events";
+  | "refresh_events"
+  | "refresh_holdings_news";
 
 export type ProtocolStatus = "OK" | "NOOP" | "ERROR" | "QUEUED";
 export type WorkerStatus = ProtocolStatus | "MISSING";

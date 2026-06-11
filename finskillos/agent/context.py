@@ -11,8 +11,32 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from datetime import datetime, timezone
 
 from finskillos.config import get_settings
+
+_RISK_WEIGHT = {"RED": 0.6, "ORANGE": 0.4, "YELLOW": 0.2}
+_SENTIMENT_WEIGHT = {"NEGATIVE": 0.3, "MIXED": 0.2, "POSITIVE": 0.15}
+
+
+def _news_importance(article, impacts) -> float:
+    """Heuristic importance: classifier impact + risk + sentiment + recency.
+
+    yfinance holdings news often has impact_score 0 (no keyword rule), so risk /
+    sentiment (from signal inference) and recency carry most of the weight."""
+
+    published = getattr(article, "published_at", None)
+    recency = 0.0
+    if published is not None:
+        pub = published if published.tzinfo else published.replace(tzinfo=timezone.utc)
+        age_days = max(0, (datetime.now(tz=timezone.utc) - pub).days)
+        recency = max(0.0, 0.5 - 0.05 * age_days)
+    impact = max((float(i.impact_score) for i in impacts), default=0.0)
+    risk = max((_RISK_WEIGHT.get(i.risk_level, 0.0) for i in impacts), default=0.0)
+    sentiment = max(
+        (_SENTIMENT_WEIGHT.get(i.sentiment_label, 0.0) for i in impacts), default=0.0
+    )
+    return impact + risk + sentiment + recency
 
 __all__ = ["build_state_context", "build_query_context"]
 
@@ -178,14 +202,37 @@ def build_query_context(session, question: str) -> str:
             from finskillos.services.news_service import NewsService
 
             rows = NewsService(session).list_holdings_relevant_articles(
-                account_id=account.id, limit=5
+                account_id=account.id, limit=30
             )
             if rows:
-                items = "; ".join(
-                    f"{article.title} ({article.source}, {article.sentiment_label})"
-                    for article, _ in rows
+                ranked = sorted(
+                    rows, key=lambda r: _news_importance(r[0], r[1]), reverse=True
+                )[:5]
+                lines = []
+                for idx, (article, impacts) in enumerate(ranked, start=1):
+                    ticker = next(
+                        (i.ticker for i in impacts if i.ticker), "?"
+                    )
+                    risk = next(
+                        (i.risk_level for i in impacts if i.risk_level != "UNKNOWN"),
+                        "",
+                    )
+                    date = article.published_at.date().isoformat()
+                    tag = f", {risk}" if risk else ""
+                    lines.append(
+                        f"{idx}. [{ticker}] {article.title} "
+                        f"({article.source}, {date}{tag})"
+                    )
+                joined = " ".join(lines)
+                sections.append(
+                    "Holdings news, ranked by importance (top 5): "
+                    f"{joined} (descriptive — not a buy/sell signal)."
                 )
-                sections.append(f"Recent holdings-relevant news: {items}.")
+            else:
+                sections.append(
+                    "No holdings-relevant news is stored yet — it can be refreshed "
+                    "with the refresh_holdings_news protocol."
+                )
         except Exception:  # noqa: BLE001
             pass
 

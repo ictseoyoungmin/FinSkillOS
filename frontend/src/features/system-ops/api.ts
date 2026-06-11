@@ -25,6 +25,7 @@ const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
   run_risk_guards: "/system-ops/run-risk-guards",
   seed_sample_events: "/system-ops/seed-sample-events",
   refresh_events: "/system-ops/refresh-events",
+  refresh_holdings_news: "/system-ops/refresh-holdings-news",
 };
 
 /**
