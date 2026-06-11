@@ -7,9 +7,12 @@ not perform any mutation.
 
 from __future__ import annotations
 
+import json
+import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from api.agent_tools import tool_catalog
 from api.dependencies import get_session_scope
@@ -37,7 +40,11 @@ from api.schemas.agent import (
     WatchlistOpVM,
 )
 from finskillos.agent.chat import ChatMessage, run_chat
-from finskillos.agent.context import build_query_context, build_state_context
+from finskillos.agent.context import (
+    build_query_context,
+    build_state_context,
+    detected_query_sources,
+)
 from finskillos.agent.fx import usd_krw_rate
 from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
 from finskillos.brokerage.adapter import build_brokerage_adapter
@@ -638,6 +645,95 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
         ready=reply.ready,
         proposed_actions=actions,
         proposed_action=actions[0] if actions else None,
+    )
+
+
+@router.post(
+    "/agent/chat/stream",
+    summary="Agent chat with live working-step events (SSE). Same result as /chat.",
+)
+def agent_chat_stream(payload: ChatRequest) -> StreamingResponse:
+    """Server-Sent Events: emits ``step`` events as the agent reads state, queries
+    each relevant data source, and generates the reply, then a final ``reply``
+    event with the full ChatResponse. Descriptive-only; never writes to the DB."""
+
+    provider = build_provider(_active_provider_kind())
+    last_user = next(
+        (m.content for m in reversed(payload.messages) if m.role == "user"), ""
+    )
+
+    def _event(data: dict) -> str:
+        return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+    def generate():
+        t0 = time.monotonic()
+
+        def step(label: str, status_: str, *, key: str, tool: str | None = None) -> str:
+            data = {
+                "type": "step",
+                "key": key,
+                "label": label,
+                "status": status_,
+                "elapsedMs": int((time.monotonic() - t0) * 1000),
+            }
+            if tool:
+                data["tool"] = tool
+            return _event(data)
+
+        try:
+            with get_session_scope() as session:
+                yield step("포트폴리오 상태 확인", "running", key="portfolio")
+                context = build_state_context(session)
+                yield step("포트폴리오 상태 확인", "done", key="portfolio")
+
+                parts: list[str] = []
+                for key, label in detected_query_sources(last_user):
+                    yield step(label, "running", key=key, tool=key)
+                    section = build_query_context(session, last_user, only=key)
+                    if section:
+                        parts.append(section)
+                    yield step(label, "done", key=key, tool=key)
+
+                query_context = "\n\n".join(parts)
+                if query_context:
+                    context = (
+                        f"{context}\n\n{query_context}" if context else query_context
+                    )
+                    yield step("컨텍스트 조합", "done", key="compose")
+
+                def fetch_more(targets: list[str]) -> str:
+                    return build_query_context(session, " ".join(targets))
+
+                yield step("응답 생성", "running", key="generate")
+                reply = run_chat(
+                    [
+                        ChatMessage(
+                            role=m.role, content=m.content, images=tuple(m.images)
+                        )
+                        for m in payload.messages
+                    ],
+                    provider=provider,
+                    context=context,
+                    fetch_more=fetch_more,
+                )
+                yield step("응답 생성", "done", key="generate")
+
+            actions = [_to_action_vm(a) for a in reply.proposed_actions]
+            response = ChatResponse(
+                reply=reply.reply,
+                provider=reply.provider,
+                ready=reply.ready,
+                proposed_actions=actions,
+                proposed_action=actions[0] if actions else None,
+            )
+            yield _event({"type": "reply", **response.model_dump(by_alias=True)})
+        except Exception as exc:  # noqa: BLE001 - stream a clean error, never 500
+            yield _event({"type": "error", "message": type(exc).__name__})
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 

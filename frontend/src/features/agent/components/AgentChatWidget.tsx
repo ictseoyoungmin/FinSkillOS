@@ -32,6 +32,7 @@ const PROTOCOL_REFRESH: Record<string, string[]> = {
 import {
   fetchAgentProviders,
   sendAgentChat,
+  streamAgentChat,
   switchAgentProvider,
   syncTossHoldings,
 } from "../api";
@@ -39,6 +40,7 @@ import type {
   AgentProvidersResponse,
   LLMProviderKind,
   ProposedActionVM,
+  WorkStep,
 } from "../types";
 import "./agent-chat-widget.css";
 
@@ -139,6 +141,7 @@ export function AgentChatWidget() {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [busy, setBusy] = useState(false);
+  const [steps, setSteps] = useState<WorkStep[]>([]);
   const [dragHover, setDragHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [preview, setPreview] = useState<Record<string, string>>({});
@@ -283,8 +286,8 @@ export function AgentChatWidget() {
       .map((t) => ({ role: t.role, content: t.content, images: t.images ?? [] }));
     setTurns((prev) => [...prev, userTurn]);
     setBusy(true);
-    try {
-      const result = await sendAgentChat(history);
+    setSteps([]);
+    const appendReply = (result: { reply: string; proposedActions: ProposedActionVM[] }) =>
       setTurns((prev) => [
         ...prev,
         {
@@ -294,12 +297,41 @@ export function AgentChatWidget() {
           actions: result.proposedActions,
         },
       ]);
+    try {
+      let replied = false;
+      await streamAgentChat(history, {
+        onStep: (step) =>
+          setSteps((prev) => {
+            const next = prev.filter((s) => s.key !== step.key);
+            return [...next, step];
+          }),
+        onReply: (result) => {
+          replied = true;
+          appendReply(result);
+        },
+        onError: () => {
+          replied = true;
+          setTurns((prev) => [
+            ...prev,
+            { role: "assistant", content: "The agent hit an error.", time: now() },
+          ]);
+        },
+      });
+      if (!replied) {
+        // Stream ended without a reply event → fall back to the plain request.
+        appendReply(await sendAgentChat(history));
+      }
     } catch {
-      setTurns((prev) => [
-        ...prev,
-        { role: "assistant", content: "The agent is unreachable right now.", time: now() },
-      ]);
+      try {
+        appendReply(await sendAgentChat(history)); // fall back to non-streaming
+      } catch {
+        setTurns((prev) => [
+          ...prev,
+          { role: "assistant", content: "The agent is unreachable right now.", time: now() },
+        ]);
+      }
     } finally {
+      setSteps([]);
       setBusy(false);
     }
   };
@@ -712,7 +744,28 @@ export function AgentChatWidget() {
               </div>
             </div>
           ))}
-          {busy ? (
+          {busy && steps.length > 0 ? (
+            <div className="fso-chat-steps" data-testid="chat-work-steps">
+              {steps.map((step) => (
+                <div
+                  key={step.key}
+                  className="fso-chat-step"
+                  data-status={step.status}
+                >
+                  <span className="fso-chat-step-icon">
+                    {step.status === "done" ? "✓" : "◍"}
+                  </span>
+                  {step.tool ? (
+                    <span className="fso-chat-step-tool">{step.tool}</span>
+                  ) : null}
+                  <span className="fso-chat-step-label">{step.label}</span>
+                  <span className="fso-chat-step-time">
+                    {(step.elapsedMs / 1000).toFixed(1)}s
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : busy ? (
             <div className="fso-chat-typing">
               <span />
               <span />

@@ -73,6 +73,15 @@ export interface BrokerageSyncResponse {
   boundary: string;
 }
 
+export interface WorkStep {
+  type: "step";
+  key: string;
+  label: string;
+  status: "running" | "done";
+  elapsedMs: number;
+  tool?: string;
+}
+
 export interface TossStock {
   symbol: string;
   name: string | null;

@@ -167,10 +167,30 @@ _SYMBOL_STOP = {
 }
 
 
-def build_query_context(session, question: str) -> str:
+def detected_query_sources(question: str) -> list[tuple[str, str]]:
+    """Which query sources a question will hit → [(key, human label)] for the
+    streaming step display. Mirrors the intent gates in build_query_context."""
+
+    q = question or ""
+    out: list[tuple[str, str]] = []
+    if _EVENT_Q.search(q):
+        out.append(("events", "카탈리스트 이벤트 조회"))
+    if _NEWS_Q.search(q):
+        out.append(("news", "보유종목 뉴스 조회"))
+    if _TRADE_Q.search(q):
+        out.append(("trades", "거래 기록 조회"))
+    if re.search(r"\b[A-Z]{2,6}\b", q):
+        out.append(("symbol", "종목 데이터 분석"))
+    return out
+
+
+def build_query_context(session, question: str, *, only: str | None = None) -> str:
     """Question-aware read: fetch the specific read models the question is about
     (events / news / recent trades) and return a descriptive block for this turn.
-    Empty when the question matches none or nothing is stored. Read-only."""
+    Empty when the question matches none or nothing is stored. Read-only.
+
+    ``only`` (events / news / trades / symbol) restricts to a single source so the
+    streaming endpoint can fetch + time each source as its own step."""
 
     if session is None or not (question or "").strip():
         return ""
@@ -182,7 +202,7 @@ def build_query_context(session, question: str) -> str:
 
     sections: list[str] = []
 
-    if _EVENT_Q.search(question):
+    if only in (None, "events") and _EVENT_Q.search(question):
         try:
             from datetime import date
 
@@ -197,7 +217,7 @@ def build_query_context(session, question: str) -> str:
         except Exception:  # noqa: BLE001
             pass
 
-    if _NEWS_Q.search(question) and account is not None:
+    if only in (None, "news") and _NEWS_Q.search(question) and account is not None:
         try:
             from finskillos.services.news_service import NewsService
 
@@ -236,7 +256,7 @@ def build_query_context(session, question: str) -> str:
         except Exception:  # noqa: BLE001
             pass
 
-    if _TRADE_Q.search(question) and account is not None:
+    if only in (None, "trades") and _TRADE_Q.search(question) and account is not None:
         try:
             from finskillos.db.repositories import TradeRepository
 
@@ -257,11 +277,15 @@ def build_query_context(session, question: str) -> str:
         from finskillos.data_sources.dto import DEFAULT_TIMEFRAME
         from finskillos.db.repositories import IndicatorRepository, MarketRepository
 
-        candidates = [
-            t
-            for t in dict.fromkeys(re.findall(r"\b[A-Z]{2,6}\b", question))
-            if t not in _SYMBOL_STOP
-        ]
+        candidates = (
+            []
+            if only not in (None, "symbol")
+            else [
+                t
+                for t in dict.fromkeys(re.findall(r"\b[A-Z]{2,6}\b", question))
+                if t not in _SYMBOL_STOP
+            ]
+        )
         if candidates:
             indicators = IndicatorRepository(session)
             market = MarketRepository(session)
