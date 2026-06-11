@@ -73,6 +73,12 @@ services:
       FINSKILLOS_LOCAL_LLM_BASE_URL: ${FINSKILLOS_LOCAL_LLM_BASE_URL:-http://host.docker.internal:18080}
       FINSKILLOS_LOCAL_LLM_MODEL: ${FINSKILLOS_LOCAL_LLM_MODEL:-local-llama}
       FINSKILLOS_GEMINI_API_KEY: ${FINSKILLOS_GEMINI_API_KEY:-}
+      # v4: USD→KRW FX + Toss Securities Open API (read-only; no buy/sell).
+      FINSKILLOS_USD_KRW_RATE: ${FINSKILLOS_USD_KRW_RATE:-}
+      FINSKILLOS_TOSS_CLIENT_ID: ${FINSKILLOS_TOSS_CLIENT_ID:-}
+      FINSKILLOS_TOSS_CLIENT_SECRET: ${FINSKILLOS_TOSS_CLIENT_SECRET:-}
+      FINSKILLOS_TOSS_ACCOUNT_SEQ: ${FINSKILLOS_TOSS_ACCOUNT_SEQ:-}
+      FINSKILLOS_TOSS_BASE_URL: ${FINSKILLOS_TOSS_BASE_URL:-https://openapi.tossinvest.com}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
