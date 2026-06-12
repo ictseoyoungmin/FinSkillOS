@@ -19,10 +19,12 @@ from finskillos.db.base import Base
 from finskillos.db.repositories import (
     AccountRepository,
     AlertRepository,
+    MarketRegimeRepository,
     PositionRepository,
     SymbolLogoRepository,
     SymbolSubscriptionRepository,
 )
+from finskillos.regime import RegimeOutput
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
 
@@ -246,6 +248,59 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         assert body["position"] is None
         assert body["news"] == []
         assert body["generatedAt"] != FIXTURE_TIMESTAMP
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_symbol_lab_live_overlays_stored_regime_not_fixture(monkeypatch, tmp_path) -> None:
+    """Live mode shows the stored market regime (and STALE freshness when older than
+    the latest bars), not the fixture's sample regime."""
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        MarketDataService(
+            session, adapter=MockMarketDataAdapter(default_bars=30), universe=["SPY"]
+        ).refresh_bars(["SPY"])
+        SignalService(session).compute_for_universe(["SPY"])
+        # Regime snapshot deliberately older than the freshly stored bars → STALE.
+        MarketRegimeRepository(session).record(
+            snapshot_time=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            output=RegimeOutput(
+                regime="RISK_ON_OVERHEAT",
+                confidence=Decimal("80"),
+                decision_mode="HOLD_WINNERS",
+                risk_level="YELLOW",
+                summary="live regime",
+                what_happened="leadership held",
+                what_it_means="tape supportive",
+                watch_next=("watch rotation",),
+                evidence={"qqq_rsi_14": Decimal("74")},
+                positive_factors=("trend strong",),
+                risk_factors=("RSI overheat",),
+            ),
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+    try:
+        body = _client().get("/api/symbol-lab?ticker=SPY").json()
+        assert body["source"] == "live"
+        regime = body["regime"]
+        assert regime is not None
+        assert regime["regime"] == "RISK_ON_OVERHEAT"
+        assert regime["summary"] == "live regime"  # not the fixture copy
+        assert regime["snapshotTime"].startswith("2020-01-01")
+        assert regime["freshness"] == "STALE"  # bars are newer than the snapshot
+        assert "High confidence" in regime["confidenceRationale"]
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

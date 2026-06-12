@@ -20,6 +20,7 @@ from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture
 from api.fixtures import symbol_lab_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.fixtures.symbol_lab import symbol_identity
+from api.schemas.analysis_workspace import RegimeContext
 from api.schemas.common import SystemStatus
 from api.schemas.market_kernel import IndicatorSnapshot
 from api.schemas.symbol_lab import (
@@ -375,6 +376,10 @@ def _live_response(
     payload.position = _position_context(position, positions)
     payload.alerts = symbol_alerts
     payload.news = []
+    # Overlay the live market regime (the fixture base ships a sample regime that
+    # would otherwise leak into live mode as a stale snapshot). None when the DB
+    # has no regime row → the panel shows its honest empty state.
+    payload.regime = _live_regime_context(session, bars)
 
     if not bars:
         payload.judgment = judgment(
@@ -674,6 +679,62 @@ def _symbol_alerts(ticker: str, alerts: list) -> list[SymbolAlert]:
             )
         )
     return result
+
+
+def _live_regime_context(session, bars: list) -> RegimeContext | None:
+    """Build the Symbol Lab regime card from the latest stored market regime.
+
+    Market-wide (the same regime the Control Room reads). ``freshness`` is STALE
+    when newer price bars exist than the regime was computed from. Returns None
+    when no regime row is stored so the panel renders its empty state rather than
+    leaking the fixture's sample regime."""
+
+    from finskillos.ui.view_models.control_room_vm import _build_regime_summary
+
+    summary = _build_regime_summary(session)
+    if summary is None:
+        return None
+    snapshot = summary.snapshot_time
+    latest_bar_time = _as_utc(bars[-1].bar_time) if bars else None
+    if snapshot is None or latest_bar_time is None:
+        freshness = "UNKNOWN"
+    else:
+        freshness = "STALE" if latest_bar_time > _as_utc(snapshot) else "FRESH"
+    return RegimeContext(
+        regime=summary.regime,
+        confidence=summary.confidence,
+        decision_mode=summary.decision_mode,
+        risk_level=summary.risk_level,
+        summary=summary.summary,
+        what_happened=summary.what_happened,
+        what_it_means=summary.what_it_means,
+        positive_factors=list(summary.positive_factors),
+        risk_factors=list(summary.risk_factors),
+        watch_next=list(summary.watch_next),
+        snapshot_time=snapshot.isoformat() if snapshot else None,
+        freshness=freshness,
+        attribution=[],
+        confidence_rationale=_regime_confidence_rationale(summary),
+    )
+
+
+def _regime_confidence_rationale(summary) -> str:
+    """One descriptive line on the confidence band + supporting/opposing counts.
+    Mirrors the Analysis Workspace rationale; derived only from stored values."""
+
+    confidence = summary.confidence
+    supporting = len(summary.positive_factors)
+    opposing = len(summary.risk_factors)
+    if confidence >= 70:
+        band = "High confidence"
+    elif confidence >= 40:
+        band = "Moderate confidence"
+    else:
+        band = "Low confidence"
+    return (
+        f"{band} ({int(confidence)}/100) — {supporting} supporting vs {opposing} "
+        "opposing factor(s) in the stored rule rationale."
+    )
 
 
 def _fallback_indicators_from_bars(
