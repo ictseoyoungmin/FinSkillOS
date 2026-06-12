@@ -148,6 +148,7 @@ class TradeTickerSummaryResponse(CamelModel):
 
     available: bool
     ticker: str
+    currency: str | None = None
     trade_count: int = 0
     buy_count: int = 0
     sell_count: int = 0
@@ -179,10 +180,30 @@ class TradeTickerSummaryResponse(CamelModel):
     note: str = ""
 
 
+class TradeCurrencyStatsVM(CamelModel):
+    """Closed-trade stats for one native currency (exact — never mixed)."""
+
+    closed_count: int = 0
+    wins: int = 0
+    losses: int = 0
+    win_rate: float | None = None
+    realized_pnl: str | None = None
+    profit_factor: str | None = None
+    expectancy: str | None = None
+    avg_win: str | None = None
+    avg_loss: str | None = None
+    avg_win_holding_days: float | None = None
+    avg_loss_holding_days: float | None = None
+    best_trade: str | None = None
+    worst_trade: str | None = None
+
+
 class TradeStatsResponse(CamelModel):
     """Account-wide closed-trade stats — win rate, expectancy, profit factor, etc.
-    Absolute amounts KRW (approximate for older USD trades); ratios are exact.
-    Read-only."""
+    Currency-invariant fields (counts, win rate, holding) span all trades; realized
+    amounts are broken out per native currency in ``by_currency`` (exact). The
+    top-level realized figures sum across currencies and are exact only for a
+    single-currency account — prefer ``by_currency`` for amounts. Read-only."""
 
     available: bool
     closed_count: int = 0
@@ -200,6 +221,7 @@ class TradeStatsResponse(CamelModel):
     avg_loss_holding_days: float | None = None
     best_trade: str | None = None
     worst_trade: str | None = None
+    by_currency: dict[str, TradeCurrencyStatsVM] = Field(default_factory=dict)
     note: str = ""
 
 
@@ -222,6 +244,7 @@ class TradeWeekdayResponse(CamelModel):
 
 class TradePerformanceVM(CamelModel):
     ticker: str
+    currency: str | None = None
     realized_pnl: str
     closed_count: int
     wins: int

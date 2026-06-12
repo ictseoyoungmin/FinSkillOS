@@ -195,6 +195,22 @@ export interface WeeklyEvidenceReport {
 }
 
 // v4 — trade analytics (agent endpoints)
+export interface TradeCurrencyStats {
+  closedCount: number;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  realizedPnl: string | null;
+  profitFactor: string | null;
+  expectancy: string | null;
+  avgWin: string | null;
+  avgLoss: string | null;
+  avgWinHoldingDays: number | null;
+  avgLossHoldingDays: number | null;
+  bestTrade: string | null;
+  worstTrade: string | null;
+}
+
 export interface TradeStats {
   available: boolean;
   closedCount: number;
@@ -212,11 +228,13 @@ export interface TradeStats {
   avgLossHoldingDays: number | null;
   bestTrade: string | null;
   worstTrade: string | null;
+  byCurrency: Record<string, TradeCurrencyStats>;
   note: string;
 }
 
 export interface TradePerformanceRow {
   ticker: string;
+  currency: string | null;
   realizedPnl: string;
   closedCount: number;
   wins: number;

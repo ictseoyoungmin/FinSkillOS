@@ -118,13 +118,36 @@ def _to_krw(value, currency, rate) -> Decimal | None:
     return amount
 
 
-def sync_toss_trades(session, *, adapter: BrokerageReadAdapter | None = None) -> dict:
+def _dec(value) -> Decimal | None:
+    """Parse a decimal without any FX conversion (native units)."""
+
+    if value in (None, ""):
+        return None
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def sync_toss_trades(
+    session,
+    *,
+    adapter: BrokerageReadAdapter | None = None,
+    replace: bool = False,
+) -> dict:
     """Import executed Toss orders (CLOSED) into the trade journal, idempotently.
 
     Each order is keyed by ``event_key="toss:{orderId}"`` so re-runs add only new
-    fills. USD trades convert to KRW. Returns a summary; ``SKIPPED`` when Toss is
-    unconfigured, ``PENDING_TOSS`` when Toss has not yet enabled CLOSED queries
-    (the live ``closed-not-supported`` gate).
+    fills. ``price`` is stored in the trade's **native** currency (USD for US
+    tickers, KRW for KR) alongside a ``currency`` marker so realized P&L can be
+    summed exactly per currency; ``amount`` stays KRW for the journal's cashflow
+    views. Returns a summary; ``SKIPPED`` when Toss is unconfigured,
+    ``PENDING_TOSS`` when Toss has not yet enabled CLOSED queries (the live
+    ``closed-not-supported`` gate).
+
+    ``replace=True`` deletes the existing Toss-imported trades first (in the same
+    transaction, so a failure rolls back with no loss) and re-imports them — used
+    once to backfill native price + currency onto the legacy KRW-converted rows.
     """
 
     adapter = adapter or build_brokerage_adapter("toss")
@@ -142,11 +165,20 @@ def sync_toss_trades(session, *, adapter: BrokerageReadAdapter | None = None) ->
 
     account = _resolve_or_create_account(session)
     repo = TradeRepository(session)
-    existing = {
-        t.event_key
+    toss_trades = [
+        t
         for t in repo.list_for_account(account.id)
         if t.event_key and t.event_key.startswith("toss:")
-    }
+    ]
+    removed = 0
+    if replace:
+        for trade in toss_trades:
+            session.delete(trade)
+        removed = len(toss_trades)
+        session.flush()
+        existing: set = set()
+    else:
+        existing = {t.event_key for t in toss_trades}
     rate = (
         usd_krw_rate()
         if any(str(r.get("currency", "")).upper() == "USD" for r in records)
@@ -171,15 +203,18 @@ def sync_toss_trades(session, *, adapter: BrokerageReadAdapter | None = None) ->
         except ValueError:
             skipped += 1
             continue
-        currency = record.get("currency")
+        currency = str(record.get("currency") or "").upper() or None
         service.create_entry(
             TradeJournalInput(
                 trade_date=trade_date,
                 ticker=str(record.get("ticker") or ""),
                 side=str(record.get("side") or "BUY"),
-                quantity=_to_krw(record.get("quantity"), "KRW", None),
-                price=_to_krw(record.get("price"), currency, rate),
+                quantity=_dec(record.get("quantity")),
+                # native price (no FX) + currency marker → exact per-currency P&L;
+                # amount/fees stay KRW for the journal's cashflow views.
+                price=_dec(record.get("price")),
                 amount=_to_krw(record.get("amount"), currency, rate),
+                currency=currency,
                 fees=_to_krw(record.get("fees"), currency, rate),
                 notes=f"Imported from Toss ({record.get('order_type')} "
                 f"{record.get('status')}).",
@@ -188,4 +223,4 @@ def sync_toss_trades(session, *, adapter: BrokerageReadAdapter | None = None) ->
         )
         added += 1
     session.commit()
-    return {"status": "APPLIED", "added": added, "skipped": skipped}
+    return {"status": "APPLIED", "added": added, "skipped": skipped, "removed": removed}

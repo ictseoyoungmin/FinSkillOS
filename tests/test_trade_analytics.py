@@ -238,3 +238,34 @@ def test_overall_stats_and_per_ticker_metrics() -> None:
 def test_trade_stats_tool_registered() -> None:
     names = {t["name"] for t in TestClient(create_app()).get("/api/agent/tools").json()["tools"]}
     assert "read.trade_stats" in names
+
+
+def test_ticker_summary_exposes_currency() -> None:
+    session = _session()
+    account = _seed(session)
+    # NVDA has no stored currency → inferred USD (not a 6-digit KR symbol).
+    assert summarize_ticker_trades(session, account.id, "NVDA")["currency"] == "USD"
+
+
+def test_overall_stats_breaks_down_by_currency() -> None:
+    from finskillos.services.trade_analytics_service import summarize_overall_stats
+
+    session = _session()
+    account = AccountRepository(session).create(name="M4", target_value=Decimal("1"))
+    svc = TradeJournalService(session)
+    # One USD ticker (+30) and one KR 6-digit ticker (+1000) → never mixed.
+    seq = [
+        ("NVDA", "BUY", "100", "USD"), ("NVDA", "SELL", "130", "USD"),
+        ("005930", "BUY", "1000", "KRW"), ("005930", "SELL", "2000", "KRW"),
+    ]
+    for tk, side, p, cur in seq:
+        d = date(2026, 6, 1) if side == "BUY" else date(2026, 6, 5)
+        svc.create_entry(TradeJournalInput(
+            trade_date=d, ticker=tk, side=side, currency=cur,
+            quantity=Decimal("1"), price=Decimal(p), amount=Decimal(p)))
+    session.commit()
+    st = summarize_overall_stats(session, account.id)
+    by_cur = st["by_currency"]
+    assert Decimal(by_cur["USD"]["realized_pnl"]) == Decimal("30")
+    assert Decimal(by_cur["KRW"]["realized_pnl"]) == Decimal("1000")
+    assert by_cur["USD"]["closed_count"] == 1 and by_cur["KRW"]["closed_count"] == 1

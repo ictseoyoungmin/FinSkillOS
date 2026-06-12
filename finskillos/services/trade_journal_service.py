@@ -90,6 +90,7 @@ class TradeJournalInput:
     amount: Decimal | None = None
     quantity: Decimal | None = None
     price: Decimal | None = None
+    currency: str | None = None
     fees: Decimal | None = None
     reason: str | None = None
     thesis: str | None = None
@@ -162,6 +163,7 @@ class TradeJournalService:
             quantity=entry.quantity or Decimal("0"),
             price=entry.price or Decimal("0"),
             amount=entry.amount or Decimal("0"),
+            currency=entry.currency,
             strategy_type=entry.strategy_type or "swing",
             fees=entry.fees,
             reason=entry.reason,

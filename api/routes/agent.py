@@ -305,10 +305,14 @@ def agent_sync_holdings_apply() -> BrokerageSyncResponse:
     response_model=TradeSyncResponse,
     summary="Import executed Toss orders into the trade journal (read; no confirm).",
 )
-def agent_sync_trades_apply() -> TradeSyncResponse:
+def agent_sync_trades_apply(replace: bool = False) -> TradeSyncResponse:
     """Import executed Toss orders (CLOSED) into the trade journal, idempotently.
     Read-only on the broker; no order placement. Reports PENDING_TOSS while Toss
-    has not yet enabled executed-order queries."""
+    has not yet enabled executed-order queries.
+
+    ``replace=true`` re-imports all Toss trades (deletes + re-adds atomically) to
+    backfill native price + currency onto legacy KRW-converted rows — a one-time
+    migration aid; the default leaves existing rows untouched."""
 
     with get_session_scope() as session:
         if session is None:
@@ -316,7 +320,7 @@ def agent_sync_trades_apply() -> TradeSyncResponse:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="db_unavailable"
             )
         try:
-            result = sync_toss_trades(session)
+            result = sync_toss_trades(session, replace=replace)
         except Exception as exc:  # noqa: BLE001 - never 500 the sync
             return TradeSyncResponse(
                 status="ERROR",
@@ -331,11 +335,15 @@ def agent_sync_trades_apply() -> TradeSyncResponse:
             note="Toss has not enabled executed-order history yet — no trades synced.",
         )
     added = int(result.get("added", 0))
+    removed = int(result.get("removed", 0))
+    note = f"Imported {added} executed trade(s) from Toss."
+    if removed:
+        note = f"Re-imported {added} Toss trade(s) (replaced {removed})."
     return TradeSyncResponse(
         status="APPLIED",
         added=added,
         skipped=int(result.get("skipped", 0)),
-        note=f"Imported {added} executed trade(s) from Toss.",
+        note=note,
     )
 
 

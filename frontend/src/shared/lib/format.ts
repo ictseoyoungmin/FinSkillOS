@@ -32,6 +32,34 @@ export function formatKrw(value: Numeric | null | undefined): string {
   return krw.format(n);
 }
 
+// Currency-aware money formatter — USD/KRW trade amounts are kept in their native
+// currency so they are never silently mixed. Unknown / null currency → KRW.
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
+
+export function formatMoney(
+  value: Numeric | null | undefined,
+  currency: string | null | undefined,
+): string {
+  if (value === null || value === undefined) return "—";
+  const n = toNumber(value);
+  if (!Number.isFinite(n)) return "—";
+  const code = (currency ?? "KRW").toUpperCase();
+  let fmt = moneyFormatters.get(code);
+  if (!fmt) {
+    try {
+      fmt = new Intl.NumberFormat(code === "KRW" ? "ko-KR" : "en-US", {
+        style: "currency",
+        currency: code,
+        maximumFractionDigits: code === "KRW" ? 0 : 2,
+      });
+    } catch {
+      fmt = krw;
+    }
+    moneyFormatters.set(code, fmt);
+  }
+  return fmt.format(n);
+}
+
 export function formatPct(
   value: Numeric | null | undefined,
   fraction = 1,

@@ -76,8 +76,12 @@ class Trade(Base):
         String(80), default="swing", server_default="swing", nullable=False
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    # ``price`` is the trade's *native* per-share price (USD for US tickers, KRW
+    # for KR); ``amount`` stays KRW for the journal's cashflow views. ``currency``
+    # records the native unit so realized P&L can be summed exactly per currency.
     price: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    currency: Mapped[str | None] = mapped_column(String(8))
     fees: Mapped[Decimal | None] = mapped_column(Numeric(18, 2))
     reason: Mapped[str | None] = mapped_column(Text)
     thesis: Mapped[str | None] = mapped_column(Text)

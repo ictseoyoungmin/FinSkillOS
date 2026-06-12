@@ -1,12 +1,15 @@
 """Trade analytics — per-ticker + daily aggregates over the journal — v4.
 
 Descriptive summaries over the stored trades (now populated from real Toss
-executed-order history). Amounts are KRW (the sync converts USD trades). Read-only.
+executed-order history). ``price`` is the trade's **native** currency (USD for US
+tickers, KRW for KR), so per-ticker realized P&L is exact in that currency and the
+account-wide stats break realized down per currency. The KRW ``amount`` column
+still feeds the cross-ticker cashflow (daily) views. Read-only.
 """
 
 from __future__ import annotations
 
-from collections import deque, namedtuple
+from collections import defaultdict, deque, namedtuple
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -36,6 +39,20 @@ def _sign(x) -> int:
     return (x > 0) - (x < 0)
 
 
+def _ticker_currency(trades) -> str:
+    """Native currency of a (single-ticker) trade list.
+
+    Uses the stored ``currency`` once a Toss re-sync has backfilled it; legacy
+    rows fall back to a shape heuristic (KR 6-digit numeric → KRW, else USD)."""
+
+    for trade in trades:
+        cur = getattr(trade, "currency", None)
+        if cur:
+            return str(cur).upper()
+    sym = (trades[0].ticker or "").strip().upper() if trades else ""
+    return "KRW" if (sym.isdigit() and len(sym) == 6) else "USD"
+
+
 def _streaks(realized_seq) -> dict:
     """Max win/loss streak + current signed streak over ordered closes."""
 
@@ -63,7 +80,8 @@ def _fifo_realized(trades) -> dict:
     Each trade is a signed delta (BUY +qty, SELL −qty). A delta opposite to the
     front lot closes it FIFO (long lot closed by a sell, short lot closed by a
     buy); a same-direction delta opens/extends a lot. Realized per close, holding
-    days (entry→exit), win/loss, and streaks. Amounts/prices KRW.
+    days (entry→exit), win/loss, and streaks. Prices/realized are in the trade's
+    native currency (a single ticker is one currency).
     """
 
     lots: deque[list] = deque()  # [signed_qty, price, entry_date]
@@ -119,8 +137,10 @@ def _fifo_realized(trades) -> dict:
 def _close_stats(events) -> dict:
     """Expectancy / profit factor / avg win-loss / win-vs-loss holding from closes.
 
-    Absolute amounts are KRW (approximate for older USD trades); ratios (profit
-    factor, win rate) and holding days are currency-invariant / exact."""
+    Absolute amounts are in the closes' native currency (exact within one ticker /
+    one currency); ratios (profit factor, win rate) and holding days are
+    currency-invariant. Mixing currencies in one call makes the amounts indicative
+    only — callers split by currency where that matters."""
 
     realized = [e.realized for e in events]
     wins = [r for r in realized if r > 0]
@@ -149,16 +169,42 @@ def _close_stats(events) -> dict:
     }
 
 
+def _currency_stats(events) -> dict:
+    """Realized totals + close stats for a single-currency event list."""
+
+    wins = sum(1 for e in events if e.realized > 0)
+    losses = sum(1 for e in events if e.realized < 0)
+    decided = wins + losses
+    return {
+        "closed_count": len(events),
+        "wins": wins,
+        "losses": losses,
+        "win_rate": round(wins / decided, 4) if decided else None,
+        "realized_pnl": str(sum((e.realized for e in events), Decimal("0"))),
+        **_close_stats(events),
+    }
+
+
 def summarize_overall_stats(session, account_id) -> dict:
     """Account-wide closed-trade stats: win rate, expectancy, profit factor, etc.
 
-    Positions are FIFO-matched per ticker, then all closes are aggregated."""
+    Positions are FIFO-matched per ticker, then closes are aggregated. Currency-
+    invariant fields (counts, win rate, holding days, streaks) span all trades;
+    realized P&L / expectancy / profit factor are also broken out per native
+    currency in ``by_currency`` so USD and KRW amounts are never mixed. The
+    top-level realized figures sum across currencies and are only exact when the
+    account is single-currency — prefer ``by_currency`` for amounts."""
 
     repo = TradeRepository(session)
     tickers = {t.ticker for t in repo.list_for_account(account_id)}
     events: list = []
+    by_cur: dict[str, list] = defaultdict(list)
     for ticker in tickers:
-        events.extend(_fifo_realized(repo.list_by_ticker(account_id, ticker))["events"])
+        trades = repo.list_by_ticker(account_id, ticker)
+        evs = _fifo_realized(trades)["events"]
+        events.extend(evs)
+        if evs:
+            by_cur[_ticker_currency(trades)].extend(evs)
     if not events:
         return {"closed_count": 0}
     wins = sum(1 for e in events if e.realized > 0)
@@ -173,6 +219,7 @@ def summarize_overall_stats(session, account_id) -> dict:
         "win_rate": round(wins / decided, 4) if decided else None,
         "realized_pnl": str(sum((e.realized for e in events), Decimal("0"))),
         "avg_holding_days": round(sum(holds) / len(holds), 1) if holds else None,
+        "by_currency": {cur: _currency_stats(evs) for cur, evs in by_cur.items()},
     }
     stats.update(_close_stats(events))
     return stats
@@ -180,6 +227,14 @@ def summarize_overall_stats(session, account_id) -> dict:
 
 def _sum(values) -> Decimal:
     return sum((v or Decimal("0") for v in values), Decimal("0"))
+
+
+def _notional(trades) -> Decimal:
+    """Native trade value (Σ price×qty) — a single ticker is one currency."""
+
+    return _sum(
+        (t.price or Decimal("0")) * (t.quantity or Decimal("0")) for t in trades
+    ).quantize(Decimal("0.01"))
 
 
 def _wavg_price(trades) -> Decimal | None:
@@ -199,13 +254,15 @@ def summarize_ticker_trades(session, account_id, ticker: str) -> dict:
         return {"ticker": symbol, "trade_count": 0}
     buys = [t for t in trades if t.side in _BUY]
     sells = [t for t in trades if t.side in _SELL]
-    buy_amt, sell_amt = _sum(t.amount for t in buys), _sum(t.amount for t in sells)
+    # Native (price×qty) so amounts share the realized P&L's currency.
+    buy_amt, sell_amt = _notional(buys), _notional(sells)
     fifo = _fifo_realized(trades)
     win_rate = fifo["win_rate"]
     stats = _close_stats(fifo["events"])
     return {
         **stats,
         "ticker": symbol,
+        "currency": _ticker_currency(trades),
         "trade_count": len(trades),
         "buy_count": len(buys),
         "sell_count": len(sells),
@@ -282,12 +339,14 @@ def summarize_ticker_performance(session, account_id, *, top: int = 25) -> list[
     tickers = {t.ticker for t in repo.list_for_account(account_id)}
     rows = []
     for ticker in tickers:
-        fifo = _fifo_realized(repo.list_by_ticker(account_id, ticker))
+        trades = repo.list_by_ticker(account_id, ticker)
+        fifo = _fifo_realized(trades)
         if fifo["closed_count"] == 0:
             continue
         wr = fifo["win_rate"]
         rows.append({
             "ticker": ticker,
+            "currency": _ticker_currency(trades),
             "realized_pnl": str(fifo["realized_pnl"]),
             "closed_count": fifo["closed_count"],
             "wins": fifo["wins"],
@@ -346,10 +405,12 @@ def summarize_ticker_excursion(
       long  → MFE=(maxHigh−entry)/entry, MAE=(minLow−entry)/entry
       short → MFE=(entry−minLow)/entry,  MAE=(entry−maxHigh)/entry
 
-    Entry prices are stored in KRW (the trade sync converts USD), so US-ticker
-    candles (native USD) are scaled to KRW by ``fx_rate`` to keep the comparison
-    consistent. ``bar_fetcher(ticker, start)`` is injectable (default Toss candles);
-    held tickers often lack stored bars, so this fetches fresh. Read-only.
+    Entry prices are stored in the trade's native currency, which already matches
+    the candle currency (USD candles for US tickers, KRW for KR), so no FX scaling
+    is needed and the MFE/MAE ratios are currency-invariant. ``fx_rate`` is kept as
+    an optional override (default 1). ``bar_fetcher(ticker, start)`` is injectable
+    (default Toss candles); held tickers often lack stored bars, so this fetches
+    fresh. Read-only.
     """
 
     trades = TradeRepository(session).list_by_ticker(account_id, ticker)
@@ -364,16 +425,9 @@ def summarize_ticker_excursion(
         def bar_fetcher(sym, start):
             return TossMarketDataAdapter().fetch_bars(sym, timeframe="1d", start=start)
 
-    # KR 6-digit symbols are KRW (no FX); US symbols' candles are USD → scale to KRW.
-    is_kr = symbol.isdigit() and len(symbol) == 6
-    if is_kr:
-        rate = Decimal("1")
-    elif fx_rate is not None:
-        rate = Decimal(str(fx_rate))
-    else:
-        from finskillos.agent.fx import usd_krw_rate
-
-        rate = usd_krw_rate()
+    # Native entry price matches native candles → no FX scaling (rate 1 by
+    # default; ``fx_rate`` is an explicit override for tests / mismatched feeds).
+    rate = Decimal(str(fx_rate)) if fx_rate is not None else Decimal("1")
 
     start = min(e.entry_date for e in events)
     try:

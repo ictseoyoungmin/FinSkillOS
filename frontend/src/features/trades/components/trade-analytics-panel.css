@@ -28,6 +28,14 @@
   color: var(--fso-amber, #f5a524);
   margin: 2px 0 8px;
 }
+.fso-ta-cur { margin: 4px 0 8px; }
+.fso-ta-cur > h4 {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fso-text-dim, #8a93a6);
+  margin: 0 0 4px;
+}
 .fso-ta-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
