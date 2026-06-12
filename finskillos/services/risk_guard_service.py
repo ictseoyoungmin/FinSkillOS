@@ -210,11 +210,13 @@ class RiskGuardService:
 
     def _persist_alerts(self, report: RiskGuardReport) -> None:
         alert_date = report.generated_at.date()
+        firing: set[str] = set()
         for result in report.results:
             if result.status not in {STATUS_WARN, STATUS_FAIL, STATUS_BLOCKED}:
                 continue
             # Safety guarantee — never persist forbidden wording.
             assert_no_forbidden_wording(result)
+            firing.add(result.guard_name)
 
             existing = _existing_unresolved_alert(
                 self.session,
@@ -243,6 +245,16 @@ class RiskGuardService:
             existing.message = result.message
             existing.payload = payload
             self.session.flush()
+
+        # This run is a full re-scan → supersede prior-day alerts and same-day
+        # guards that no longer fire, so the active list reflects the present
+        # state instead of accumulating stale rows (e.g. a holding that has since
+        # been sold keeping its single-position alert alive forever).
+        self.alerts.resolve_stale(
+            account_id=report.account_id,
+            current_date=alert_date,
+            active_guards=firing,
+        )
 
 
 # ---------------------------------------------------------------------------

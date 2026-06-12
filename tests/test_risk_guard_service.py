@@ -338,6 +338,51 @@ def test_evaluate_is_idempotent_for_same_day_runs(
     )
 
 
+def test_next_day_run_supersedes_prior_day_alerts(
+    db_session: Session, account_id: uuid.UUID
+) -> None:
+    """A fresh full re-scan resolves prior-day alerts so the active list reflects
+    the present state (no stale rows accumulating across days)."""
+
+    _seed_overheat_portfolio(db_session, account_id)
+    _persist_overheat_regime(db_session)
+    service = RiskGuardService(db_session)
+
+    service.evaluate(account_id, generated_at=GENERATED_AT)  # day 1
+    day1 = AlertRepository(db_session).list_active(account_id=account_id)
+    assert day1, "day-1 run should raise some alerts"
+
+    next_day = datetime(2026, 5, 19, 21, 0, tzinfo=timezone.utc)
+    service.evaluate(account_id, generated_at=next_day)  # day 2 — full re-scan
+    active = AlertRepository(db_session).list_active(account_id=account_id)
+    assert active
+    # No day-1 row lingers — every active alert is from the latest run.
+    assert all(a.alert_date == next_day.date() for a in active)
+
+
+def test_resolve_stale_keeps_only_current_firing(
+    db_session: Session, account_id: uuid.UUID
+) -> None:
+    """resolve_stale resolves prior-day alerts and same-day guards no longer firing,
+    keeping only the alerts the latest re-scan still backs."""
+
+    repo = AlertRepository(db_session)
+    today = date(2026, 5, 18)
+    repo.create(account_id=account_id, alert_date=date(2026, 5, 17),
+                guard_name="PRIOR_DAY_GUARD", severity="ORANGE", title="t")
+    repo.create(account_id=account_id, alert_date=today,
+                guard_name="CLEARED_GUARD", severity="ORANGE", title="t")
+    repo.create(account_id=account_id, alert_date=today,
+                guard_name="FIRING_GUARD", severity="ORANGE", title="t")
+
+    resolved = repo.resolve_stale(
+        account_id=account_id, current_date=today, active_guards={"FIRING_GUARD"}
+    )
+    assert resolved == 2  # prior-day + cleared same-day
+    active = {a.guard_name for a in repo.list_active(account_id)}
+    assert active == {"FIRING_GUARD"}
+
+
 def test_evaluate_persist_false_skips_db_write(
     db_session: Session, account_id: uuid.UUID
 ) -> None:

@@ -72,3 +72,31 @@ class AlertRepository:
         alert.resolved_at = datetime.now(timezone.utc)
         self.session.flush()
         return alert
+
+    def resolve_stale(
+        self,
+        *,
+        account_id: uuid.UUID | None,
+        current_date: date,
+        active_guards: set[str],
+    ) -> int:
+        """Resolve every unresolved alert that the latest full guard re-scan no
+        longer backs — anything dated before ``current_date`` (superseded) or a
+        same-day guard that is not currently firing (condition cleared). Keeps the
+        active list a snapshot of the present state instead of an append-only log.
+        Returns the number resolved."""
+
+        stmt = select(Alert).where(Alert.resolved.is_(False))
+        if account_id is not None:
+            stmt = stmt.where(Alert.account_id == account_id)
+        now = datetime.now(timezone.utc)
+        resolved = 0
+        for alert in self.session.scalars(stmt):
+            if alert.alert_date == current_date and alert.guard_name in active_guards:
+                continue
+            alert.resolved = True
+            alert.resolved_at = now
+            resolved += 1
+        if resolved:
+            self.session.flush()
+        return resolved
