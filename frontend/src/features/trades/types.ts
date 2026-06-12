@@ -193,3 +193,55 @@ export interface WeeklyEvidenceReport {
   markdown: string;
   source: "fixture" | "live";
 }
+
+// v4 — trade analytics (agent endpoints)
+export interface TradeStats {
+  available: boolean;
+  closedCount: number;
+  tickers: number;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  realizedPnl: string | null;
+  avgHoldingDays: number | null;
+  profitFactor: string | null;
+  expectancy: string | null;
+  avgWin: string | null;
+  avgLoss: string | null;
+  avgWinHoldingDays: number | null;
+  avgLossHoldingDays: number | null;
+  bestTrade: string | null;
+  worstTrade: string | null;
+  note: string;
+}
+
+export interface TradePerformanceRow {
+  ticker: string;
+  realizedPnl: string;
+  closedCount: number;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  avgHoldingDays: number | null;
+}
+
+export interface TradePerformanceResult {
+  available: boolean;
+  rows: TradePerformanceRow[];
+  note: string;
+}
+
+export interface TradeWeekdayRow {
+  weekday: string;
+  tradeCount: number;
+  buyCount: number;
+  sellCount: number;
+  realizedPnl: string;
+  winRate: number | null;
+}
+
+export interface TradeWeekdayResult {
+  available: boolean;
+  rows: TradeWeekdayRow[];
+  note: string;
+}

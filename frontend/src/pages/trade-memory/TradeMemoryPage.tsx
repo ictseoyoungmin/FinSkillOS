@@ -16,6 +16,7 @@ import { RecentEntriesTable } from "@/features/trades/components/RecentEntriesTa
 import { ReviewPromptsPanel } from "@/features/trades/components/ReviewPromptsPanel";
 import { TradeCsvImport } from "@/features/trades/components/TradeCsvImport";
 import { TossTradeSyncPanel } from "@/features/trades/components/TossTradeSyncPanel";
+import { TradeAnalyticsPanel } from "@/features/trades/components/TradeAnalyticsPanel";
 import { WeeklyEvidenceReportPanel } from "@/features/trades/components/WeeklyEvidenceReportPanel";
 import { TradeMemoryWatchpoints } from "@/features/trades/components/TradeMemoryWatchpoints";
 import { WeeklyMarkdownExport } from "@/features/trades/components/WeeklyMarkdownExport";
@@ -161,6 +162,7 @@ export function TradeMemoryPage() {
             onDelete={isLive ? onDeleteEntry : undefined}
             busyId={deletingId}
           />
+          {isLive ? <TradeAnalyticsPanel /> : null}
           <PerformanceByRegime buckets={payload.performanceByRegime} />
           <PerformanceBySectorTheme
             buckets={payload.performanceBySectorTheme}

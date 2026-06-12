@@ -15,6 +15,25 @@ export async function fetchTradeMemory(
   return await getJson<TradeMemoryData>(apiEndpoints.tradeMemory, { signal });
 }
 
+export async function fetchTradeStats(
+  signal?: AbortSignal,
+): Promise<import("./types").TradeStats> {
+  return await getJson("/agent/trades/stats", { signal });
+}
+
+export async function fetchTradePerformance(
+  top = 12,
+  signal?: AbortSignal,
+): Promise<import("./types").TradePerformanceResult> {
+  return await getJson(`/agent/trades/performance?top=${top}`, { signal });
+}
+
+export async function fetchTradeWeekday(
+  signal?: AbortSignal,
+): Promise<import("./types").TradeWeekdayResult> {
+  return await getJson("/agent/trades/by-weekday", { signal });
+}
+
 export async function fetchWeeklyReview(
   asOf?: string | null,
   signal?: AbortSignal,
