@@ -62,7 +62,9 @@ export function SymbolPositionContext({
         <Metric
           label="Quantity"
           value={
-            position.quantity === null ? "—" : toNumber(position.quantity).toString()
+            position.quantity === null
+              ? "—"
+              : Math.round(toNumber(position.quantity)).toLocaleString()
           }
         />
       </div>

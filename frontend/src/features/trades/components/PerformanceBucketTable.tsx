@@ -58,10 +58,8 @@ export function PerformanceBucketTable({
 }
 
 function formatNum(value: PerformanceBucketVM["totalPnl"]): string {
-  return toNumber(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  // P&L amounts display as whole units; ratios (R-multiple) keep their decimals.
+  return Math.round(toNumber(value)).toLocaleString("en-US");
 }
 
 function pnlClass(value: PerformanceBucketVM["totalPnl"]): string {

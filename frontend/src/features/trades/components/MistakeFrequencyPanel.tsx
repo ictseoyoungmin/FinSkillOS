@@ -48,10 +48,7 @@ export function MistakeFrequencyPanel({ rows }: MistakeFrequencyPanelProps) {
               <td className="fso-mistake-mono">{row.losingTradeCount}</td>
               <td className="fso-mistake-mono">
                 {row.avgPnl !== null
-                  ? toNumber(row.avgPnl).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })
+                  ? Math.round(toNumber(row.avgPnl)).toLocaleString("en-US")
                   : "—"}
               </td>
             </tr>

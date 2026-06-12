@@ -141,9 +141,6 @@ function pnlClass(value: TradeEntryVM["resultPnl"]): string {
 
 function formatPnl(value: TradeEntryVM["resultPnl"]): string {
   if (value === null) return "—";
-  const n = toNumber(value);
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  // Amounts display as whole units (decimals add noise without meaning here).
+  return Math.round(toNumber(value)).toLocaleString("en-US");
 }

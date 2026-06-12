@@ -550,22 +550,24 @@ export function SymbolCandlestickChart({
     if (!stage) return undefined;
     const handleWheel = (event: WheelEvent) => {
       if (!totalCount) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const rect = stage.getBoundingClientRect();
-      const anchorRatio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
       const current = visibleRef.current;
       const currentCount = clamp(current.count, minVisibleCount, maxVisibleCount);
+      const scale = event.deltaY > 0 ? 1.18 : 0.84;
+      const nextCount = Math.round(
+        clamp(currentCount * scale, minVisibleCount, maxVisibleCount),
+      );
+      // At a zoom limit the wheel changes nothing — don't trap it, so the page
+      // keeps scrolling normally instead of feeling stuck over the chart.
+      if (nextCount === currentCount) return;
+      event.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      const anchorRatio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
       const currentStart = clamp(
         current.start,
         0,
         Math.max(0, totalCount - currentCount),
       );
       const anchorIndex = currentStart + Math.round(anchorRatio * (currentCount - 1));
-      const scale = event.deltaY > 0 ? 1.18 : 0.84;
-      const nextCount = Math.round(
-        clamp(currentCount * scale, minVisibleCount, maxVisibleCount),
-      );
       const nextStart = clamp(
         Math.round(anchorIndex - anchorRatio * (nextCount - 1)),
         0,
@@ -576,11 +578,6 @@ export function SymbolCandlestickChart({
     stage.addEventListener("wheel", handleWheel, { passive: false });
     return () => stage.removeEventListener("wheel", handleWheel);
   }, [maxVisibleCount, minVisibleCount, totalCount]);
-
-  const handleSvgWheel = (event: React.WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
 
   const dataStatusTone =
     header.dataStatus === "OK"
@@ -700,7 +697,6 @@ export function SymbolCandlestickChart({
               setPointerPrice(null);
               setDrag(null);
             }}
-            onWheel={handleSvgWheel}
           >
             <line
               x1={PAD_X}

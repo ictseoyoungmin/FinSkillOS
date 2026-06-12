@@ -137,8 +137,6 @@ export function WeeklyReviewPanel({ review, navigation }: WeeklyReviewPanelProps
 }
 
 function formatNumber(value: WeeklyReviewVM["totalPnl"]): string {
-  return toNumber(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  // P&L amounts display as whole units (decimals add noise without meaning).
+  return Math.round(toNumber(value)).toLocaleString("en-US");
 }

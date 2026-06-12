@@ -32,8 +32,11 @@ export function formatKrw(value: Numeric | null | undefined): string {
   return krw.format(n);
 }
 
-// Currency-aware money formatter — USD/KRW trade amounts are kept in their native
-// currency so they are never silently mixed. Unknown / null currency → KRW.
+// Currency-aware money formatter — USD/KRW trade *amounts* are kept in their
+// native currency so they are never silently mixed. Amounts are rounded to whole
+// units on display (the digits-after-the-point add noise without meaning at the
+// aggregate level); per-share unit prices keep their decimals elsewhere. Unknown
+// / null currency → KRW.
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
 export function formatMoney(
@@ -50,7 +53,7 @@ export function formatMoney(
       fmt = new Intl.NumberFormat(code === "KRW" ? "ko-KR" : "en-US", {
         style: "currency",
         currency: code,
-        maximumFractionDigits: code === "KRW" ? 0 : 2,
+        maximumFractionDigits: 0,
       });
     } catch {
       fmt = krw;
