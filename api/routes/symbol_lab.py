@@ -29,6 +29,7 @@ from api.schemas.symbol_lab import (
     SymbolLabDataState,
     SymbolLabHeader,
     SymbolLabResponse,
+    SymbolNewsItem,
     SymbolPosition,
     SymbolRecentBar,
     SymbolSubscriptionFolder,
@@ -375,10 +376,10 @@ def _live_response(
     )
     payload.position = _position_context(position, positions)
     payload.alerts = symbol_alerts
-    payload.news = []
-    # Overlay the live market regime (the fixture base ships a sample regime that
-    # would otherwise leak into live mode as a stale snapshot). None when the DB
-    # has no regime row → the panel shows its honest empty state.
+    # Live news + regime overlays (the fixture base ships sample rows that would
+    # otherwise leak into live mode). Empty/None when the DB has nothing stored →
+    # the panels show their honest empty state.
+    payload.news = _live_symbol_news(session, ticker)
     payload.regime = _live_regime_context(session, bars)
 
     if not bars:
@@ -679,6 +680,38 @@ def _symbol_alerts(ticker: str, alerts: list) -> list[SymbolAlert]:
             )
         )
     return result
+
+
+def _live_symbol_news(session, ticker: str) -> list[SymbolNewsItem]:
+    """Stored news impacts linked to this ticker (the same pipeline the News
+    Intelligence tab reads). Empty when nothing is linked — no fixture rows."""
+
+    from finskillos.services.news_service import NewsService
+
+    symbol = (ticker or "").strip().upper()
+    rows = NewsService(session).list_articles_for_ticker(symbol, limit=12)
+    items: list[SymbolNewsItem] = []
+    for article, impacts in rows:
+        # Use the impact scored for this ticker (else the strongest) for the
+        # sentiment / score / risk note attached to the headline.
+        relevant = [i for i in impacts if (i.ticker or "").upper() == symbol] or list(
+            impacts
+        )
+        lead = max(relevant, key=lambda i: i.impact_score) if relevant else None
+        items.append(
+            SymbolNewsItem(
+                title=article.title,
+                source=article.source,
+                published_at=article.published_at.isoformat()
+                if article.published_at
+                else "",
+                sentiment_label=lead.sentiment_label if lead else "UNKNOWN",
+                impact_score=lead.impact_score if lead else Decimal("0"),
+                risk_note=lead.risk_note if lead else None,
+                url=article.url,
+            )
+        )
+    return items
 
 
 def _live_regime_context(session, bars: list) -> RegimeContext | None:

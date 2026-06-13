@@ -254,6 +254,63 @@ def test_symbol_lab_can_return_live_db_symbol_bars(monkeypatch, tmp_path) -> Non
         engine.dispose()
 
 
+def test_symbol_lab_live_attaches_stored_news(monkeypatch, tmp_path) -> None:
+    """Live mode surfaces stored news impacts for the ticker (the News Intelligence
+    pipeline), not the fixture's sample news."""
+
+    from decimal import Decimal
+
+    from finskillos.services.news_service import (
+        NewsArticleInput,
+        NewsImpactInput,
+        NewsService,
+    )
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        NewsService(session).ingest_article(
+            NewsArticleInput(
+                title="NVDA data-center demand update",
+                source="Yahoo Finance",
+                url="https://example.test/nvda",
+                published_at=datetime(2026, 6, 10, tzinfo=timezone.utc),
+                summary="body",
+            ),
+            extra_impacts=[
+                NewsImpactInput(
+                    ticker="NVDA",
+                    impact_score=Decimal("4.2"),
+                    sentiment_label="POSITIVE",
+                    risk_note="elevated volatility",
+                )
+            ],
+            auto_classify=False,
+        )
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("FINSKILLOS_SYMBOL_PREVIEW_ADAPTER", "off")
+    reset_settings_cache()
+    try:
+        body = _client().get("/api/symbol-lab?ticker=NVDA").json()
+        assert body["source"] == "live"
+        news = body["news"]
+        assert len(news) >= 1
+        item = next(n for n in news if n["title"] == "NVDA data-center demand update")
+        assert item["sentimentLabel"] == "POSITIVE"
+        assert item["riskNote"] == "elevated volatility"
+        assert item["source"] == "Yahoo Finance"
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_symbol_lab_live_overlays_stored_regime_not_fixture(monkeypatch, tmp_path) -> None:
     """Live mode shows the stored market regime (and STALE freshness when older than
     the latest bars), not the fixture's sample regime."""
