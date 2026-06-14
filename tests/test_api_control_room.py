@@ -294,8 +294,21 @@ def test_control_room_promotes_live_overview_rails(
     assert body["dataState"]["railFreshnessStatus"] == "FRESH"
     assert f"market {latest_dt.date().isoformat()}" in body["dataState"]["railFreshnessNote"]
     assert body["tickerStrip"][0]["symbol"] == "NVDA"
+    # Strip shows the real move vs the prior close (rising seeded series → up%),
+    # not the old hardcoded "Stored".
+    assert body["tickerStrip"][0]["change"].endswith("%")
+    assert body["tickerStrip"][0]["direction"] == "up"
     assert body["catalystWatch"][0]["title"] == "NVIDIA earnings window"
     assert body["watchlist"][0]["symbol"] == "NVDA"
+
+
+def test_ticker_change_computes_percent_vs_prior_close() -> None:
+    from api.routes.control_room import _ticker_change
+
+    assert _ticker_change(Decimal("110"), Decimal("100")) == ("+10.00%", "up")
+    assert _ticker_change(Decimal("90"), Decimal("100")) == ("-10.00%", "down")
+    assert _ticker_change(Decimal("100"), Decimal("100")) == ("0.00%", "flat")
+    assert _ticker_change(Decimal("100"), None) == ("—", "flat")
 
 
 def test_control_room_classifies_stale_market_and_watchlist_rails(

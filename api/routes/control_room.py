@@ -636,18 +636,38 @@ def _ticker_strip(session, vm: ControlRoomViewModel) -> list[TickerStripItem]:
     repo = MarketRepository(session)
     rows: list[TickerStripItem] = []
     for ticker in _ticker_universe(vm):
-        bar = repo.latest_bar(ticker, DEFAULT_TIMEFRAME)
-        if bar is None:
+        # Date-deduped daily bars → latest close vs the prior session's close.
+        bars = repo.list_bars(ticker, DEFAULT_TIMEFRAME)
+        if not bars:
             continue
+        last = bars[-1].close
+        prev = bars[-2].close if len(bars) >= 2 else None
+        change, direction = _ticker_change(last, prev)
         rows.append(
             TickerStripItem(
                 symbol=ticker,
-                price=_format_decimal(bar.close),
-                change="Stored",
-                direction="flat",
+                price=_format_decimal(last),
+                change=change,
+                direction=direction,
             )
         )
     return rows[:10]
+
+
+def _ticker_change(last: Decimal, prev: Decimal | None) -> tuple[str, str]:
+    """Percent change vs the prior session's close → (label, direction).
+
+    Descriptive only — a stored price move, not a signal. Falls back to a neutral
+    dash when no prior close is stored."""
+
+    if prev is None or prev == 0:
+        return "—", "flat"
+    delta = last - prev
+    if delta == 0:
+        return "0.00%", "flat"
+    pct = ((delta / prev) * Decimal("100")).quantize(Decimal("0.01"))
+    direction = "up" if delta > 0 else "down"
+    return f"{pct:+.2f}%", direction
 
 
 def _ticker_universe(vm: ControlRoomViewModel) -> tuple[str, ...]:
