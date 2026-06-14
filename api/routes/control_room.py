@@ -657,24 +657,46 @@ def _build_ticker_strip(
     rows: list[TickerStripItem] = []
     subscores: list[float] = []
 
-    # 1. Held positions lead — priced from the holding itself (the KRW account
-    #    value per share), so the user's own stocks show even without stored bars.
+    # 1. Held positions lead. Once a holding's bars are stored (it is in the
+    #    holdings folder's refresh universe) it shows native price + the daily
+    #    move; until then it falls back to the KRW account value per share.
     for position in positions:
         ticker = (position.ticker or "").upper()
         if not ticker or not position.quantity:
             continue
-        per_share = position.market_value / position.quantity
-        rows.append(
-            TickerStripItem(
-                symbol=ticker,
-                price=_format_whole(per_share),
-                change="—",
-                direction="flat",
-                currency="KRW",  # portfolio is KRW-denominated
-                logo_url=_logo_url(ticker, token),
-                held=True,
+        bars = market.list_bars(ticker, DEFAULT_TIMEFRAME)
+        if bars:
+            last = bars[-1].close
+            prev = bars[-2].close if len(bars) >= 2 else None
+            change, direction = _ticker_change(last, prev)
+            snapshot = indicators.latest_for(ticker, DEFAULT_TIMEFRAME)
+            sub = _posture_subscore(last, snapshot)
+            if sub is not None:
+                subscores.append(sub)
+            rows.append(
+                TickerStripItem(
+                    symbol=ticker,
+                    price=_format_whole(last),
+                    change=change,
+                    direction=direction,
+                    currency=_ticker_currency(ticker),
+                    logo_url=_logo_url(ticker, token),
+                    held=True,
+                )
             )
-        )
+        else:
+            per_share = position.market_value / position.quantity
+            rows.append(
+                TickerStripItem(
+                    symbol=ticker,
+                    price=_format_whole(per_share),
+                    change="—",
+                    direction="flat",
+                    currency="KRW",  # portfolio is KRW-denominated
+                    logo_url=_logo_url(ticker, token),
+                    held=True,
+                )
+            )
 
     # 2. Market universe — bar-based native prices + % change vs the prior close.
     for ticker in _ticker_universe(vm):

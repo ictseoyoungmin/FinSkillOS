@@ -22,6 +22,8 @@ from finskillos.db.repositories import (
     AccountRepository,
     PortfolioRepository,
     PositionRepository,
+    SymbolSubscriptionFolderRepository,
+    SymbolSubscriptionRepository,
     TradeRepository,
 )
 from finskillos.services.portfolio_service import PortfolioService, parse_portfolio_csv
@@ -30,7 +32,13 @@ from finskillos.services.trade_journal_service import (
     TradeJournalService,
 )
 
-__all__ = ["sync_toss_portfolio", "sync_toss_trades"]
+__all__ = ["sync_toss_portfolio", "sync_toss_trades", "sync_holdings_folder"]
+
+# A dedicated, auto-managed subscription folder that mirrors the brokerage
+# holdings. Its track_market / track_indicators flags pull the held tickers into
+# the worker's refresh universe so their bars + indicators get stored — which lets
+# the ticker strip show holdings with native price + daily change.
+HOLDINGS_FOLDER_NAME = "보유 종목"
 
 
 def _resolve_or_create_account(session):
@@ -97,12 +105,66 @@ def sync_toss_portfolio(
         cash_value=cash,
     )
     session.commit()
+    folder = sync_holdings_folder(session, account_id=account.id)
     return {
         "status": "APPLIED",
         "positions": len(rows),
         "cash": str(cash),
         "total": str(total),
         "warnings": proposal.warnings,
+        "holdings_folder": folder,
+    }
+
+
+def sync_holdings_folder(session, *, account_id=None) -> dict:
+    """Mirror the account's held tickers into the dedicated holdings folder.
+
+    Subscribes each held ticker and (re)asserts the folder's collection flags so
+    the worker refreshes their bars + indicators. Tickers no longer held are pruned
+    from the folder (they drop out of the refresh universe). Idempotent."""
+
+    accounts = AccountRepository(session).list_all()
+    if not accounts:
+        return {"status": "SKIPPED", "reason": "no_account"}
+    account = next(
+        (a for a in accounts if a.id == account_id), accounts[0]
+    )
+    held = {
+        (p.ticker or "").upper()
+        for p in PositionRepository(session).list_for_account(account.id)
+        if p.ticker
+    }
+    folders = SymbolSubscriptionFolderRepository(session)
+    subscriptions = SymbolSubscriptionRepository(session)
+    folder = folders.upsert_folder(
+        HOLDINGS_FOLDER_NAME,
+        description="Auto-synced from your brokerage holdings.",
+    )
+    folders.set_collection_flags(
+        folder.id, is_active=True, track_market=True, track_indicators=True
+    )
+    snapshot = next(
+        (s for s in folders.list_snapshots() if s.name == HOLDINGS_FOLDER_NAME), None
+    )
+    current = {m.ticker.upper() for m in (snapshot.members if snapshot else ())}
+
+    added = 0
+    for ticker in sorted(held):
+        subscriptions.subscribe(ticker, source="holdings")
+        folders.add_symbol(folder.id, ticker)
+        if ticker not in current:
+            added += 1
+    removed = 0
+    for ticker in current - held:
+        if folders.remove_symbol(folder.id, ticker):
+            removed += 1
+    session.commit()
+    return {
+        "status": "APPLIED",
+        "folder": folder.name,
+        "tickers": len(held),
+        "added": added,
+        "removed": removed,
     }
 
 

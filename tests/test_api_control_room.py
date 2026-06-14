@@ -293,10 +293,14 @@ def test_control_room_promotes_live_overview_rails(
     assert body["dataState"]["watchlistFreshnessStatus"] == "FRESH"
     assert body["dataState"]["railFreshnessStatus"] == "FRESH"
     assert f"market {latest_dt.date().isoformat()}" in body["dataState"]["railFreshnessNote"]
-    # Held positions lead (largest first) and are priced from the holding in KRW.
+    # Held positions lead (largest first). NVDA has stored bars → native USD price
+    # + daily %, so a refreshed holding looks like a market ticker.
     nvda = body["tickerStrip"][0]
     assert nvda["symbol"] == "NVDA" and nvda["held"] is True
-    assert nvda["currency"] == "KRW" and nvda["change"] == "—"
+    assert nvda["currency"] == "USD" and nvda["change"].endswith("%")
+    # TSLA is held but has no stored bars → falls back to the KRW account value.
+    tsla = next(row for row in body["tickerStrip"] if row["symbol"] == "TSLA")
+    assert tsla["held"] is True and tsla["currency"] == "KRW" and tsla["change"] == "—"
     # A market-universe ticker shows the real % move vs the prior close (rising
     # seeded SPY series → up), not the old hardcoded "Stored".
     spy = next(row for row in body["tickerStrip"] if row["symbol"] == "SPY")
