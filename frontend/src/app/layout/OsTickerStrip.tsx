@@ -9,6 +9,10 @@ export interface OsTickerStripProps {
 const currencyMark = (currency: string): string =>
   currency === "KRW" ? "₩" : currency === "USD" ? "$" : "";
 
+// Composite-posture colour band (descriptive): strong / mixed / weak.
+const scoreTone = (score: number): "strong" | "neutral" | "weak" =>
+  score >= 60 ? "strong" : score >= 40 ? "neutral" : "weak";
+
 /**
  * Header ticker strip: a fixed composite-posture score pinned on the left, then a
  * horizontally sliding marquee of symbols (held first). Each item shows its native
@@ -30,7 +34,11 @@ export function OsTickerStrip({ items, score }: OsTickerStripProps) {
           data-testid="ticker-score"
           title="Composite technical-posture score (0–100) across the strip — descriptive, not a signal"
         >
-          <span className="fso-ticker-score-value">{score}</span>
+          <span
+            className={`fso-ticker-score-value fso-ticker-score--${scoreTone(score)}`}
+          >
+            {score}
+          </span>
           <span className="fso-ticker-score-divider" aria-hidden>
             |
           </span>

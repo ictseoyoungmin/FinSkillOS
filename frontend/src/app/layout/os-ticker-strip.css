@@ -29,6 +29,10 @@
   letter-spacing: 0.02em;
   color: var(--fso-cyan);
 }
+/* Posture colour band — strong (green) / mixed (amber) / weak (red). */
+.fso-ticker-score--strong { color: var(--fso-green); }
+.fso-ticker-score--neutral { color: var(--fso-amber); }
+.fso-ticker-score--weak { color: var(--fso-red); }
 .fso-ticker-score-divider {
   color: color-mix(in srgb, var(--fso-cyan) 40%, var(--fso-line));
 }
