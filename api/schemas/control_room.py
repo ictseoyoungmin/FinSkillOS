@@ -28,6 +28,9 @@ class TickerStripItem(CamelModel):
     price: str
     change: str
     direction: Literal["up", "down", "flat"] = "flat"
+    currency: str = "USD"
+    logo_url: str | None = None
+    held: bool = False
 
 
 class MarketTapePoint(CamelModel):
@@ -203,6 +206,9 @@ class ControlRoomResponse(CamelModel):
     watchpoints: list[EvidenceWatchpoint]
     safety_caption: str = "Global operating posture (not execution)."
     ticker_strip: list[TickerStripItem]
+    # Composite technical-posture score (0–100) over the strip universe. Pinned on
+    # the left of the strip; descriptive, not a signal. None when no indicators.
+    ticker_score: int | None = None
     mission: MissionProgress
     operating_state: OperatingState
     portfolio_exposure: list[PortfolioExposureSlice]

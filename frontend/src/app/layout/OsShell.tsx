@@ -71,7 +71,7 @@ export function OsShell({ children }: OsShellProps) {
         dbStatus={systemStatus?.dbStatus ?? "MISSING"}
         onOpenPalette={openPalette}
       />
-      <OsTickerStrip items={data?.tickerStrip ?? []} />
+      <OsTickerStrip items={data?.tickerStrip ?? []} score={data?.tickerScore ?? null} />
       <main className="fso-os-workspace" data-testid="os-workspace">
         <OsDbUnavailableBanner dbStatus={systemStatus?.dbStatus} />
         {children}

@@ -66,6 +66,7 @@ export interface ControlRoomData {
   watchpoints: EvidenceWatchpointData[];
   safetyCaption: string;
   tickerStrip: TickerStripItem[];
+  tickerScore: number | null;
   mission: MissionProgress;
   operatingState: OperatingState;
   portfolioExposure: PortfolioExposureSlice[];

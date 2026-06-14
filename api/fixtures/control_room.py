@@ -139,6 +139,7 @@ def control_room_fixture() -> ControlRoomResponse:
             TickerStripItem(symbol="DXY", price="103.41", change="+0.07%", direction="flat"),
             TickerStripItem(symbol="US10Y", price="4.21", change="+0.04%", direction="up"),
         ],
+        ticker_score=64,
         mission=MissionProgress(
             current_value=Decimal("73420000"),
             target_value=Decimal("100000000"),

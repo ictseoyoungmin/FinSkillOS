@@ -7,6 +7,9 @@ export interface TickerStripItem {
   price: string;
   change: string;
   direction: TickerDirection;
+  currency: string;
+  logoUrl: string | null;
+  held: boolean;
 }
 
 export interface WatchlistItem {

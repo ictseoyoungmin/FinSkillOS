@@ -37,7 +37,14 @@ from api.schemas.control_room import (
 from api.timeutil import iso as _iso
 from finskillos.config import get_settings
 from finskillos.data_sources import DEFAULT_TIMEFRAME, DEFAULT_US_TICKER_UNIVERSE
-from finskillos.db.repositories import MarketRepository, SymbolSubscriptionRepository
+from finskillos.db.repositories import (
+    AccountRepository,
+    IndicatorRepository,
+    MarketRepository,
+    PositionRepository,
+    SymbolSubscriptionRepository,
+)
+from finskillos.services.symbol_logo_service import logo_dev_ticker_url
 from finskillos.ui.view_models.control_room_vm import (
     ControlRoomViewModel,
     assert_view_model_is_safe,
@@ -85,7 +92,7 @@ def _live_response(
     event_vm: EventRadarViewModel,
 ) -> ControlRoomResponse:
     payload = control_room_fixture()
-    payload.ticker_strip = _ticker_strip(session, vm)
+    payload.ticker_strip, payload.ticker_score = _build_ticker_strip(session, vm)
     payload.catalyst_watch = _catalyst_watch(event_vm)
     payload.watchlist = _watchlist(session)
     payload.market_tape = _market_tape(session)
@@ -632,26 +639,72 @@ def _interpretation_cards(vm: ControlRoomViewModel) -> list[str]:
     return cards
 
 
-def _ticker_strip(session, vm: ControlRoomViewModel) -> list[TickerStripItem]:
-    repo = MarketRepository(session)
+def _build_ticker_strip(
+    session, vm: ControlRoomViewModel
+) -> tuple[list[TickerStripItem], int | None]:
+    """Strip rows (held tickers first) + a composite 0–100 technical-posture score.
+
+    Each row carries its native currency + a logo when resolvable; the score is the
+    mean per-ticker posture across the strip. Prices are whole units (the strip is
+    a dense header — decimals add noise); the % change keeps one decimal so sub-1%
+    moves stay visible."""
+
+    market = MarketRepository(session)
+    indicators = IndicatorRepository(session)
+    token = get_settings().logo_dev_token
+    positions = _held_positions(session)
+    held_tickers = {(p.ticker or "").upper() for p in positions if p.ticker}
     rows: list[TickerStripItem] = []
+    subscores: list[float] = []
+
+    # 1. Held positions lead — priced from the holding itself (the KRW account
+    #    value per share), so the user's own stocks show even without stored bars.
+    for position in positions:
+        ticker = (position.ticker or "").upper()
+        if not ticker or not position.quantity:
+            continue
+        per_share = position.market_value / position.quantity
+        rows.append(
+            TickerStripItem(
+                symbol=ticker,
+                price=_format_whole(per_share),
+                change="—",
+                direction="flat",
+                currency="KRW",  # portfolio is KRW-denominated
+                logo_url=_logo_url(ticker, token),
+                held=True,
+            )
+        )
+
+    # 2. Market universe — bar-based native prices + % change vs the prior close.
     for ticker in _ticker_universe(vm):
-        # Date-deduped daily bars → latest close vs the prior session's close.
-        bars = repo.list_bars(ticker, DEFAULT_TIMEFRAME)
+        if ticker in held_tickers:
+            continue  # already shown from the position
+        bars = market.list_bars(ticker, DEFAULT_TIMEFRAME)
         if not bars:
             continue
         last = bars[-1].close
         prev = bars[-2].close if len(bars) >= 2 else None
         change, direction = _ticker_change(last, prev)
+        snapshot = indicators.latest_for(ticker, DEFAULT_TIMEFRAME)
+        sub = _posture_subscore(last, snapshot)
+        if sub is not None:
+            subscores.append(sub)
         rows.append(
             TickerStripItem(
                 symbol=ticker,
-                price=_format_decimal(last),
+                price=_format_whole(last),
                 change=change,
                 direction=direction,
+                currency=_ticker_currency(ticker),
+                logo_url=_logo_url(ticker, token),
+                held=False,
             )
         )
-    return rows[:10]
+        if len(rows) >= 20:
+            break
+    score = round(sum(subscores) / len(subscores)) if subscores else None
+    return rows, score
 
 
 def _ticker_change(last: Decimal, prev: Decimal | None) -> tuple[str, str]:
@@ -664,10 +717,78 @@ def _ticker_change(last: Decimal, prev: Decimal | None) -> tuple[str, str]:
         return "—", "flat"
     delta = last - prev
     if delta == 0:
-        return "0.00%", "flat"
-    pct = ((delta / prev) * Decimal("100")).quantize(Decimal("0.01"))
+        return "0.0%", "flat"
+    pct = ((delta / prev) * Decimal("100")).quantize(Decimal("0.1"))
     direction = "up" if delta > 0 else "down"
-    return f"{pct:+.2f}%", direction
+    return f"{pct:+.1f}%", direction
+
+
+def _held_positions(session) -> list:
+    accounts = AccountRepository(session).list_all()
+    if not accounts:
+        return []
+    positions = PositionRepository(session).list_for_account(accounts[0].id)
+    # Largest holdings first; skip zero-value rows.
+    return sorted(
+        (p for p in positions if p.ticker and p.market_value),
+        key=lambda p: p.market_value,
+        reverse=True,
+    )
+
+
+def _ticker_currency(ticker: str) -> str:
+    symbol = (ticker or "").strip().upper()
+    return "KRW" if symbol.isdigit() and len(symbol) == 6 else "USD"
+
+
+def _logo_url(ticker: str, token: str) -> str | None:
+    # logo.dev is keyed by US ticker symbols; KR 6-digit codes have no match.
+    if _ticker_currency(ticker) == "KRW":
+        return None
+    return logo_dev_ticker_url(ticker, token)
+
+
+def _format_whole(value: Decimal) -> str:
+    return f"{int(value.to_integral_value(rounding='ROUND_HALF_UP')):,}"
+
+
+def _posture_subscore(close: Decimal, snapshot) -> float | None:
+    """Per-ticker 0–100 technical posture from stored indicators (descriptive).
+
+    Blends three well-defined, normalized signals:
+      • trend stack (50%) — share of {close>EMA20, EMA20>EMA60, EMA60>EMA120} true
+      • RSI-14 (30%)      — clamped 0–100 (higher = stronger recent momentum)
+      • trend_state (20%) — bullish 100 / neutral 50 / bearish 0
+    Weights renormalize over whichever signals are present."""
+
+    if snapshot is None:
+        return None
+    parts: list[tuple[float, float]] = []  # (weight, value 0–100)
+
+    stack_conditions: list[bool] = []
+    if snapshot.ema_20 is not None:
+        stack_conditions.append(close > snapshot.ema_20)
+    if snapshot.ema_20 is not None and snapshot.ema_60 is not None:
+        stack_conditions.append(snapshot.ema_20 > snapshot.ema_60)
+    if snapshot.ema_60 is not None and snapshot.ema_120 is not None:
+        stack_conditions.append(snapshot.ema_60 > snapshot.ema_120)
+    if stack_conditions:
+        share = sum(1 for cond in stack_conditions if cond) / len(stack_conditions)
+        parts.append((0.5, share * 100))
+
+    if snapshot.rsi_14 is not None:
+        parts.append((0.3, float(max(Decimal("0"), min(Decimal("100"), snapshot.rsi_14)))))
+
+    trend_value = {"bullish": 100.0, "neutral": 50.0, "bearish": 0.0}.get(
+        (snapshot.trend_state or "").lower()
+    )
+    if trend_value is not None:
+        parts.append((0.2, trend_value))
+
+    if not parts:
+        return None
+    total_weight = sum(weight for weight, _ in parts)
+    return sum(weight * value for weight, value in parts) / total_weight
 
 
 def _ticker_universe(vm: ControlRoomViewModel) -> tuple[str, ...]:

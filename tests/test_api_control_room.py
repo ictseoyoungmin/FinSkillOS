@@ -293,21 +293,47 @@ def test_control_room_promotes_live_overview_rails(
     assert body["dataState"]["watchlistFreshnessStatus"] == "FRESH"
     assert body["dataState"]["railFreshnessStatus"] == "FRESH"
     assert f"market {latest_dt.date().isoformat()}" in body["dataState"]["railFreshnessNote"]
-    assert body["tickerStrip"][0]["symbol"] == "NVDA"
-    # Strip shows the real move vs the prior close (rising seeded series → up%),
-    # not the old hardcoded "Stored".
-    assert body["tickerStrip"][0]["change"].endswith("%")
-    assert body["tickerStrip"][0]["direction"] == "up"
+    # Held positions lead (largest first) and are priced from the holding in KRW.
+    nvda = body["tickerStrip"][0]
+    assert nvda["symbol"] == "NVDA" and nvda["held"] is True
+    assert nvda["currency"] == "KRW" and nvda["change"] == "—"
+    # A market-universe ticker shows the real % move vs the prior close (rising
+    # seeded SPY series → up), not the old hardcoded "Stored".
+    spy = next(row for row in body["tickerStrip"] if row["symbol"] == "SPY")
+    assert spy["held"] is False and spy["currency"] == "USD"
+    assert spy["change"].endswith("%") and spy["direction"] == "up"
+    assert "tickerScore" in body  # composite score field present (int or null)
     assert body["catalystWatch"][0]["title"] == "NVIDIA earnings window"
     assert body["watchlist"][0]["symbol"] == "NVDA"
+
+
+def test_posture_subscore_blends_indicators() -> None:
+    from types import SimpleNamespace
+
+    from api.routes.control_room import _posture_subscore
+
+    # Full bullish EMA stack (close>20>60>120) + RSI 70 + bullish trend state:
+    # 100*0.5 + 70*0.3 + 100*0.2 = 91.
+    bullish = SimpleNamespace(
+        ema_20=Decimal("90"), ema_60=Decimal("80"), ema_120=Decimal("70"),
+        rsi_14=Decimal("70"), trend_state="bullish",
+    )
+    assert round(_posture_subscore(Decimal("100"), bullish)) == 91
+    # Broken stack + weak RSI + bearish → low score.
+    bearish = SimpleNamespace(
+        ema_20=Decimal("110"), ema_60=Decimal("120"), ema_120=Decimal("130"),
+        rsi_14=Decimal("30"), trend_state="bearish",
+    )
+    assert round(_posture_subscore(Decimal("100"), bearish)) == 9  # 0+9+0
+    assert _posture_subscore(Decimal("100"), None) is None
 
 
 def test_ticker_change_computes_percent_vs_prior_close() -> None:
     from api.routes.control_room import _ticker_change
 
-    assert _ticker_change(Decimal("110"), Decimal("100")) == ("+10.00%", "up")
-    assert _ticker_change(Decimal("90"), Decimal("100")) == ("-10.00%", "down")
-    assert _ticker_change(Decimal("100"), Decimal("100")) == ("0.00%", "flat")
+    assert _ticker_change(Decimal("110"), Decimal("100")) == ("+10.0%", "up")
+    assert _ticker_change(Decimal("90"), Decimal("100")) == ("-10.0%", "down")
+    assert _ticker_change(Decimal("100"), Decimal("100")) == ("0.0%", "flat")
     assert _ticker_change(Decimal("100"), None) == ("—", "flat")
 
 
