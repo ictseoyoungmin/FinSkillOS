@@ -94,8 +94,15 @@ def test_toss_sync_protocol_intents() -> None:
     assert parse_protocol_request("토스 동기화해줘") == "sync_toss_holdings"
     assert parse_protocol_request("토스 거래 동기화") == "sync_toss_trades"
     assert parse_protocol_request("sync trades from toss") == "sync_toss_trades"
+    # Toss is the portfolio source, so "포트폴리오 업데이트" (no "toss" word) syncs.
+    assert parse_protocol_request("포트폴리오 정보 업데이트") == "sync_toss_holdings"
+    assert parse_protocol_request("포트폴리오 갱신해줘") == "sync_toss_holdings"
+    assert parse_protocol_request("보유 종목 동기화") == "sync_toss_holdings"
+    assert parse_protocol_request("update my portfolio") == "sync_toss_holdings"
     # news refresh is not mistaken for a portfolio sync
     assert parse_protocol_request("보유 뉴스 갱신") == "refresh_holdings_news"
+    assert parse_protocol_request("포트폴리오 뉴스 갱신") == "refresh_holdings_news"
+    assert parse_protocol_request("refresh holdings news") == "refresh_holdings_news"
 
 
 def test_toss_sync_tools_and_routes() -> None:

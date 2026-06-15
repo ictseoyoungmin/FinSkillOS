@@ -95,7 +95,12 @@ SYSTEM_PROMPT = (
     '{"protocols": ["refresh_market_data", "run_risk_guards"]}\n'
     "```\n"
     "(each is one of: refresh_market_data, refresh_news, refresh_holdings_news, "
-    "calculate_indicators, recompute_regime, run_risk_guards, refresh_events.)\n"
+    "calculate_indicators, recompute_regime, run_risk_guards, refresh_events, "
+    "sync_toss_holdings, sync_toss_trades.)\n"
+    "When the user asks to update / refresh / sync their portfolio or holdings "
+    "(e.g. the snapshot is stale), DON'T ask them to paste it — propose the "
+    "sync_toss_holdings protocol (it pulls holdings from their connected Toss "
+    "brokerage). For their executed trades, use sync_toss_trades.\n"
     "When the user asks about their holdings' news, the context provides "
     "'Holdings news, ranked by importance (top 5)'. Summarise the most important "
     "items (with ticker) descriptively. If no holdings news is stored, propose the "

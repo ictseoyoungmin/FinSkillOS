@@ -524,7 +524,13 @@ _PROTOCOL_INTENTS: tuple[tuple[re.Pattern[str], str], ...] = (
             r"(sync|동기화|업데이트|갱신|가져)"
             r"|(sync|동기화|업데이트).{0,15}(포트폴리오|보유|portfolio|holding)"
             r".{0,12}(toss|토스)"
-            r"|(toss|토스)\s*(에서|에)?\s*(동기화|sync)",
+            r"|(toss|토스)\s*(에서|에)?\s*(동기화|sync)"
+            # Toss is the portfolio source, so "포트폴리오/보유 업데이트" (no "toss"
+            # word) means sync the holdings. The verb must follow directly so news
+            # phrasings ("보유 뉴스 갱신") fall through to refresh_holdings_news.
+            r"|(포트폴리오|보유\s*종목|보유\s*주식)\s*(정보)?\s*"
+            r"(업데이트|갱신|동기화|새로고침|refresh|sync)"
+            r"|(update|refresh|sync)\s+(my\s+)?(portfolio|holdings)\b(?!\s*\w*news)",
             re.IGNORECASE,
         ),
         "sync_toss_holdings",
