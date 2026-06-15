@@ -193,6 +193,71 @@ def test_market_kernel_can_return_live_db_bars(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_market_kernel_weekly_resamples_from_daily(monkeypatch, tmp_path) -> None:
+    """1W (and 1M) have no stored bars — the route resamples the daily series so
+    the timeframe buttons actually return data."""
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        MarketDataService(
+            session, adapter=MockMarketDataAdapter(default_bars=30), universe=["SPY"]
+        ).refresh_bars(["SPY"])
+        SignalService(session).compute_for_universe(["SPY"])
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = _client().get("/api/market-kernel?ticker=SPY&timeframe=1wk").json()
+        assert body["source"] == "live"
+        weekly = body["bars"]
+        # 30 daily bars collapse into a handful of weekly candles.
+        assert 0 < len(weekly) < 30
+        assert all(b["close"] is not None for b in weekly)
+        assert all(
+            b["high"] is not None and b["low"] is not None for b in weekly
+        )
+        # Indicator panel stays populated via the daily fallback.
+        assert body["indicators"]["rsi14"] is not None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_resample_bars_aggregates_ohlcv() -> None:
+    from datetime import date, datetime, timezone
+    from decimal import Decimal
+    from types import SimpleNamespace
+
+    from api.routes.market_kernel import _resample_bars
+
+    def bar(d, o, h, low, c, v):
+        return SimpleNamespace(
+            bar_time=datetime(d.year, d.month, d.day, tzinfo=timezone.utc),
+            open=Decimal(o), high=Decimal(h), low=Decimal(low),
+            close=Decimal(c), volume=Decimal(v),
+        )
+
+    # Mon–Wed of one ISO week → a single weekly candle.
+    daily = [
+        bar(date(2026, 6, 1), "100", "105", "99", "104", "10"),
+        bar(date(2026, 6, 2), "104", "108", "103", "106", "12"),
+        bar(date(2026, 6, 3), "106", "110", "101", "102", "8"),
+    ]
+    weekly = _resample_bars(daily, "1wk")
+    assert len(weekly) == 1
+    w = weekly[0]
+    assert w.open == Decimal("100") and w.close == Decimal("102")
+    assert w.high == Decimal("110") and w.low == Decimal("99")
+    assert w.volume == Decimal("30")
+
+
 def test_market_kernel_event_overlay_includes_relevant_events(
     monkeypatch, tmp_path
 ) -> None:

@@ -8,7 +8,8 @@ rendering; provider refresh is handled by System Ops / scripts.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from collections import namedtuple
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
@@ -75,19 +76,36 @@ def market_kernel(
         resolved_ticker = _normalize_ticker(ticker)
         resolved_timeframe = _normalize_timeframe(timeframe)
         now = datetime.now(tz=UTC)
+        market_repo = MarketRepository(session)
         bars = [
             bar
-            for bar in MarketRepository(session).list_bars(
-                resolved_ticker, resolved_timeframe
-            )
+            for bar in market_repo.list_bars(resolved_ticker, resolved_timeframe)
             if _as_utc(bar.bar_time) <= now
         ]
+        # Weekly / monthly bars are not stored (the worker refreshes 1d) — resample
+        # the daily series so the 1W / 1M timeframe buttons actually change the
+        # chart instead of returning an empty MISSING state.
+        if not bars and resolved_timeframe in {"1wk", "1mo"}:
+            daily = [
+                bar
+                for bar in market_repo.list_bars(resolved_ticker, "1d")
+                if _as_utc(bar.bar_time) <= now
+            ]
+            bars = _resample_bars(daily, resolved_timeframe)
         indicator_rows = IndicatorRepository(session).list_for(
             resolved_ticker, resolved_timeframe
         )
         usable_indicators = [
             row for row in indicator_rows if _as_utc(row.snapshot_time) <= now
         ]
+        # No indicators are stored for resampled timeframes — fall back to the
+        # latest daily snapshot so the indicator panel stays populated.
+        if not usable_indicators and resolved_timeframe != "1d":
+            usable_indicators = [
+                row
+                for row in IndicatorRepository(session).list_for(resolved_ticker, "1d")
+                if _as_utc(row.snapshot_time) <= now
+            ]
         # Only trust an indicator snapshot that has a backing (deduped) bar, so
         # the snapshot panel can never lead the chart with a stale row left over
         # from removed source data. Fall back to the latest usable row if none
@@ -302,6 +320,49 @@ def _live_response(
     )
     payload.setup_hint = None
     return payload
+
+
+_ResampledBar = namedtuple("_ResampledBar", "bar_time open high low close volume")
+
+
+def _resample_bars(daily: list, timeframe: str) -> list:
+    """Aggregate stored daily bars into weekly / monthly OHLCV candles.
+
+    Week buckets start Monday; month buckets on the 1st. Open = first day's open,
+    Close = last day's close, High/Low = extremes, Volume = sum. Deterministic and
+    offline — no provider call."""
+
+    ordered = sorted(daily, key=lambda bar: _as_utc(bar.bar_time))
+    buckets: dict = {}
+    order: list = []
+    for bar in ordered:
+        day = _as_utc(bar.bar_time).date()
+        if timeframe == "1wk":
+            key = day - timedelta(days=day.weekday())
+        else:  # 1mo
+            key = day.replace(day=1)
+        if key not in buckets:
+            buckets[key] = []
+            order.append(key)
+        buckets[key].append(bar)
+
+    out: list = []
+    for key in order:
+        group = buckets[key]
+        highs = [b.high for b in group if b.high is not None]
+        lows = [b.low for b in group if b.low is not None]
+        volumes = [b.volume for b in group if b.volume is not None]
+        out.append(
+            _ResampledBar(
+                bar_time=group[-1].bar_time,  # most recent day in the bucket
+                open=group[0].open,
+                high=max(highs) if highs else group[-1].close,
+                low=min(lows) if lows else group[-1].close,
+                close=group[-1].close,
+                volume=sum(volumes, Decimal("0")) if volumes else None,
+            )
+        )
+    return out
 
 
 def _normalize_ticker(ticker: str | None) -> str:
