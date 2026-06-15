@@ -563,6 +563,9 @@ export function SymbolCandlestickChart({
       // the wheel made Symbol Lab feel un-scrollable). Zoom only with Ctrl/⌘,
       // which is also what a trackpad pinch sends, so pinch-to-zoom still works.
       if (!event.ctrlKey && !event.metaKey) return;
+      // Ctrl/⌘+wheel is also the browser's page-zoom gesture — always suppress it
+      // over the chart (even at a zoom limit) so the whole UI never scales.
+      event.preventDefault();
       const current = visibleRef.current;
       const currentCount = clamp(current.count, minVisibleCount, maxVisibleCount);
       const scale = event.deltaY > 0 ? 1.18 : 0.84;
@@ -570,7 +573,6 @@ export function SymbolCandlestickChart({
         clamp(currentCount * scale, minVisibleCount, maxVisibleCount),
       );
       if (nextCount === currentCount) return;
-      event.preventDefault();
       const rect = stage.getBoundingClientRect();
       const anchorRatio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
       const currentStart = clamp(
