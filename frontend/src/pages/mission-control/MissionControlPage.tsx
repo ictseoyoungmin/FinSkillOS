@@ -4,6 +4,8 @@ import { AgentIngestPanel } from "@/features/agent/components/AgentIngestPanel";
 import { CapitalMapPanel } from "@/features/portfolio/components/CapitalMapPanel";
 import { ConstraintSummaryPanel } from "@/features/portfolio/components/ConstraintSummaryPanel";
 import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTimeline";
+import { MissionAssetChart } from "@/features/portfolio/components/MissionAssetChart";
+import { AllocationPie } from "@/features/portfolio/components/AllocationPie";
 import { MissionGoalTracker } from "@/features/portfolio/components/MissionGoalTracker";
 import { PortfolioEditorPanel } from "@/features/portfolio/components/PortfolioEditorPanel";
 import { PortfolioSnapshotPanel } from "@/features/portfolio/components/PortfolioSnapshotPanel";
@@ -63,6 +65,13 @@ export function MissionControlPage() {
         />
       ) : null}
       <SectionHeader eyebrow="FinSkillOS · Module" title="Mission Control" />
+      <div className="fso-mission-top-row" data-testid="mission-top-row">
+        <MissionAssetChart
+          equitySeries={payload.equitySeries}
+          realizedSeries={payload.realizedSeries}
+        />
+        <AllocationPie allocation={payload.allocation} />
+      </div>
       <div className="fso-mission-control-command-row">
         <div className="fso-mission-control-judgment">
           <JudgmentHeader judgment={payload.judgment} />

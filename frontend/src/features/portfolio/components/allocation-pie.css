@@ -1,0 +1,51 @@
+.fso-alloc {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.fso-alloc-svg {
+  width: 140px;
+  height: 140px;
+  flex: 0 0 auto;
+}
+.fso-alloc-center-top {
+  text-anchor: middle;
+  fill: var(--fso-text);
+  font-family: var(--fso-font-mono);
+  font-size: 18px;
+  font-weight: 800;
+}
+.fso-alloc-center-sub {
+  text-anchor: middle;
+  fill: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.fso-alloc-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 160px;
+  min-width: 160px;
+  display: grid;
+  gap: 4px;
+}
+.fso-alloc-legend li {
+  display: grid;
+  grid-template-columns: 10px auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+}
+.fso-alloc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+.fso-alloc-tk { color: var(--fso-text); font-weight: 700; }
+.fso-alloc-pct { color: var(--fso-text-muted); text-align: right; }
+.fso-alloc-val { color: var(--fso-text-muted-2); text-align: right; font-size: 10px; }

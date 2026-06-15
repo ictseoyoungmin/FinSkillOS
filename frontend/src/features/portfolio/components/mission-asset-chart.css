@@ -1,0 +1,36 @@
+.fso-asset-chart-toolbar {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fso-asset-chart-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-md);
+  background: var(--fso-bg-2, rgba(255, 255, 255, 0.02));
+}
+.fso-asset-seg-btn {
+  background: transparent;
+  border: none;
+  color: var(--fso-text-muted);
+  font-family: var(--fso-font-mono);
+  font-size: 11px;
+  padding: 4px 11px;
+  border-radius: var(--fso-radius-sm);
+  cursor: pointer;
+}
+.fso-asset-seg-btn.is-active {
+  background: color-mix(in srgb, var(--fso-cyan) 18%, transparent);
+  color: var(--fso-text);
+  border: 1px solid var(--fso-cyan-2);
+}
+.fso-asset-chart-empty {
+  font-size: 12px;
+  color: var(--fso-text-muted-2);
+  padding: 18px 4px;
+  text-align: center;
+}

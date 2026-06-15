@@ -77,6 +77,27 @@ export const missionControlFixture: MissionControlData = {
     { label: "Cloud / SaaS", weightPct: 14.6, tone: "info" },
     { label: "Macro Hedge", weightPct: 5.4, tone: "info" },
   ],
+  equitySeries: [
+    { date: "2026-05-19", value: "70120000" },
+    { date: "2026-05-26", value: "71540000" },
+    { date: "2026-06-02", value: "70980000" },
+    { date: "2026-06-09", value: "72650000" },
+    { date: "2026-06-15", value: "73420000" },
+  ],
+  realizedSeries: [
+    { date: "2026-05-19", value: "1850000" },
+    { date: "2026-05-26", value: "2640000" },
+    { date: "2026-06-02", value: "2410000" },
+    { date: "2026-06-09", value: "3380000" },
+    { date: "2026-06-15", value: "4120000" },
+  ],
+  allocation: [
+    { ticker: "NVDA", value: "15000000", weightPct: 20.4 },
+    { ticker: "TSLA", value: "12000000", weightPct: 16.3 },
+    { ticker: "AAPL", value: "9000000", weightPct: 12.3 },
+    { ticker: "MSFT", value: "7000000", weightPct: 9.5 },
+    { ticker: "AVGO", value: "5000000", weightPct: 6.8 },
+  ],
   challengeStatusCaption:
     "1억 KRW challenge active · 73.4% progress · challenge complete + early-stop state remain pending.",
   safetyCaption: "Read mode — Goal interpretation (not return forecast).",

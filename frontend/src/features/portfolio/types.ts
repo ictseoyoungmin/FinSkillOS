@@ -145,6 +145,17 @@ export interface MissionControlSystemStatus {
   guardCount: number;
 }
 
+export interface TimeseriesPoint {
+  date: string;
+  value: string;
+}
+
+export interface AllocationSlice {
+  ticker: string;
+  value: string;
+  weightPct: number;
+}
+
 export interface MissionControlData {
   generatedAt: string;
   systemStatus: MissionControlSystemStatus;
@@ -161,6 +172,9 @@ export interface MissionControlData {
   constraints?: PortfolioConstraint[];
   capitalMap: CapitalMapSlice[];
   themeMap: CapitalMapSlice[];
+  equitySeries?: TimeseriesPoint[];
+  realizedSeries?: TimeseriesPoint[];
+  allocation?: AllocationSlice[];
   challengeStatusCaption: string;
   safetyCaption: string;
   source: "fixture" | "live";
