@@ -22,6 +22,7 @@ __all__ = [
     "summarize_ticker_performance",
     "summarize_ticker_excursion",
     "summarize_overall_stats",
+    "realized_pnl_timeseries",
 ]
 
 # One closed lot: a portion of a position opened then closed (FIFO).
@@ -223,6 +224,37 @@ def summarize_overall_stats(session, account_id) -> dict:
     }
     stats.update(_close_stats(events))
     return stats
+
+
+def realized_pnl_timeseries(session, account_id, *, fx_rate=None) -> list[dict]:
+    """Cumulative realized P&L by close date — a single KRW-equivalent curve.
+
+    Each FIFO close is attributed to its close date; USD closes are converted at
+    ``fx_rate`` (default current USD/KRW), KR closes at 1, then summed cumulatively.
+    Returns ``[{"date": iso, "value": str}]`` ascending. Descriptive performance
+    trend (KRW-equiv at one rate — a trend aid, not exact per-day FX)."""
+
+    repo = TradeRepository(session)
+    tickers = {t.ticker for t in repo.list_for_account(account_id)}
+    if fx_rate is None:
+        from finskillos.agent.fx import usd_krw_rate
+
+        fx_rate = usd_krw_rate()
+    rate = Decimal(str(fx_rate))
+    daily: dict = defaultdict(lambda: Decimal("0"))
+    for ticker in tickers:
+        trades = repo.list_by_ticker(account_id, ticker)
+        mult = rate if _ticker_currency(trades) == "USD" else Decimal("1")
+        for event in _fifo_realized(trades)["events"]:
+            daily[event.close_date] += event.realized * mult
+    rows: list[dict] = []
+    cumulative = Decimal("0")
+    for day in sorted(daily):
+        cumulative += daily[day]
+        rows.append(
+            {"date": day.isoformat(), "value": str(cumulative.quantize(Decimal("0.01")))}
+        )
+    return rows
 
 
 def _sum(values) -> Decimal:

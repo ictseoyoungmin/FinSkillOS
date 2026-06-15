@@ -25,6 +25,7 @@ from api.schemas.common import (
     SystemStatus,
 )
 from api.schemas.mission_control import (
+    AllocationSlice,
     CapitalMapSlice,
     GoalTracker,
     MilestoneItem,
@@ -38,6 +39,7 @@ from api.schemas.mission_control import (
     PositionInput,
     PositionRow,
     SnapshotBaselineInput,
+    TimeseriesPoint,
 )
 from finskillos.config import get_settings
 from finskillos.db.repositories import (
@@ -358,6 +360,21 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
         residual_label="Unclassified theme",
     )
 
+    from finskillos.services.trade_analytics_service import realized_pnl_timeseries
+
+    equity_series = [
+        TimeseriesPoint(date=row.snapshot_date.isoformat(), value=str(row.total_value))
+        for row in sorted(
+            PortfolioRepository(session).list_for_account(account.id),
+            key=lambda row: row.snapshot_date,
+        )
+    ]
+    realized_series = [
+        TimeseriesPoint(**point)
+        for point in realized_pnl_timeseries(session, account.id)
+    ]
+    allocation = _allocation_from_positions(positions)
+
     progress_pct = goal_status.progress_pct.quantize(_PCT)
     return MissionControlResponse(
         generated_at=now.isoformat(),
@@ -402,12 +419,31 @@ def _build_live_mission_control(session: Session) -> MissionControlResponse:
         ),
         capital_map=capital_map,
         theme_map=theme_map,
+        equity_series=equity_series,
+        realized_series=realized_series,
+        allocation=allocation,
         challenge_status_caption=(
             f"1억 KRW challenge active · {progress_pct}% progress · "
             f"{goal_status.goal_mode} mode."
         ),
         safety_caption="Read mode — Goal interpretation (not return forecast).",
     )
+
+
+def _allocation_from_positions(positions) -> list[AllocationSlice]:
+    """Per-ticker portfolio share (largest first) for the allocation pie."""
+
+    total = sum((p.market_value for p in positions), Decimal("0"))
+    rows = sorted(positions, key=lambda p: p.market_value, reverse=True)
+    return [
+        AllocationSlice(
+            ticker=p.ticker,
+            value=str(p.market_value),
+            weight_pct=round(float(p.market_value / total * 100), 1) if total > 0 else 0.0,
+        )
+        for p in rows
+        if p.market_value and p.market_value > 0
+    ]
 
 
 def _position_row(p) -> PositionRow:

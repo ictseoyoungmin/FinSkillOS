@@ -240,6 +240,17 @@ def test_trade_stats_tool_registered() -> None:
     assert "read.trade_stats" in names
 
 
+def test_realized_pnl_timeseries_is_cumulative() -> None:
+    from finskillos.services.trade_analytics_service import realized_pnl_timeseries
+
+    session = _session()
+    account = _seed(session)  # NVDA buys 06-01, sell 06-05 → realized 240 on 06-05
+    ts = realized_pnl_timeseries(session, account.id, fx_rate=Decimal("1"))
+    assert ts and ts[-1]["date"] == "2026-06-05"
+    # USD realized 240 × fx_rate 1 → cumulative 240.
+    assert Decimal(ts[-1]["value"]) == Decimal("240")
+
+
 def test_ticker_summary_exposes_currency() -> None:
     session = _session()
     account = _seed(session)

@@ -98,11 +98,24 @@ def sync_toss_portfolio(
 
     positions_total = sum((row.market_value for row in rows), Decimal("0"))
     total = positions_total + (cash or Decimal("0"))
-    PortfolioRepository(session).update_latest_baseline(
-        account.id,
+    # Append (upsert) today's snapshot so portfolio value accumulates a daily
+    # series for the Mission asset-value graph, instead of overwriting one row.
+    repo = PortfolioRepository(session)
+    prior = repo.latest(account.id)
+    prior_peak = prior.peak_value if prior and prior.peak_value else Decimal("0")
+    peak = max(prior_peak, total)
+    drawdown = (
+        ((total - peak) / peak * Decimal("100")).quantize(Decimal("0.01"))
+        if peak > 0
+        else Decimal("0")
+    )
+    repo.upsert_snapshot(
+        account_id=account.id,
         snapshot_date=datetime.now(tz=timezone.utc).date(),
         total_value=total,
-        cash_value=cash,
+        cash_value=cash or Decimal("0"),
+        peak_value=peak,
+        drawdown_pct=drawdown,
     )
     session.commit()
     folder = sync_holdings_folder(session, account_id=account.id)

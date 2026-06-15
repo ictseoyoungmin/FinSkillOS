@@ -12,11 +12,13 @@ from api.fixtures._common import FIXTURE_TIMESTAMP, D
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.mission_control import (
+    AllocationSlice,
     CapitalMapSlice,
     GoalTracker,
     MilestoneItem,
     MissionControlResponse,
     PortfolioSnapshotPanel,
+    TimeseriesPoint,
 )
 
 
@@ -102,6 +104,29 @@ def mission_control_fixture() -> MissionControlResponse:
             CapitalMapSlice(label="Robotaxi", weight_pct=D("13.8"), tone="warning"),
             CapitalMapSlice(label="Cloud / SaaS", weight_pct=D("14.6"), tone="info"),
             CapitalMapSlice(label="Macro Hedge", weight_pct=D("5.4"), tone="info"),
+        ],
+        equity_series=[
+            TimeseriesPoint(date=d, value=v)
+            for d, v in (
+                ("2026-05-19", "70120000"), ("2026-05-26", "71540000"),
+                ("2026-06-02", "70980000"), ("2026-06-09", "72650000"),
+                ("2026-06-15", "73420000"),
+            )
+        ],
+        realized_series=[
+            TimeseriesPoint(date=d, value=v)
+            for d, v in (
+                ("2026-05-19", "1850000"), ("2026-05-26", "2640000"),
+                ("2026-06-02", "2410000"), ("2026-06-09", "3380000"),
+                ("2026-06-15", "4120000"),
+            )
+        ],
+        allocation=[
+            AllocationSlice(ticker="NVDA", value="15000000", weight_pct=20.4),
+            AllocationSlice(ticker="TSLA", value="12000000", weight_pct=16.3),
+            AllocationSlice(ticker="AAPL", value="9000000", weight_pct=12.3),
+            AllocationSlice(ticker="MSFT", value="7000000", weight_pct=9.5),
+            AllocationSlice(ticker="AVGO", value="5000000", weight_pct=6.8),
         ],
         challenge_status_caption=(
             "1억 KRW challenge active · 73.4% progress · "

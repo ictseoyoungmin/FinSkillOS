@@ -76,6 +76,21 @@ class CapitalMapSlice(CamelModel):
     tone: Literal["info", "warning", "danger", "neutral", "success"] = "info"
 
 
+class TimeseriesPoint(CamelModel):
+    """One (date, value) point on an asset / realized-P&L curve."""
+
+    date: str
+    value: str
+
+
+class AllocationSlice(CamelModel):
+    """One holding's share of the portfolio (for the allocation pie)."""
+
+    ticker: str
+    value: str
+    weight_pct: float
+
+
 class PortfolioReconciliation(CamelModel):
     """Coherence check: does the snapshot total equal positions + cash? (Slice 157)"""
 
@@ -168,6 +183,12 @@ class MissionControlResponse(CamelModel):
     constraints: list[PortfolioConstraint] = Field(default_factory=list)
     capital_map: list[CapitalMapSlice]
     theme_map: list[CapitalMapSlice] = Field(default_factory=list)
+    # Asset-value graph (daily portfolio total) + cumulative realized-P&L curve
+    # (KRW-equiv) + per-ticker allocation for the pie. Frontend buckets the daily
+    # series to weekly / monthly views.
+    equity_series: list[TimeseriesPoint] = Field(default_factory=list)
+    realized_series: list[TimeseriesPoint] = Field(default_factory=list)
+    allocation: list[AllocationSlice] = Field(default_factory=list)
     challenge_status_caption: str = Field(
         default=(
             "Challenge active · descriptive view only · "
