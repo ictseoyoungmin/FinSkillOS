@@ -550,14 +550,16 @@ export function SymbolCandlestickChart({
     if (!stage) return undefined;
     const handleWheel = (event: WheelEvent) => {
       if (!totalCount) return;
+      // Plain wheel scrolls the page (the chart is large and central — trapping
+      // the wheel made Symbol Lab feel un-scrollable). Zoom only with Ctrl/⌘,
+      // which is also what a trackpad pinch sends, so pinch-to-zoom still works.
+      if (!event.ctrlKey && !event.metaKey) return;
       const current = visibleRef.current;
       const currentCount = clamp(current.count, minVisibleCount, maxVisibleCount);
       const scale = event.deltaY > 0 ? 1.18 : 0.84;
       const nextCount = Math.round(
         clamp(currentCount * scale, minVisibleCount, maxVisibleCount),
       );
-      // At a zoom limit the wheel changes nothing — don't trap it, so the page
-      // keeps scrolling normally instead of feeling stuck over the chart.
       if (nextCount === currentCount) return;
       event.preventDefault();
       const rect = stage.getBoundingClientRect();
@@ -963,7 +965,7 @@ export function SymbolCandlestickChart({
           )}
         </div>
         <p className="fso-linechart-caption">
-          Snapshot candles + volume · overlays are descriptive · no execution
+          Snapshot candles + volume · drag to pan · ⌘/Ctrl + scroll to zoom · no execution
         </p>
       </div>
     </Panel>
