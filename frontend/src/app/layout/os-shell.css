@@ -18,6 +18,12 @@
      viewport. */
   overflow-y: auto;
   overflow-x: hidden;
+  /* This is the `1fr` grid row. Grid items default to `min-height: auto`, which
+     lets a tall page grow the track past its track size — the grid then overflows
+     `.fso-os-shell` (height:100vh; overflow:hidden) and the bottom is clipped
+     instead of scrolling. `min-height: 0` lets the row shrink to its track so the
+     `overflow-y: auto` above actually scrolls the page. */
+  min-height: 0;
   padding: 20px 16px 16px;
   scroll-padding-top: 20px;
   width: 100%;
