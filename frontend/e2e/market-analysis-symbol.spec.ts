@@ -7,15 +7,14 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(page.getByTestId("market-kernel-page")).toBeVisible();
     await expect(page.getByTestId("symbol-universe-rail")).toBeVisible();
     await expect(page.getByTestId("market-kernel-chart-panel")).toBeVisible();
-    await expect(page.getByTestId("market-kernel-line-chart")).toBeVisible();
+    // Market Kernel now shares the candlestick chart with Symbol Lab.
+    await expect(page.getByTestId("chart-panel")).toBeVisible();
+    await expect(page.getByTestId("symbol-candle-svg")).toBeVisible();
     await expect(page.getByTestId("market-kernel-data-state")).toBeVisible();
     await expect(page.getByTestId("market-kernel-data-state")).toContainText(
       /Coverage/i,
     );
     await expect(page.getByTestId("ticker-search")).toBeVisible();
-    await expect(
-      page.getByTestId("market-kernel-timeframes"),
-    ).toBeVisible();
     await expect(
       page.getByTestId("market-kernel-safety-caption"),
     ).toContainText("Stored data only");
@@ -29,25 +28,17 @@ test.describe("Slice 13.7 — Market Kernel / Analysis Workspace / Symbol Lab", 
     await expect(header).toContainText("TSLA");
   });
 
-  test("Market Kernel chart exposes a keyboard value readout (a11y)", async ({
+  test("Market Kernel uses the shared candlestick chart with timeframe buttons", async ({
     page,
   }) => {
     await page.goto("/market-kernel");
-    const chart = page.getByTestId("market-kernel-line-chart");
+    const chart = page.getByTestId("chart-panel");
     await expect(chart).toBeVisible();
-    const plot = chart.getByRole("img");
-    await expect(plot).toHaveAttribute("aria-label", /Line chart/);
-    // Focusing the plot reveals the value tooltip at the latest point.
-    await plot.focus();
-    const tooltip = chart.locator(".fso-linechart-tooltip");
-    await expect(tooltip).toBeVisible();
-    const firstReadout = (await tooltip.innerText()).trim();
-    // Arrow keys move the crosshair to an earlier point with a new value.
-    await plot.press("ArrowLeft");
-    await expect(tooltip).toBeVisible();
-    await expect
-      .poll(async () => (await tooltip.innerText()).trim() !== firstReadout)
-      .toBeTruthy();
+    const svg = page.getByTestId("symbol-candle-svg");
+    await expect(svg).toBeVisible();
+    // The chart provides its own 1d / 1w / 1mo buttons; switching keeps it rendered.
+    await chart.getByRole("button", { name: "1w", exact: true }).click();
+    await expect(svg).toBeVisible();
   });
 
   test("Analysis Workspace renders Index Lab table + strongest entries", async ({

@@ -14,6 +14,10 @@ export interface SymbolCandlestickChartProps {
   bars: SymbolRecentBar[];
   selectedTimeframe: string;
   onTimeframeChange: (timeframe: string) => void;
+  /** Restrict the timeframe buttons (by API value). Defaults to the full set. */
+  timeframes?: readonly string[];
+  /** Panel test id (defaults to "symbol-candlestick-chart"). */
+  testId?: string;
 }
 
 interface OverlayConfig {
@@ -302,7 +306,12 @@ export function SymbolCandlestickChart({
   bars,
   selectedTimeframe,
   onTimeframeChange,
+  timeframes,
+  testId = "symbol-candlestick-chart",
 }: SymbolCandlestickChartProps) {
+  const visibleTimeframes = timeframes
+    ? TIMEFRAMES.filter((item) => timeframes.includes(item.value))
+    : TIMEFRAMES;
   const [menuOpen, setMenuOpen] = useState(false);
   const [enabled, setEnabled] = useState({
     ema20: true,
@@ -593,7 +602,7 @@ export function SymbolCandlestickChart({
       title={`Candles · ${header.ticker}`}
       badge={header.timeframe.toUpperCase()}
       badgeTone="info"
-      testId="symbol-candlestick-chart"
+      testId={testId}
     >
       <div className="fso-symbol-chart-header">
         <div>
@@ -616,7 +625,7 @@ export function SymbolCandlestickChart({
 
       <div className="fso-symbol-chart-toolbar">
         <div className="fso-symbol-timeframes" aria-label="Chart timeframe">
-          {TIMEFRAMES.map((item) => (
+          {visibleTimeframes.map((item) => (
             <button
               key={item.value}
               type="button"

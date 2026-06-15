@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMarketKernel } from "@/features/market/api";
-import { CandlePanel } from "@/features/market/components/CandlePanel";
+import { SymbolCandlestickChart } from "@/features/symbol/components/SymbolCandlestickChart";
 import { EventOverlayPanel } from "@/features/market/components/EventOverlayPanel";
 import { IndicatorSnapshotPanel } from "@/features/market/components/IndicatorSnapshotPanel";
 import { MarketKernelInterpretation } from "@/features/market/components/MarketKernelInterpretation";
@@ -33,6 +33,13 @@ const TIMEFRAME_API: Record<(typeof TIMEFRAMES)[number], string> = {
   "1W": "1wk",
   "1M": "1mo",
 };
+// The shared chart emits API timeframe values; map them back to the page's labels.
+const API_TO_TIMEFRAME: Record<string, (typeof TIMEFRAMES)[number]> = {
+  "1d": "1D",
+  "1wk": "1W",
+  "1mo": "1M",
+};
+const CHART_TIMEFRAMES = ["1d", "1wk", "1mo"] as const;
 
 export function MarketKernelPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -96,27 +103,6 @@ export function MarketKernelPage() {
               initialValue={payload.header.ticker}
               onSubmit={selectSymbol}
             />
-            <div
-              className="fso-market-kernel-timeframes"
-              role="tablist"
-              data-testid="market-kernel-timeframes"
-              aria-label="Chart timeframe"
-            >
-              {TIMEFRAMES.map((tf) => (
-                <button
-                  key={tf}
-                  type="button"
-                  role="tab"
-                  aria-selected={tf === timeframe}
-                  className={`fso-market-kernel-tf ${
-                    tf === timeframe ? "fso-market-kernel-tf--active" : ""
-                  }`.trim()}
-                  onClick={() => setTimeframe(tf)}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
             <AddToCollectionFolder ticker={payload.header.ticker} />
           </div>
 
@@ -129,7 +115,22 @@ export function MarketKernelPage() {
           ) : null}
 
           <div data-testid="market-kernel-chart-panel">
-            <CandlePanel header={payload.header} bars={payload.bars} />
+            <SymbolCandlestickChart
+              header={{
+                ticker: payload.header.ticker,
+                timeframe: payload.header.timeframe,
+                latestClose: payload.header.latestClose,
+                latestTime: payload.header.latestTime,
+                dataStatus: payload.header.dataStatus,
+              }}
+              bars={payload.bars}
+              selectedTimeframe={TIMEFRAME_API[timeframe]}
+              onTimeframeChange={(value) =>
+                setTimeframe(API_TO_TIMEFRAME[value] ?? "1D")
+              }
+              timeframes={CHART_TIMEFRAMES}
+              testId="chart-panel"
+            />
           </div>
           {/* v3 Phase 8 (182): integrated interpretation + watchpoints flow under
               the chart (the short column) to fill the space beside the taller

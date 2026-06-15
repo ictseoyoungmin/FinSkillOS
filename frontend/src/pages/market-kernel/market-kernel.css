@@ -132,34 +132,6 @@
   min-width: 240px;
 }
 
-.fso-market-kernel-timeframes {
-  display: inline-flex;
-  gap: 4px;
-  background: var(--fso-bg-2);
-  border: 1px solid var(--fso-line);
-  border-radius: var(--fso-radius-md);
-  padding: 4px;
-}
-
-.fso-market-kernel-tf {
-  background: transparent;
-  border: none;
-  color: var(--fso-text-muted);
-  font-family: var(--fso-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  padding: 6px 12px;
-  border-radius: var(--fso-radius-sm);
-  cursor: pointer;
-}
-
-.fso-market-kernel-tf--active {
-  background: color-mix(in srgb, var(--fso-cyan) 18%, transparent);
-  color: var(--fso-text);
-  border: 1px solid var(--fso-cyan-2);
-}
-
 .fso-kernel-chart-header {
   display: flex;
   align-items: baseline;
