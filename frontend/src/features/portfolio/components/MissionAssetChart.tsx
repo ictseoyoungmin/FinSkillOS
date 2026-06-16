@@ -48,9 +48,11 @@ export function MissionAssetChart({
   equitySeries = [],
   realizedSeries = [],
 }: MissionAssetChartProps) {
-  // Default to whichever series actually has a curve to show.
+  // Default to whichever series has more points — the equity history is sparse
+  // until daily snapshots accrue, so realized usually wins and shows a real curve
+  // instead of a 2-point straight line.
   const [metric, setMetric] = useState<Metric>(
-    equitySeries.length >= 3 ? "asset" : "realized",
+    equitySeries.length > realizedSeries.length ? "asset" : "realized",
   );
   const [period, setPeriod] = useState<Period>("W");
 

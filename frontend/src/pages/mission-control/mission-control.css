@@ -33,7 +33,7 @@
 
 .fso-mission-control-command-row {
   display: grid;
-  grid-template-columns: minmax(280px, 0.72fr) minmax(420px, 1.08fr) minmax(300px, 0.72fr);
+  grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.1fr);
   gap: 14px;
   align-items: stretch;
 }

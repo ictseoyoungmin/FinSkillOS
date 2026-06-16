@@ -10,7 +10,6 @@ import { PortfolioEditorPanel } from "@/features/portfolio/components/PortfolioE
 import { PortfolioSnapshotPanel } from "@/features/portfolio/components/PortfolioSnapshotPanel";
 import { TossHoldingsPanel } from "@/features/portfolio/components/TossHoldingsPanel";
 import { missionControlFixture } from "@/mocks/fixtures/missionControl.fixture";
-import { formatKrw, formatPct } from "@/shared/lib/format";
 import {
   Badge,
   EmptyState,
@@ -47,12 +46,6 @@ export function MissionControlPage() {
 
   const payload = data ?? missionControlFixture;
   const state = buildMissionControlState(payload);
-  const generatedLabel = payload.generatedAt.slice(0, 16).replace("T", " ");
-  const largestLabel = payload.portfolio.largestPositionTicker
-    ? `${payload.portfolio.largestPositionTicker} · ${formatPct(
-        payload.portfolio.largestPositionWeightPct,
-      )}`
-    : "—";
 
   return (
     <div className="fso-mission-control" data-testid="mission-control-page">
@@ -74,30 +67,6 @@ export function MissionControlPage() {
       <div className="fso-mission-control-command-row">
         <div className="fso-mission-control-judgment">
           <JudgmentHeader judgment={payload.judgment} />
-        </div>
-        <div className="fso-mission-control-brief" data-testid="mission-live-brief">
-          <div>
-            <span>Source</span>
-            <strong>{state.sourceLabel}</strong>
-            <small>
-              {state.sourceDetail} · {generatedLabel}
-            </small>
-          </div>
-          <div>
-            <span>Total</span>
-            <strong>{formatKrw(payload.portfolio.totalValue)}</strong>
-            <small>Cash {formatKrw(payload.portfolio.cashValue)}</small>
-          </div>
-          <div>
-            <span>Largest</span>
-            <strong>{largestLabel}</strong>
-            <small>{payload.portfolio.positionCount} positions</small>
-          </div>
-          <div>
-            <span>Guards</span>
-            <strong>{payload.systemStatus.guardCount}</strong>
-            <small>{payload.goal.goalMode}</small>
-          </div>
         </div>
         <div className="fso-mission-control-primary">
           <div data-testid="mission-goal-tracker">
