@@ -14,7 +14,6 @@ import {
   type BadgeTone,
   ConflictsPanel,
   DriversPanel,
-  InterpretationPanel,
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
@@ -101,13 +100,9 @@ export function ControlRoomGrid({
           {data.evidenceGraph && data.evidenceGraph.nodes.length > 0 ? (
             <EvidenceGraphPanel graph={data.evidenceGraph} />
           ) : null}
-          <InterpretationPanel
-            bullets={[
-              data.interpretation.verdict,
-              data.interpretation.whyItMatters,
-              data.interpretation.whatRemainsUncertain,
-            ]}
-          />
+          {/* v4.2 (270): the substantive InterpretationCards above already carry
+              the specific read; the meta verdict/why/uncertain panel was duplicate
+              density on the overview, so it's dropped here. */}
           <WatchpointsPanel
             watchpoints={data.watchpoints.map((watchpoint) => ({
               label: watchpoint.title,
