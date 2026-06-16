@@ -20,6 +20,9 @@ export interface LineChartProps {
   /** SVG viewBox dimensions; defaults match the v4.1 mockup. */
   width?: number;
   height?: number;
+  /** Format a value for the readout/tooltip/table. Defaults to ≤2 decimals;
+   *  callers showing whole-unit amounts pass an integer formatter. */
+  valueFormat?: (value: number) => string;
 }
 
 const PADDING_X = 28;
@@ -82,6 +85,7 @@ export function LineChart({
   testId,
   width = 720,
   height = 240,
+  valueFormat = formatValue,
 }: LineChartProps) {
   const innerW = width - PADDING_X * 2;
   const innerH = height - PADDING_TOP - PADDING_BOTTOM;
@@ -176,7 +180,7 @@ export function LineChart({
     active === null || activePoints.length === 0
       ? ""
       : `${activeLabel}: ${activePoints
-          .map((p) => `${p.name} ${formatValue(p.value)}`)
+          .map((p) => `${p.name} ${valueFormat(p.value)}`)
           .join(", ")}`;
   const tooltipLeft = active === null ? 0 : (xForIndex(active) / width) * 100;
 
@@ -260,7 +264,7 @@ export function LineChart({
             <strong>{activeLabel}</strong>
             {activePoints.map((p) => (
               <span key={p.name}>
-                {p.name}: {formatValue(p.value)}
+                {p.name}: {valueFormat(p.value)}
               </span>
             ))}
           </div>
@@ -295,7 +299,7 @@ export function LineChart({
                 <th scope="row">{label}</th>
                 {normalisedSeries.map((s) => (
                   <td key={s.name}>
-                    {s.numeric[i] == null ? "—" : formatValue(s.numeric[i] as number)}
+                    {s.numeric[i] == null ? "—" : valueFormat(s.numeric[i] as number)}
                   </td>
                 ))}
               </tr>
