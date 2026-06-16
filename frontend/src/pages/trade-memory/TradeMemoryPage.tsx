@@ -164,11 +164,18 @@ export function TradeMemoryPage() {
           />
           {isLive ? <TradeAnalyticsPanel /> : null}
           <PerformanceByRegime buckets={payload.performanceByRegime} />
-          <PerformanceBySectorTheme
-            buckets={payload.performanceBySectorTheme}
-          />
+          {/* v4.2 (276): sector/theme + mistake breakdowns are empty until
+              entries carry those tags — gate them so the column stays dense and
+              they reappear automatically once populated. */}
+          {payload.performanceBySectorTheme.length > 0 ? (
+            <PerformanceBySectorTheme
+              buckets={payload.performanceBySectorTheme}
+            />
+          ) : null}
           <PerformanceByStrategy buckets={payload.performanceByStrategy} />
-          <MistakeFrequencyPanel rows={payload.mistakeFrequency} />
+          {payload.mistakeFrequency.length > 0 ? (
+            <MistakeFrequencyPanel rows={payload.mistakeFrequency} />
+          ) : null}
         </div>
         <div className="fso-trade-memory-col">
           <InterpretationPanel
