@@ -42,8 +42,11 @@ test.describe("Slice 13.8 — Risk Firewall / Mission Control / System Ops", () 
     await expect(page.getByTestId("mission-evidence-digest")).toContainText(
       /Drivers|Review/i,
     );
-    await expect(page.getByTestId("mission-capital-map-sector")).toBeVisible();
-    await expect(page.getByTestId("mission-capital-map-theme")).toBeVisible();
+    // v4.2: the asset chart + allocation pie lead the tab (replacing the
+    // all-unclassified sector/theme exposure panels).
+    await expect(page.getByTestId("mission-top-row")).toBeVisible();
+    await expect(page.getByTestId("mission-asset-chart")).toBeVisible();
+    await expect(page.getByTestId("mission-allocation")).toBeVisible();
     await expect(page.getByTestId("mission-control-caption")).toContainText(
       "challenge",
     );

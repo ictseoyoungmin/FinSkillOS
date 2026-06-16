@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMissionControl } from "@/features/portfolio/api";
 import { AgentIngestPanel } from "@/features/agent/components/AgentIngestPanel";
-import { CapitalMapPanel } from "@/features/portfolio/components/CapitalMapPanel";
 import { ConstraintSummaryPanel } from "@/features/portfolio/components/ConstraintSummaryPanel";
 import { MilestoneTimeline } from "@/features/portfolio/components/MilestoneTimeline";
 import { MissionAssetChart } from "@/features/portfolio/components/MissionAssetChart";
@@ -119,18 +118,6 @@ export function MissionControlPage() {
           detail={state.dbDetail}
           tone={state.dbTone}
         />
-        <StateItem
-          label="Sector exposure"
-          value={state.capitalLabel}
-          detail={state.capitalDetail}
-          tone={state.capitalTone}
-        />
-        <StateItem
-          label="Theme exposure"
-          value={state.themeLabel}
-          detail={state.themeDetail}
-          tone={state.themeTone}
-        />
       </div>
       <div className="fso-mission-control-main-grid">
         <div className="fso-mission-control-stack">
@@ -151,8 +138,6 @@ export function MissionControlPage() {
           <div data-testid="mission-milestone-timeline">
             <MilestoneTimeline milestones={payload.milestones} />
           </div>
-        </div>
-        <div className="fso-mission-control-stack">
           {payload.goal.earlyStopTriggered ? (
             <Panel
               title="Challenge Complete"
@@ -166,27 +151,6 @@ export function MissionControlPage() {
               </p>
             </Panel>
           ) : null}
-          <div
-            className="fso-mission-control-exposure-grid"
-            data-testid="mission-exposure-grid"
-          >
-            <div data-testid="mission-capital-map-sector">
-              <CapitalMapPanel
-                title="Sector Exposure"
-                badge={state.capitalLabel}
-                slices={payload.capitalMap}
-                testId="capital-map"
-              />
-            </div>
-            <div data-testid="mission-capital-map-theme-shell">
-              <CapitalMapPanel
-                title="Theme Exposure"
-                badge={state.themeLabel}
-                slices={payload.themeMap}
-                testId="mission-capital-map-theme"
-              />
-            </div>
-          </div>
         </div>
       </div>
       {/* v3 Phase 8 (183): the portfolio editor is a wide full-width row (a
