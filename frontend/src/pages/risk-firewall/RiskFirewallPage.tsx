@@ -9,7 +9,6 @@ import {
   ConflictsPanel,
   DriversPanel,
   EmptyState,
-  InterpretationPanel,
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
@@ -94,13 +93,8 @@ export function RiskFirewallPage() {
               safetyCaption={payload.safetyCaption}
             />
           </div>
-          <InterpretationPanel
-            bullets={[
-              payload.interpretation.verdict,
-              payload.interpretation.whyItMatters,
-              payload.interpretation.whatRemainsUncertain,
-            ]}
-          />
+          {/* v4.2 (274): the Integrated Interpretation verdict duplicates the
+              judgment header; why/uncertain were meta. Watchpoints stay. */}
           <WatchpointsPanel
             watchpoints={payload.watchpoints.map((watchpoint) => ({
               label: watchpoint.title,

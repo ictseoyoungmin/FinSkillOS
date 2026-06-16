@@ -13,7 +13,6 @@ import { newsIntelligenceFixture } from "@/mocks/fixtures/newsIntelligence.fixtu
 import {
   Badge,
   EmptyState,
-  InterpretationPanel,
   SafetyCaption,
   SectionHeader,
   StatusPill,
@@ -62,10 +61,8 @@ export function NewsIntelligencePage() {
           drivers={payload.drivers}
           conflicts={payload.conflicts}
         />
-        <InterpretationPanel
-          bullets={payload.integratedInterpretation}
-          testId="news-interpretation-panel"
-        />
+        {/* v4.2 (274): dropped the meta interpretation list ("30 stored articles",
+            "RSS ingestion stores summaries…") — data-source boilerplate, not insight. */}
       </div>
       <SourceCoverageBand coverage={coverage} source={payload.source} />
       <div className="fso-news-intel-row fso-news-intel-main-row">
