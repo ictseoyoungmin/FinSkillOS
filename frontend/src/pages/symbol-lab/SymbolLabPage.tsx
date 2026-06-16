@@ -28,12 +28,10 @@ import {
   Badge,
   ConflictsPanel,
   DriversPanel,
-  InterpretationPanel,
   JudgmentHeader,
   Panel,
   SafetyCaption,
   SectionHeader,
-  WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui";
 import "@/pages/market-kernel/market-kernel.css";
@@ -285,25 +283,15 @@ export function SymbolLabPage() {
             />
           )}
           <SymbolRecentBarsTable bars={payload.recentBars} />
+          {/* v4.2 (271): one consolidated watchpoints/interpretation block.
+              The Integrated Interpretation + review Watchpoints panels were generic
+              meta boilerplate ("Symbol Lab is reading…", "Refresh timestamp") with
+              no symbol-specific insight, so they're dropped — SymbolWatchpoints
+              keeps the symbol read + the required safety caption. */}
           <SymbolWatchpoints
             watchpoints={payload.watchpoints}
             interpretation={payload.interpretation}
             safetyCaption={payload.safetyCaption}
-          />
-          {/* v3 Phase 8 (182): integrated interpretation + review watchpoints flow
-              in the main column to fill space beside the taller context rail. */}
-          <InterpretationPanel
-            bullets={[
-              payload.integratedInterpretation.verdict,
-              payload.integratedInterpretation.whyItMatters,
-              payload.integratedInterpretation.whatRemainsUncertain,
-            ]}
-          />
-          <WatchpointsPanel
-            watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
-              label: watchpoint.title,
-              description: watchpoint.note,
-            }))}
           />
         </div>
         <aside className="fso-symbol-lab-side" aria-label="Position + Risk context">
