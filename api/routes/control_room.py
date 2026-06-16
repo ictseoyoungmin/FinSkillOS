@@ -664,10 +664,8 @@ def _build_ticker_strip(
         ticker = (position.ticker or "").upper()
         if not ticker or not position.quantity:
             continue
-        bars = market.list_bars(ticker, DEFAULT_TIMEFRAME)
-        if bars:
-            last = bars[-1].close
-            prev = bars[-2].close if len(bars) >= 2 else None
+        last, prev = _last_two_closes(market.list_bars(ticker, DEFAULT_TIMEFRAME))
+        if last is not None:
             change, direction = _ticker_change(last, prev)
             snapshot = indicators.latest_for(ticker, DEFAULT_TIMEFRAME)
             sub = _posture_subscore(last, snapshot)
@@ -702,11 +700,9 @@ def _build_ticker_strip(
     for ticker in _ticker_universe(vm):
         if ticker in held_tickers:
             continue  # already shown from the position
-        bars = market.list_bars(ticker, DEFAULT_TIMEFRAME)
-        if not bars:
+        last, prev = _last_two_closes(market.list_bars(ticker, DEFAULT_TIMEFRAME))
+        if last is None:
             continue
-        last = bars[-1].close
-        prev = bars[-2].close if len(bars) >= 2 else None
         change, direction = _ticker_change(last, prev)
         snapshot = indicators.latest_for(ticker, DEFAULT_TIMEFRAME)
         sub = _posture_subscore(last, snapshot)
@@ -729,13 +725,29 @@ def _build_ticker_strip(
     return rows, score
 
 
+def _finite(value) -> bool:
+    """True for a usable Decimal — guards against provider NaN bars (comparing a
+    Decimal('NaN') raises decimal.InvalidOperation)."""
+
+    return isinstance(value, Decimal) and value.is_finite()
+
+
+def _last_two_closes(bars) -> tuple[Decimal | None, Decimal | None]:
+    """Latest + prior *finite* close (skips NaN / missing bars from provider gaps)."""
+
+    closes = [bar.close for bar in bars if _finite(bar.close)]
+    if not closes:
+        return None, None
+    return closes[-1], (closes[-2] if len(closes) >= 2 else None)
+
+
 def _ticker_change(last: Decimal, prev: Decimal | None) -> tuple[str, str]:
     """Percent change vs the prior session's close → (label, direction).
 
     Descriptive only — a stored price move, not a signal. Falls back to a neutral
     dash when no prior close is stored."""
 
-    if prev is None or prev == 0:
+    if not _finite(last) or not _finite(prev) or prev == 0:
         return "—", "flat"
     delta = last - prev
     if delta == 0:
@@ -771,6 +783,8 @@ def _logo_url(ticker: str, token: str) -> str | None:
 
 
 def _format_whole(value: Decimal) -> str:
+    if not _finite(value):
+        return "—"
     return f"{int(value.to_integral_value(rounding='ROUND_HALF_UP')):,}"
 
 
@@ -787,18 +801,19 @@ def _posture_subscore(close: Decimal, snapshot) -> float | None:
         return None
     parts: list[tuple[float, float]] = []  # (weight, value 0–100)
 
+    ema_20, ema_60, ema_120 = snapshot.ema_20, snapshot.ema_60, snapshot.ema_120
     stack_conditions: list[bool] = []
-    if snapshot.ema_20 is not None:
-        stack_conditions.append(close > snapshot.ema_20)
-    if snapshot.ema_20 is not None and snapshot.ema_60 is not None:
-        stack_conditions.append(snapshot.ema_20 > snapshot.ema_60)
-    if snapshot.ema_60 is not None and snapshot.ema_120 is not None:
-        stack_conditions.append(snapshot.ema_60 > snapshot.ema_120)
+    if _finite(close) and _finite(ema_20):
+        stack_conditions.append(close > ema_20)
+    if _finite(ema_20) and _finite(ema_60):
+        stack_conditions.append(ema_20 > ema_60)
+    if _finite(ema_60) and _finite(ema_120):
+        stack_conditions.append(ema_60 > ema_120)
     if stack_conditions:
         share = sum(1 for cond in stack_conditions if cond) / len(stack_conditions)
         parts.append((0.5, share * 100))
 
-    if snapshot.rsi_14 is not None:
+    if _finite(snapshot.rsi_14):
         parts.append((0.3, float(max(Decimal("0"), min(Decimal("100"), snapshot.rsi_14)))))
 
     trend_value = {"bullish": 100.0, "neutral": 50.0, "bearish": 0.0}.get(
@@ -831,8 +846,14 @@ def _ticker_universe(vm: ControlRoomViewModel) -> tuple[str, ...]:
 
 def _market_tape(session) -> list[MarketTapePoint]:
     repo = MarketRepository(session)
-    portfolio_bars = repo.list_bars("SPY", DEFAULT_TIMEFRAME)[-11:]
-    benchmark_bars = repo.list_bars("QQQ", DEFAULT_TIMEFRAME)[-11:]
+    # Skip non-finite (provider NaN) closes so the normalized series never yields a
+    # NaN — MarketTapePoint requires finite floats and would otherwise 500.
+    portfolio_bars = [
+        b for b in repo.list_bars("SPY", DEFAULT_TIMEFRAME) if _finite(b.close)
+    ][-11:]
+    benchmark_bars = [
+        b for b in repo.list_bars("QQQ", DEFAULT_TIMEFRAME) if _finite(b.close)
+    ][-11:]
     if len(portfolio_bars) < 2 or len(benchmark_bars) < 2:
         return []
     limit = min(len(portfolio_bars), len(benchmark_bars))

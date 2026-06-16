@@ -332,6 +332,32 @@ def test_posture_subscore_blends_indicators() -> None:
     assert _posture_subscore(Decimal("100"), None) is None
 
 
+def test_ticker_strip_handles_nan_bars() -> None:
+    """Provider gaps can store a Decimal('NaN') close; comparing it raises
+    decimal.InvalidOperation. The strip must skip NaN bars, not 500."""
+
+    from types import SimpleNamespace
+
+    from api.routes.control_room import (
+        _format_whole,
+        _last_two_closes,
+        _ticker_change,
+    )
+
+    nan = Decimal("NaN")
+    assert _ticker_change(nan, Decimal("100")) == ("—", "flat")
+    assert _ticker_change(Decimal("110"), nan) == ("—", "flat")
+    assert _format_whole(nan) == "—"
+    # NaN bars are skipped; the last two finite closes are used.
+    bars = [
+        SimpleNamespace(close=Decimal("100")),
+        SimpleNamespace(close=nan),
+        SimpleNamespace(close=Decimal("110")),
+    ]
+    assert _last_two_closes(bars) == (Decimal("110"), Decimal("100"))
+    assert _last_two_closes([SimpleNamespace(close=nan)]) == (None, None)
+
+
 def test_ticker_change_computes_percent_vs_prior_close() -> None:
     from api.routes.control_room import _ticker_change
 

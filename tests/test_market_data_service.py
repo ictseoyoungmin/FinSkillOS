@@ -529,3 +529,18 @@ def test_import_bars_bypasses_adapter(db_session: Session) -> None:
     written_again = service.import_bars(bars)
     assert written_again == 5
     assert MarketRepository(db_session).count_for("PLTR", "1d") == 5
+
+
+def test_bar_ohlc_is_finite_rejects_nan() -> None:
+    from types import SimpleNamespace
+
+    from finskillos.services.market_data_service import _bar_ohlc_is_finite
+
+    ok = SimpleNamespace(
+        open=Decimal("10"), high=Decimal("11"), low=Decimal("9"), close=Decimal("10")
+    )
+    nan = SimpleNamespace(
+        open=Decimal("10"), high=Decimal("11"), low=Decimal("9"), close=Decimal("NaN")
+    )
+    assert _bar_ohlc_is_finite(ok) is True
+    assert _bar_ohlc_is_finite(nan) is False

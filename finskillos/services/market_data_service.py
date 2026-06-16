@@ -20,6 +20,7 @@ returns data. It does not emit trading directives.
 from __future__ import annotations
 
 import logging
+import math
 import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
@@ -51,6 +52,24 @@ def _as_utc(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value
+
+
+def _bar_ohlc_is_finite(bar) -> bool:
+    """False if any OHLC is None or non-finite (provider NaN) — such bars must
+    not be persisted (a stored NaN crashes Decimal comparisons downstream)."""
+    for value in (bar.open, bar.high, bar.low, bar.close):
+        if value is None:
+            return False
+        if isinstance(value, Decimal):
+            if not value.is_finite():
+                return False
+        else:
+            try:
+                if not math.isfinite(float(value)):
+                    return False
+            except (TypeError, ValueError):
+                return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -227,6 +246,11 @@ class MarketDataService:
             new_bars = [
                 b for b in new_bars if _as_utc(b.bar_time) > latest_existing
             ]
+
+        # Drop bars with a non-finite (NaN) OHLC — providers emit them on data
+        # gaps, and a stored NaN crashes downstream Decimal comparisons and
+        # finite-float schemas (Control Room ticker strip / market tape).
+        new_bars = [b for b in new_bars if _bar_ohlc_is_finite(b)]
 
         if not new_bars:
             return TickerRefreshResult(
