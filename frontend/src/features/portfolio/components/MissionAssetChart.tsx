@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { LineChart } from "@/shared/charts/LineChart";
-import { toNumber } from "@/shared/lib/format";
+import { formatKrw, toNumber } from "@/shared/lib/format";
 import { Panel } from "@/shared/ui";
 import type { TimeseriesPoint } from "@/features/portfolio/types";
 
@@ -62,6 +62,18 @@ export function MissionAssetChart({
   const labels = points.map((p) => p.date.slice(5));
   const values = points.map((p) => toNumber(p.value));
 
+  // Change vs the previous stored day (the daily series, before period bucketing).
+  const prevPoint = source.length >= 2 ? source[source.length - 2] : null;
+  const lastPoint = source.length >= 1 ? source[source.length - 1] : null;
+  const delta =
+    prevPoint && lastPoint
+      ? toNumber(lastPoint.value) - toNumber(prevPoint.value)
+      : null;
+  const prevValue = prevPoint ? toNumber(prevPoint.value) : 0;
+  const deltaPct =
+    delta !== null && prevValue !== 0 ? (delta / Math.abs(prevValue)) * 100 : null;
+  const deltaTone = delta === null || delta === 0 ? "flat" : delta > 0 ? "up" : "down";
+
   return (
     <Panel
       title="자산 변화"
@@ -95,6 +107,21 @@ export function MissionAssetChart({
           ))}
         </div>
       </div>
+      {delta !== null ? (
+        <div className={`fso-asset-delta fso-asset-delta--${deltaTone}`} data-testid="mission-asset-delta">
+          <strong>
+            {delta >= 0 ? "+" : "−"}
+            {formatKrw(Math.abs(delta))}
+          </strong>
+          {deltaPct !== null ? (
+            <span>
+              {deltaPct >= 0 ? "+" : "−"}
+              {Math.abs(deltaPct).toFixed(2)}%
+            </span>
+          ) : null}
+          <small>직전 {prevPoint?.date.slice(5)} 대비</small>
+        </div>
+      ) : null}
       {points.length >= 2 ? (
         <LineChart
           labels={labels}

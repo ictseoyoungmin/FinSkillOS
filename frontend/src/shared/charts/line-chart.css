@@ -98,23 +98,19 @@
 }
 
 .fso-linechart-axislabels {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  grid-auto-flow: column;
+  position: relative;
+  height: 14px;
+  margin-top: 2px;
   font-family: var(--fso-font-mono);
   font-size: 9px;
   color: var(--fso-text-muted-2);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 0 4px;
-  overflow: hidden;
+  letter-spacing: 0.08em;
 }
 
 .fso-linechart-axislabels > span {
-  text-align: center;
+  position: absolute;
+  transform: translateX(-50%);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .fso-linechart-caption {

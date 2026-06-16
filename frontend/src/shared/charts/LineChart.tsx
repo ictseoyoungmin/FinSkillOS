@@ -120,6 +120,21 @@ export function LineChart({
 
   const clampIndex = (i: number) => Math.max(0, Math.min(pointCount - 1, i));
 
+  // Sparse, point-positioned x-axis ticks — rendering every label crushes a
+  // many-point series into an illegible strip.
+  const tickTarget = Math.min(6, pointCount);
+  const xTicks =
+    pointCount <= 1
+      ? pointCount === 1 && labels[0] != null
+        ? [0]
+        : []
+      : Array.from({ length: tickTarget }, (_, k) =>
+          Math.round((k * (pointCount - 1)) / (tickTarget - 1)),
+        ).filter(
+          (idx, position, arr) =>
+            arr.indexOf(idx) === position && labels[idx] != null,
+        );
+
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const host = plotRef.current;
     if (!host || pointCount === 0) return;
@@ -251,8 +266,10 @@ export function LineChart({
         ) : null}
       </div>
       <div className="fso-linechart-axislabels" aria-hidden>
-        {labels.map((label) => (
-          <span key={label}>{label}</span>
+        {xTicks.map((i) => (
+          <span key={i} style={{ left: `${(xForIndex(i) / width) * 100}%` }}>
+            {labels[i]}
+          </span>
         ))}
       </div>
       <span className="fso-sr-only" aria-live="polite">

@@ -28,6 +28,19 @@
   color: var(--fso-text);
   border: 1px solid var(--fso-cyan-2);
 }
+.fso-asset-delta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+.fso-asset-delta strong { font-size: 16px; font-weight: 800; }
+.fso-asset-delta span { font-size: 12px; font-weight: 700; }
+.fso-asset-delta small { font-size: 10px; color: var(--fso-text-muted-2); }
+.fso-asset-delta--up strong, .fso-asset-delta--up span { color: var(--fso-green); }
+.fso-asset-delta--down strong, .fso-asset-delta--down span { color: var(--fso-red); }
+.fso-asset-delta--flat strong, .fso-asset-delta--flat span { color: var(--fso-text-muted); }
+
 .fso-asset-chart-empty {
   font-size: 12px;
   color: var(--fso-text-muted-2);
