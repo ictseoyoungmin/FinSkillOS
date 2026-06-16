@@ -11,7 +11,6 @@ import {
   Badge,
   ConflictsPanel,
   EmptyState,
-  InterpretationPanel,
   Panel,
   SafetyCaption,
   SectionHeader,
@@ -85,9 +84,8 @@ export function CatalystWatchPage() {
           />
         </div>
         <div className="fso-catalyst-watch-col">
-          <InterpretationPanel
-            bullets={payload.integratedInterpretation}
-          />
+          {/* v4.2 (275): the Integrated Interpretation came through empty
+              (no verdict/why/uncertain) — a dead panel. Watchpoints stay. */}
           <WatchpointsPanel
             watchpoints={payload.watchpoints}
             title="Watchpoints"

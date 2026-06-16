@@ -34,7 +34,6 @@ import {
   ConflictsPanel,
   DriversPanel,
   EmptyState,
-  InterpretationPanel,
   JudgmentHeader,
   Panel,
   SafetyCaption,
@@ -552,13 +551,9 @@ export function SystemOpsPage() {
           >
             {payload.safetyCaption}
           </p>
-          <InterpretationPanel
-            bullets={[
-              payload.interpretation.verdict,
-              payload.interpretation.whyItMatters,
-              payload.interpretation.whatRemainsUncertain,
-            ]}
-          />
+          {/* v4.2 (275): the Integrated Interpretation came through empty
+              (no verdict/why/uncertain) — a dead panel. The substantive System
+              Health / Freshness / Protocols panels + Watchpoints carry the read. */}
           <WatchpointsPanel
             watchpoints={payload.watchpoints.map((watchpoint) => ({
               label: watchpoint.title,
