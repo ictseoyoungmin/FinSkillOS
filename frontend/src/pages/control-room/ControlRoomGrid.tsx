@@ -1,6 +1,6 @@
 import { EvidenceGraphPanel } from "@/features/control-room/components/EvidenceGraphPanel";
+import { AllocationPie } from "@/features/portfolio/components/AllocationPie";
 import { GoalProgressCard } from "@/features/portfolio/components/GoalProgressCard";
-import { PortfolioExposureCard } from "@/features/portfolio/components/PortfolioExposureCard";
 import { ReviewQueueCard } from "@/features/portfolio/components/ReviewQueueCard";
 import { OperatingStateHero } from "@/features/regime/components/OperatingStateHero";
 import { RegimeStateVector } from "@/features/regime/components/RegimeStateVector";
@@ -74,7 +74,7 @@ export function ControlRoomGrid({
           aria-label="Mission · Portfolio · Review"
         >
           <GoalProgressCard mission={data.mission} />
-          <PortfolioExposureCard slices={data.portfolioExposure} />
+          <AllocationPie allocation={data.allocation} />
           <ReviewQueueCard items={data.reviewQueue} />
         </section>
 

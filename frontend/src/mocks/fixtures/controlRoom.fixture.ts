@@ -124,6 +124,13 @@ export const controlRoomFixture: ControlRoomData = {
     { label: "Mega-Cap Tech", weightPct: 16.8 },
     { label: "Cash", weightPct: 22.2 },
   ],
+  allocation: [
+    { ticker: "NVDA", value: "15000000", weightPct: 20.4 },
+    { ticker: "TSLA", value: "12000000", weightPct: 16.3 },
+    { ticker: "AAPL", value: "9000000", weightPct: 12.3 },
+    { ticker: "MSFT", value: "7000000", weightPct: 9.5 },
+    { ticker: "AVGO", value: "5000000", weightPct: 6.8 },
+  ],
   reviewQueue: [
     {
       title: "Weekly review · Week 20",

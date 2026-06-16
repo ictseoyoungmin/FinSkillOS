@@ -21,6 +21,7 @@ from api.schemas.common import (
     JudgmentHeader,
     SystemStatus,
 )
+from api.schemas.mission_control import AllocationSlice
 
 
 class TickerStripItem(CamelModel):
@@ -212,6 +213,9 @@ class ControlRoomResponse(CamelModel):
     mission: MissionProgress
     operating_state: OperatingState
     portfolio_exposure: list[PortfolioExposureSlice]
+    # Per-ticker allocation (sectors are unpopulated, so the sector exposure above
+    # is all "Unclassified") — used for the holdings composition pie.
+    allocation: list[AllocationSlice] = Field(default_factory=list)
     review_queue: list[ReviewQueueItem]
     interpretation_cards: list[str]
     risk_firewall: list[GuardSummaryVM]

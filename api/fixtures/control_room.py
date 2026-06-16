@@ -18,6 +18,7 @@ from api.fixtures._common import FIXTURE_TIMESTAMP
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import (
+    AllocationSlice,
     CatalystSummary,
     ControlRoomDataState,
     ControlRoomResponse,
@@ -186,6 +187,13 @@ def control_room_fixture() -> ControlRoomResponse:
             PortfolioExposureSlice(label="EV / Robotaxi", weight_pct=Decimal("18.4")),
             PortfolioExposureSlice(label="Mega-Cap Tech", weight_pct=Decimal("16.8")),
             PortfolioExposureSlice(label="Cash", weight_pct=Decimal("22.2")),
+        ],
+        allocation=[
+            AllocationSlice(ticker="NVDA", value="15000000", weight_pct=20.4),
+            AllocationSlice(ticker="TSLA", value="12000000", weight_pct=16.3),
+            AllocationSlice(ticker="AAPL", value="9000000", weight_pct=12.3),
+            AllocationSlice(ticker="MSFT", value="7000000", weight_pct=9.5),
+            AllocationSlice(ticker="AVGO", value="5000000", weight_pct=6.8),
         ],
         review_queue=[
             ReviewQueueItem(

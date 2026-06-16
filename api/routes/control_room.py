@@ -18,6 +18,7 @@ from api.fixtures import control_room_fixture
 from api.fixtures._v42 import conflicts, drivers, interpretation, judgment, watchpoints
 from api.schemas.common import SystemStatus
 from api.schemas.control_room import (
+    AllocationSlice,
     CatalystSummary,
     ControlRoomDataState,
     ControlRoomResponse,
@@ -113,6 +114,7 @@ def _live_response(
     payload.mission = _mission(vm)
     payload.operating_state = _operating_state(vm)
     payload.portfolio_exposure = _portfolio_exposure(vm)
+    payload.allocation = _control_allocation(session)
     payload.review_queue = _review_queue(vm)
     payload.interpretation_cards = _interpretation_cards(vm)
     payload.risk_firewall = [
@@ -755,6 +757,23 @@ def _ticker_change(last: Decimal, prev: Decimal | None) -> tuple[str, str]:
     pct = ((delta / prev) * Decimal("100")).quantize(Decimal("0.1"))
     direction = "up" if delta > 0 else "down"
     return f"{pct:+.1f}%", direction
+
+
+def _control_allocation(session) -> list[AllocationSlice]:
+    """Per-ticker allocation (largest first) for the holdings composition pie —
+    the sector exposure is all 'Unclassified' (positions carry no sector)."""
+
+    positions = _held_positions(session)
+    total = sum((p.market_value for p in positions), Decimal("0"))
+    return [
+        AllocationSlice(
+            ticker=p.ticker,
+            value=str(p.market_value),
+            weight_pct=round(float(p.market_value / total * 100), 1) if total > 0 else 0.0,
+        )
+        for p in positions
+        if p.market_value and p.market_value > 0
+    ]
 
 
 def _held_positions(session) -> list:

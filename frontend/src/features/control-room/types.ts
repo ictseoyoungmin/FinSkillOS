@@ -1,4 +1,5 @@
 import type {
+  AllocationSlice,
   MissionProgress,
   PortfolioExposureSlice,
   ReviewQueueItem,
@@ -70,6 +71,7 @@ export interface ControlRoomData {
   mission: MissionProgress;
   operatingState: OperatingState;
   portfolioExposure: PortfolioExposureSlice[];
+  allocation?: AllocationSlice[];
   reviewQueue: ReviewQueueItem[];
   interpretationCards: string[];
   riskFirewall: GuardSummary[];
