@@ -130,6 +130,7 @@ export function MissionAssetChart({
           series={[{ name: metric, values, tone: "primary" }]}
           caption="누적 · KRW(원화 환산) · 서술용, 예측 아님"
           testId="mission-asset-line"
+          height={200}
         />
       ) : (
         <p className="fso-asset-chart-empty" data-testid="mission-asset-empty">

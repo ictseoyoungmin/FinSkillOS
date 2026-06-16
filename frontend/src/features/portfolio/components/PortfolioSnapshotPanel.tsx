@@ -33,10 +33,7 @@ export function PortfolioSnapshotPanel({
       testId="portfolio-snapshot"
     >
       <dl className="fso-portfolio-snapshot-grid">
-        <div>
-          <dt>Total</dt>
-          <dd>{formatKrw(snapshot.totalValue)}</dd>
-        </div>
+        {/* Total lives in the Goal Tracker (CURRENT) — don't repeat it here. */}
         <div>
           <dt>Cash</dt>
           <dd>{formatKrw(snapshot.cashValue)}</dd>
