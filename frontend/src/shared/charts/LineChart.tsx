@@ -198,6 +198,7 @@ export function LineChart({
           className="fso-linechart-svg"
           viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none"
+          style={{ height }}
           aria-hidden
         >
           <line
