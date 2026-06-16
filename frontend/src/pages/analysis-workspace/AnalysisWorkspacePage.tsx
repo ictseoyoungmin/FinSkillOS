@@ -9,7 +9,6 @@ import {
   Badge,
   ConflictsPanel,
   DriversPanel,
-  InterpretationPanel,
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
@@ -82,15 +81,9 @@ export function AnalysisWorkspacePage() {
             tickers={payload.missingData}
             setupHint={payload.setupHint}
           />
-          {/* v3 Phase 8 (182): interpretation + watchpoints flow in the (shorter)
-              side rail to fill space beside the taller universe table. */}
-          <InterpretationPanel
-            bullets={[
-              payload.interpretation.verdict,
-              payload.interpretation.whyItMatters,
-              payload.interpretation.whatRemainsUncertain,
-            ]}
-          />
+          {/* v4.2 (273): dropped the meta Integrated Interpretation panel
+              ("Analysis Workspace is using partial DB-backed evidence…"); the
+              operational Watchpoints below stay. */}
           <WatchpointsPanel
             watchpoints={payload.watchpoints.map((watchpoint) => ({
               label: watchpoint.title,

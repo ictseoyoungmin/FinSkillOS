@@ -15,12 +15,10 @@ import {
   ConflictsPanel,
   DriversPanel,
   EmptyState,
-  InterpretationPanel,
   JudgmentHeader,
   SafetyCaption,
   SectionHeader,
   StatusPill,
-  WatchpointsPanel,
 } from "@/shared/ui";
 import type { BadgeTone } from "@/shared/ui/Badge";
 import type { MarketKernelData } from "@/features/market/kernel-types";
@@ -132,22 +130,10 @@ export function MarketKernelPage() {
               testId="chart-panel"
             />
           </div>
-          {/* v3 Phase 8 (182): integrated interpretation + watchpoints flow under
-              the chart (the short column) to fill the space beside the taller
-              indicator/event side rail instead of leaving a void below. */}
-          <InterpretationPanel
-            bullets={[
-              payload.integratedInterpretation.verdict,
-              payload.integratedInterpretation.whyItMatters,
-              payload.integratedInterpretation.whatRemainsUncertain,
-            ]}
-          />
-          <WatchpointsPanel
-            watchpoints={payload.reviewWatchpoints.map((watchpoint) => ({
-              label: watchpoint.title,
-              description: watchpoint.note,
-            }))}
-          />
+          {/* v4.2 (273): the meta Integrated Interpretation + review Watchpoints
+              ("Market Kernel is reading…", "Refresh timestamp") were boilerplate;
+              MarketKernelInterpretation in the side rail carries the substantive
+              read + safety caption. */}
         </div>
         <aside className="fso-market-kernel-side" aria-label="Market interpretation">
           <IndicatorSnapshotPanel indicators={payload.indicators} />
