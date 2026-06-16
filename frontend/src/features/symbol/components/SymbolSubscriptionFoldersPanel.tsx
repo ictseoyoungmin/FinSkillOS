@@ -80,7 +80,10 @@ export function SymbolSubscriptionFoldersPanel({
                   </button>
                 ) : null}
                 {folder.members.length > 0 ? (
-                  <p>{folder.members.map((member) => member.ticker).join(" · ")}</p>
+                  <details className="fso-symbol-folder-members">
+                    <summary>심볼 목록</summary>
+                    <p>{folder.members.map((member) => member.ticker).join(" · ")}</p>
+                  </details>
                 ) : null}
               </li>
             );

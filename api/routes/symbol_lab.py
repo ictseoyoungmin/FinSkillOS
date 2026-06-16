@@ -689,7 +689,9 @@ def _live_symbol_news(session, ticker: str) -> list[SymbolNewsItem]:
     from finskillos.services.news_service import NewsService
 
     symbol = (ticker or "").strip().upper()
-    rows = NewsService(session).list_articles_for_ticker(symbol, limit=12)
+    # Side-rail summary — the dedicated News tab carries the full list, so cap the
+    # most-recent items here to keep the panel compact.
+    rows = NewsService(session).list_articles_for_ticker(symbol, limit=5)
     items: list[SymbolNewsItem] = []
     for article, impacts in rows:
         # Use the impact scored for this ticker (else the strongest) for the

@@ -50,6 +50,32 @@
   line-height: 1.45;
 }
 
+/* Collapse the per-folder symbol list so the panel stays compact (the System
+   folder alone has 22 symbols). Counts stay visible; symbols are on demand. */
+.fso-symbol-folder-members {
+  grid-column: 1 / -1;
+}
+.fso-symbol-folder-members > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--fso-text-muted-2);
+  font-family: var(--fso-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+}
+.fso-symbol-folder-members > summary::-webkit-details-marker {
+  display: none;
+}
+.fso-symbol-folder-members > summary::before {
+  content: "▸ ";
+}
+.fso-symbol-folder-members[open] > summary::before {
+  content: "▾ ";
+}
+.fso-symbol-folder-members p {
+  margin-top: 4px;
+}
+
 .fso-symbol-folder-row button,
 .fso-symbol-folder-form button {
   padding: 5px 9px;
