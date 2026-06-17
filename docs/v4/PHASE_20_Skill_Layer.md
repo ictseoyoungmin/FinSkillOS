@@ -239,6 +239,8 @@ with a declarative classification table + audit. **EVENT** — `EVENT.SCORE`
 declarative classification skill (20.4, reframed after the empty interpretation
 scaffold was removed). **Skill Catalog** auto-derives RISK + REGIME + EVENT. The
 **agent** answers "which skill/regime rule fired" from the audit. Dead scaffold
-removed. Open follow-ups (optional): wire RISK.CONCENTRATION_HHI into the live
-ladder; route regime/event scoring through the registry for a unified runner if a
-non-lossy result type is added; per-tab audit panels beyond Risk Firewall.
+removed. RISK.CONCENTRATION_HHI is now live (9th risk skill, slice 306). "Why this
+regime" (the classification rule id) is surfaced on the Analysis Workspace regime
+panel (slice 307). Open follow-ups (optional): route regime/event scoring through
+the registry for a unified runner if a non-lossy result type is added; extend the
+"why" affordance to other regime surfaces (Control Room operating state).
