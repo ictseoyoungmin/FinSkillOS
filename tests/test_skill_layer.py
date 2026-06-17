@@ -21,7 +21,21 @@ from finskillos.skills import (
     SkillSpec,
     run_skill,
 )
+from finskillos.skills.library.concentration_hhi_skill import (
+    CONCENTRATION_HHI_SKILL,
+)
 from finskillos.skills.library.drawdown_skill import DRAWDOWN_SKILL
+
+
+def _conc_ctx(positions, total) -> SkillContext:
+    return SkillContext(
+        values={
+            "positions": [
+                {"ticker": t, "market_value": Decimal(str(mv))} for t, mv in positions
+            ],
+            "total_value": Decimal(str(total)),
+        }
+    )
 
 
 def _guard_input(dd, peak, total) -> GuardInput:
@@ -148,3 +162,53 @@ def test_drawdown_skill_result_passes_guard_forbidden_scan():
     # which raises if any leaks buy/sell wording.
     for dd, peak, total in PARITY_CASES:
         run_skill(DRAWDOWN_SKILL, _skill_ctx(dd, peak, total))
+
+
+# --- RISK.CONCENTRATION_HHI (slice 284) ----------------------------------
+
+
+def test_concentration_diversified_passes():
+    # 5 equal 20% names → HHI 0.20 ≤ 0.25, max 0.20 ≤ 0.5 → PASS.
+    result, _ = run_skill(
+        CONCENTRATION_HHI_SKILL,
+        _conc_ctx([("A", 20), ("B", 20), ("C", 20), ("D", 20), ("E", 20)], 100),
+    )
+    assert result.fired_rule_ids == ("RISK.CONCENTRATION_HHI-001",)
+    assert result.status == "PASS"
+    assert result.evidence["hhi"] == Decimal("0.2000")
+
+
+def test_concentration_high_hhi_warns():
+    # 40/35/25 → HHI 0.345 > 0.25, max 0.40 ≤ 0.5 → HHI-high WARN (-002).
+    result, _ = run_skill(
+        CONCENTRATION_HHI_SKILL, _conc_ctx([("A", 40), ("B", 35), ("C", 25)], 100)
+    )
+    assert result.fired_rule_ids == ("RISK.CONCENTRATION_HHI-002",)
+    assert result.status == "WARN"
+    assert result.risk_level == "YELLOW"
+    assert result.evidence["hhi"] == Decimal("0.3450")
+
+
+def test_concentration_single_name_over_half_warns():
+    # 60/40 → max 0.60 > 0.5 → single-name WARN (-003), checked before HHI.
+    result, _ = run_skill(CONCENTRATION_HHI_SKILL, _conc_ctx([("A", 60), ("B", 40)], 100))
+    assert result.fired_rule_ids == ("RISK.CONCENTRATION_HHI-003",)
+    assert result.status == "WARN"
+    assert result.evidence["top_ticker"] == "A"
+
+
+def test_concentration_fallback_when_no_positions():
+    result, record = run_skill(CONCENTRATION_HHI_SKILL, _conc_ctx([], 0))
+    assert result.fired_rule_ids == ("RISK.CONCENTRATION_HHI-000",)
+    assert result.status == "INFO"
+    assert record.risk_level == "UNKNOWN"
+
+
+def test_concentration_copy_passes_forbidden_scan():
+    for positions, total in [
+        ([("A", 20), ("B", 20), ("C", 20), ("D", 20), ("E", 20)], 100),
+        ([("A", 40), ("B", 35), ("C", 25)], 100),
+        ([("A", 60), ("B", 40)], 100),
+        ([], 0),
+    ]:
+        run_skill(CONCENTRATION_HHI_SKILL, _conc_ctx(positions, total))

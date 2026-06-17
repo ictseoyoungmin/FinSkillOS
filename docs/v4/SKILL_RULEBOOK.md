@@ -140,8 +140,11 @@ applied:
    guard, kept in lockstep (parity-tested). status/risk_level are unchanged; only
    the descriptive copy + Rule IDs are finer (ORANGE→-004, RED→-005). The
    skill is the source of truth and the guard follows it.
-2. **Concentration → HHI.** Add METRIC-015's Herfindahl index + max-weight to the
-   concentration skill alongside the current sector bands. *(in progress — slice
-   284)*
+2. **Concentration → HHI.** ✅ **Done (slice 284).** New skill
+   `RISK.CONCENTRATION_HHI` computes the Herfindahl index (∑wᵢ²) + max single-name
+   weight from positions and classifies per METRIC-015 (max_weight>0.5 →
+   single-name WARN -003; hhi>0.25 → HHI-high WARN -002; else PASS -001; no
+   positions → fallback -000). Authored skill-first (no prior guard equivalent);
+   a live guard counterpart follows at the 20.2 service swap.
 
 Both are good "edit the spec, not the code" demonstrations once approved.
