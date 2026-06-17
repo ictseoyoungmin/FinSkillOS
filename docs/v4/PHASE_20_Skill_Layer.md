@@ -219,8 +219,10 @@ trail change accordingly — with no edit to engine/service/route code. That is
 v1's `Skills.md` promise, restored on top of the v4.x engine.
 
 ---
-Status: 20.0–20.2c done (slices 280–294) — the **RISK domain is fully realized**:
-all 8 guards are declarative skills, live through the runner, with the Applied
-Skill Rules audit surfaced on the cockpit. Next arc: 20.3 (regime classifier as a
-`REGIME.*` skill family — larger, has conflict resolution), 20.4 (interpretation
-as `NEWS.*`/`SIGNAL.*` skills), 20.x (auto-derived Skill Catalog + agent read-tool).
+Status: 20.0–20.2c + 20.3a + Skill Catalog done (slices 280–297). The **RISK
+domain is fully realized** (8 declarative skills, live, audited, surfaced); REGIME
+is in the Skill Layer via the classification seam; the **Skill Catalog**
+(`docs/v4/SKILL_CATALOG.md`) auto-derives from the registries. Next: 20.3b
+(convert the regime `_classify_state` ladder declaratively + route the regime read
+path through the registry), 20.4 (interpretation as `NEWS.*`/`SIGNAL.*` skills),
+agent read-tool ("which skills/rules fired for this verdict").
