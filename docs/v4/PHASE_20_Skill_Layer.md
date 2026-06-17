@@ -161,11 +161,22 @@ or the agent can answer "*which rule produced this?*" without re-running.
   boundaries + the missing-data case, and an **audit test** (fired Rule IDs +
   safety). Additive — live path untouched. *(This is the slice built alongside
   this doc.)*
-- **20.1 — Migrate the remaining 7 guards** into the skill library, each behind a
-  parity test; introduce `run_all()` aggregation mirroring `RiskGuardReport`.
-- **20.2 — Switch `RiskGuardService` to the skill runner** (one swap, parity
-  suite green), and surface the **Applied Skill Rules** audit on the Risk
-  Firewall tab (it already renders evidence panels — feed them the fired Rule IDs).
+- **20.1 — RISK registry via the Strangler-Fig seam.** ✅ **Done (slice 285).**
+  Rather than rewrite all 7 remaining guards before going live, the registry runs
+  every guard *now*: `RISK.DRAWDOWN` declarative + 7 `GuardBackedSkill` seams
+  (`guard_adapter.py`) wrapping each guard's `evaluate`, in the legacy ladder
+  order. `SkillRegistry` is polymorphic (spec or seam); `run_all` produces the
+  unified results + audit. Each guard converts to a declarative `SkillSpec` behind
+  the seam incrementally, parity-gated. (`RISK.CONCENTRATION_HHI` from slice 284
+  is an extra declarative skill, not yet in the live 8.)
+- **20.2 — `RiskGuardService` runs through the registry.** ✅ **Done (slice 286).**
+  `_run_all_guards` reimplemented over the registry (SkillResult → GuardResult by
+  canonical name); `evaluate()` byte-for-byte unchanged → parity-safe. New
+  `applied_rules(account_id)` surfaces the **Applied Skill Rules** audit
+  (SkillRunRecord per skill) — ready to feed the Risk Firewall panel.
+- **20.2b — (next) Risk Firewall "Applied Skill Rules" panel** — route + schema +
+  UI wiring `applied_rules` into the cockpit; convert the 7 seam guards to
+  declarative specs incrementally behind the seam.
 - **20.3 — Express the regime classifier as a Skill family** (`REGIME.*`),
   reusing `regime_rules` thresholds + `RULE_VERSION`; conflict_resolver becomes a
   skill-composition step.
@@ -194,4 +205,6 @@ trail change accordingly — with no edit to engine/service/route code. That is
 v1's `Skills.md` promise, restored on top of the v4.x engine.
 
 ---
-Status: 20.0 prototype built alongside this doc. 20.1+ queued.
+Status: 20.0–20.2 done (slices 280–286) — the RISK domain runs live through the
+Skill Layer with an audit trail. Next: 20.2b (audit panel + convert seam guards
+to declarative), then 20.3 (regime), 20.4 (interpretation), 20.x (catalog).
