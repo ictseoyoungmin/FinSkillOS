@@ -1,0 +1,110 @@
+"""Phase 20.1 — the RISK registry runs all eight guards through the Skill Layer.
+
+Parity for the guard-backed seam is exact by construction (the skill calls the
+guard), but we still assert it end-to-end: the registry's results match running
+the guards directly, in the same order, and every run produces an audit record.
+"""
+
+from __future__ import annotations
+
+import uuid
+from decimal import Decimal
+
+from finskillos.guards import (
+    cash_ratio_guard,
+    concentration_guard,
+    drawdown_guard,
+    event_risk_guard,
+    goal_guard,
+    overheat_guard,
+    regime_guard,
+    single_position_guard,
+)
+from finskillos.guards.base import GuardInput, PositionRiskInput
+from finskillos.skills.risk_registry import (
+    SKILL_TO_GUARD_NAME,
+    build_risk_registry,
+    context_from_guard_input,
+)
+
+_LADDER = [
+    cash_ratio_guard,
+    single_position_guard,
+    concentration_guard,
+    drawdown_guard,
+    goal_guard,
+    regime_guard,
+    overheat_guard,
+    event_risk_guard,
+]
+
+
+def _guard_input() -> GuardInput:
+    return GuardInput(
+        account_id=uuid.uuid4(),
+        total_value=Decimal("50000000"),
+        cash_value=Decimal("3000000"),
+        target_value=Decimal("100000000"),
+        peak_value=Decimal("55000000"),
+        drawdown_pct=Decimal("-9.1"),
+        positions=(
+            PositionRiskInput("AAA", Decimal("12000000"), sector="Tech"),
+            PositionRiskInput("BBB", Decimal("8000000"), sector="Tech"),
+        ),
+        regime="HEALTHY_BULL",
+        regime_risk_level="GREEN",
+        decision_mode="SELECTIVE_ATTACK",
+        goal_progress_pct=Decimal("47"),
+    )
+
+
+def test_registry_runs_eight_skills_in_ladder_order():
+    registry = build_risk_registry()
+    results, records = registry.run_all(context_from_guard_input(_guard_input()))
+    assert len(results) == 8
+    assert len(records) == 8
+    # Order mirrors the legacy ladder.
+    assert [r.skill_id for r in results] == [
+        "RISK.CASH_RATIO",
+        "RISK.SINGLE_POSITION",
+        "RISK.SECTOR_CONCENTRATION",
+        "RISK.DRAWDOWN",
+        "RISK.GOAL_PROTECTION",
+        "RISK.REGIME_RISK",
+        "RISK.OVERHEAT_ENTRY",
+        "RISK.EVENT_RISK",
+    ]
+
+
+def test_registry_results_match_running_guards_directly():
+    gi = _guard_input()
+    registry = build_risk_registry()
+    results, _ = registry.run_all(context_from_guard_input(gi))
+    for skill_result, guard_module in zip(results, _LADDER, strict=True):
+        guard_result = guard_module.evaluate(gi)
+        assert skill_result.status == guard_result.status
+        assert skill_result.risk_level == guard_result.risk_level
+        assert skill_result.title == guard_result.title
+        assert skill_result.message == guard_result.message
+        assert skill_result.watch_next == guard_result.watch_next
+        assert skill_result.evidence == guard_result.evidence
+
+
+def test_every_skill_has_a_guard_name_mapping():
+    registry = build_risk_registry()
+    for skill in registry.all():
+        assert skill.skill_id in SKILL_TO_GUARD_NAME
+
+
+def test_audit_records_carry_fired_rule_ids():
+    registry = build_risk_registry()
+    _results, records = registry.run_all(context_from_guard_input(_guard_input()))
+    for record in records:
+        assert record.fired_rule_ids  # non-empty
+        assert record.ran_at is not None
+    # The declarative drawdown skill fires a real ladder rule id; the seam ones
+    # report a synthetic <skill>-RUN id until they are converted.
+    drawdown = next(r for r in records if r.skill_id == "RISK.DRAWDOWN")
+    assert drawdown.fired_rule_ids[0].startswith("RISK.DRAWDOWN-")
+    cash = next(r for r in records if r.skill_id == "RISK.CASH_RATIO")
+    assert cash.fired_rule_ids == ("RISK.CASH_RATIO-RUN",)

@@ -58,8 +58,16 @@ def run_skill(
 
     # One safety contract for every skill, enforced before the result leaves.
     assert_skill_safe(result)
+    return result, audit_record(result, now=now)
 
-    record = SkillRunRecord(
+
+def audit_record(
+    result: SkillResult, *, now: datetime | None = None
+) -> SkillRunRecord:
+    """Build the audit-trail row for a result — shared by declarative skills and
+    the guard-backed seam so the 'Applied Skill Rules' log is uniform."""
+
+    return SkillRunRecord(
         skill_id=result.skill_id,
         version=result.version,
         fired_rule_ids=result.fired_rule_ids,
@@ -68,28 +76,32 @@ def run_skill(
         evidence=result.evidence,
         ran_at=now or datetime.now(timezone.utc),
     )
-    return result, record
 
 
 class SkillRegistry:
-    """In-memory registry of skill specs, keyed by ``skill_id``.
+    """In-memory registry of skills, keyed by ``skill_id``.
 
-    Mirrors the guard orchestration's ``(name, evaluate_fn)`` list but for the
-    declarative spec, so ``run_all`` can later replace ``_run_all_guards``.
+    Mirrors the guard orchestration's ``(name, evaluate_fn)`` list, so
+    ``run_all`` can replace ``_run_all_guards``. A registered skill is either a
+    declarative ``SkillSpec`` or any object exposing ``skill_id`` / ``version`` /
+    ``run(ctx, *, now)`` (the Strangler-Fig seam — e.g. ``GuardBackedSkill``
+    wrapping a not-yet-declarative guard). Both flow through ``run_all``
+    identically, producing the same ``SkillResult`` + audit ``SkillRunRecord``.
     """
 
     def __init__(self) -> None:
-        self._skills: dict[str, SkillSpec] = {}
+        self._skills: dict[str, object] = {}
 
-    def register(self, spec: SkillSpec) -> None:
-        if spec.skill_id in self._skills:
-            raise ValueError(f"skill {spec.skill_id!r} already registered")
-        self._skills[spec.skill_id] = spec
+    def register(self, skill: object) -> None:
+        skill_id = skill.skill_id  # type: ignore[attr-defined]
+        if skill_id in self._skills:
+            raise ValueError(f"skill {skill_id!r} already registered")
+        self._skills[skill_id] = skill
 
-    def get(self, skill_id: str) -> SkillSpec:
+    def get(self, skill_id: str) -> object:
         return self._skills[skill_id]
 
-    def all(self) -> tuple[SkillSpec, ...]:
+    def all(self) -> tuple[object, ...]:
         return tuple(self._skills.values())
 
     def run_all(
@@ -99,15 +111,29 @@ class SkillRegistry:
         skill_ids: Iterable[str] | None = None,
         now: datetime | None = None,
     ) -> tuple[tuple[SkillResult, ...], tuple[SkillRunRecord, ...]]:
-        specs = (
+        skills = (
             [self._skills[s] for s in skill_ids]
             if skill_ids is not None
             else list(self._skills.values())
         )
         results: list[SkillResult] = []
         records: list[SkillRunRecord] = []
-        for spec in specs:
-            result, record = run_skill(spec, ctx, now=now)
+        for skill in skills:
+            result, record = run_one(skill, ctx, now=now)
             results.append(result)
             records.append(record)
         return tuple(results), tuple(records)
+
+
+def run_one(
+    skill: object,
+    ctx: SkillContext,
+    *,
+    now: datetime | None = None,
+) -> tuple[SkillResult, SkillRunRecord]:
+    """Evaluate any registered skill — declarative ``SkillSpec`` or a seam object
+    exposing ``run(ctx, *, now)``."""
+
+    if isinstance(skill, SkillSpec):
+        return run_skill(skill, ctx, now=now)
+    return skill.run(ctx, now=now)  # type: ignore[attr-defined]

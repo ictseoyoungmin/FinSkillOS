@@ -13,7 +13,13 @@ from finskillos.skills.base import (
     SkillSpec,
     band_rule,
 )
-from finskillos.skills.runner import SkillRegistry, run_skill
+from finskillos.skills.guard_adapter import GuardBackedSkill
+from finskillos.skills.runner import (
+    SkillRegistry,
+    audit_record,
+    run_one,
+    run_skill,
+)
 from finskillos.skills.safety import assert_skill_safe
 
 __all__ = [
@@ -24,7 +30,10 @@ __all__ = [
     "SkillRunRecord",
     "SkillSpec",
     "SkillRegistry",
+    "GuardBackedSkill",
     "assert_skill_safe",
+    "audit_record",
     "band_rule",
+    "run_one",
     "run_skill",
 ]
