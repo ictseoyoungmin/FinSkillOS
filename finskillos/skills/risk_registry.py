@@ -13,7 +13,6 @@ from __future__ import annotations
 from finskillos.guards import (
     concentration_guard,
     event_risk_guard,
-    overheat_guard,
     regime_guard,
     single_position_guard,
 )
@@ -33,6 +32,7 @@ from finskillos.skills.guard_adapter import GuardBackedSkill
 from finskillos.skills.library.cash_ratio_skill import CASH_RATIO_SKILL
 from finskillos.skills.library.drawdown_skill import DRAWDOWN_SKILL
 from finskillos.skills.library.goal_skill import GOAL_SKILL
+from finskillos.skills.library.overheat_skill import OVERHEAT_SKILL
 from finskillos.skills.runner import SkillRegistry
 
 # Skill-id ⇄ guard-name map so the service can rebuild a RiskGuardReport keyed by
@@ -69,7 +69,7 @@ def build_risk_registry() -> SkillRegistry:
     registry.register(DRAWDOWN_SKILL)  # declarative
     registry.register(GOAL_SKILL)  # declarative
     registry.register(_backed("RISK.REGIME_RISK", regime_guard))
-    registry.register(_backed("RISK.OVERHEAT_ENTRY", overheat_guard))
+    registry.register(OVERHEAT_SKILL)  # declarative
     registry.register(_backed("RISK.EVENT_RISK", event_risk_guard))
     return registry
 

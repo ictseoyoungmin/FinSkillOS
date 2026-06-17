@@ -12,10 +12,11 @@ from decimal import Decimal
 
 import pytest
 
-from finskillos.guards import cash_ratio_guard, goal_guard
+from finskillos.guards import cash_ratio_guard, goal_guard, overheat_guard
 from finskillos.guards.base import GuardInput
 from finskillos.skills.library.cash_ratio_skill import CASH_RATIO_SKILL
 from finskillos.skills.library.goal_skill import GOAL_SKILL
+from finskillos.skills.library.overheat_skill import OVERHEAT_SKILL
 from finskillos.skills.risk_registry import context_from_guard_input
 from finskillos.skills.runner import run_skill
 
@@ -77,3 +78,19 @@ def test_cash_ratio_skill_parity(cash, total, min_ratio):
         min_cash_ratio=Decimal(min_ratio),
     )
     _assert_parity(CASH_RATIO_SKILL, cash_ratio_guard, gi)
+
+
+@pytest.mark.parametrize(
+    "regime",
+    [
+        None,
+        "RISK_ON_OVERHEAT",
+        "DISTRIBUTION_RISK",
+        "HEALTHY_BULL",
+        "PANIC",
+        "RECOVERY",
+    ],
+)
+def test_overheat_skill_parity(regime):
+    gi = _gi(regime=regime, decision_mode="SELECTIVE_ATTACK")
+    _assert_parity(OVERHEAT_SKILL, overheat_guard, gi)
