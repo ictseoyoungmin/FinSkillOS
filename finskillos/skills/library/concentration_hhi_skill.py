@@ -40,11 +40,23 @@ MAX_WEIGHT_LIMIT = Decimal("0.5")
 HHI_LIMIT = Decimal("0.25")
 
 
+def _pos_field(pos: object, name: str) -> object | None:
+    """Read a position field from either a PositionRiskInput (the live shape) or
+    a plain mapping (test fixtures)."""
+
+    if hasattr(pos, name):
+        return getattr(pos, name)
+    if hasattr(pos, "get"):
+        return pos.get(name)  # type: ignore[attr-defined]
+    return None
+
+
 def _derive_concentration(ctx: SkillContext) -> Mapping[str, object]:
     """Compute HHI + max single-name weight from positions / total value.
 
-    ``positions`` is a sequence of mappings with ``ticker`` + ``market_value``.
-    Leaves the features absent (→ fallback) when there is nothing to weigh.
+    ``positions`` is a sequence of PositionRiskInput objects (live) or mappings
+    (tests), each with ``ticker`` + ``market_value``. Leaves the features absent
+    (→ fallback) when there is nothing to weigh.
     """
 
     positions = ctx.get("positions") or []
@@ -53,10 +65,10 @@ def _derive_concentration(ctx: SkillContext) -> Mapping[str, object]:
         return {}
     weights: list[tuple[str, Decimal]] = []
     for pos in positions:
-        ticker = str(pos.get("ticker", "?"))
-        mv = pos.get("market_value")
+        mv = _pos_field(pos, "market_value")
         if mv is None:
             continue
+        ticker = str(_pos_field(pos, "ticker") or "?")
         weights.append((ticker, Decimal(str(mv)) / total))
     if not weights:
         return {}

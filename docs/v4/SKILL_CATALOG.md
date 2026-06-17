@@ -111,6 +111,19 @@ Event risk — descriptive Catalyst Watch exposure
 | `RISK.EVENT_RISK-001` | INFO | GREEN | 추적 중인 예정 이벤트가 없습니다. |
 | `RISK.EVENT_RISK-000` | INFO | GREEN | Catalyst Watch 이벤트 근거가 아직 없습니다. |
 
+### RISK.CONCENTRATION_HHI — `concentration-hhi-v1-2026-06-17`
+
+Concentration — Herfindahl index + max single-name weight
+
+- **reads:** positions, total_value
+
+| Rule | Status | Risk | Title |
+|---|---|---|---|
+| `RISK.CONCENTRATION_HHI-003` | WARN | YELLOW | 단일 종목 비중이 과반입니다. |
+| `RISK.CONCENTRATION_HHI-002` | WARN | YELLOW | HHI 기준 집중도가 높습니다. |
+| `RISK.CONCENTRATION_HHI-001` | PASS | GREEN | 종목 집중도가 분산 범위입니다. |
+| `RISK.CONCENTRATION_HHI-000` | INFO | UNKNOWN | 집중도를 계산할 포지션 / 총액 정보가 없습니다. |
+
 ## REGIME
 
 ### REGIME.CLASSIFY — `regime-v1-2026-05-18`

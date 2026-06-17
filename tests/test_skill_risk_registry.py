@@ -58,12 +58,12 @@ def _guard_input() -> GuardInput:
     )
 
 
-def test_registry_runs_eight_skills_in_ladder_order():
+def test_registry_runs_skills_in_ladder_order():
     registry = build_risk_registry()
     results, records = registry.run_all(context_from_guard_input(_guard_input()))
-    assert len(results) == 8
-    assert len(records) == 8
-    # Order mirrors the legacy ladder.
+    assert len(results) == 9
+    assert len(records) == 9
+    # First eight mirror the legacy ladder order; HHI is the skill-only ninth.
     assert [r.skill_id for r in results] == [
         "RISK.CASH_RATIO",
         "RISK.SINGLE_POSITION",
@@ -73,6 +73,7 @@ def test_registry_runs_eight_skills_in_ladder_order():
         "RISK.REGIME_RISK",
         "RISK.OVERHEAT_ENTRY",
         "RISK.EVENT_RISK",
+        "RISK.CONCENTRATION_HHI",
     ]
 
 
@@ -80,7 +81,8 @@ def test_registry_results_match_running_guards_directly():
     gi = _guard_input()
     registry = build_risk_registry()
     results, _ = registry.run_all(context_from_guard_input(gi))
-    for skill_result, guard_module in zip(results, _LADDER, strict=True):
+    # Only the eight guard-derived skills have a direct guard counterpart.
+    for skill_result, guard_module in zip(results[:8], _LADDER, strict=True):
         guard_result = guard_module.evaluate(gi)
         assert skill_result.status == guard_result.status
         assert skill_result.risk_level == guard_result.risk_level
@@ -116,10 +118,11 @@ def test_service_skill_ladder_maps_to_guard_names_with_audit():
     from finskillos.services.risk_guard_service import _run_skill_ladder
 
     guard_results, records = _run_skill_ladder(_guard_input())
-    assert len(guard_results) == 8
-    assert len(records) == 8
+    assert len(guard_results) == 9
+    assert len(records) == 9
     names = {g.guard_name for g in guard_results}
     assert GUARD_DRAWDOWN in names
+    assert "CONCENTRATION_HHI_GUARD" in names
     assert all(g.guard_name for g in guard_results)
     # Audit + report stay aligned on status per skill.
     for guard_result, record in zip(guard_results, records, strict=True):

@@ -23,6 +23,9 @@ from finskillos.guards.base import (
 )
 from finskillos.skills.base import SkillContext
 from finskillos.skills.library.cash_ratio_skill import CASH_RATIO_SKILL
+from finskillos.skills.library.concentration_hhi_skill import (
+    CONCENTRATION_HHI_SKILL,
+)
 from finskillos.skills.library.concentration_skill import CONCENTRATION_SKILL
 from finskillos.skills.library.drawdown_skill import DRAWDOWN_SKILL
 from finskillos.skills.library.event_risk_skill import EVENT_RISK_SKILL
@@ -43,14 +46,17 @@ SKILL_TO_GUARD_NAME = {
     "RISK.REGIME_RISK": GUARD_REGIME_RISK,
     "RISK.OVERHEAT_ENTRY": GUARD_OVERHEAT_ENTRY,
     "RISK.EVENT_RISK": GUARD_EVENT_PLACEHOLDER,
+    # Skill-only (no legacy guard counterpart) — single-name/portfolio Herfindahl.
+    "RISK.CONCENTRATION_HHI": "CONCENTRATION_HHI_GUARD",
 }
 
 def build_risk_registry() -> SkillRegistry:
-    """Registry of the eight risk skills, in the legacy ladder order.
+    """Registry of the risk skills.
 
-    All eight are now declarative ``SkillSpec``s (the Strangler-Fig seam is fully
-    retired for the RISK domain; ``GuardBackedSkill`` remains available for future
-    domains). Each is parity-tested against its originating guard.
+    The first eight (legacy ladder order) are declarative ``SkillSpec``s parity-
+    tested against their originating guards (the Strangler-Fig seam is retired for
+    RISK; ``GuardBackedSkill`` remains for future domains). RISK.CONCENTRATION_HHI
+    is a ninth, skill-only addition with no legacy guard counterpart.
     """
 
     registry = SkillRegistry()
@@ -62,6 +68,9 @@ def build_risk_registry() -> SkillRegistry:
     registry.register(REGIME_SKILL)
     registry.register(OVERHEAT_SKILL)
     registry.register(EVENT_RISK_SKILL)
+    # Skill-only addition (no legacy guard) — single-name concentration via the
+    # Herfindahl index, complementing the sector-based concentration guard.
+    registry.register(CONCENTRATION_HHI_SKILL)
     return registry
 
 
