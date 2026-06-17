@@ -173,6 +173,12 @@ imply SQLite green (slices 134/138). See `workflow_and_memory/feedback_docker_mi
 Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 
 ### Closed recently (detail in COMPLETED_SLICES.md / .devmd notes)
+- **v4.2 UI reconstruction — Phase 19** (263–277) — DONE. Plan + per-tab dedup/
+  density across all 10 cockpit tabs (drop meta/empty Integrated Interpretation,
+  gate empty breakdowns, shared LineChart date-ticks + height/valueFormat, Mission
+  asset-chart/pie hero). 277 regenerated 9 visual baselines + reconciled the
+  all-tabs structural contract. StatRow primitive obsolete (no duplication left);
+  responsive pass deferred. Detail: `docs/v4/PHASE_19_UI_v4_2.md`.
 - **W — Folder-Driven Collection Control** (127–131) + ideas U9/U1/F3 (132–134) — DONE.
 - **AW — Analysis Workspace audit** (135/136/137) — DONE (regime confidence unit,
   worker regime recompute, staleness + coverage copy).
@@ -365,9 +371,10 @@ Additive, gated (default off), offline-safe, descriptive-only.
   **Phase 6 complete (174–178). ROADMAP Phases 0–6 all delivered.**
 
 ### Standing open (env-blocked)
-- [ ] **Playwright visual baseline regen** — W-4 tab + S5 audit line drift
-  `system-ops.png`; needs browser binaries (unavailable here). Run
-  `npm run test:e2e -- --update-snapshots` where Playwright browsers exist.
+- [x] **Playwright visual baseline regen** — RESOLVED (slice 277). The compose
+  `e2e` service has Playwright browsers baked, so regen runs there:
+  `docker compose run --rm e2e npx playwright test e2e/visual/... --update-snapshots`.
+  No longer env-blocked.
 
 ## Next actions
 1. Phase 1 in order (145 → 150), then Phase 2.

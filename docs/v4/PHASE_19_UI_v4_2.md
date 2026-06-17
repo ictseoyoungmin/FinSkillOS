@@ -45,4 +45,37 @@ shown. Rough order by payoff:
 Responsive pass, empty-state consistency, visual-baseline regen, doc refresh.
 
 ---
-Status: 19.0 + 19.1 in progress (pilot). Later tabs queued.
+## Slice log
+- **263** — plan + Mission chart pilot (date axis + day delta).
+- **264–266** — Mission: drop dead exposure panels, rebalance grid, fix chart
+  default (realized), dedup snapshot Total, tighten chart.
+- **267–268** — shared LineChart: respect `height` prop (CSS override fix) +
+  integer `valueFormat` (asset tooltip decimals removed).
+- **269–270** — Control Room: per-ticker allocation replaces dead exposure;
+  shorter tape + drop redundant meta Interpretation (kept InterpretationCards).
+- **271–272** — Symbol Lab: drop redundant meta panels (kept SymbolWatchpoints);
+  cap side-rail news + collapse folder symbol lists.
+- **273** — Market Kernel + Analysis: drop meta panels (MarketKernelInterpretation
+  / operational Watchpoints stay).
+- **274** — Risk + News: drop meta Integrated Interpretation (Risk verdict was a
+  judgment duplicate; News list was data-source boilerplate).
+- **275** — Catalyst + Ops: drop the empty Integrated Interpretation (no
+  verdict/why/uncertain in payload).
+- **276** — Trade Memory: gate empty sector/theme + mistake breakdowns
+  (`.length > 0`) so they reappear when populated.
+- **277** — regen 9 visual baselines + reconcile the all-tabs structural
+  contract (requiredTestIds, Mission/News topline divergence overrides).
+
+## Status — v4.2 core COMPLETE (as of slice 277)
+- 19.0 shared chart standard + dead-panel audit: **done**.
+- 19.1 Mission pilot: **done**.
+- 19.2 per-tab refinement — all 10 tabs covered: **done**.
+- 19.x visual-baseline regen + doc refresh: **done** (this slice).
+
+Consciously **not** done (judged unnecessary, not skipped silently):
+- **StatRow primitive** — obsolete: the duplication it targeted (TOTAL / LARGEST /
+  CASH / GUARDS repeated across command-row + snapshot + state-band) was already
+  removed in 265–266, so there is nothing left to consolidate into a primitive.
+- **Responsive / mobile pass** — deferred as an optional follow-up; the cockpit is
+  a desktop operating surface and no responsive requirement is outstanding. Revisit
+  only if a narrow-viewport target is added.
