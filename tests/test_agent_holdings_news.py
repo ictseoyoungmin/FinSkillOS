@@ -45,6 +45,14 @@ def test_holdings_news_protocol_intent() -> None:
     assert "refresh_holdings_news" in parse_protocol_requests("보유종목 뉴스 갱신")
 
 
+def test_holdings_sectors_protocol_intent() -> None:
+    assert parse_protocol_request("섹터 분류해줘") == "refresh_holdings_sectors"
+    assert parse_protocol_request("classify my sectors") == "refresh_holdings_sectors"
+    assert parse_protocol_request("보유 섹터 채워줘") == "refresh_holdings_sectors"
+    # sector intent is not mistaken for holdings-news refresh
+    assert parse_protocol_request("update holdings news") == "refresh_holdings_news"
+
+
 def test_refresh_holdings_news_in_tool_catalogue() -> None:
     body = TestClient(create_app()).get("/api/agent/tools").json()
     names = {t["name"] for t in body["tools"]}

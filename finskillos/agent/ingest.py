@@ -502,6 +502,7 @@ PROTOCOL_LABELS: dict[str, str] = {
     "run_risk_guards": "re-run the risk guards",
     "refresh_events": "refresh catalyst events",
     "refresh_holdings_news": "refresh news for my holdings",
+    "refresh_holdings_sectors": "classify sectors for my holdings",
     "sync_toss_holdings": "sync my portfolio from Toss",
     "sync_toss_trades": "sync my trades from Toss",
 }
@@ -551,6 +552,14 @@ _PROTOCOL_INTENTS: tuple[tuple[re.Pattern[str], str], ...] = (
             re.IGNORECASE,
         ),
         "run_risk_guards",
+    ),
+    (
+        re.compile(
+            r"(classify|resolve|track|fill|분류|추적|채워|채우|업종).{0,12}(sector|섹터|업종)"
+            r"|(sector|섹터|업종).{0,12}(classify|resolve|track|fill|분류|추적|채워|채우|갱신|업데이트)",
+            re.IGNORECASE,
+        ),
+        "refresh_holdings_sectors",
     ),
     (
         re.compile(
@@ -611,6 +620,7 @@ _PROTOCOL_PIPELINE = (
     "refresh_market_data",
     "refresh_news",
     "refresh_holdings_news",
+    "refresh_holdings_sectors",
     "refresh_events",
     "calculate_indicators",
     "recompute_regime",

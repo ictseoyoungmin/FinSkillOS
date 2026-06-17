@@ -234,6 +234,39 @@ def run_refresh_holdings_news() -> ProtocolRunResult:
     )
 
 
+def _invoke_refresh_holdings_sectors(session) -> tuple[str, str, str]:
+    from finskillos.services.sector_resolution_service import (
+        resolve_holdings_sectors,
+    )
+
+    result = resolve_holdings_sectors(session)
+    if result.get("status") == "SKIPPED":
+        return "NOOP", "Toss is not configured; sectors not resolved.", ""
+    return (
+        "OK",
+        f"Resolved sectors for {result.get('resolved', 0)} holding(s) "
+        f"({result.get('already', 0)} already classified, "
+        f"{result.get('unresolved', 0)} unresolved).",
+        "",
+    )
+
+
+@router.post(
+    "/system-ops/refresh-holdings-sectors",
+    response_model=ProtocolRunResult,
+    summary="Idempotent: backfill holding sectors (Toss tickers × yfinance).",
+)
+def run_refresh_holdings_sectors() -> ProtocolRunResult:
+    return _run_protocol(
+        key="refresh_holdings_sectors",
+        fixture_message=(
+            "Holdings sector resolution acknowledged. Fixture-first shell did "
+            "not touch the database."
+        ),
+        runner=_invoke_refresh_holdings_sectors,
+    )
+
+
 def _invoke_sync_toss_holdings(session) -> tuple[str, str, str]:
     from finskillos.services.brokerage_sync_service import sync_toss_portfolio
 

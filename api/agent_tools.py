@@ -347,6 +347,12 @@ AGENT_TOOLS: tuple[AgentTool, ...] = (
         "/api/system-ops/refresh-holdings-news",
     ),
     _ops_tool(
+        "ops.refresh_holdings_sectors",
+        "Backfill each holding's sector from yfinance so sector concentration "
+        "can be assessed (Toss tickers × yfinance).",
+        "/api/system-ops/refresh-holdings-sectors",
+    ),
+    _ops_tool(
         "ops.sync_toss_holdings",
         "Replace the portfolio + baseline from Toss (source of truth).",
         "/api/system-ops/sync-toss-holdings",

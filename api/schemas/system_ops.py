@@ -37,6 +37,7 @@ ProtocolKey = Literal[
     "seed_sample_events",
     "refresh_events",
     "refresh_holdings_news",
+    "refresh_holdings_sectors",
     "sync_toss_holdings",
     "sync_toss_trades",
 ]

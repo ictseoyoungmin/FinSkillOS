@@ -96,8 +96,11 @@ SYSTEM_PROMPT = (
     '{"protocols": ["refresh_market_data", "run_risk_guards"]}\n'
     "```\n"
     "(each is one of: refresh_market_data, refresh_news, refresh_holdings_news, "
-    "calculate_indicators, recompute_regime, run_risk_guards, refresh_events, "
-    "sync_toss_holdings, sync_toss_trades.)\n"
+    "refresh_holdings_sectors, calculate_indicators, recompute_regime, "
+    "run_risk_guards, refresh_events, sync_toss_holdings, sync_toss_trades.)\n"
+    "When the sector concentration guard shows holdings as UNCLASSIFIED (no sector "
+    "data), propose the refresh_holdings_sectors protocol — it backfills each "
+    "holding's sector from yfinance so concentration can be assessed.\n"
     "When the user asks to update / refresh / sync their portfolio or holdings "
     "(e.g. the snapshot is stale), DON'T ask them to paste it — propose the "
     "sync_toss_holdings protocol (it pulls holdings from their connected Toss "
