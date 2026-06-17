@@ -92,6 +92,9 @@ class Rule:
     message: str | MessageFn = ""
     evidence: EvidenceFn | None = None
     watch_next: tuple[str, ...] = ()
+    # Classification category for this rung (declarative classification skills);
+    # verdict rungs leave it empty. Surfaced on SkillResult.label.
+    label: str | Callable[[SkillContext], str] = ""
 
 
 @dataclass(frozen=True)
@@ -160,6 +163,7 @@ def band_rule(
     message: str | MessageFn = "",
     evidence: EvidenceFn | None = None,
     watch_next: tuple[str, ...] = (),
+    label: str = "",
 ) -> Rule:
     """Build a threshold rung that fires when ``ctx.num(feature) >= at_least``.
 
@@ -183,6 +187,7 @@ def band_rule(
         message=message,
         evidence=evidence,
         watch_next=watch_next,
+        label=label,
     )
 
 

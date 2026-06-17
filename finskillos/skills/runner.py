@@ -1,5 +1,4 @@
-"""Skill registry + runner — the unified home the empty ``kernel/rule_engine``
-stub was always meant to hold (Phase 20).
+"""Skill registry + runner — the unified home for evaluating skills (Phase 20).
 
 ``run_skill`` resolves derived features, walks the rule ladder (first matching
 rung wins), enforces the descriptive-only safety contract centrally, and emits
@@ -39,6 +38,7 @@ def _build_result(spec: SkillSpec, rule: Rule, ctx: SkillContext) -> SkillResult
         evidence=dict(evidence),
         watch_next=tuple(rule.watch_next),
         fired_rule_ids=(rule.rule_id,),
+        label=str(_resolve(rule.label, ctx)),
     )
 
 

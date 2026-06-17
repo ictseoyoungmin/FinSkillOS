@@ -133,3 +133,19 @@ the engine.
 | `REGIME.CLASSIFY-009` | RECOVERY |
 | `REGIME.CLASSIFY-010` | HEALTHY_BULL |
 | `REGIME.CLASSIFY-999` | UNKNOWN (no rule matched) |
+
+## EVENT
+
+### EVENT.SCORE — `event-score-v1-2026-06-17`
+
+Event risk score — exposure band (LOW / MODERATE / HIGH / CRITICAL)
+
+- **reads:** event_risk_score
+
+| Rule | Status | Risk | Title |
+|---|---|---|---|
+| `EVENT.SCORE-004` | INFO | RED | 이벤트 노출도 CRITICAL. |
+| `EVENT.SCORE-003` | INFO | ORANGE | 이벤트 노출도 HIGH. |
+| `EVENT.SCORE-002` | INFO | YELLOW | 이벤트 노출도 MODERATE. |
+| `EVENT.SCORE-001` | INFO | GREEN | 이벤트 노출도 LOW. |
+| `EVENT.SCORE-000` | INFO | UNKNOWN | 이벤트 리스크 점수를 계산할 수 없습니다. |

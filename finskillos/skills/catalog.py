@@ -9,6 +9,7 @@ this and kept fresh by a test.
 from __future__ import annotations
 
 from finskillos.skills.base import Rule, SkillSpec
+from finskillos.skills.event_registry import build_event_registry
 from finskillos.skills.regime_registry import build_regime_registry
 from finskillos.skills.risk_registry import build_risk_registry
 
@@ -102,6 +103,7 @@ def build_default_catalog() -> str:
         {
             "RISK": build_risk_registry(),
             "REGIME": build_regime_registry(),
+            "EVENT": build_event_registry(),
         }
     )
 
