@@ -181,8 +181,11 @@ or the agent can answer "*which rule produced this?*" without re-running.
   each parity-tested byte-for-byte; the Strangler-Fig seam is retired from
   `risk_registry` (`GuardBackedSkill` kept as reusable infra + unit-tested). The
   RISK domain is fully "edit the spec, not the code".
-- **20.2c — (next) Risk Firewall "Applied Skill Rules" panel** — route + schema +
-  cockpit UI wiring `RiskGuardService.applied_rules` into the Risk Firewall tab.
+- **20.2c — Applied Skill Rules panel.** ✅ **Done (slices 293–294).** Backend:
+  `evaluate_with_audit` + `AppliedSkillRule` schema + `/api/risk-firewall`
+  `appliedRules`. UI: `AppliedSkillRulesPanel` on the Risk Firewall tab (skill id
+  + fired Rule ID + status), Playwright-verified live. The RISK domain is now a
+  fully-realized governing rule-pack: declarative, live, audited, and surfaced.
 - **20.3 — Express the regime classifier as a Skill family** (`REGIME.*`),
   reusing `regime_rules` thresholds + `RULE_VERSION`; conflict_resolver becomes a
   skill-composition step.
@@ -211,7 +214,8 @@ trail change accordingly — with no edit to engine/service/route code. That is
 v1's `Skills.md` promise, restored on top of the v4.x engine.
 
 ---
-Status: 20.0–20.2b done (slices 280–291) — the RISK domain runs live through the
-Skill Layer with an audit trail, and **all 8 guards are declarative** (seam
-retired). Next: 20.2c (Applied Skill Rules panel), then 20.3 (regime), 20.4
-(interpretation), 20.x (catalog).
+Status: 20.0–20.2c done (slices 280–294) — the **RISK domain is fully realized**:
+all 8 guards are declarative skills, live through the runner, with the Applied
+Skill Rules audit surfaced on the cockpit. Next arc: 20.3 (regime classifier as a
+`REGIME.*` skill family — larger, has conflict resolution), 20.4 (interpretation
+as `NEWS.*`/`SIGNAL.*` skills), 20.x (auto-derived Skill Catalog + agent read-tool).
