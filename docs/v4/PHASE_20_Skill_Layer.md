@@ -196,11 +196,21 @@ or the agent can answer "*which rule produced this?*" without re-running.
     walk — one source of truth, no parity gap. The fired rule id is recorded on
     `RegimeOutput.classification_rule_id` (REGIME.CLASSIFY-001..010 / -000 / -999),
     surfaced in the audit + catalog. Pure refactor, gated by the regime tests.
-  - **20.3c** (optional) — route the live regime read path (Control Room / Market
-    Kernel) through `build_regime_registry` for the audit, mirroring RISK's 20.2.
-- **20.4 — Interpretation as skills** (`NEWS.*`, `SIGNAL.*`): the prose builders
-  become skills whose evidence is the fired rule set, unifying state→prose under
-  one audit.
+  - **20.3c** ✅ **Done (slice 304).** Routing the read path through the registry
+    would be lossy (SkillResult is a thin view of RegimeOutput) and redundant —
+    the fired rule is already on `RegimeOutput.classification_rule_id`. Instead the
+    regime classification rule is surfaced in the agent "rules" read-tool
+    (REGIME.CLASSIFY-NNN + state + risk), the genuine "audit in a consumer" goal.
+- **20.4 — Interpretation as skills.** ✅ **Done (slices 302–303), reframed.** The
+  planned interpretation engine (`finskillos/interpretation/`) was an empty 0-byte
+  scaffold, never implemented — removed (302). The real rule-based interpreter is
+  `EventRiskService`, whose pure labelling policy became **`EVENT.SCORE`** — the
+  first fully-declarative classification skill (score → LOW/MODERATE/HIGH/CRITICAL
+  band ladder), parity-tested against `risk_label_for_score`, in the catalog (303).
+  Live interpretation prose stays in the REGIME skill + route v42 panels.
+- **Agent read-tool** ✅ **Done (slice 301).** The chat agent answers "which skill
+  rules fired / why the Risk Firewall reads as it does" by fetching the Applied
+  Skill Rules audit (RISK + REGIME) on demand via the `{"need": ["rules"]}` loop.
 - **20.x — Cleanup:** a Skill Catalog doc auto-derivable from the registry
   (id, version, reads, rule ladder) so the spec is browsable; agent read-tool
   that answers "which skills/rules fired for this verdict".
@@ -223,10 +233,12 @@ trail change accordingly — with no edit to engine/service/route code. That is
 v1's `Skills.md` promise, restored on top of the v4.x engine.
 
 ---
-Status: 20.0–20.3b + Skill Catalog done (slices 280–299). **RISK** is fully
-realized (8 declarative skills, live, audited, surfaced on the cockpit). **REGIME**
-is in the Skill Layer with its classification table now declarative + audited +
-cataloged. The **Skill Catalog** (`docs/v4/SKILL_CATALOG.md`) auto-derives from the
-registries. Remaining arcs: 20.3c (route the live regime read path through the
-registry — optional), 20.4 (interpretation as `NEWS.*`/`SIGNAL.*` skills), agent
-read-tool ("which skills/rules fired for this verdict").
+Status: Phase 20 substantially complete (slices 280–304). **RISK** fully realized
+(8 declarative skills, live, audited, cockpit panel). **REGIME** in the Skill Layer
+with a declarative classification table + audit. **EVENT** — `EVENT.SCORE`
+declarative classification skill (20.4, reframed after the empty interpretation
+scaffold was removed). **Skill Catalog** auto-derives RISK + REGIME + EVENT. The
+**agent** answers "which skill/regime rule fired" from the audit. Dead scaffold
+removed. Open follow-ups (optional): wire RISK.CONCENTRATION_HHI into the live
+ladder; route regime/event scoring through the registry for a unified runner if a
+non-lossy result type is added; per-tab audit panels beyond Risk Firewall.
