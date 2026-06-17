@@ -190,10 +190,14 @@ or the agent can answer "*which rule produced this?*" without re-running.
   - **20.3a** ✅ **Done (slice 296).** REGIME enters the Skill Layer via the
     classification seam: `SkillResult.label` (category output), `RegimeBackedSkill`
     wrapping `classify_regime`, `build_regime_registry`, parity-tested. Additive.
-  - **20.3b** (next) — convert `_classify_state` (the score→state ladder) into
-    declarative classification rungs behind the seam; route the regime read path
-    through the registry. Larger; the classifier is multi-dimensional (scores),
-    not a single threshold ladder, so it needs careful per-rung parity.
+  - **20.3b** ✅ **Done (slice 299).** The classifier is now table-driven:
+    `_classify_state` became a shared `CLASSIFICATION_RULES` priority table
+    (rule_id, predicate, state) that the engine and the REGIME.CLASSIFY skill both
+    walk — one source of truth, no parity gap. The fired rule id is recorded on
+    `RegimeOutput.classification_rule_id` (REGIME.CLASSIFY-001..010 / -000 / -999),
+    surfaced in the audit + catalog. Pure refactor, gated by the regime tests.
+  - **20.3c** (optional) — route the live regime read path (Control Room / Market
+    Kernel) through `build_regime_registry` for the audit, mirroring RISK's 20.2.
 - **20.4 — Interpretation as skills** (`NEWS.*`, `SIGNAL.*`): the prose builders
   become skills whose evidence is the fired rule set, unifying state→prose under
   one audit.
@@ -219,10 +223,10 @@ trail change accordingly — with no edit to engine/service/route code. That is
 v1's `Skills.md` promise, restored on top of the v4.x engine.
 
 ---
-Status: 20.0–20.2c + 20.3a + Skill Catalog done (slices 280–297). The **RISK
-domain is fully realized** (8 declarative skills, live, audited, surfaced); REGIME
-is in the Skill Layer via the classification seam; the **Skill Catalog**
-(`docs/v4/SKILL_CATALOG.md`) auto-derives from the registries. Next: 20.3b
-(convert the regime `_classify_state` ladder declaratively + route the regime read
-path through the registry), 20.4 (interpretation as `NEWS.*`/`SIGNAL.*` skills),
-agent read-tool ("which skills/rules fired for this verdict").
+Status: 20.0–20.3b + Skill Catalog done (slices 280–299). **RISK** is fully
+realized (8 declarative skills, live, audited, surfaced on the cockpit). **REGIME**
+is in the Skill Layer with its classification table now declarative + audited +
+cataloged. The **Skill Catalog** (`docs/v4/SKILL_CATALOG.md`) auto-derives from the
+registries. Remaining arcs: 20.3c (route the live regime read path through the
+registry — optional), 20.4 (interpretation as `NEWS.*`/`SIGNAL.*` skills), agent
+read-tool ("which skills/rules fired for this verdict").
