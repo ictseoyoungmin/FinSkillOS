@@ -26,6 +26,7 @@ Design rules (docs/v2_1/06 + .devmd/05):
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
@@ -84,6 +85,8 @@ class RegimeOutput:
     positive_factors: tuple[str, ...] = ()
     risk_factors: tuple[str, ...] = ()
     rule_version: str = R.RULE_VERSION
+    # The classification rule that fired (Phase 20.3b) — REGIME.CLASSIFY-NNN.
+    classification_rule_id: str = ""
 
     def is_actionable(self) -> bool:
         """True when confidence is high enough to drive a Control Room banner."""
@@ -250,101 +253,135 @@ def _clamp(
 # ---------------------------------------------------------------------------
 
 
-def _classify_state(inputs: RegimeInput, scores: Scores) -> str:
-    """Apply the rule priority ladder from docs/v2_1/06 §3.
+# Classification ladder, table-driven (Phase 20.3b). Each rung is a
+# (rule_id, predicate, state) triple evaluated in priority order — most defensive
+# first — so a PANIC/RISK_OFF state never gets masked by bullish signals. The
+# engine and the REGIME.CLASSIFY skill share this one table, so the fired Rule ID
+# is exposed (audit / catalog) with zero parity gap. Behaviour is identical to the
+# original if-ladder (gated by the regime engine tests).
 
-    Priorities run from most defensive to most aggressive so that a
-    PANIC/RISK_OFF state never gets masked by stronger bullish signals
-    elsewhere in the input — that mirrors the "loss-avoidance first"
-    principle of the rulebook.
-    """
 
-    bullish_votes = _bullish_trend_votes(inputs)
-    bearish_votes = _bearish_trend_votes(inputs)
-    overheat_votes = _rsi_overheat_votes(inputs)
-
+def _pred_panic(i: RegimeInput, _s: Scores) -> bool:
     # PANIC — strongest risk-off signal: panic VIX plus bearish indices.
-    if (
-        inputs.vix_close is not None
-        and inputs.vix_close >= R.VIX_PANIC
-        and bearish_votes >= 2
-    ):
-        return R.REGIME_PANIC
+    return (
+        i.vix_close is not None
+        and i.vix_close >= R.VIX_PANIC
+        and _bearish_trend_votes(i) >= 2
+    )
 
+
+def _pred_risk_off(i: RegimeInput, _s: Scores) -> bool:
     # RISK_OFF — high VIX with deteriorating trend.
-    if (
-        inputs.vix_close is not None
-        and inputs.vix_close >= R.VIX_RISK_OFF
-        and bullish_votes == 0
-        and bearish_votes >= 1
-    ):
-        return R.REGIME_RISK_OFF
+    return (
+        i.vix_close is not None
+        and i.vix_close >= R.VIX_RISK_OFF
+        and _bullish_trend_votes(i) == 0
+        and _bearish_trend_votes(i) >= 1
+    )
 
-    # DEFENSIVE_TRANSITION — caution-level VIX, trend weakening but not yet bearish-dominant.
-    if (
-        inputs.vix_close is not None
-        and inputs.vix_close >= R.VIX_CAUTION
-        and bearish_votes >= 1
-        and bullish_votes <= 1
-    ):
-        return R.REGIME_DEFENSIVE_TRANSITION
 
+def _pred_defensive(i: RegimeInput, _s: Scores) -> bool:
+    # DEFENSIVE_TRANSITION — caution VIX, trend weakening but not bearish-dominant.
+    return (
+        i.vix_close is not None
+        and i.vix_close >= R.VIX_CAUTION
+        and _bearish_trend_votes(i) >= 1
+        and _bullish_trend_votes(i) <= 1
+    )
+
+
+def _pred_overheat_votes(i: RegimeInput, _s: Scores) -> bool:
     # RISK_ON_OVERHEAT — bullish trend with multiple RSI overheats.
-    if bullish_votes >= 2 and overheat_votes >= 2:
-        return R.REGIME_RISK_ON_OVERHEAT
-    if coexists_overheat_with_trend(scores):
-        return R.REGIME_RISK_ON_OVERHEAT
+    return _bullish_trend_votes(i) >= 2 and _rsi_overheat_votes(i) >= 2
 
+
+def _pred_overheat_coexist(_i: RegimeInput, s: Scores) -> bool:
+    return coexists_overheat_with_trend(s)
+
+
+def _pred_distribution(i: RegimeInput, s: Scores) -> bool:
     # DISTRIBUTION_RISK — bullish price but momentum/breadth degrading.
-    if scores.distribution >= Decimal("30") and bullish_votes >= 1:
-        return R.REGIME_DISTRIBUTION_RISK
+    return s.distribution >= Decimal("30") and _bullish_trend_votes(i) >= 1
 
-    # AGGRESSIVE_RISK_ON — strict bullish stack across all three indices,
-    # calm VIX, and QQQ or SMH RSI in the aggressive band (>= 65). The
-    # strict-trend requirement is what separates this state from a
-    # plain HEALTHY_BULL: it takes a confirmed leadership push.
-    if (
-        _strict_bullish_votes(inputs) >= 2
-        and inputs.qqq_trend_state == R.TREND_BULLISH
-        and (inputs.smh_trend_state == R.TREND_BULLISH or inputs.spy_trend_state == R.TREND_BULLISH)
-        and inputs.vix_close is not None
-        and inputs.vix_close < R.VIX_CAUTION
-        and _qqq_or_smh_in(
-            inputs,
-            low=Decimal("65"),
-            high=R.RSI_AGGRESSIVE_HIGH,
+
+def _pred_aggressive(i: RegimeInput, _s: Scores) -> bool:
+    # AGGRESSIVE_RISK_ON — strict bullish stack across all three indices, calm
+    # VIX, and QQQ or SMH RSI in the aggressive band (>= 65). The strict-trend
+    # requirement is what separates this state from a plain HEALTHY_BULL.
+    return (
+        _strict_bullish_votes(i) >= 2
+        and i.qqq_trend_state == R.TREND_BULLISH
+        and (
+            i.smh_trend_state == R.TREND_BULLISH
+            or i.spy_trend_state == R.TREND_BULLISH
         )
-    ):
-        return R.REGIME_AGGRESSIVE_RISK_ON
+        and i.vix_close is not None
+        and i.vix_close < R.VIX_CAUTION
+        and _qqq_or_smh_in(i, low=Decimal("65"), high=R.RSI_AGGRESSIVE_HIGH)
+    )
 
+
+def _pred_healthy_bull(i: RegimeInput, _s: Scores) -> bool:
     # HEALTHY_BULL — bullish trend, calm VIX, RSI in healthy band.
-    if (
-        bullish_votes >= 2
-        and (inputs.vix_close is None or inputs.vix_close < R.VIX_CAUTION)
-        and _qqq_or_smh_in(
-            inputs,
-            low=R.RSI_HEALTHY_LOW,
-            high=R.RSI_HEALTHY_HIGH,
-        )
-    ):
-        return R.REGIME_HEALTHY_BULL
+    return (
+        _bullish_trend_votes(i) >= 2
+        and (i.vix_close is None or i.vix_close < R.VIX_CAUTION)
+        and _qqq_or_smh_in(i, low=R.RSI_HEALTHY_LOW, high=R.RSI_HEALTHY_HIGH)
+    )
 
+
+def _pred_recovery(i: RegimeInput, _s: Scores) -> bool:
     # RECOVERY — VIX cooling, neutral/weak-bullish trend, RSI rebuilding.
-    if (
-        inputs.vix_close is not None
-        and inputs.vix_close <= R.VIX_CAUTION
-        and bearish_votes == 0
+    return (
+        i.vix_close is not None
+        and i.vix_close <= R.VIX_CAUTION
+        and _bearish_trend_votes(i) == 0
         and _rsi_in_band(
-            inputs.qqq_rsi_14, low=R.RSI_RECOVERY_LOW, high=R.RSI_RECOVERY_HIGH
+            i.qqq_rsi_14, low=R.RSI_RECOVERY_LOW, high=R.RSI_RECOVERY_HIGH
         )
-    ):
-        return R.REGIME_RECOVERY
+    )
 
+
+def _pred_default_bull(i: RegimeInput, _s: Scores) -> bool:
     # Default — if we still see a bullish stack, fall through to HEALTHY_BULL.
-    if bullish_votes >= 2:
-        return R.REGIME_HEALTHY_BULL
+    return _bullish_trend_votes(i) >= 2
 
-    return R.REGIME_UNKNOWN
+
+# (rule_id, predicate, regime state) in priority order; first match wins.
+CLASSIFICATION_RULES: tuple[
+    tuple[str, Callable[[RegimeInput, Scores], bool], str], ...
+] = (
+    ("REGIME.CLASSIFY-001", _pred_panic, R.REGIME_PANIC),
+    ("REGIME.CLASSIFY-002", _pred_risk_off, R.REGIME_RISK_OFF),
+    ("REGIME.CLASSIFY-003", _pred_defensive, R.REGIME_DEFENSIVE_TRANSITION),
+    ("REGIME.CLASSIFY-004", _pred_overheat_votes, R.REGIME_RISK_ON_OVERHEAT),
+    ("REGIME.CLASSIFY-005", _pred_overheat_coexist, R.REGIME_RISK_ON_OVERHEAT),
+    ("REGIME.CLASSIFY-006", _pred_distribution, R.REGIME_DISTRIBUTION_RISK),
+    ("REGIME.CLASSIFY-007", _pred_aggressive, R.REGIME_AGGRESSIVE_RISK_ON),
+    ("REGIME.CLASSIFY-008", _pred_healthy_bull, R.REGIME_HEALTHY_BULL),
+    ("REGIME.CLASSIFY-009", _pred_recovery, R.REGIME_RECOVERY),
+    ("REGIME.CLASSIFY-010", _pred_default_bull, R.REGIME_HEALTHY_BULL),
+)
+
+# Rule ids for the two non-ladder outcomes.
+RULE_INSUFFICIENT_INPUTS = "REGIME.CLASSIFY-000"
+RULE_UNCLASSIFIED = "REGIME.CLASSIFY-999"
+
+
+def classify_state_with_rule(
+    inputs: RegimeInput, scores: Scores
+) -> tuple[str, str]:
+    """Return (regime state, fired rule id) — the table walked in priority order."""
+
+    for rule_id, predicate, state in CLASSIFICATION_RULES:
+        if predicate(inputs, scores):
+            return state, rule_id
+    return R.REGIME_UNKNOWN, RULE_UNCLASSIFIED
+
+
+def _classify_state(inputs: RegimeInput, scores: Scores) -> str:
+    state, _rule_id = classify_state_with_rule(inputs, scores)
+    return state
 
 
 def _qqq_or_smh_in(inputs: RegimeInput, *, low: Decimal, high: Decimal) -> bool:
@@ -660,9 +697,10 @@ def classify_regime(inputs: RegimeInput) -> RegimeOutput:
             evidence=_evidence(inputs, scores),
             positive_factors=positive_factors,
             risk_factors=risk_factors,
+            classification_rule_id=RULE_INSUFFICIENT_INPUTS,
         )
 
-    regime = _classify_state(inputs, scores)
+    regime, rule_id = classify_state_with_rule(inputs, scores)
     confidence = _confidence(inputs, regime, scores)
     positive_factors, risk_factors = _factor_lists(inputs, scores, regime)
 
@@ -678,4 +716,5 @@ def classify_regime(inputs: RegimeInput) -> RegimeOutput:
         evidence=_evidence(inputs, scores),
         positive_factors=positive_factors,
         risk_factors=risk_factors,
+        classification_rule_id=rule_id,
     )

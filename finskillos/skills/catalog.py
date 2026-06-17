@@ -33,6 +33,32 @@ def _rule_row(rule: Rule) -> str:
     )
 
 
+def _regime_classification_rows() -> list[str]:
+    """The REGIME.CLASSIFY priority table, rendered as catalog rows (20.3b)."""
+
+    from finskillos.regime.regime_engine import (
+        CLASSIFICATION_RULES,
+        RULE_INSUFFICIENT_INPUTS,
+        RULE_UNCLASSIFIED,
+    )
+
+    rows = [
+        "Classification seam — the priority ladder below is a shared table the",
+        "engine and skill both walk (first match wins); prose / confidence stay in",
+        "the engine.",
+        "",
+        "| Rule | Regime state |",
+        "|---|---|",
+        f"| `{RULE_INSUFFICIENT_INPUTS}` | UNKNOWN (too few inputs) |",
+    ]
+    rows += [
+        f"| `{rule_id}` | {state} |"
+        for rule_id, _predicate, state in CLASSIFICATION_RULES
+    ]
+    rows.append(f"| `{RULE_UNCLASSIFIED}` | UNKNOWN (no rule matched) |")
+    return rows
+
+
 def _skill_section(skill: object) -> list[str]:
     skill_id = skill.skill_id  # type: ignore[attr-defined]
     version = skill.version  # type: ignore[attr-defined]
@@ -47,6 +73,8 @@ def _skill_section(skill: object) -> list[str]:
         lines.append("|---|---|---|---|")
         for rule in (*skill.ladder, skill.fallback):
             lines.append(_rule_row(rule))
+    elif skill_id == "REGIME.CLASSIFY":
+        lines.extend(_regime_classification_rows())
     else:
         lines.append(
             "Seam skill — wraps an engine function; its rules convert to "

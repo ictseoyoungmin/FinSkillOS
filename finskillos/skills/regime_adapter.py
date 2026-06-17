@@ -44,7 +44,9 @@ def _to_result(output: RegimeOutput) -> SkillResult:
         message=output.what_happened,
         evidence=evidence,
         watch_next=tuple(output.watch_next),
-        fired_rule_ids=(f"{SKILL_ID}-{output.regime}",),
+        # The precise classification rule that fired (Phase 20.3b) — e.g.
+        # REGIME.CLASSIFY-001 for PANIC — from the shared engine table.
+        fired_rule_ids=(output.classification_rule_id,),
         label=output.regime,
     )
 

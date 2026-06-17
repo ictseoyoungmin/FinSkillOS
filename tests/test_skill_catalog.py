@@ -21,9 +21,10 @@ def test_catalog_lists_declarative_skills_and_rules():
     assert "### RISK.DRAWDOWN" in catalog
     assert "RISK.DRAWDOWN-003" in catalog
     assert "RISK.CASH_RATIO-001" in catalog
-    # The REGIME seam is listed too.
+    # The REGIME classifier lists its shared priority table (20.3b).
     assert "### REGIME.CLASSIFY" in catalog
-    assert "Seam skill" in catalog
+    assert "REGIME.CLASSIFY-001" in catalog
+    assert "PANIC" in catalog
     # Domains present.
     assert "## RISK" in catalog
     assert "## REGIME" in catalog

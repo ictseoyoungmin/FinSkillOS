@@ -115,4 +115,21 @@ Event risk — descriptive Catalyst Watch exposure
 
 ### REGIME.CLASSIFY — `regime-v1-2026-05-18`
 
-Seam skill — wraps an engine function; its rules convert to declarative rungs behind the seam.
+Classification seam — the priority ladder below is a shared table the
+engine and skill both walk (first match wins); prose / confidence stay in
+the engine.
+
+| Rule | Regime state |
+|---|---|
+| `REGIME.CLASSIFY-000` | UNKNOWN (too few inputs) |
+| `REGIME.CLASSIFY-001` | PANIC |
+| `REGIME.CLASSIFY-002` | RISK_OFF |
+| `REGIME.CLASSIFY-003` | DEFENSIVE_TRANSITION |
+| `REGIME.CLASSIFY-004` | RISK_ON_OVERHEAT |
+| `REGIME.CLASSIFY-005` | RISK_ON_OVERHEAT |
+| `REGIME.CLASSIFY-006` | DISTRIBUTION_RISK |
+| `REGIME.CLASSIFY-007` | AGGRESSIVE_RISK_ON |
+| `REGIME.CLASSIFY-008` | HEALTHY_BULL |
+| `REGIME.CLASSIFY-009` | RECOVERY |
+| `REGIME.CLASSIFY-010` | HEALTHY_BULL |
+| `REGIME.CLASSIFY-999` | UNKNOWN (no rule matched) |
