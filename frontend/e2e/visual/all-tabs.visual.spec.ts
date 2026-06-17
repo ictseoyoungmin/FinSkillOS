@@ -11,6 +11,13 @@ interface RouteSpec {
   readonly safetyCategory: string;
   readonly requiredTestIds: readonly string[];
   readonly screenshotName: string;
+  // Most tabs use the shared JudgmentHeader (testId "judgment-header"). News Intel
+  // carries a richer custom NewsJudgmentHeader, so it overrides the testId the
+  // eyebrow assertion targets.
+  readonly judgmentTestId?: string;
+  // Most tabs use the shared SafetyCaption (testId "safety-caption"). Mission
+  // Control renders its own caption paragraph with a page-specific testId.
+  readonly safetyTestId?: string;
 }
 
 const ROUTES: readonly RouteSpec[] = [
@@ -29,7 +36,7 @@ const ROUTES: readonly RouteSpec[] = [
       "risk-firewall-summary",
       "catalyst-watch-summary",
       "watchlist-card",
-      "interpretation-panel",
+      "interpretation-cards",
       "watchpoints-panel",
       "safety-caption",
     ],
@@ -50,7 +57,6 @@ const ROUTES: readonly RouteSpec[] = [
       "chart-panel",
       "indicator-snapshot",
       "market-interpretation",
-      "watchpoints-panel",
       "safety-caption",
     ],
     screenshotName: "market-kernel.png",
@@ -70,7 +76,6 @@ const ROUTES: readonly RouteSpec[] = [
       "tape-strength-cards",
       "regime-context",
       "missing-data-panel",
-      "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",
     ],
@@ -90,8 +95,7 @@ const ROUTES: readonly RouteSpec[] = [
       "position-context",
       "technical-snapshot",
       "ticker-news",
-      "interpretation-panel",
-      "watchpoints-panel",
+      "symbol-watchpoints",
       "safety-caption",
     ],
     screenshotName: "symbol-lab.png",
@@ -110,7 +114,6 @@ const ROUTES: readonly RouteSpec[] = [
       "active-alerts",
       "risk-protocol-panel",
       "protocol-matrix-explanation",
-      "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",
     ],
@@ -121,35 +124,36 @@ const ROUTES: readonly RouteSpec[] = [
     path: "/mission-control",
     eyebrow: "MISSION RISK JUDGMENT",
     safetyCategory: "Goal interpretation",
+    // v4.2 pilot replaced the generic Drivers/Conflicts topline with the asset
+    // chart + allocation hero (mission-top-row) and dropped the Capital Map panel.
     requiredTestIds: [
       "mission-control-page",
       "judgment-header",
-      "drivers-panel",
-      "conflicts-panel",
+      "mission-top-row",
       "goal-tracker",
       "milestone-timeline",
-      "capital-map",
       "portfolio-snapshot",
-      "interpretation-panel",
-      "watchpoints-panel",
-      "safety-caption",
+      "mission-control-safety-caption",
     ],
+    safetyTestId: "mission-control-safety-caption",
     screenshotName: "mission-control.png",
   },
   {
     label: "news-intelligence",
     path: "/news-intel",
-    eyebrow: "NARRATIVE JUDGMENT",
+    // News Intel uses the custom NewsJudgmentHeader (eyebrow copy "Narrative
+    // Judgment") + the NewsSignalSummary "Feed Status" panel instead of the
+    // generic Drivers/Conflicts topline.
+    eyebrow: "Narrative Judgment",
+    judgmentTestId: "news-judgment-header",
     safetyCategory: "Descriptive narrative view only",
     requiredTestIds: [
       "news-intelligence-page",
-      "judgment-header",
-      "drivers-panel",
-      "conflicts-panel",
+      "news-judgment-header",
+      "news-feed-status",
       "holdings-relevant-news",
       "news-impact-map",
       "event-linked-news",
-      "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",
     ],
@@ -169,7 +173,6 @@ const ROUTES: readonly RouteSpec[] = [
       "date-status-badges",
       "event-score-drivers",
       "event-catalog-evidence",
-      "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",
     ],
@@ -210,7 +213,6 @@ const ROUTES: readonly RouteSpec[] = [
       "protocol-cards",
       "data-source-strip",
       "recent-protocol-runs",
-      "interpretation-panel",
       "watchpoints-panel",
       "safety-caption",
     ],
@@ -239,12 +241,12 @@ test.describe("Slice 13.11 — All tabs v4.2 structural contract", () => {
         await expect(page.getByTestId(testId).first()).toBeVisible();
       }
 
-      await expect(page.getByTestId("judgment-header")).toContainText(
-        route.eyebrow,
-      );
-      await expect(page.getByTestId("safety-caption")).toContainText(
-        route.safetyCategory,
-      );
+      await expect(
+        page.getByTestId(route.judgmentTestId ?? "judgment-header"),
+      ).toContainText(route.eyebrow);
+      await expect(
+        page.getByTestId(route.safetyTestId ?? "safety-caption"),
+      ).toContainText(route.safetyCategory);
 
       const body = await page.locator("body").innerText();
       const bodyWithoutIdioms = body.replace(/sell-the-news/gi, "");
