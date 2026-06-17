@@ -11,10 +11,8 @@ ladder so the aggregated report ordering is unchanged.
 from __future__ import annotations
 
 from finskillos.guards import (
-    cash_ratio_guard,
     concentration_guard,
     event_risk_guard,
-    goal_guard,
     overheat_guard,
     regime_guard,
     single_position_guard,
@@ -32,7 +30,9 @@ from finskillos.guards.base import (
 )
 from finskillos.skills.base import SkillContext
 from finskillos.skills.guard_adapter import GuardBackedSkill
+from finskillos.skills.library.cash_ratio_skill import CASH_RATIO_SKILL
 from finskillos.skills.library.drawdown_skill import DRAWDOWN_SKILL
+from finskillos.skills.library.goal_skill import GOAL_SKILL
 from finskillos.skills.runner import SkillRegistry
 
 # Skill-id ⇄ guard-name map so the service can rebuild a RiskGuardReport keyed by
@@ -63,11 +63,11 @@ def build_risk_registry() -> SkillRegistry:
     """Registry of the eight live risk guards, in the legacy ladder order."""
 
     registry = SkillRegistry()
-    registry.register(_backed("RISK.CASH_RATIO", cash_ratio_guard))
+    registry.register(CASH_RATIO_SKILL)  # declarative
     registry.register(_backed("RISK.SINGLE_POSITION", single_position_guard))
     registry.register(_backed("RISK.SECTOR_CONCENTRATION", concentration_guard))
     registry.register(DRAWDOWN_SKILL)  # declarative
-    registry.register(_backed("RISK.GOAL_PROTECTION", goal_guard))
+    registry.register(GOAL_SKILL)  # declarative
     registry.register(_backed("RISK.REGIME_RISK", regime_guard))
     registry.register(_backed("RISK.OVERHEAT_ENTRY", overheat_guard))
     registry.register(_backed("RISK.EVENT_RISK", event_risk_guard))
@@ -85,8 +85,19 @@ def context_from_guard_input(guard_input: GuardInput) -> SkillContext:
     return SkillContext(
         values={
             "guard_input": guard_input,
-            "drawdown_pct": guard_input.drawdown_pct,
-            "peak_value": guard_input.peak_value,
+            "account_id": guard_input.account_id,
             "total_value": guard_input.total_value,
+            "cash_value": guard_input.cash_value,
+            "target_value": guard_input.target_value,
+            "peak_value": guard_input.peak_value,
+            "drawdown_pct": guard_input.drawdown_pct,
+            "positions": guard_input.positions,
+            "regime": guard_input.regime,
+            "regime_risk_level": guard_input.regime_risk_level,
+            "decision_mode": guard_input.decision_mode,
+            "goal_progress_pct": guard_input.goal_progress_pct,
+            "single_position_limit": guard_input.single_position_limit,
+            "min_cash_ratio": guard_input.min_cash_ratio,
+            "event_risk": guard_input.event_risk,
         }
     )
