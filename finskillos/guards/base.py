@@ -279,15 +279,31 @@ def _strip_allowed_market_idioms(text: str) -> str:
     return lowered
 
 
+def find_forbidden_term(*texts: str) -> str | None:
+    """Return the first direct-advice term found across ``texts``, else None.
+
+    The shared scanner for both the guard ladder and the v4.3 Skill Layer
+    (``finskillos.skills.safety``) so a single forbidden-wording policy covers
+    every descriptive output. Case-insensitive for English instructions, literal
+    for Korean; the ``sell-the-news`` idiom is allow-listed (risk pattern, not an
+    order).
+    """
+
+    haystack = " ".join(t for t in texts if t)
+    scan_text = _strip_allowed_market_idioms(haystack)
+    for pattern in _DIRECT_ADVICE_PATTERNS:
+        match = pattern.search(scan_text)
+        if match is not None:
+            return match.group(0)
+    return None
+
+
 def assert_no_forbidden_wording(result: GuardResult) -> None:
     """Raise ``AssertionError`` if a guard result leaks direct buy/sell advice.
 
     Called by tests and by ``RiskGuardService._persist_alerts`` so a
-    misbehaving guard cannot end up in ``alerts.message``. The check is
-    case-insensitive for English instructions and literal for Korean
-    direct-advice phrases. The market idiom ``sell-the-news`` is
-    explicitly allowed because it describes a *risk pattern* rather
-    than a transaction order.
+    misbehaving guard cannot end up in ``alerts.message``. Delegates the scan to
+    ``find_forbidden_term`` (shared with the Skill Layer).
     """
 
     blobs: list[str] = [
@@ -298,13 +314,9 @@ def assert_no_forbidden_wording(result: GuardResult) -> None:
     for value in result.evidence.values():
         if isinstance(value, str):
             blobs.append(value)
-    haystack = " ".join(blobs)
-    scan_text = _strip_allowed_market_idioms(haystack)
-
-    for pattern in _DIRECT_ADVICE_PATTERNS:
-        match = pattern.search(scan_text)
-        if match is not None:
-            raise AssertionError(
-                f"guard {result.guard_name!r} emitted forbidden term "
-                f"{match.group(0)!r}: {haystack!r}"
-            )
+    term = find_forbidden_term(*blobs)
+    if term is not None:
+        raise AssertionError(
+            f"guard {result.guard_name!r} emitted forbidden term "
+            f"{term!r}: {' '.join(blobs)!r}"
+        )
