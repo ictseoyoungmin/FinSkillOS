@@ -40,6 +40,7 @@ Sector concentration — heaviest-sector share band
 | `RISK.SECTOR_CONCENTRATION-003` | FAIL | ORANGE | 섹터 집중도가 위험 수준까지 높아졌습니다. |
 | `RISK.SECTOR_CONCENTRATION-002` | WARN | YELLOW | 특정 섹터 비중이 빠르게 커지고 있습니다. |
 | `RISK.SECTOR_CONCENTRATION-001` | PASS | GREEN | 섹터 집중도가 안전 구간에 있습니다. |
+| `RISK.SECTOR_CONCENTRATION-005` | INFO | UNKNOWN | 보유 종목의 섹터 정보가 없어 섹터 집중도를 평가할 수 없습니다. |
 | `RISK.SECTOR_CONCENTRATION-004` | INFO | UNKNOWN | 포지션 평가금액이 0이라 섹터 노출을 계산할 수 없습니다. |
 | `RISK.SECTOR_CONCENTRATION-000` | INFO | UNKNOWN | 포지션이 없어 섹터 노출을 계산할 수 없습니다. |
 

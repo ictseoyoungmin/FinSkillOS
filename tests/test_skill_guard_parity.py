@@ -160,6 +160,8 @@ def test_single_position_skill_parity(positions):
         (_pos("A", "30", "Tech"), _pos("B", "30", "Energy"), _pos("C", "40", "Health")),
         (_pos("A", "34", "Tech"), _pos("B", "33", "Energy"), _pos("C", "33", "Health")),
         (_pos("A", "50", None), _pos("B", "50", "Energy")),        # UNCLASSIFIED bucket
+        (_pos("A", "60", None), _pos("B", "40", None)),            # all UNCLASSIFIED → INFO
+        (_pos("A", "100", None),),                                 # single, UNCLASSIFIED → INFO
     ],
 )
 def test_concentration_skill_parity(positions):

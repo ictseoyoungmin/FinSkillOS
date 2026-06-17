@@ -722,3 +722,20 @@ def test_event_placeholder_guard_sell_the_news_idiom_is_allowed() -> None:
 
     result = event_risk_guard.evaluate(_base_input())
     assert_no_forbidden_wording(result)
+
+
+def test_sector_concentration_info_when_all_unclassified() -> None:
+    # All positions lack a sector → not a real one-theme concentration; the guard
+    # must report INFO (unknown), never a false FAIL.
+    result = concentration_guard.evaluate(
+        _base_input(
+            positions=(
+                PositionRiskInput("AAA", Decimal("6000000"), sector=None),
+                PositionRiskInput("BBB", Decimal("4000000"), sector=None),
+            )
+        )
+    )
+    assert result.status == STATUS_INFO
+    assert result.risk_level == RISK_UNKNOWN
+    assert result.evidence["unclassified_share"] == Decimal("1.0000")
+    _check_safety(result)

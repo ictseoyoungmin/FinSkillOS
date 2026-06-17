@@ -60,12 +60,36 @@ def evaluate(inputs: GuardInput) -> GuardResult:
         sector: (value / total_position_value).quantize(Decimal("0.0001"))
         for sector, value in buckets.items()
     }
-    heaviest_sector, heaviest_share = max(shares.items(), key=lambda kv: kv[1])
+    unclassified_share = shares.get(UNCLASSIFIED, Decimal("0"))
+    # Concentration risk is only meaningful among *classified* sectors. A book
+    # that is entirely UNCLASSIFIED (no sector data) is not a one-theme
+    # concentration — we cannot tell — so it must not fire a FAIL.
+    classified = {s: v for s, v in shares.items() if s != UNCLASSIFIED}
+    if not classified:
+        return GuardResult(
+            guard_name=GUARD_SECTOR_CONCENTRATION,
+            status=STATUS_INFO,
+            risk_level=RISK_UNKNOWN,
+            title="보유 종목의 섹터 정보가 없어 섹터 집중도를 평가할 수 없습니다.",
+            message=(
+                "보유 종목에 섹터가 분류되어 있지 않습니다(전량 UNCLASSIFIED). "
+                "섹터가 채워지면 집중도를 자동으로 점검합니다 — 그 전까지는 "
+                "섹터 집중 위험으로 단정하지 않습니다."
+            ),
+            evidence={
+                "unclassified_share": unclassified_share,
+                "position_count": len(inputs.positions),
+            },
+        )
+    heaviest_sector, heaviest_share = max(
+        classified.items(), key=lambda kv: kv[1]
+    )
 
     base_evidence = {
         "sector_shares": shares,
         "heaviest_sector": heaviest_sector,
         "heaviest_share": heaviest_share,
+        "unclassified_share": unclassified_share,
         "warn_threshold": DEFAULT_SECTOR_WARN_PCT,
         "fail_threshold": DEFAULT_SECTOR_FAIL_PCT,
     }
