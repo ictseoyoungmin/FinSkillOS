@@ -49,6 +49,20 @@ class RiskProtocolEntry(CamelModel):
     description: str
 
 
+class AppliedSkillRule(CamelModel):
+    """One row of the Applied Skill Rules audit trail (Phase 20.2c).
+
+    Records which skill rule fired per risk skill in the live evaluation — the
+    revived 'Applied Skill Rules' from the v1 Skills.md set.
+    """
+
+    skill_id: str
+    version: str
+    fired_rule_ids: list[str]
+    status: Literal["PASS", "WARN", "FAIL", "BLOCKED", "INFO"]
+    risk_level: Literal["GREEN", "YELLOW", "ORANGE", "RED", "UNKNOWN"]
+
+
 class RiskFirewallDataState(CamelModel):
     """Compact source/evaluation state for Risk Firewall."""
 
@@ -78,6 +92,7 @@ class RiskFirewallResponse(CamelModel):
     guards: list[GuardSummaryVM]
     active_alerts: list[ActiveAlertItem]
     protocol: list[RiskProtocolEntry]
+    applied_rules: list[AppliedSkillRule] = Field(default_factory=list)
     safety_caption: str = "Read-only · Read mode — this view never modifies positions."
     source: Literal["fixture", "live"] = "fixture"
 
@@ -85,6 +100,7 @@ class RiskFirewallResponse(CamelModel):
 __all__ = [
     "ActiveAlertItem",
     "AlertSeverity",
+    "AppliedSkillRule",
     "RiskFirewallDataState",
     "RiskFirewallResponse",
     "RiskProtocolEntry",

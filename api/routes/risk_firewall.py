@@ -25,6 +25,7 @@ from api.schemas.common import SystemStatus
 from api.schemas.control_room import GuardDriver, GuardSummaryVM
 from api.schemas.risk_firewall import (
     ActiveAlertItem,
+    AppliedSkillRule,
     RiskFirewallDataState,
     RiskFirewallResponse,
 )
@@ -62,7 +63,7 @@ def risk_firewall(
 
         service = RiskGuardService(session)
         try:
-            report = service.evaluate(
+            report, records = service.evaluate_with_audit(
                 accounts[0].id,
                 generated_at=datetime.now(tz=UTC),
                 persist_alerts=False,
@@ -70,7 +71,7 @@ def risk_firewall(
         except Exception as exc:  # noqa: BLE001 - explicit live-error, never fixture
             session.rollback()
             return _error_live_response(exc)
-        return _live_response(report)
+        return _live_response(report, records)
 
 
 def _empty_live_response() -> RiskFirewallResponse:
@@ -177,7 +178,7 @@ def _error_live_response(exc: Exception) -> RiskFirewallResponse:
     return payload
 
 
-def _live_response(report) -> RiskFirewallResponse:
+def _live_response(report, records=()) -> RiskFirewallResponse:
     payload = risk_firewall_fixture()
     guard_count = len(
         [
@@ -269,6 +270,16 @@ def _live_response(report) -> RiskFirewallResponse:
         )
         for result in report.results
         if result.status in {STATUS_WARN, STATUS_FAIL, STATUS_BLOCKED}
+    ]
+    payload.applied_rules = [
+        AppliedSkillRule(
+            skill_id=record.skill_id,
+            version=record.version,
+            fired_rule_ids=list(record.fired_rule_ids),
+            status=record.status,
+            risk_level=record.risk_level,
+        )
+        for record in records
     ]
     return payload
 

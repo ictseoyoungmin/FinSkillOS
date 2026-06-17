@@ -153,6 +153,15 @@ def test_risk_firewall_can_return_live_db_read_model(monkeypatch, tmp_path) -> N
         assert sample["label"] and isinstance(sample["value"], str)
         # watchNext is always present (list), populated for flagged guards.
         assert all(isinstance(g["watchNext"], list) for g in body["guards"])
+        # Slice 20.2c: Applied Skill Rules audit trail — one row per risk skill,
+        # each carrying a real (non-seam) fired rule id under its skill namespace.
+        applied = body["appliedRules"]
+        assert len(applied) == len(body["guards"])
+        for rule in applied:
+            assert rule["skillId"].startswith("RISK.")
+            assert rule["firedRuleIds"]
+            assert rule["firedRuleIds"][0].startswith(rule["skillId"] + "-")
+            assert not rule["firedRuleIds"][0].endswith("-RUN")
     finally:
         reset_settings_cache()
         engine.dispose()
@@ -209,7 +218,7 @@ def test_risk_firewall_live_error_state_does_not_fall_back_to_fixture(
         raise RuntimeError("guard evaluation failed")
 
     monkeypatch.setattr(
-        "finskillos.services.risk_guard_service.RiskGuardService.evaluate",
+        "finskillos.services.risk_guard_service.RiskGuardService.evaluate_with_audit",
         _boom,
     )
 

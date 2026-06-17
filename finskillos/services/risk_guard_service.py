@@ -180,8 +180,25 @@ class RiskGuardService:
     ) -> RiskGuardReport:
         """Run every guard for ``account_id`` and (optionally) persist alerts."""
 
+        report, _records = self.evaluate_with_audit(
+            account_id,
+            generated_at=generated_at,
+            persist_alerts=persist_alerts,
+        )
+        return report
+
+    def evaluate_with_audit(
+        self,
+        account_id: uuid.UUID,
+        *,
+        generated_at: datetime | None = None,
+        persist_alerts: bool = True,
+    ) -> tuple[RiskGuardReport, tuple[SkillRunRecord, ...]]:
+        """Like ``evaluate`` but also returns the Applied Skill Rules audit trail
+        from the *same* ladder run (no second DB read / re-evaluation)."""
+
         inputs = self.build_input(account_id)
-        results = _run_all_guards(inputs)
+        results, records = _run_skill_ladder(inputs)
         report = RiskGuardReport(
             account_id=account_id,
             generated_at=_resolve_generated_at(generated_at),
@@ -195,7 +212,7 @@ class RiskGuardService:
         if persist_alerts:
             self._persist_alerts(report)
 
-        return report
+        return report, records
 
     def get_active_alerts(
         self, account_id: uuid.UUID | None = None
@@ -271,12 +288,11 @@ class RiskGuardService:
 # ---------------------------------------------------------------------------
 
 
-# Phase 20.2 — the risk ladder now runs through the Skill Layer registry. A
-# single module-level registry is reused across evaluations (the specs are
-# stateless). ``_run_all_guards`` keeps its name + GuardResult return so
-# ``evaluate`` is byte-for-byte unchanged; the registry produces the same results
-# (RISK.DRAWDOWN declaratively, the rest via the guard-backed seam) plus the
-# audit SkillRunRecords that ``applied_rules`` surfaces.
+# Phase 20.2 — the risk ladder runs through the Skill Layer registry (all 8 risk
+# skills are declarative). A single module-level registry is reused across
+# evaluations (the specs are stateless); each run yields GuardResults (mapped back
+# by canonical guard name so the RiskGuardReport is unchanged) plus the audit
+# SkillRunRecords that ``applied_rules`` / ``evaluate_with_audit`` surface.
 _RISK_REGISTRY = build_risk_registry()
 
 
@@ -297,11 +313,6 @@ def _run_skill_ladder(
 ) -> tuple[tuple[GuardResult, ...], tuple[SkillRunRecord, ...]]:
     results, records = _RISK_REGISTRY.run_all(context_from_guard_input(inputs))
     return tuple(_skill_result_to_guard(r) for r in results), records
-
-
-def _run_all_guards(inputs: GuardInput) -> tuple[GuardResult, ...]:
-    guard_results, _records = _run_skill_ladder(inputs)
-    return guard_results
 
 
 def _snapshot_total_value(
