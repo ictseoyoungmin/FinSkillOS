@@ -126,6 +126,9 @@ class SkillResult:
     evidence: dict[str, object] = field(default_factory=dict)
     watch_next: tuple[str, ...] = ()
     fired_rule_ids: tuple[str, ...] = ()
+    # Classification skills (e.g. REGIME.*) emit a category label here; guard-style
+    # verdict skills leave it empty and rely on status / risk_level.
+    label: str = ""
 
 
 @dataclass(frozen=True)

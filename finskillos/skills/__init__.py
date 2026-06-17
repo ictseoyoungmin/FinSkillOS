@@ -14,6 +14,7 @@ from finskillos.skills.base import (
     band_rule,
 )
 from finskillos.skills.guard_adapter import GuardBackedSkill
+from finskillos.skills.regime_adapter import RegimeBackedSkill
 from finskillos.skills.runner import (
     SkillRegistry,
     audit_record,
@@ -31,6 +32,7 @@ __all__ = [
     "SkillSpec",
     "SkillRegistry",
     "GuardBackedSkill",
+    "RegimeBackedSkill",
     "assert_skill_safe",
     "audit_record",
     "band_rule",
