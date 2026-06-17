@@ -322,6 +322,22 @@ def build_query_context(session, question: str, *, only: str | None = None) -> s
         except Exception:  # noqa: BLE001
             pass
 
+    if only in (None, "rules") and _RULES_Q.search(question):
+        # The regime classification rule that fired (Phase 20.3c) — the same
+        # audit affordance for the REGIME domain, evaluated read-only on demand.
+        try:
+            from finskillos.services.regime_service import RegimeService
+
+            out = RegimeService(session).evaluate_today_regime(persist=False)
+            if out.classification_rule_id:
+                sections.append(
+                    f"Regime classification: {out.regime} classified by rule "
+                    f"{out.classification_rule_id} (risk {out.risk_level}) — "
+                    "descriptive audit, not a signal."
+                )
+        except Exception:  # noqa: BLE001
+            pass
+
     # Per-symbol detail when the question names a ticker that has stored data
     # (the data-exists filter removes non-ticker uppercase words like RSI/FOMC).
     try:

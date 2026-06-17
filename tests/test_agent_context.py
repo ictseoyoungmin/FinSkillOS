@@ -122,6 +122,9 @@ def test_query_context_fetches_applied_skill_rules() -> None:
     assert "Applied skill rules" in rules
     assert "RISK." in rules
     assert "descriptive audit" in rules
+    # Phase 20.3c: the regime classification rule is surfaced in the same audit.
+    assert "Regime classification" in rules
+    assert "REGIME.CLASSIFY-" in rules
     # Descriptive-only — no advice wording.
     lowered = rules.lower()
     for forbidden in ("buy", "sell", "매수", "매도"):
