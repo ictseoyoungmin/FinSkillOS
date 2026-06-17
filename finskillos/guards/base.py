@@ -249,15 +249,27 @@ _ALLOWED_MARKET_IDIOMS: Final[tuple[str, ...]] = (
 # Slice-13 acceptance pass added explicit deterministic-prediction
 # patterns ("will rise") and the broader Korean directive vocabulary
 # ("오늘 팔아", standalone "보장") from .devmd/13 §Safety language.
+# Slice-281 absorbed the legacy SAFE-001 imperative phrases. Only the
+# *imperative* forms are added — bare nouns (추천/보유/투자) appear in
+# descriptive copy ("보유 종목", "투자 운영체제", regime "…진입하고") and would
+# false-positive, so each new Korean term is anchored to its directive suffix.
 _DIRECT_ADVICE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"\bBUY\b", re.IGNORECASE),
     re.compile(r"\bSELL\b", re.IGNORECASE),
     re.compile(r"\bwill\s+rise\b", re.IGNORECASE),
+    re.compile(r"\bmust\s+invest\b", re.IGNORECASE),
+    re.compile(r"\brisk-free\s+profit\b", re.IGNORECASE),
     re.compile(r"매수"),
     re.compile(r"매도"),
     re.compile(r"지금\s*사라"),
     re.compile(r"지금\s*팔아라"),
     re.compile(r"오늘\s*팔아"),
+    re.compile(r"추천합니다"),
+    re.compile(r"진입하세요"),
+    re.compile(r"손절하세요"),
+    re.compile(r"익절하세요"),
+    re.compile(r"보유하세요"),
+    re.compile(r"투자하세요"),
     re.compile(r"무조건"),
     re.compile(r"확실"),
     re.compile(r"보장"),

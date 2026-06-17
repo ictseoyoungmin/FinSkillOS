@@ -631,6 +631,14 @@ def test_guards_module_exports_canonical_names() -> None:
         "원금 보장입니다.",
         "This is guaranteed profit.",
         "반드시 진입하세요.",
+        # Slice-281: absorbed legacy SAFE-001 imperative phrases.
+        "지금 추천합니다.",
+        "여기서 손절하세요.",
+        "지금 익절하세요.",
+        "이 종목을 보유하세요.",
+        "지금 투자하세요.",
+        "You must invest now.",
+        "This is risk-free profit.",
     ],
 )
 def test_forbidden_wording_check_blocks_direct_advice_case_insensitively(
