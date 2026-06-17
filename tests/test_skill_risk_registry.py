@@ -102,12 +102,11 @@ def test_audit_records_carry_fired_rule_ids():
     for record in records:
         assert record.fired_rule_ids  # non-empty
         assert record.ran_at is not None
-    # Declarative skills fire a real ladder rule id; the still-seam guards report
-    # a synthetic <skill>-RUN id until they are converted.
-    drawdown = next(r for r in records if r.skill_id == "RISK.DRAWDOWN")
-    assert drawdown.fired_rule_ids[0].startswith("RISK.DRAWDOWN-")
-    seam = next(r for r in records if r.skill_id == "RISK.SINGLE_POSITION")
-    assert seam.fired_rule_ids == ("RISK.SINGLE_POSITION-RUN",)
+    # All eight RISK guards are declarative now — every fired id is a real ladder
+    # rule id under its own skill namespace (no <skill>-RUN seam ids remain).
+    for record in records:
+        assert record.fired_rule_ids[0].startswith(f"{record.skill_id}-")
+        assert not record.fired_rule_ids[0].endswith("-RUN")
 
 
 def test_service_skill_ladder_maps_to_guard_names_with_audit():

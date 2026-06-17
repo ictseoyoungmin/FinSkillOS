@@ -212,3 +212,39 @@ def test_concentration_copy_passes_forbidden_scan():
         ([], 0),
     ]:
         run_skill(CONCENTRATION_HHI_SKILL, _conc_ctx(positions, total))
+
+
+# --- GuardBackedSkill seam (kept for future domains) ---------------------
+
+
+def test_guard_backed_skill_mirrors_guard_result():
+    from finskillos.guards.base import (
+        RISK_YELLOW,
+        STATUS_WARN,
+        GuardResult,
+    )
+    from finskillos.skills import GuardBackedSkill
+
+    def fake_guard(_gi):
+        return GuardResult(
+            guard_name="FAKE_GUARD",
+            status=STATUS_WARN,
+            risk_level=RISK_YELLOW,
+            title="t",
+            message="m",
+            evidence={"k": "v"},
+            watch_next=("w",),
+        )
+
+    skill = GuardBackedSkill(
+        skill_id="RISK.FAKE", version="fake-v1", guard_evaluate=fake_guard
+    )
+    ctx = SkillContext(values={"guard_input": object()})
+    result, record = skill.run(ctx)
+    assert result.skill_id == "RISK.FAKE"
+    assert result.status == "WARN"
+    assert result.title == "t"
+    assert result.evidence == {"k": "v"}
+    assert result.watch_next == ("w",)
+    assert result.fired_rule_ids == ("RISK.FAKE-RUN",)
+    assert record.status == "WARN"

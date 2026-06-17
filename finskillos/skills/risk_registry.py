@@ -10,11 +10,6 @@ ladder so the aggregated report ordering is unchanged.
 
 from __future__ import annotations
 
-from finskillos.guards import (
-    concentration_guard,
-    event_risk_guard,
-    single_position_guard,
-)
 from finskillos.guards.base import (
     GUARD_CASH_RATIO,
     GUARD_DRAWDOWN,
@@ -27,12 +22,14 @@ from finskillos.guards.base import (
     GuardInput,
 )
 from finskillos.skills.base import SkillContext
-from finskillos.skills.guard_adapter import GuardBackedSkill
 from finskillos.skills.library.cash_ratio_skill import CASH_RATIO_SKILL
+from finskillos.skills.library.concentration_skill import CONCENTRATION_SKILL
 from finskillos.skills.library.drawdown_skill import DRAWDOWN_SKILL
+from finskillos.skills.library.event_risk_skill import EVENT_RISK_SKILL
 from finskillos.skills.library.goal_skill import GOAL_SKILL
 from finskillos.skills.library.overheat_skill import OVERHEAT_SKILL
 from finskillos.skills.library.regime_skill import REGIME_SKILL
+from finskillos.skills.library.single_position_skill import SINGLE_POSITION_SKILL
 from finskillos.skills.runner import SkillRegistry
 
 # Skill-id ⇄ guard-name map so the service can rebuild a RiskGuardReport keyed by
@@ -48,29 +45,23 @@ SKILL_TO_GUARD_NAME = {
     "RISK.EVENT_RISK": GUARD_EVENT_PLACEHOLDER,
 }
 
-_GUARD_BACKED_VERSION = "guard-backed-v1-2026-06-17"
-
-
-def _backed(skill_id, guard_module) -> GuardBackedSkill:
-    return GuardBackedSkill(
-        skill_id=skill_id,
-        version=_GUARD_BACKED_VERSION,
-        guard_evaluate=guard_module.evaluate,
-    )
-
-
 def build_risk_registry() -> SkillRegistry:
-    """Registry of the eight live risk guards, in the legacy ladder order."""
+    """Registry of the eight risk skills, in the legacy ladder order.
+
+    All eight are now declarative ``SkillSpec``s (the Strangler-Fig seam is fully
+    retired for the RISK domain; ``GuardBackedSkill`` remains available for future
+    domains). Each is parity-tested against its originating guard.
+    """
 
     registry = SkillRegistry()
-    registry.register(CASH_RATIO_SKILL)  # declarative
-    registry.register(_backed("RISK.SINGLE_POSITION", single_position_guard))
-    registry.register(_backed("RISK.SECTOR_CONCENTRATION", concentration_guard))
-    registry.register(DRAWDOWN_SKILL)  # declarative
-    registry.register(GOAL_SKILL)  # declarative
-    registry.register(REGIME_SKILL)  # declarative
-    registry.register(OVERHEAT_SKILL)  # declarative
-    registry.register(_backed("RISK.EVENT_RISK", event_risk_guard))
+    registry.register(CASH_RATIO_SKILL)
+    registry.register(SINGLE_POSITION_SKILL)
+    registry.register(CONCENTRATION_SKILL)
+    registry.register(DRAWDOWN_SKILL)
+    registry.register(GOAL_SKILL)
+    registry.register(REGIME_SKILL)
+    registry.register(OVERHEAT_SKILL)
+    registry.register(EVENT_RISK_SKILL)
     return registry
 
 

@@ -14,17 +14,27 @@ import pytest
 
 from finskillos.guards import (
     cash_ratio_guard,
+    concentration_guard,
+    event_risk_guard,
     goal_guard,
     overheat_guard,
     regime_guard,
+    single_position_guard,
 )
-from finskillos.guards.base import GuardInput
+from finskillos.guards.base import EventRiskSummary, GuardInput, PositionRiskInput
 from finskillos.skills.library.cash_ratio_skill import CASH_RATIO_SKILL
+from finskillos.skills.library.concentration_skill import CONCENTRATION_SKILL
+from finskillos.skills.library.event_risk_skill import EVENT_RISK_SKILL
 from finskillos.skills.library.goal_skill import GOAL_SKILL
 from finskillos.skills.library.overheat_skill import OVERHEAT_SKILL
 from finskillos.skills.library.regime_skill import REGIME_SKILL
+from finskillos.skills.library.single_position_skill import SINGLE_POSITION_SKILL
 from finskillos.skills.risk_registry import context_from_guard_input
 from finskillos.skills.runner import run_skill
+
+
+def _pos(ticker, mv, sector=None):
+    return PositionRiskInput(ticker, Decimal(mv), sector=sector)
 
 
 def _gi(**overrides) -> GuardInput:
@@ -122,3 +132,57 @@ def test_regime_skill_parity(regime, risk_level):
         decision_mode="HOLD_WINNERS",
     )
     _assert_parity(REGIME_SKILL, regime_guard, gi)
+
+
+@pytest.mark.parametrize(
+    "positions",
+    [
+        (),                                              # all within → PASS
+        (_pos("A", "5000000"),),                         # under limit → PASS
+        (_pos("A", "9500000"),),                         # 95% of 10M → approaching WARN
+        (_pos("A", "12000000"),),                        # over 10M → FAIL
+        (_pos("A", "12000000"), _pos("B", "9200000")),   # over + approaching → FAIL wins
+    ],
+)
+def test_single_position_skill_parity(positions):
+    _assert_parity(SINGLE_POSITION_SKILL, single_position_guard, _gi(positions=positions))
+
+
+@pytest.mark.parametrize(
+    "positions",
+    [
+        (),                                                        # no positions → INFO
+        (_pos("A", "0", "Tech"),),                                 # zero value → INFO
+        (_pos("A", "30", "Tech"), _pos("B", "70", "Energy")),      # 70% → FAIL
+        (_pos("A", "60", "Tech"), _pos("B", "40", "Energy")),      # 60% > 50 → FAIL
+        (_pos("A", "40", "Tech"), _pos("B", "60", "Tech")),        # one sector 100% → FAIL
+        (_pos("A", "45", "Tech"), _pos("B", "30", "Energy"), _pos("C", "25", "Health")),
+        (_pos("A", "30", "Tech"), _pos("B", "30", "Energy"), _pos("C", "40", "Health")),
+        (_pos("A", "34", "Tech"), _pos("B", "33", "Energy"), _pos("C", "33", "Health")),
+        (_pos("A", "50", None), _pos("B", "50", "Energy")),        # UNCLASSIFIED bucket
+    ],
+)
+def test_concentration_skill_parity(positions):
+    _assert_parity(CONCENTRATION_SKILL, concentration_guard, _gi(positions=positions))
+
+
+@pytest.mark.parametrize(
+    "event_risk",
+    [
+        None,
+        EventRiskSummary(connected=False),
+        EventRiskSummary(connected=True, upcoming_count=0),
+        EventRiskSummary(
+            connected=True,
+            upcoming_count=3,
+            holdings_relevant_count=2,
+            highest_label="HIGH",
+            highest_score=Decimal("0.82"),
+            nearest_days=4,
+            affected_tickers=("AAA", "BBB"),
+        ),
+        EventRiskSummary(connected=True, upcoming_count=1, highest_label="LOW"),
+    ],
+)
+def test_event_risk_skill_parity(event_risk):
+    _assert_parity(EVENT_RISK_SKILL, event_risk_guard, _gi(event_risk=event_risk))
