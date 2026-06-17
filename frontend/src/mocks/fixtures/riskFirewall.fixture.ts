@@ -153,5 +153,28 @@ export const riskFirewallFixture: RiskFirewallData = {
         "Execution commands and guaranteed-return language are blocked by contract. Risk Firewall is descriptive only.",
     },
   ],
+  appliedRules: [
+    {
+      skillId: "RISK.DRAWDOWN",
+      version: "drawdown-v1-2026-06-17",
+      firedRuleIds: ["RISK.DRAWDOWN-003"],
+      status: "WARN",
+      riskLevel: "YELLOW",
+    },
+    {
+      skillId: "RISK.CASH_RATIO",
+      version: "cash-ratio-v1-2026-06-17",
+      firedRuleIds: ["RISK.CASH_RATIO-001"],
+      status: "PASS",
+      riskLevel: "GREEN",
+    },
+    {
+      skillId: "RISK.SECTOR_CONCENTRATION",
+      version: "sector-concentration-v1-2026-06-17",
+      firedRuleIds: ["RISK.SECTOR_CONCENTRATION-002"],
+      status: "WARN",
+      riskLevel: "YELLOW",
+    },
+  ],
   safetyCaption: "Read-only · Read mode — this view never modifies positions.",
 };

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchRiskFirewall } from "@/features/risk-guards/api";
 import { ActiveAlertsTable } from "@/features/risk-guards/components/ActiveAlertsTable";
+import { AppliedSkillRulesPanel } from "@/features/risk-guards/components/AppliedSkillRulesPanel";
 import { GuardResultCard } from "@/features/risk-guards/components/GuardResultCard";
 import { RiskProtocolPanel } from "@/features/risk-guards/components/RiskProtocolPanel";
 import { riskFirewallFixture } from "@/mocks/fixtures/riskFirewall.fixture";
@@ -93,6 +94,9 @@ export function RiskFirewallPage() {
               safetyCaption={payload.safetyCaption}
             />
           </div>
+          {/* v4.3 (294): Applied Skill Rules audit — which skill rule fired per
+              risk skill, traceable to a stable Rule ID. */}
+          <AppliedSkillRulesPanel rules={payload.appliedRules} />
           {/* v4.2 (274): the Integrated Interpretation verdict duplicates the
               judgment header; why/uncertain were meta. Watchpoints stay. */}
           <WatchpointsPanel

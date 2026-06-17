@@ -48,6 +48,14 @@ export interface RiskFirewallSystemStatus {
   guardCount: number;
 }
 
+export interface AppliedSkillRule {
+  skillId: string;
+  version: string;
+  firedRuleIds: string[];
+  status: GuardStatus;
+  riskLevel: RiskLevel;
+}
+
 export interface RiskFirewallDataState {
   evaluationSource: "fixture" | "live";
   evaluationStatus: GuardStatus;
@@ -75,6 +83,7 @@ export interface RiskFirewallData {
   guards: GuardSummary[];
   activeAlerts: ActiveAlertItem[];
   protocol: RiskProtocolEntry[];
+  appliedRules: AppliedSkillRule[];
   safetyCaption: string;
   source: "fixture" | "live";
 }
