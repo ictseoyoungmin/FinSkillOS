@@ -85,12 +85,16 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             ),
             evidence=base_evidence,
         )
-    if drawdown >= Decimal("-10"):
+    # Slice-283: the single -5..-10 WARN band is split into the two YELLOW
+    # sub-bands the docstring always documented (-5..-8 give-back, -8..-10 Yellow
+    # Alert). Status/risk_level are unchanged — this only refines the descriptive
+    # copy. Kept in lockstep with the RISK.DRAWDOWN skill (parity-tested).
+    if drawdown >= Decimal("-8"):
         return GuardResult(
             guard_name=GUARD_DRAWDOWN,
             status=STATUS_WARN,
             risk_level=RISK_YELLOW,
-            title="고점 대비 -5% ~ -10% 구간으로 진입했습니다.",
+            title="고점 대비 -5% ~ -8% 구간 — 최근 수익 일부 반납.",
             message=(
                 f"현재 drawdown {drawdown:.2f}%로 최근 수익 일부가 반납되고 있습니다. "
                 "포지션별 thesis와 stop 기준을 점검하세요."
@@ -99,6 +103,23 @@ def evaluate(inputs: GuardInput) -> GuardResult:
             watch_next=(
                 "약한 포지션의 stop 기준 점검",
                 "단기 추격형 노출 제약 검토",
+            ),
+        )
+    if drawdown >= Decimal("-10"):
+        return GuardResult(
+            guard_name=GUARD_DRAWDOWN,
+            status=STATUS_WARN,
+            risk_level=RISK_YELLOW,
+            title="고점 대비 -8% ~ -10% 구간 — Yellow Alert.",
+            message=(
+                f"현재 drawdown {drawdown:.2f}%로 손실 구간이 깊어지고 있습니다. "
+                "추격형 노출을 제약하고 약한 포지션 기준을 점검하세요."
+            ),
+            evidence=base_evidence,
+            watch_next=(
+                "약한 포지션 기준 점검",
+                "단기 추격형 노출 제약 강화",
+                "유동성 버퍼 상태 점검",
             ),
         )
     if drawdown >= Decimal("-15"):

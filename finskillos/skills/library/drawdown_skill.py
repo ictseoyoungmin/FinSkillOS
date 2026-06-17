@@ -7,12 +7,15 @@ The bands, thresholds, and descriptive copy are lifted verbatim from
 threshold or a line below and both behaviour and audit trail change — with no
 edit to engine/service/route code (the Phase-20 success criterion).
 
-Rule ladder (negative percentages, docs/v2_1/06 §9):
+Rule ladder (negative percentages, docs/v2_1/06 §9). Slice-283 refined the WARN
+band into the two YELLOW sub-bands the guard docstring always documented; status/
+risk_level are unchanged, the copy is finer, and the guard is kept in lockstep:
 
 * RISK.DRAWDOWN-001  >= -5   PASS / GREEN   — normal volatility band
-* RISK.DRAWDOWN-002  >= -10  WARN / YELLOW  — recent gains given back
-* RISK.DRAWDOWN-003  >= -15  FAIL / ORANGE  — Risk Reduction Mode
-* RISK.DRAWDOWN-004  else    FAIL / RED     — Defensive Mode
+* RISK.DRAWDOWN-002  >= -8   WARN / YELLOW  — recent gains given back
+* RISK.DRAWDOWN-003  >= -10  WARN / YELLOW  — Yellow Alert
+* RISK.DRAWDOWN-004  >= -15  FAIL / ORANGE  — Risk Reduction Mode
+* RISK.DRAWDOWN-005  else    FAIL / RED     — Defensive Mode
 * RISK.DRAWDOWN-000  (fallback) INFO / UNKNOWN — no peak/total to compute from
 """
 
@@ -99,10 +102,10 @@ DRAWDOWN_SKILL = SkillSpec(
         band_rule(
             "RISK.DRAWDOWN-002",
             feature="drawdown_pct",
-            at_least="-10",
+            at_least="-8",
             status=STATUS_WARN,
             risk_level=RISK_YELLOW,
-            title="고점 대비 -5% ~ -10% 구간으로 진입했습니다.",
+            title="고점 대비 -5% ~ -8% 구간 — 최근 수익 일부 반납.",
             message=_msg(
                 "현재 drawdown {drawdown:.2f}%로 최근 수익 일부가 반납되고 있습니다. "
                 "포지션별 thesis와 stop 기준을 점검하세요."
@@ -115,6 +118,24 @@ DRAWDOWN_SKILL = SkillSpec(
         ),
         band_rule(
             "RISK.DRAWDOWN-003",
+            feature="drawdown_pct",
+            at_least="-10",
+            status=STATUS_WARN,
+            risk_level=RISK_YELLOW,
+            title="고점 대비 -8% ~ -10% 구간 — Yellow Alert.",
+            message=_msg(
+                "현재 drawdown {drawdown:.2f}%로 손실 구간이 깊어지고 있습니다. "
+                "추격형 노출을 제약하고 약한 포지션 기준을 점검하세요."
+            ),
+            evidence=_base_evidence,
+            watch_next=(
+                "약한 포지션 기준 점검",
+                "단기 추격형 노출 제약 강화",
+                "유동성 버퍼 상태 점검",
+            ),
+        ),
+        band_rule(
+            "RISK.DRAWDOWN-004",
             feature="drawdown_pct",
             at_least="-15",
             status=STATUS_FAIL,
@@ -132,7 +153,7 @@ DRAWDOWN_SKILL = SkillSpec(
             ),
         ),
         band_rule(
-            "RISK.DRAWDOWN-004",
+            "RISK.DRAWDOWN-005",
             feature="drawdown_pct",
             at_least=ANY,
             status=STATUS_FAIL,

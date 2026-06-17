@@ -51,8 +51,11 @@ def _skill_ctx(dd, peak, total) -> SkillContext:
 PARITY_CASES = [
     ("0", None, 0),
     ("-5", None, 0),       # PASS boundary (>= -5)
-    ("-5.01", None, 0),    # WARN
+    ("-5.01", None, 0),    # WARN -5..-8 (DRAWDOWN-002)
     ("-7", None, 0),
+    ("-8", None, 0),       # WARN sub-band boundary (>= -8)
+    ("-8.01", None, 0),    # WARN -8..-10 Yellow Alert (DRAWDOWN-003)
+    ("-9", None, 0),
     ("-10", None, 0),      # WARN boundary (>= -10)
     ("-10.01", None, 0),   # FAIL / ORANGE
     ("-12", None, 0),
@@ -124,7 +127,20 @@ def test_registry_run_all_returns_result_and_audit():
     assert len(results) == 1 and len(records) == 1
     assert results[0].skill_id == "RISK.DRAWDOWN"
     assert results[0].risk_level == "ORANGE"
-    assert records[0].fired_rule_ids == ("RISK.DRAWDOWN-003",)
+    assert records[0].fired_rule_ids == ("RISK.DRAWDOWN-004",)
+
+
+def test_drawdown_yellow_alert_sub_band_is_distinct():
+    # Slice-283 refinement: -8..-10 fires the distinct Yellow Alert rung while
+    # staying WARN/YELLOW (no decision change vs the -5..-8 give-back band).
+    soft, _ = run_skill(DRAWDOWN_SKILL, _skill_ctx("-6", None, 0))
+    alert, _ = run_skill(DRAWDOWN_SKILL, _skill_ctx("-9", None, 0))
+    assert soft.fired_rule_ids == ("RISK.DRAWDOWN-002",)
+    assert alert.fired_rule_ids == ("RISK.DRAWDOWN-003",)
+    assert soft.status == alert.status == "WARN"
+    assert soft.risk_level == alert.risk_level == "YELLOW"
+    assert soft.title != alert.title
+    assert "Yellow Alert" in alert.title
 
 
 def test_drawdown_skill_result_passes_guard_forbidden_scan():

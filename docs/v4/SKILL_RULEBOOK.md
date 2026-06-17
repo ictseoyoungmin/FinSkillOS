@@ -134,13 +134,14 @@ is the execution of EXT-001. Stress/scenario (EXT-FEATURE-004), benchmark compar
 These change *live risk behaviour*, so they are recorded here, not silently
 applied:
 
-1. **Drawdown granularity.** `guards/drawdown_guard.py`'s docstring documents five
-   bands (-5/-8/-10/-15) but the code implements four, collapsing -5..-8 (soft
-   give-back) and -8..-10 (Yellow Alert) into one WARN rung. Splitting them in the
-   `RISK.DRAWDOWN` skill would match the documented design and add precision — but
-   it intentionally breaks parity with the guard, making the skill the refined
-   source of truth ahead of the 20.2 swap.
+1. **Drawdown granularity.** ✅ **Done (slice 283).** The WARN band (-5..-10) was
+   split into the two documented YELLOW sub-bands — `RISK.DRAWDOWN-002` (-5..-8,
+   give-back) and `-003` (-8..-10, Yellow Alert) — in both the skill and the
+   guard, kept in lockstep (parity-tested). status/risk_level are unchanged; only
+   the descriptive copy + Rule IDs are finer (ORANGE→-004, RED→-005). The
+   skill is the source of truth and the guard follows it.
 2. **Concentration → HHI.** Add METRIC-015's Herfindahl index + max-weight to the
-   concentration skill alongside the current sector bands.
+   concentration skill alongside the current sector bands. *(in progress — slice
+   284)*
 
 Both are good "edit the spec, not the code" demonstrations once approved.
