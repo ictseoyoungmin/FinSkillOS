@@ -32,8 +32,8 @@ def _build_result(spec: SkillSpec, rule: Rule, ctx: SkillContext) -> SkillResult
     return SkillResult(
         skill_id=spec.skill_id,
         version=spec.version,
-        status=rule.status,
-        risk_level=rule.risk_level,
+        status=str(_resolve(rule.status, ctx)),
+        risk_level=str(_resolve(rule.risk_level, ctx)),
         title=str(_resolve(rule.title, ctx)),
         message=str(_resolve(rule.message, ctx)),
         evidence=dict(evidence),

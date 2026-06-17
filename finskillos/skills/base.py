@@ -83,8 +83,11 @@ class Rule:
 
     rule_id: str
     when: PredicateFn
-    status: str
-    risk_level: str
+    # status / risk_level are usually fixed per rung, but may be callables of the
+    # context for categorical guards whose severity is data-derived (e.g. a regime
+    # risk level that maps to RED or ORANGE).
+    status: str | Callable[[SkillContext], str]
+    risk_level: str | Callable[[SkillContext], str]
     title: str
     message: str | MessageFn = ""
     evidence: EvidenceFn | None = None
