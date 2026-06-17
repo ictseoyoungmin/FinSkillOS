@@ -115,3 +115,16 @@ def test_context_is_grounded_into_chat(monkeypatch) -> None:
     )
     systems = [m["content"] for m in captured["messages"] if m["role"] == "system"]
     assert any("largest NVDA" in s for s in systems)
+
+def test_query_context_fetches_applied_skill_rules() -> None:
+    session = _seeded_session()
+    rules = build_query_context(session, "어떤 스킬 규칙이 발화했어?")
+    assert "Applied skill rules" in rules
+    assert "RISK." in rules
+    assert "descriptive audit" in rules
+    # Descriptive-only — no advice wording.
+    lowered = rules.lower()
+    for forbidden in ("buy", "sell", "매수", "매도"):
+        assert forbidden not in lowered
+    # No matching intent → no rules block.
+    assert "Applied skill rules" not in build_query_context(session, "안녕하세요")

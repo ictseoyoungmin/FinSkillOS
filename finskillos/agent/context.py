@@ -187,6 +187,10 @@ def build_state_context(session) -> str:
 _EVENT_Q = re.compile(r"event|이벤트|카탈리스트|catalyst|일정", re.IGNORECASE)
 _NEWS_Q = re.compile(r"news|뉴스|기사|헤드라인|headline", re.IGNORECASE)
 _TRADE_Q = re.compile(r"trade|거래|매매|journal|저널|내역|체결", re.IGNORECASE)
+# "Which skill rule fired / why this risk verdict?" — the Applied Skill Rules audit.
+_RULES_Q = re.compile(
+    r"rule|skill|guard|firewall|규칙|스킬|가드|방화벽|발화", re.IGNORECASE
+)
 # Uppercase words that are not tickers (kept short; the data-exists check catches
 # the rest). Avoids needless lookups on common acronyms.
 _SYMBOL_STOP = {
@@ -298,6 +302,23 @@ def build_query_context(session, question: str, *, only: str | None = None) -> s
                     for t in trades
                 )
                 sections.append(f"Recent trades: {items}.")
+        except Exception:  # noqa: BLE001
+            pass
+
+    if only in (None, "rules") and _RULES_Q.search(question) and account is not None:
+        try:
+            from finskillos.services.risk_guard_service import RiskGuardService
+
+            records = RiskGuardService(session).applied_rules(account.id)
+            if records:
+                items = "; ".join(
+                    f"{r.skill_id} → {r.fired_rule_ids[0]} ({r.status})"
+                    for r in records
+                )
+                sections.append(
+                    "Applied skill rules — which rule fired per risk skill in the "
+                    f"live evaluation: {items} (descriptive audit, not a signal)."
+                )
         except Exception:  # noqa: BLE001
             pass
 
