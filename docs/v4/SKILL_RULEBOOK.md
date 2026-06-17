@@ -1,10 +1,10 @@
 # Skill Rulebook (v4.3) — absorbed from legacy v1
 
 Canonical rule definitions for the Skill Layer (Phase 20). This document
-**absorbs the rule IP from `legacy_v1/FinSkillOS_skills/`** so that directory can
-be deleted without losing the precise formulas, thresholds, insight structure,
-and safety vocabulary the original `Skills.md` set defined. It is the reference
-the migration targets; `docs/v4/PHASE_20_Skill_Layer.md` is the architecture.
+**absorbed the rule IP from the v1 `Skills.md` set** (formerly `legacy_v1/`,
+removed in slice 282) so the precise formulas, thresholds, insight structure, and
+safety vocabulary it defined are preserved. It is the reference the migration
+targets; `docs/v4/PHASE_20_Skill_Layer.md` is the architecture.
 
 Status legend per rule: **[live]** implemented in the current engine ·
 **[skill]** implemented in the new Skill Layer · **[ref]** preserved here as the

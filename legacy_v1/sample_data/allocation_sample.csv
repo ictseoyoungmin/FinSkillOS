@@ -1,7 +1,0 @@
-asset,weight,sector,region
-US Equity Core,0.34,Equity,North America
-Global Tech Tilt,0.22,Equity,Global
-Investment Grade Bond,0.18,Fixed Income,Global
-Short Duration Bond,0.1,Fixed Income,North America
-Commodity Basket,0.08,Commodity,Global
-Cash Reserve,0.08,Cash,Local

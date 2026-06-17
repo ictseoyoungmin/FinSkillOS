@@ -20,7 +20,7 @@ a common shape, and a common audit trail.
 
 ## 1. What a "Skill" was, is, and will be
 
-### v1 (archived in `legacy_v1/FinSkillOS_skills/`)
+### v1 (rule IP absorbed into `docs/v4/SKILL_RULEBOOK.md`; `legacy_v1/` removed in slice 282)
 `Skills.md` + `skills/01–06` defined analysis policy as **Rule IDs** (`DATA-001`,
 `RISK-001`, …) with `condition → action → output → failure_behavior`, plus a
 global safety guardrail and an **Applied Skill Rules audit trail**. The engine

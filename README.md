@@ -49,7 +49,6 @@ arc), `docs/v4/` (Toss arc), `.devmd/CURRENT_STATE.md` (live slice board).
 - `prototypes/ui/` — HTML mockups and design references
 - `data/sample/`, `data/cache/`, `data/logs/`, `data/parquet/`, `data/exports/` — local runtime data
 - `tests/` — acceptance and regression tests (full suite green at 02–13)
-- `legacy_v1/` — preserved v1 competition project
 
 ## 3. 빠른 시작 — Product Cockpit (Docker Compose)
 
