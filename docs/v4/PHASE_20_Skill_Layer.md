@@ -186,9 +186,14 @@ or the agent can answer "*which rule produced this?*" without re-running.
   `appliedRules`. UI: `AppliedSkillRulesPanel` on the Risk Firewall tab (skill id
   + fired Rule ID + status), Playwright-verified live. The RISK domain is now a
   fully-realized governing rule-pack: declarative, live, audited, and surfaced.
-- **20.3 — Express the regime classifier as a Skill family** (`REGIME.*`),
-  reusing `regime_rules` thresholds + `RULE_VERSION`; conflict_resolver becomes a
-  skill-composition step.
+- **20.3 — Express the regime classifier as a Skill family** (`REGIME.*`).
+  - **20.3a** ✅ **Done (slice 296).** REGIME enters the Skill Layer via the
+    classification seam: `SkillResult.label` (category output), `RegimeBackedSkill`
+    wrapping `classify_regime`, `build_regime_registry`, parity-tested. Additive.
+  - **20.3b** (next) — convert `_classify_state` (the score→state ladder) into
+    declarative classification rungs behind the seam; route the regime read path
+    through the registry. Larger; the classifier is multi-dimensional (scores),
+    not a single threshold ladder, so it needs careful per-rung parity.
 - **20.4 — Interpretation as skills** (`NEWS.*`, `SIGNAL.*`): the prose builders
   become skills whose evidence is the fired rule set, unifying state→prose under
   one audit.
