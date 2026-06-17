@@ -245,6 +245,8 @@ def test_service_persists_and_upserts_market_regime_row(db_session: Session) -> 
     assert isinstance(rows[0].watch_next, list)
     assert isinstance(rows[0].evidence, dict)
     assert rows[0].evidence["spy_trend_state"] == "BULLISH"
+    # Phase 20.3c: the fired classification rule id is persisted for "why this regime".
+    assert rows[0].evidence["classification_rule_id"].startswith("REGIME.CLASSIFY-")
     # 05-cleanup: positive/risk factors persisted as JSON lists.
     assert isinstance(rows[0].positive_factors, list)
     assert isinstance(rows[0].risk_factors, list)

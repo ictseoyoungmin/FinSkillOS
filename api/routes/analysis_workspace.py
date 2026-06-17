@@ -236,6 +236,9 @@ def _regime_context(vm: IndexLabViewModel) -> RegimeContext:
             for label, value in evidence_rows(vm.regime.evidence)
         ],
         confidence_rationale=_confidence_rationale(vm.regime),
+        classification_rule_id=str(
+            (vm.regime.evidence or {}).get("classification_rule_id", "")
+        ),
     )
 
 

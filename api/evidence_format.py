@@ -37,12 +37,19 @@ def format_evidence_value(value: object) -> str:
     return str(value)
 
 
+# Evidence keys carried for audit/traceability rather than display as a driver row.
+_NON_DRIVER_KEYS = frozenset({"classification_rule_id"})
+
+
 def evidence_rows(evidence: dict[str, object]) -> list[tuple[str, str]]:
-    """Readable ``(label, value)`` rows, skipping empty values."""
+    """Readable ``(label, value)`` rows, skipping empty + non-display values."""
     return [
         (humanize_key(key), format_evidence_value(value))
         for key, value in evidence.items()
-        if value is not None and value != [] and value != {}
+        if key not in _NON_DRIVER_KEYS
+        and value is not None
+        and value != []
+        and value != {}
     ]
 
 

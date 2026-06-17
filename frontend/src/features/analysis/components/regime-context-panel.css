@@ -102,6 +102,14 @@
   color: var(--fso-cyan);
 }
 
+.fso-regime-rule {
+  margin: 6px 0 0;
+  font-family: var(--fso-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--fso-text-muted-2);
+}
+
 .fso-regime-attribution {
   margin: 4px 0 0;
   display: grid;

@@ -61,6 +61,14 @@ export function RegimeContextPanel({ regime }: RegimeContextPanelProps) {
         </p>
       ) : null}
       <p className="fso-regime-summary">{regime.summary}</p>
+      {regime.classificationRuleId ? (
+        <p
+          className="fso-regime-rule"
+          data-testid="regime-classification-rule"
+        >
+          {`Classified by rule ${regime.classificationRuleId} (Skill Catalog · descriptive).`}
+        </p>
+      ) : null}
       {regime.confidenceRationale ? (
         <p
           className="fso-regime-confidence-rationale"

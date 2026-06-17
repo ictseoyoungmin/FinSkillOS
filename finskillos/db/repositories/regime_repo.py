@@ -41,7 +41,7 @@ class MarketRegimeRepository:
                 what_happened=output.what_happened,
                 what_it_means=output.what_it_means,
                 watch_next=list(output.watch_next),
-                evidence=_jsonable_evidence(output.evidence),
+                evidence=_evidence_with_rule(output),
                 positive_factors=list(output.positive_factors),
                 risk_factors=list(output.risk_factors),
                 rule_version=output.rule_version,
@@ -58,7 +58,7 @@ class MarketRegimeRepository:
         existing.what_happened = output.what_happened
         existing.what_it_means = output.what_it_means
         existing.watch_next = list(output.watch_next)
-        existing.evidence = _jsonable_evidence(output.evidence)
+        existing.evidence = _evidence_with_rule(output)
         existing.positive_factors = list(output.positive_factors)
         existing.risk_factors = list(output.risk_factors)
         self.session.flush()
@@ -102,3 +102,13 @@ def _jsonable_evidence(evidence: dict) -> dict:
         k: (float(v) if isinstance(v, Decimal) else v)
         for k, v in evidence.items()
     }
+
+
+def _evidence_with_rule(output: RegimeOutput) -> dict:
+    """Persist the fired classification rule id alongside the indicator evidence
+    (Phase 20.3c) so the regime read models can show 'why this regime'."""
+
+    evidence = _jsonable_evidence(output.evidence)
+    if output.classification_rule_id:
+        evidence["classification_rule_id"] = output.classification_rule_id
+    return evidence

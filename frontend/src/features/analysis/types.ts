@@ -57,6 +57,8 @@ export interface RegimeContext {
   // optional so fixtures stay unchanged).
   attribution?: RegimeDriver[];
   confidenceRationale?: string;
+  // Phase 20.3c: the REGIME.CLASSIFY-NNN rule that fired (live only).
+  classificationRuleId?: string;
 }
 
 export interface AnalysisWorkspaceSystemStatus {

@@ -76,6 +76,9 @@ class RegimeContext(CamelModel):
     # the visual baseline is unchanged.
     attribution: list[RegimeDriver] = Field(default_factory=list)
     confidence_rationale: str = ""
+    # Phase 20.3c: the REGIME.CLASSIFY-NNN rule that fired — "why this regime",
+    # traceable to the Skill Catalog. Live-only; empty in fixtures.
+    classification_rule_id: str = ""
 
 
 class AnalysisWorkspaceDataState(CamelModel):
