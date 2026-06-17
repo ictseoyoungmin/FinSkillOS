@@ -108,3 +108,20 @@ def test_audit_records_carry_fired_rule_ids():
     assert drawdown.fired_rule_ids[0].startswith("RISK.DRAWDOWN-")
     cash = next(r for r in records if r.skill_id == "RISK.CASH_RATIO")
     assert cash.fired_rule_ids == ("RISK.CASH_RATIO-RUN",)
+
+
+def test_service_skill_ladder_maps_to_guard_names_with_audit():
+    # Phase 20.2: the service helper maps SkillResults back to GuardResults keyed
+    # by canonical guard names, and returns the audit records alongside.
+    from finskillos.guards.base import GUARD_DRAWDOWN
+    from finskillos.services.risk_guard_service import _run_skill_ladder
+
+    guard_results, records = _run_skill_ladder(_guard_input())
+    assert len(guard_results) == 8
+    assert len(records) == 8
+    names = {g.guard_name for g in guard_results}
+    assert GUARD_DRAWDOWN in names
+    assert all(g.guard_name for g in guard_results)
+    # Audit + report stay aligned on status per skill.
+    for guard_result, record in zip(guard_results, records, strict=True):
+        assert guard_result.status == record.status

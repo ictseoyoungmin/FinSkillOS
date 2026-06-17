@@ -41,15 +41,7 @@ from finskillos.guards import (
     PositionRiskInput,
     RiskGuardReport,
     assert_no_forbidden_wording,
-    cash_ratio_guard,
-    concentration_guard,
-    drawdown_guard,
-    event_risk_guard,
-    goal_guard,
-    overheat_guard,
-    regime_guard,
     risk_level_to_severity,
-    single_position_guard,
     worst_risk_level,
     worst_status,
 )
@@ -57,6 +49,12 @@ from finskillos.guards.base import STATUS_BLOCKED, STATUS_FAIL, STATUS_WARN
 from finskillos.services.event_risk_service import EventRiskService
 from finskillos.services.event_service import EventService
 from finskillos.services.goal_service import GoalService
+from finskillos.skills.base import SkillResult, SkillRunRecord
+from finskillos.skills.risk_registry import (
+    SKILL_TO_GUARD_NAME,
+    build_risk_registry,
+    context_from_guard_input,
+)
 
 log = logging.getLogger(__name__)
 
@@ -204,6 +202,17 @@ class RiskGuardService:
     ) -> list[Alert]:
         return self.alerts.list_active(account_id=account_id)
 
+    def applied_rules(
+        self, account_id: uuid.UUID
+    ) -> tuple[SkillRunRecord, ...]:
+        """The 'Applied Skill Rules' audit trail for one evaluation — which skill
+        rule fired per risk skill, with its evidence (Phase 20.2). Feeds the Risk
+        Firewall audit panel; the declarative RISK.DRAWDOWN reports a real ladder
+        rule id, the guard-backed seams a synthetic <skill>-RUN id."""
+
+        _results, records = _run_skill_ladder(self.build_input(account_id))
+        return records
+
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
@@ -262,18 +271,37 @@ class RiskGuardService:
 # ---------------------------------------------------------------------------
 
 
-def _run_all_guards(inputs: GuardInput) -> tuple[GuardResult, ...]:
-    evaluators: tuple[tuple[str, object], ...] = (
-        ("cash_ratio", cash_ratio_guard.evaluate),
-        ("single_position", single_position_guard.evaluate),
-        ("sector_concentration", concentration_guard.evaluate),
-        ("drawdown", drawdown_guard.evaluate),
-        ("goal_protection", goal_guard.evaluate),
-        ("regime_risk", regime_guard.evaluate),
-        ("overheat_entry", overheat_guard.evaluate),
-        ("event_placeholder", event_risk_guard.evaluate),
+# Phase 20.2 — the risk ladder now runs through the Skill Layer registry. A
+# single module-level registry is reused across evaluations (the specs are
+# stateless). ``_run_all_guards`` keeps its name + GuardResult return so
+# ``evaluate`` is byte-for-byte unchanged; the registry produces the same results
+# (RISK.DRAWDOWN declaratively, the rest via the guard-backed seam) plus the
+# audit SkillRunRecords that ``applied_rules`` surfaces.
+_RISK_REGISTRY = build_risk_registry()
+
+
+def _skill_result_to_guard(result: SkillResult) -> GuardResult:
+    return GuardResult(
+        guard_name=SKILL_TO_GUARD_NAME[result.skill_id],
+        status=result.status,
+        risk_level=result.risk_level,
+        title=result.title,
+        message=result.message,
+        evidence=result.evidence,
+        watch_next=result.watch_next,
     )
-    return tuple(fn(inputs) for _, fn in evaluators)  # type: ignore[operator]
+
+
+def _run_skill_ladder(
+    inputs: GuardInput,
+) -> tuple[tuple[GuardResult, ...], tuple[SkillRunRecord, ...]]:
+    results, records = _RISK_REGISTRY.run_all(context_from_guard_input(inputs))
+    return tuple(_skill_result_to_guard(r) for r in results), records
+
+
+def _run_all_guards(inputs: GuardInput) -> tuple[GuardResult, ...]:
+    guard_results, _records = _run_skill_ladder(inputs)
+    return guard_results
 
 
 def _snapshot_total_value(
