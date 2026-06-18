@@ -25,6 +25,7 @@ const PROTOCOL_REFRESH: Record<string, string[]> = {
   run_risk_guards: ["risk-firewall", "control-room"],
   refresh_news: ["news-intelligence", "control-room"],
   refresh_holdings_news: ["news-intelligence", "control-room"],
+  refresh_holdings_sectors: ["risk-firewall", "mission-control", "control-room"],
   sync_toss_holdings: ["mission-control", "risk-firewall", "control-room"],
   sync_toss_trades: ["trade-memory", "control-room"],
   refresh_events: ["event-radar", "control-room"],

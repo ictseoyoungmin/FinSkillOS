@@ -26,6 +26,7 @@ const PROTOCOL_PATHS: Record<ProtocolKey, string> = {
   seed_sample_events: "/system-ops/seed-sample-events",
   refresh_events: "/system-ops/refresh-events",
   refresh_holdings_news: "/system-ops/refresh-holdings-news",
+  refresh_holdings_sectors: "/system-ops/refresh-holdings-sectors",
   sync_toss_holdings: "/system-ops/sync-toss-holdings",
   sync_toss_trades: "/system-ops/sync-toss-trades",
 };
