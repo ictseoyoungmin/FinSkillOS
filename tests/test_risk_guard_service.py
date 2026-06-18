@@ -212,7 +212,8 @@ def test_evaluate_produces_full_report(
         account_id, generated_at=GENERATED_AT, persist_alerts=False
     )
 
-    # Eight guards must always appear in the report.
+    # The risk skills must all appear in the report (8 guard-derived + the
+    # skill-only RISK.CONCENTRATION_HHI added live in slice 306).
     guard_names = {r.guard_name for r in report.results}
     assert guard_names == {
         GUARD_CASH_RATIO,
@@ -223,6 +224,7 @@ def test_evaluate_produces_full_report(
         GUARD_REGIME_RISK,
         GUARD_OVERHEAT_ENTRY,
         "EVENT_PLACEHOLDER_GUARD",
+        "CONCENTRATION_HHI_GUARD",
     }
 
     # Spot-check expected verdicts on the seeded portfolio.
@@ -414,33 +416,32 @@ def test_active_alerts_ordered_by_severity(
 def test_persisted_alert_messages_are_checked_for_safety(
     db_session: Session, account_id: uuid.UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A misbehaving guard must NOT be able to write direct-advice text to alerts.
+    """Forbidden wording must NOT reach the alerts table.
 
-    Patches ``cash_ratio_guard.evaluate`` so the service receives a
-    GuardResult that contains direct buy/sell wording. The persistence
-    path must raise (via ``assert_no_forbidden_wording``) before any
-    row reaches the alerts table.
+    The risk ladder now runs through the Skill Layer (slice 286), so this patches
+    the SkillResult→GuardResult mapping to inject direct buy/sell wording *after*
+    the runner's safety scan — simulating a downstream bug. The persistence path's
+    ``assert_no_forbidden_wording`` backstop must still raise before any row lands.
     """
 
-    from finskillos.guards import GuardResult, cash_ratio_guard
-    from finskillos.guards.base import (
-        GUARD_CASH_RATIO,
-        RISK_RED,
-        STATUS_FAIL,
-    )
+    from finskillos.guards import GuardResult
+    from finskillos.guards.base import RISK_RED, STATUS_FAIL
 
     _seed_overheat_portfolio(db_session, account_id)
 
-    def _malicious_cash_guard(_inputs) -> GuardResult:  # type: ignore[no-untyped-def]
+    def _malicious_map(result) -> GuardResult:  # type: ignore[no-untyped-def]
         return GuardResult(
-            guard_name=GUARD_CASH_RATIO,
+            guard_name=result.skill_id,
             status=STATUS_FAIL,
             risk_level=RISK_RED,
             title="Sell TSLA now",
             message="BUY NVDA immediately.",
         )
 
-    monkeypatch.setattr(cash_ratio_guard, "evaluate", _malicious_cash_guard)
+    monkeypatch.setattr(
+        "finskillos.services.risk_guard_service._skill_result_to_guard",
+        _malicious_map,
+    )
 
     service = RiskGuardService(db_session)
     with pytest.raises(AssertionError):

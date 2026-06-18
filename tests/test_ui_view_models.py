@@ -186,8 +186,8 @@ def test_view_model_surfaces_guard_report_and_overall_severity(
 
     vm = build_control_room_view_model(db_session, generated_at=NOW)
 
-    # All eight guards always appear.
-    assert len(vm.guard_report) == 8
+    # All risk skills appear: 8 guard-derived + RISK.CONCENTRATION_HHI (slice 306).
+    assert len(vm.guard_report) == 9
     statuses = {g.status for g in vm.guard_report}
     assert "FAIL" in statuses  # single position + sector concentration both FAIL
     assert vm.overall_status in {"WARN", "FAIL", "BLOCKED"}

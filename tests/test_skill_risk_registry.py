@@ -1,4 +1,4 @@
-"""Phase 20.1 — the RISK registry runs all eight guards through the Skill Layer.
+"""Phase 20.1 — the RISK registry runs the risk skills through the Skill Layer.
 
 Parity for the guard-backed seam is exact by construction (the skill calls the
 guard), but we still assert it end-to-end: the registry's results match running
