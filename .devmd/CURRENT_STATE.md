@@ -173,6 +173,16 @@ imply SQLite green (slices 134/138). See `workflow_and_memory/feedback_docker_mi
 Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 
 ### Closed recently (detail in COMPLETED_SLICES.md / .devmd notes)
+- **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
+  event are now first-class declarative, auditable, cataloged Skills
+  (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
+  (8 guard-derived + skill-only RISK.CONCENTRATION_HHI), Applied Skill Rules audit
+  on Risk Firewall + via the agent. REGIME: table-driven `CLASSIFICATION_RULES`,
+  "why this regime" rule id on Analysis Workspace. EVENT.SCORE skill. Auto-derived
+  `docs/v4/SKILL_CATALOG.md`. Sector-concentration UNCLASSIFIED false-RED fixed +
+  yfinance sector resolution (`refresh_holdings_sectors`, US-effective; KR
+  unresolved). Removed legacy_v1 + 27 dead/empty scaffold modules. Design +
+  details: `docs/v4/PHASE_20_Skill_Layer.md`, memory `project_v4_3_skill_layer`.
 - **v4.2 UI reconstruction — Phase 19** (263–277) — DONE. Plan + per-tab dedup/
   density across all 10 cockpit tabs (drop meta/empty Integrated Interpretation,
   gate empty breakdowns, shared LineChart date-ticks + height/valueFormat, Mission
