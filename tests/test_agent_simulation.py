@@ -64,6 +64,34 @@ def test_query_context_runs_simulation_on_intent() -> None:
     assert "시뮬레이션 [" not in build_query_context(session, "안녕하세요")
 
 
+def test_simulation_block_becomes_open_quant_lab_action() -> None:
+    from finskillos.agent.chat import _extract_llm_actions
+
+    reply = (
+        "QQQ 추세 상태 추종 시뮬레이션 관측치입니다.\n"
+        '```json\n{"simulation": {"strategy": "TREND_STATE_FOLLOW", "ticker": "qqq"}}\n```'
+    )
+    cleaned, actions = _extract_llm_actions(reply)
+    assert len(actions) == 1
+    action = actions[0]
+    assert action.kind == "open_simulation"
+    assert action.nav_path == "/quant-lab?strategy=TREND_STATE_FOLLOW&ticker=QQQ"
+    assert action.apply_endpoint == ""  # navigation only, never a mutation
+    assert "```" not in cleaned
+    assert find_forbidden_term(action.summary) is None
+
+
+def test_simulation_block_routes_loose_name_and_defaults_ticker() -> None:
+    from finskillos.agent.chat import _simulation_action
+
+    # A loose name routes onto the closest spec; ticker defaults to the spec's.
+    action = _simulation_action({"strategy": "골든크로스"})
+    assert action is not None
+    assert action.nav_path == "/quant-lab?strategy=SMA_GOLDEN_20_50&ticker=AAPL"
+    # A non-dict block is ignored.
+    assert _simulation_action("nope") is None
+
+
 def test_simulation_section_handles_missing_bars() -> None:
     session = _session_with_bars("NVDA", bars=80)
     out = build_query_context(session, "ZZZZ 전략 시뮬레이션")

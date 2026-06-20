@@ -51,7 +51,12 @@ export interface WatchlistOpVM {
 }
 
 export interface ProposedActionVM {
-  kind: "portfolio_import" | "trades_import" | "watch_update" | "run_protocol";
+  kind:
+    | "portfolio_import"
+    | "trades_import"
+    | "watch_update"
+    | "run_protocol"
+    | "open_simulation";
   summary: string;
   normalizedCsv: string;
   rowCount: number;
@@ -59,6 +64,7 @@ export interface ProposedActionVM {
   applyEndpoint: string;
   watchlist?: WatchlistOpVM | null;
   protocol?: string | null;
+  navPath?: string | null;
 }
 
 export interface BrokerageSyncResponse {

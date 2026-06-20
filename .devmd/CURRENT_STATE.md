@@ -186,9 +186,14 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   metrics, spec evidence, exposure windows; all-tabs structural contract + visual
   baseline). 21.4 agent runs a sim on NL intent (`simulation` need target →
   `_match_strategy_id` routes 추세/골든/RSI/회복 → spec → descriptive observation +
-  Quant Lab pointer). Live-verified on real NVDA/AAPL/QQQ daily bars
-  (TREND_STATE_FOLLOW QQQ Sharpe≈1.24). NEXT (21.x): agent-authored free-form
-  specs, multi-asset / walk-forward, saved specs.
+  Quant Lab pointer). 321 closes the NL→스펙→시각화 loop: the agent ends a
+  simulation reply with a `{"simulation": {strategy, ticker}}` block →
+  `open_simulation` proposed action carrying a `nav_path` deep-link → the chat
+  widget's "Quant Lab에서 보기" button navigates to `/quant-lab?strategy=&ticker=`
+  (navigation only, never a mutation). Live-verified on real NVDA/AAPL/QQQ daily
+  bars (TREND_STATE_FOLLOW QQQ Sharpe≈1.24). NEXT (21.x): agent-authored
+  free-form specs, in-tab data-prep/signal-on-price viz, multi-asset /
+  walk-forward, saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry

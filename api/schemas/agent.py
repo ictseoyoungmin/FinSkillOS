@@ -427,7 +427,11 @@ class WatchlistOpVM(CamelModel):
 
 class ProposedActionVM(CamelModel):
     kind: Literal[
-        "portfolio_import", "trades_import", "watch_update", "run_protocol"
+        "portfolio_import",
+        "trades_import",
+        "watch_update",
+        "run_protocol",
+        "open_simulation",
     ]
     summary: str
     normalized_csv: str
@@ -436,6 +440,7 @@ class ProposedActionVM(CamelModel):
     apply_endpoint: str
     watchlist: WatchlistOpVM | None = None
     protocol: str | None = None
+    nav_path: str | None = None
 
 
 class ChatResponse(CamelModel):

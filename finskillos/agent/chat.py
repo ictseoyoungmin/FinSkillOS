@@ -69,8 +69,13 @@ SYSTEM_PROMPT = (
     "과매도 반등, 추세 상태 추종, 회복 국면 과매도) on a ticker, request the "
     "'simulation' target (name the ticker too); then report the observed exposure "
     "%, cumulative return vs the buy-and-hold benchmark, Sharpe and max drawdown "
-    "as a simulation observation (not advice), and point the user to the Quant Lab "
-    "tab to see the equity curve.\n\n"
+    "as a simulation observation (not advice). After reporting a simulation, END "
+    "your reply with a block so the user can open the visual on the Quant Lab tab:\n"
+    "```json\n"
+    '{"simulation": {"strategy": "TREND_STATE_FOLLOW", "ticker": "QQQ"}}\n'
+    "```\n"
+    "(strategy is one of: SMA_50_CROSS, SMA_GOLDEN_20_50, RSI_MEAN_REVERT, "
+    "TREND_STATE_FOLLOW, RECOVERY_OVERSOLD.)\n\n"
     "When the user gives you holdings or trades to record — in any free-form "
     "text, a messy list, or an attached screenshot — extract them and END your "
     "reply with ONE fenced json block.\n"
@@ -186,6 +191,9 @@ class ProposedAction:
     warnings: list[str] = field(default_factory=list)
     watchlist: WatchlistOp | None = None
     protocol: str | None = None
+    # A cockpit route the frontend opens (no DB mutation) — e.g. the Quant Lab
+    # tab deep-linked to the strategy/ticker the agent just simulated.
+    nav_path: str | None = None
 
 
 def _protocol_action(key: str | None, source: str) -> ProposedAction | None:
@@ -216,6 +224,37 @@ def _watch_action(op: WatchlistOp | None, source: str) -> ProposedAction | None:
         row_count=len(op.add) + len(op.remove),
         apply_endpoint="/api/system-ops/collection-control",
         watchlist=op,
+    )
+
+
+def _simulation_action(block: object) -> ProposedAction | None:
+    """A `{"simulation": {"strategy": ..., "ticker": ...}}` block → an
+    open-in-Quant-Lab navigation action (no mutation, just a deep link)."""
+
+    from urllib.parse import urlencode
+
+    from finskillos.simulation.library import get_strategy
+
+    if not isinstance(block, dict):
+        return None
+    raw = str(block.get("strategy") or "").strip()
+    spec = get_strategy(raw)
+    if spec is None:
+        # The model may pass a loose name — route it onto the closest spec.
+        from finskillos.agent.context import _match_strategy_id
+
+        spec = get_strategy(_match_strategy_id(raw))
+    if spec is None:
+        return None
+    ticker = str(block.get("ticker") or "").strip().upper() or spec.universe[0]
+    query = urlencode({"strategy": spec.strategy_id, "ticker": ticker})
+    return ProposedAction(
+        kind="open_simulation",
+        summary=f"Quant Lab에서 보기: {spec.name} · {ticker} (시뮬레이션, 매매 권유 아님).",
+        normalized_csv="",
+        row_count=1,
+        apply_endpoint="",
+        nav_path=f"/quant-lab?{query}",
     )
 
 
@@ -342,6 +381,9 @@ def _extract_llm_actions(
             ]
         elif data.get("protocol") is not None:
             action = _protocol_action(protocol_from_block(data), "from your message")
+            actions = [action] if action else []
+        elif data.get("simulation") is not None:
+            action = _simulation_action(data["simulation"])
             actions = [action] if action else []
         if actions:
             cleaned = (reply[: match.start()] + reply[match.end() :]).strip()

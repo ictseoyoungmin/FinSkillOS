@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   applyImportPositions,
@@ -139,6 +140,7 @@ function renderRich(text: string) {
  */
 export function AgentChatWidget() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([GREETING]);
   const [input, setInput] = useState("");
@@ -483,6 +485,13 @@ export function AgentChatWidget() {
     }
   };
 
+  const onOpenSimulation = (pkey: string, action: ProposedActionVM) => {
+    if (!action.navPath) return;
+    setApplied((s) => new Set(s).add(pkey));
+    setOpen(false);
+    navigate(action.navPath);
+  };
+
   const onRunProtocol = async (pkey: string, action: ProposedActionVM) => {
     if (!action.protocol) return;
     setBusy(true);
@@ -717,6 +726,14 @@ export function AgentChatWidget() {
                             data-testid="chat-action-protocol"
                           >
                             Run
+                          </button>
+                        ) : action.kind === "open_simulation" ? (
+                          <button
+                            className="fso-chat-confirm"
+                            onClick={() => onOpenSimulation(pkey, action)}
+                            data-testid="chat-action-open-simulation"
+                          >
+                            Quant Lab에서 보기
                           </button>
                         ) : preview[pkey] ? (
                           <button

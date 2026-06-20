@@ -1056,6 +1056,7 @@ def _to_action_vm(action) -> ProposedActionVM:
         apply_endpoint=action.apply_endpoint,
         watchlist=watchlist,
         protocol=action.protocol,
+        nav_path=action.nav_path,
     )
 
 
