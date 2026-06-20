@@ -191,12 +191,81 @@ _TRADE_Q = re.compile(r"trade|거래|매매|journal|저널|내역|체결", re.IG
 _RULES_Q = re.compile(
     r"rule|skill|guard|firewall|규칙|스킬|가드|방화벽|발화", re.IGNORECASE
 )
+# "Simulate / backtest a quant strategy over the stored bars" — the Quant Lab.
+_SIM_Q = re.compile(
+    r"시뮬|simulat|백테스트|backtest|퀀트|quant|전략", re.IGNORECASE
+)
 # Uppercase words that are not tickers (kept short; the data-exists check catches
 # the rest). Avoids needless lookups on common acronyms.
 _SYMBOL_STOP = {
     "RSI", "EMA", "PNL", "AND", "THE", "FOR", "USD", "KRW", "OK", "DB", "API",
     "FOMC", "CPI", "PPI", "ETF", "IPO", "CEO", "AI", "NEW", "ALL", "ANY",
 }
+
+
+def _match_strategy_id(question: str) -> str:
+    """Map a free-text question onto a built-in StrategySpec id (Phase 21.4).
+
+    The agent "designs" by selecting the hypothesis the user describes; an
+    explicit id in the text wins, otherwise Korean/English keywords route to the
+    closest library spec."""
+
+    from finskillos.simulation.library import STRATEGY_LIBRARY
+
+    upper = question.upper()
+    for spec in STRATEGY_LIBRARY:
+        if spec.strategy_id in upper:
+            return spec.strategy_id
+    q = question.lower()
+    if "골든" in question or "golden" in q or "데드" in question:
+        return "SMA_GOLDEN_20_50"
+    if "rsi" in q or "과매도" in question or "평균 회귀" in question or "mean rever" in q:
+        return "RSI_MEAN_REVERT"
+    if "회복" in question or "recovery" in q:
+        return "RECOVERY_OVERSOLD"
+    if "추세 상태" in question or "trend_state" in q or "trend state" in q:
+        return "TREND_STATE_FOLLOW"
+    return "SMA_50_CROSS"
+
+
+def _simulation_section(session, question: str) -> str | None:
+    """Run the matched built-in strategy over stored bars and return a
+    descriptive one-line observation (exposure ON/OFF, never buy/sell)."""
+
+    from finskillos.services.simulation_service import SimulationService
+
+    service = SimulationService(session)
+    sid = _match_strategy_id(question)
+    # A named ticker (with stored bars) overrides the spec default.
+    chosen: str | None = None
+    for token in re.findall(r"\b[A-Z]{2,6}\b", question.upper()):
+        if token in _SYMBOL_STOP:
+            continue
+        if service.market.count_for(token, "1d") >= 60:
+            chosen = token
+            break
+    result = service.run(sid, ticker=chosen)
+    if result is None or result.bar_count == 0:
+        return (
+            f"전략 {sid}: 시뮬레이션할 저장된 일봉 바가 부족합니다 "
+            "(Quant Lab 탭에서 다른 종목을 선택하거나 데이터를 더 수집하세요)."
+        )
+    m = result.metrics
+
+    def _pct(v: float | None) -> str:
+        return "n/a" if v is None else f"{v * 100:.1f}%"
+
+    def _r(v: float | None) -> str:
+        return "n/a" if v is None else f"{v:.2f}"
+
+    return (
+        f"시뮬레이션 [{result.strategy_id} · {result.name}] on {result.ticker} "
+        f"({result.bar_count} 일봉 바): 노출 비중 {_pct(m.exposure_pct)}, "
+        f"누적 {_pct(m.total_return)} (벤치마크=동일 종목 보유 대비 관측치), "
+        f"Sharpe {_r(m.sharpe)}, 최대 낙폭 {_pct(m.max_drawdown)}, "
+        f"라운드트립 {m.round_trips}회. 저장된 과거 바 리플레이 관측 결과이며 "
+        "매매 권유가 아닙니다 — Quant Lab 탭에서 곡선을 시각적으로 확인할 수 있습니다."
+    )
 
 
 def detected_query_sources(question: str) -> list[tuple[str, str]]:
@@ -211,6 +280,8 @@ def detected_query_sources(question: str) -> list[tuple[str, str]]:
         out.append(("news", "보유종목 뉴스 조회"))
     if _TRADE_Q.search(q):
         out.append(("trades", "거래 기록 조회"))
+    if _SIM_Q.search(q):
+        out.append(("simulation", "퀀트 전략 시뮬레이션"))
     if re.search(r"\b[A-Z]{2,6}\b", q):
         out.append(("symbol", "종목 데이터 분석"))
     return out
@@ -335,6 +406,14 @@ def build_query_context(session, question: str, *, only: str | None = None) -> s
                     f"{out.classification_rule_id} (risk {out.risk_level}) — "
                     "descriptive audit, not a signal."
                 )
+        except Exception:  # noqa: BLE001
+            pass
+
+    if only in (None, "simulation") and _SIM_Q.search(question):
+        try:
+            line = _simulation_section(session, question)
+            if line:
+                sections.append(line)
         except Exception:  # noqa: BLE001
             pass
 
