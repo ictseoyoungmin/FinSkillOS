@@ -173,6 +173,18 @@ imply SQLite green (slices 134/138). See `workflow_and_memory/feedback_docker_mi
 Mark `[~]` while in progress, then `[x]` with the implementation note when done.
 
 ### Closed recently (detail in COMPLETED_SLICES.md / .devmd notes)
+- **Quant Simulation Lab — Phase 21** (316–) — IN PROGRESS. New cockpit surface
+  where the agent designs *descriptive* quant hypotheses (declarative
+  `StrategySpec`: entry/exit `Condition`s over per-bar features) and the pure
+  `finskillos/simulation/` engine replays them over stored historical bars →
+  equity-vs-benchmark curve, simulated **exposure ON/OFF** windows, the absorbed
+  METRIC stats (Sharpe/Sortino/Calmar/MaxDD/CAGR). No real trading, reads only
+  stored bars, not-advice caption on every surface. Done: 21.0 design
+  (`docs/v4/PHASE_21_Quant_Sim_Lab.md`), 21.1 engine + metrics (pure/offline,
+  6 tests), 21.2 `SimulationService` + built-in `STRATEGY_LIBRARY` (5 specs) +
+  `/api/quant-lab` route/schema/fixture (live-verified on real NVDA/AAPL/QQQ daily
+  bars: TREND_STATE_FOLLOW QQQ Sharpe≈1.24). NEXT: 21.3 frontend Quant Lab tab,
+  21.4 agent authors the spec from NL.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry

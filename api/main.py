@@ -22,6 +22,7 @@ from api.routes import (
     market_kernel,
     mission_control,
     news_intelligence,
+    quant_lab,
     risk_firewall,
     symbol_lab,
     system_ops,
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(news_intelligence.router, prefix="/api")
     app.include_router(event_radar.router, prefix="/api")
     app.include_router(trade_memory.router, prefix="/api")
+    app.include_router(quant_lab.router, prefix="/api")
     app.include_router(agent.router, prefix="/api")
 
     return app
