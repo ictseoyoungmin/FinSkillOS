@@ -199,6 +199,22 @@ const ROUTES: readonly RouteSpec[] = [
     screenshotName: "trade-memory.png",
   },
   {
+    label: "quant-lab",
+    path: "/quant-lab",
+    eyebrow: "QUANT LAB",
+    safetyCategory: "시뮬레이션",
+    requiredTestIds: [
+      "quant-lab-page",
+      "judgment-header",
+      "safety-caption",
+      "quant-controls",
+      "quant-equity-chart",
+      "quant-metrics",
+      "quant-strategy",
+    ],
+    screenshotName: "quant-lab.png",
+  },
+  {
     label: "system-ops",
     path: "/system-ops",
     eyebrow: "SYSTEM TRUST JUDGMENT",

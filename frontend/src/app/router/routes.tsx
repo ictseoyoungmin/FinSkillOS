@@ -8,6 +8,7 @@ import { MissionControlPage } from "@/pages/mission-control/MissionControlPage";
 import { NewsIntelligencePage } from "@/pages/news-intelligence/NewsIntelligencePage";
 import { CatalystWatchPage } from "@/pages/catalyst-watch/CatalystWatchPage";
 import { TradeMemoryPage } from "@/pages/trade-memory/TradeMemoryPage";
+import { QuantLabPage } from "@/pages/quant-lab/QuantLabPage";
 import { SystemOpsPage } from "@/pages/system-ops/SystemOpsPage";
 
 export function AppRoutes() {
@@ -25,6 +26,7 @@ export function AppRoutes() {
       <Route path="/news-intel" element={<NewsIntelligencePage />} />
       <Route path="/catalyst-watch" element={<CatalystWatchPage />} />
       <Route path="/trade-memory" element={<TradeMemoryPage />} />
+      <Route path="/quant-lab" element={<QuantLabPage />} />
       <Route path="/system-ops" element={<SystemOpsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -36,6 +36,7 @@ const FIXTURE_SNAPSHOT_PATHS = new Set([
   "/api/news-intelligence",
   "/api/event-radar",
   "/api/trade-memory",
+  "/api/quant-lab",
   "/api/system-ops",
 ]);
 

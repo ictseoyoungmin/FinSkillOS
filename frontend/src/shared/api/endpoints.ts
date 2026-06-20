@@ -13,6 +13,7 @@ export const apiEndpoints = {
   collectionControl: "/system-ops/collection-control",
   newsIntelligence: "/news-intelligence",
   eventRadar: "/event-radar",
+  quantLab: "/quant-lab",
   tradeMemory: "/trade-memory",
   tradeEntries: "/trade-memory/entries",
   tradeWeeklyReview: "/trade-memory/weekly-review",

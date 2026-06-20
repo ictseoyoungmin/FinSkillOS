@@ -91,6 +91,14 @@ export const OS_NAV_ITEMS: readonly OsNavItem[] = [
     description: "Weekly review · mistake patterns",
   },
   {
+    key: "quant",
+    label: "Quant Lab",
+    shortLabel: "Quant",
+    path: "/quant-lab",
+    iconChar: "∿",
+    description: "Strategy simulation · equity vs benchmark · exposure (research only)",
+  },
+  {
     key: "ops",
     label: "System Ops",
     shortLabel: "Ops",
