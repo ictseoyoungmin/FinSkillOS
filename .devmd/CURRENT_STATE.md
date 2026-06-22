@@ -228,9 +228,13 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   thresholds. **329** data-prep panel — engine reports per-bar feature coverage
   (rsi_14/trend/regime/ema), tab shows date span + coverage bars (live QQQ regime
   only ~6%). **330** walk-forward — `engine.walk_forward` runs the spec over
-  sequential windows; tab table shows per-window return/Sharpe/holding. NEXT
-  (21.x): multi-asset portfolio/screening (only walk-forward done from that
-  bucket), saved specs.
+  sequential windows; tab table shows per-window return/Sharpe/holding. **331** multi-asset screen —
+  `SimulationService.screen_spec` runs a strategy across all stored tickers; GET
+  `/api/quant-lab/screen` (built-in) + POST (custom spec) return per-ticker rows
+  ranked by return; on-demand tab panel (click a row → deep-link that ticker).
+  Live-verified (SMA_50_CROSS screened across 40 tickers, SOXL top). NEXT (21.x):
+  multi-asset *portfolio* synthesis (screening done; combined allocation not yet),
+  saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
