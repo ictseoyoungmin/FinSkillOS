@@ -45,6 +45,12 @@ def test_match_strategy_id_routes_keywords() -> None:
     assert _match_strategy_id("그냥 추세 추종 전략") == "SMA_50_CROSS"
     # An explicit id wins.
     assert _match_strategy_id("RSI_MEAN_REVERT 돌려") == "RSI_MEAN_REVERT"
+    # Designed additions (slice 336) route by keyword.
+    assert _match_strategy_id("EMA 골든크로스") == "EMA_GOLDEN_20_60"
+    assert _match_strategy_id("눌림목 매수 전략") == "TREND_PULLBACK_RSI"
+    assert _match_strategy_id("낙폭 매수") == "DIP_BUY_UPTREND"
+    assert _match_strategy_id("모멘텀 돌파 전략") == "BREAKOUT_SMA20_MOMENTUM"
+    assert _match_strategy_id("ema60 추세 reclaim") == "EMA60_TREND_RECLAIM"
 
 
 def test_simulation_intent_detected() -> None:

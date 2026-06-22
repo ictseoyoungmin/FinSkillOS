@@ -218,6 +218,17 @@ def _match_strategy_id_opt(question: str) -> str | None:
         if spec.strategy_id in upper:
             return spec.strategy_id
     q = question.lower()
+    # More specific designs first (EMA golden must precede the plain SMA golden).
+    if "ema" in q and ("골든" in question or "golden" in q):
+        return "EMA_GOLDEN_20_60"
+    if "ema" in q and ("60" in q or "reclaim" in q):
+        return "EMA60_TREND_RECLAIM"
+    if "눌림" in question or "pullback" in q:
+        return "TREND_PULLBACK_RSI"
+    if "낙폭" in question or "drawdown" in q or "dip" in q:
+        return "DIP_BUY_UPTREND"
+    if "돌파" in question or "breakout" in q:
+        return "BREAKOUT_SMA20_MOMENTUM"
     if "골든" in question or "golden" in q or "데드" in question:
         return "SMA_GOLDEN_20_50"
     if "rsi" in q or "과매도" in question or "평균 회귀" in question or "mean rever" in q:

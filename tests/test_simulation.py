@@ -105,6 +105,65 @@ def test_external_features_drive_conditions():
     assert result.equity_curve[1].regime == "RECOVERY"
 
 
+def test_designed_strategies_fire_on_crafted_inputs():
+    """Each Slice-336 design must actually enter AND exit given the conditions it
+    targets — proves the specs are well-formed and useful, not just valid."""
+    from finskillos.simulation.library import get_strategy
+
+    def _run(sid, closes, external):
+        return simulate(get_strategy(sid), _bars(closes), external=external)
+
+    # EMA(20) crosses above EMA(60) → in; crosses below → out.
+    ema = _run(
+        "EMA_GOLDEN_20_60",
+        [100, 101, 103, 102, 100],
+        [
+            {"ema_20": 98, "ema_60": 100},
+            {"ema_20": 101, "ema_60": 100},
+            {"ema_20": 103, "ema_60": 101},
+            {"ema_20": 100, "ema_60": 102},
+            {"ema_20": 99, "ema_60": 102},
+        ],
+    )
+    assert ema.metrics.round_trips == 1
+
+    # close reclaims EMA(60) then loses it.
+    rec = _run(
+        "EMA60_TREND_RECLAIM",
+        [100, 101, 102, 99, 98],
+        [{"ema_60": v} for v in (101, 100, 100, 100, 100)],
+    )
+    assert rec.metrics.round_trips == 1
+
+    # Uptrend + RSI pullback <45 → in; RSI>70 → out.
+    pull = _run(
+        "TREND_PULLBACK_RSI",
+        [100, 99, 98, 99, 100],
+        [
+            {"trend": "BULLISH", "rsi_14": 50},
+            {"trend": "BULLISH", "rsi_14": 40},
+            {"trend": "BULLISH", "rsi_14": 50},
+            {"trend": "BULLISH", "rsi_14": 75},
+            {"trend": "BULLISH", "rsi_14": 60},
+        ],
+    )
+    assert pull.metrics.round_trips == 1
+
+    # Uptrend + drawdown < -8% → in; recovers above -2% → out.
+    dip = _run(
+        "DIP_BUY_UPTREND",
+        [100, 110, 99, 108],
+        [{"trend": "BULLISH"} for _ in range(4)],
+    )
+    assert dip.metrics.round_trips == 1
+
+    # Confirmed breakout: 20 flat bars then a jump above SMA(20) with RSI>50.
+    closes = [100.0] * 20 + [110.0, 95.0]
+    ext = [{"rsi_14": 60.0}] * 21 + [{"rsi_14": 40.0}]
+    brk = _run("BREAKOUT_SMA20_MOMENTUM", closes, ext)
+    assert brk.metrics.round_trips == 1
+
+
 def test_walk_forward_splits_into_independent_windows():
     from finskillos.simulation.engine import walk_forward
 
