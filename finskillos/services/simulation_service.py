@@ -14,7 +14,7 @@ from finskillos.db.repositories import (
     MarketRegimeRepository,
     MarketRepository,
 )
-from finskillos.simulation import Bar, SimulationResult, simulate
+from finskillos.simulation import Bar, SimulationResult, StrategySpec, simulate
 from finskillos.simulation.library import STRATEGY_LIBRARY, get_strategy
 
 _MIN_BARS = 60
@@ -40,6 +40,18 @@ class SimulationService:
         spec = get_strategy(strategy_id)
         if spec is None:
             return None
+        return self.run_spec(spec, ticker=ticker, timeframe=timeframe)
+
+    def run_spec(
+        self,
+        spec: StrategySpec,
+        *,
+        ticker: str | None = None,
+        timeframe: str = "1d",
+    ) -> SimulationResult:
+        """Run any StrategySpec (built-in or agent-authored free-form) over the
+        chosen ticker's stored bars."""
+
         chosen = (ticker or spec.universe[0]).upper()
         rows = self.market.list_bars(chosen, timeframe)
         bars = [
@@ -50,8 +62,7 @@ class SimulationService:
         external = self._external_features(
             chosen, timeframe, [b.date for b in bars]
         )
-        spec = replace(spec, universe=(chosen,))
-        return simulate(spec, bars, external=external)
+        return simulate(replace(spec, universe=(chosen,)), bars, external=external)
 
     def _external_features(
         self, ticker: str, timeframe: str, dates: list[str]

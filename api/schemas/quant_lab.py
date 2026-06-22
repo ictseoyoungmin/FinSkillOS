@@ -68,6 +68,19 @@ class QuantLabDataState(CamelModel):
     data_note: str = ""
 
 
+class QuantLabRunRequest(CamelModel):
+    """An agent-authored free-form strategy to backtest (Phase 21.8).
+
+    ``entry`` / ``exit`` are condition trees (see finskillos.simulation.spec_json)."""
+
+    ticker: str
+    entry: dict
+    exit_: dict = Field(alias="exit")
+    name: str | None = None
+    description: str | None = None
+    timeframe: str = "1d"
+
+
 class QuantLabResponse(CamelModel):
     generated_at: str
     system_status: SystemStatus

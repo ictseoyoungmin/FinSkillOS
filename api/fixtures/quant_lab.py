@@ -46,8 +46,11 @@ def build_quant_lab_response(
     generated_at: str,
     regime_covered: bool,
     db_state: str = "LIVE",
+    spec=None,
 ) -> QuantLabResponse:
-    spec = get_strategy(strategy_id)
+    # ``spec`` is the actual StrategySpec (needed for agent-authored CUSTOM specs
+    # that aren't in the library); fall back to the built-in lookup by id.
+    spec = spec or get_strategy(strategy_id)
     entry_text = condition_text(spec.entry) if spec is not None else ""
     exit_text = condition_text(spec.exit) if spec is not None else ""
 

@@ -22,12 +22,14 @@ from api.schemas.quant_lab import (
     QuantLabDataState,
     QuantLabMetrics,
     QuantLabResponse,
+    QuantLabRunRequest,
     QuantLabStrategyOption,
     QuantLabStrategySummary,
 )
 from finskillos.services.simulation_service import SimulationService, list_strategies
 from finskillos.simulation import SIMULATION_CAPTION
 from finskillos.simulation.library import condition_text, get_strategy
+from finskillos.simulation.spec_json import SpecParseError, strategy_spec_from_json
 
 router = APIRouter(tags=["quant-lab"])
 UTC = timezone.utc
@@ -93,30 +95,89 @@ def _read_quant_lab(
         )
 
 
+@router.post(
+    "/quant-lab/run",
+    response_model=QuantLabResponse,
+    summary="Backtest an agent-authored free-form strategy over stored bars.",
+)
+def quant_lab_run(payload: QuantLabRunRequest) -> QuantLabResponse:
+    spec_obj = {
+        "name": payload.name,
+        "description": payload.description,
+        "ticker": payload.ticker,
+        "entry": payload.entry,
+        "exit": payload.exit_,
+    }
+    try:
+        spec = strategy_spec_from_json(spec_obj)
+    except SpecParseError as exc:
+        return _state_response(
+            "CUSTOM",
+            payload.ticker,
+            [],
+            note=f"전략 정의 오류: {exc}",
+            spec_name=payload.name or "사용자 전략",
+        )
+    with get_session_scope() as session:
+        if session is None:
+            return _state_response(
+                "CUSTOM", payload.ticker, [], note="DB에 연결할 수 없습니다.",
+                spec_name=spec.name,
+            )
+        service = SimulationService(session)
+        available = service.available_tickers()
+        try:
+            result = service.run_spec(spec, timeframe=payload.timeframe)
+        except Exception as exc:  # live read failed → explicit live-error state
+            return _state_response(
+                "CUSTOM", payload.ticker, available,
+                note=f"백테스트 실행 실패 ({type(exc).__name__}).", spec_name=spec.name,
+            )
+        if result.bar_count == 0:
+            return _state_response(
+                "CUSTOM", payload.ticker, available,
+                note=f"'{payload.ticker.upper()}'의 저장된 일봉 바가 부족합니다.",
+                spec_name=spec.name,
+            )
+        now = datetime.now(tz=UTC).isoformat()
+        regime_covered = any(p.regime for p in result.equity_curve)
+        return build_quant_lab_response(
+            result,
+            strategy_id="CUSTOM",
+            available_tickers=available,
+            source="live",
+            generated_at=now,
+            regime_covered=regime_covered,
+            spec=spec,
+        )
+
+
 def _state_response(
     strategy_id: str,
     ticker: str | None,
     available_tickers: list[str],
     *,
     note: str,
+    spec_name: str | None = None,
 ) -> QuantLabResponse:
     """An explicit live-empty / live-error payload (source=live, never fixture)."""
 
     spec = get_strategy(strategy_id)
+    title = spec.name if spec is not None else (spec_name or strategy_id)
     tk = (ticker or (spec.universe[0] if spec is not None else "")).upper()
     return QuantLabResponse(
         generated_at=datetime.now(tz=UTC).isoformat(),
         system_status=SystemStatus(db="LIVE", guard_count=0),
         judgment=JudgmentHeader(
-            eyebrow="QUANT LAB · 시뮬레이션",
-            title=spec.name if spec is not None else strategy_id,
+            eyebrow="QUANT LAB · 백테스트",
+            title=title,
             accent=tk,
             summary=note,
             confidence=0,
         ),
         strategy=QuantLabStrategySummary(
             id=strategy_id,
-            name=spec.name if spec is not None else strategy_id,
+            name=title,
             description=spec.description if spec is not None else "",
             ticker=tk,
             entry_text=condition_text(spec.entry) if spec is not None else "",
