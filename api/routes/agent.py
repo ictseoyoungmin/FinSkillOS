@@ -7,10 +7,12 @@ not perform any mutation.
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 import time
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -59,6 +61,7 @@ from finskillos.agent.chat import (
     ChatMessage,
     ProposedAction,
     _simulation_action,
+    extract_strategy_spec_block,
     run_chat,
 )
 from finskillos.agent.context import (
@@ -937,12 +940,7 @@ def _sim_response(
     )
 
 
-def _build_sim_preview(res) -> ChatSimPreview | None:
-    """Compact inline-chart payload from a resolved SimulationResult."""
-
-    result = getattr(res, "result", None)
-    if result is None:
-        return None
+def _sim_preview_from_result(result, *, nav_path: str) -> ChatSimPreview:
     curve = result.equity_curve
     idx = {p.date: i for i, p in enumerate(curve)}
     markers = [
@@ -954,7 +952,7 @@ def _build_sim_preview(res) -> ChatSimPreview | None:
     return ChatSimPreview(
         ticker=result.ticker,
         strategy_name=result.name,
-        nav_path=f"/quant-lab?strategy={result.strategy_id}&ticker={result.ticker}",
+        nav_path=nav_path,
         closes=[p.close for p in curve],
         exposures=[bool(p.exposure) for p in curve],
         markers=markers,
@@ -964,6 +962,75 @@ def _build_sim_preview(res) -> ChatSimPreview | None:
         sharpe=m.sharpe,
         max_drawdown=m.max_drawdown,
     )
+
+
+def _build_sim_preview(res) -> ChatSimPreview | None:
+    """Compact inline-chart payload from a resolved built-in SimulationResult."""
+
+    result = getattr(res, "result", None)
+    if result is None:
+        return None
+    nav = f"/quant-lab?strategy={result.strategy_id}&ticker={result.ticker}"
+    return _sim_preview_from_result(result, nav_path=nav)
+
+
+def _encode_spec(spec_obj: dict) -> str:
+    """URL-safe base64 of the spec JSON for the Quant Lab ``?spec=`` deep-link."""
+
+    raw = json.dumps(spec_obj, ensure_ascii=False).encode("utf-8")
+    return base64.b64encode(raw).decode("ascii")
+
+
+def _custom_spec_chat(session, spec_obj: dict) -> tuple[str, ChatSimPreview | None, object | None]:
+    """Validate + backtest an agent-authored free-form spec → (line, preview,
+    action_vm). On any failure returns (error_line, None, None)."""
+
+    from finskillos.services.simulation_service import SimulationService
+    from finskillos.simulation.spec_json import (
+        SpecParseError,
+        strategy_spec_from_json,
+    )
+
+    try:
+        spec = strategy_spec_from_json(spec_obj)
+    except SpecParseError as exc:
+        return f"전략 정의를 해석하지 못했습니다 ({exc}).", None, None
+
+    service = SimulationService(session)
+    try:
+        result = service.run_spec(spec)
+    except Exception as exc:  # noqa: BLE001
+        return f"백테스트 실행 실패 ({type(exc).__name__}).", None, None
+    if result.bar_count == 0:
+        return (
+            f"'{spec.universe[0]}'의 저장된 일봉 바가 부족해 백테스트할 수 없습니다.",
+            None,
+            None,
+        )
+
+    m = result.metrics
+
+    def _pct(v):
+        return "n/a" if v is None else f"{v * 100:.1f}%"
+
+    line = (
+        f"백테스트 [{result.name} · {result.ticker}] ({result.bar_count} 일봉 바): "
+        f"보유 {_pct(m.exposure_pct)}, 누적 {_pct(m.total_return)}, "
+        f"매수/매도 {m.round_trips}회. Quant Lab 탭에서 매매 시점을 볼 수 있습니다."
+    )
+    nav = f"/quant-lab?spec={quote(_encode_spec(spec_obj))}"
+    preview = _sim_preview_from_result(result, nav_path=nav)
+    action = _to_action_vm(
+        ProposedAction(
+            kind="open_simulation",
+            summary=f"Quant Lab에서 매매 시점 보기: {result.name} · {result.ticker}.",
+            normalized_csv="",
+            row_count=1,
+            apply_endpoint="",
+            nav_path=nav,
+        )
+    )
+    return line, preview, action
 
 
 def _simulation_menu_reply(session) -> ChatResponse:
@@ -1006,6 +1073,11 @@ def _deterministic_sim_reply(session, last_user: str) -> ChatResponse | None:
     (then the normal LLM path handles it)."""
 
     if session is None or not _SIM_INTENT.search(last_user or ""):
+        return None
+    # A number in the request signals custom thresholds (e.g. "RSI 30 매수 70 매도")
+    # — defer to the LLM so it can author a free-form spec instead of snapping to
+    # the closest built-in. Pure keyword requests ("추세 추종") stay on the fast path.
+    if re.search(r"\d", last_user or ""):
         return None
     res = resolve_simulation_query(session, last_user, require_anchor=True)
     if res is None:
@@ -1055,13 +1127,28 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
             context=context,
             fetch_more=fetch_more,
         )
+        # The model may author a free-form strategy spec → backtest + chart it.
+        reply_text, spec_obj = extract_strategy_spec_block(reply.reply)
+        custom_line = custom_preview = custom_action = None
+        if spec_obj is not None:
+            custom_line, custom_preview, custom_action = _custom_spec_chat(
+                session, spec_obj
+            )
     actions = [_to_action_vm(a) for a in reply.proposed_actions]
+    preview = None
+    final_reply = reply.reply
+    if spec_obj is not None:
+        final_reply = f"{reply_text}\n\n{custom_line}".strip()
+        preview = custom_preview
+        if custom_action is not None:
+            actions = [custom_action, *actions]
     return ChatResponse(
-        reply=reply.reply,
+        reply=final_reply,
         provider=reply.provider,
         ready=reply.ready,
         proposed_actions=actions,
         proposed_action=actions[0] if actions else None,
+        simulation=preview,
     )
 
 
@@ -1147,13 +1234,31 @@ def agent_chat_stream(payload: ChatRequest) -> StreamingResponse:
                 )
                 yield step("응답 생성", "done", key="generate")
 
+                reply_text, spec_obj = extract_strategy_spec_block(reply.reply)
+                custom_line = custom_preview = custom_action = None
+                if spec_obj is not None:
+                    label = "전략 설계 백테스트"
+                    yield step(label, "running", key="design", tool="simulation")
+                    custom_line, custom_preview, custom_action = _custom_spec_chat(
+                        session, spec_obj
+                    )
+                    yield step(label, "done", key="design", tool="simulation")
+
             actions = [_to_action_vm(a) for a in reply.proposed_actions]
+            preview = None
+            final_reply = reply.reply
+            if spec_obj is not None:
+                final_reply = f"{reply_text}\n\n{custom_line}".strip()
+                preview = custom_preview
+                if custom_action is not None:
+                    actions = [custom_action, *actions]
             response = ChatResponse(
-                reply=reply.reply,
+                reply=final_reply,
                 provider=reply.provider,
                 ready=reply.ready,
                 proposed_actions=actions,
                 proposed_action=actions[0] if actions else None,
+                simulation=preview,
             )
             yield _event({"type": "reply", **response.model_dump(by_alias=True)})
         except Exception as exc:  # noqa: BLE001 - stream a clean error, never 500

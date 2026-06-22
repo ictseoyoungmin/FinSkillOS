@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { fetchQuantLab } from "@/features/quant-lab/api";
+import {
+  decodeSpecParam,
+  fetchQuantLab,
+  runQuantLabSpec,
+} from "@/features/quant-lab/api";
 import { QuantControls } from "@/features/quant-lab/components/QuantControls";
 import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityChart";
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
@@ -14,17 +18,26 @@ export function QuantLabPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const strategy = searchParams.get("strategy") ?? undefined;
   const ticker = searchParams.get("ticker") ?? undefined;
+  const specParam = searchParams.get("spec") ?? undefined;
+  const customSpec = useMemo(
+    () => (specParam ? decodeSpecParam(specParam) : null),
+    [specParam],
+  );
 
   const { data, error, isPending, isFetching } = useQuery({
-    queryKey: ["quant-lab", strategy ?? "", ticker ?? ""],
-    queryFn: ({ signal }) => fetchQuantLab(strategy, ticker, signal),
+    queryKey: ["quant-lab", specParam ?? "", strategy ?? "", ticker ?? ""],
+    queryFn: ({ signal }) =>
+      customSpec
+        ? runQuantLabSpec(customSpec, signal)
+        : fetchQuantLab(strategy, ticker, signal),
     placeholderData: keepPreviousData,
   });
 
   const setParam = (key: "strategy" | "ticker", value: string) => {
     const next = new URLSearchParams(searchParams);
     next.set(key, value);
-    // Changing the strategy resets the ticker to the spec default.
+    // Picking a built-in strategy/ticker leaves any custom-spec deep-link.
+    next.delete("spec");
     if (key === "strategy") next.delete("ticker");
     setSearchParams(next, { replace: true });
   };
@@ -95,7 +108,7 @@ export function QuantLabPage() {
             curve={data.equityCurve}
             markers={data.markers}
             ticker={data.strategy.ticker}
-            autoPlay={Boolean(strategy && ticker)}
+            autoPlay={Boolean(specParam || (strategy && ticker))}
           />
           <QuantEquityChart curve={data.equityCurve} ticker={data.strategy.ticker} />
           <QuantMetricsPanel metrics={data.metrics} />

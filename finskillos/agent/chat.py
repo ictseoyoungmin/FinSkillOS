@@ -77,7 +77,20 @@ SYSTEM_PROMPT = (
     '{"simulation": {"strategy": "TREND_STATE_FOLLOW", "ticker": "QQQ"}}\n'
     "```\n"
     "(strategy is one of: SMA_50_CROSS, SMA_GOLDEN_20_50, RSI_MEAN_REVERT, "
-    "TREND_STATE_FOLLOW, RECOVERY_OVERSOLD.)\n\n"
+    "TREND_STATE_FOLLOW, RECOVERY_OVERSOLD.)\n"
+    "If the user describes a *custom* rule that isn't one of those, DESIGN it: end "
+    "your reply with a free-form spec block and it will be backtested + charted:\n"
+    "```json\n"
+    '{"strategy_spec": {"name": "RSI+추세", "ticker": "QQQ", '
+    '"entry": {"all": [{"compare": ["rsi_14", "<", 35]}, '
+    '{"compare": ["trend", "==", "BULLISH"]}]}, '
+    '"exit": {"compare": ["rsi_14", ">", 65]}}}\n'
+    "```\n"
+    "Condition grammar: {\"compare\": [feature, op, value]} (op < <= > >= ==), "
+    '{"cross": [feature, "above"|"below", reference]}, {"all": [...]}, {"any": [...]}. '
+    "Features: close, ret, drawdown_pct, rsi_14, trend (BULLISH/WEAK_BULLISH/NEUTRAL/"
+    "WEAK_BEARISH/BEARISH), regime, sma_N, ema_20, ema_60. entry = buy condition, "
+    "exit = sell condition.\n\n"
     "When the user gives you holdings or trades to record — in any free-form "
     "text, a messy list, or an attached screenshot — extract them and END your "
     "reply with ONE fenced json block.\n"
@@ -332,6 +345,23 @@ def _extract_need(reply: str) -> list[str]:
             if targets:
                 return targets
     return []
+
+
+def extract_strategy_spec_block(reply: str) -> tuple[str, dict | None]:
+    """Pull a ``{"strategy_spec": {...}}`` block (agent-authored free-form
+    backtest) out of the reply. Returns (reply_without_block, spec_obj | None).
+    The route validates + runs it (it needs a DB session, so it isn't done here).
+    """
+
+    for match in _JSON_BLOCK_RE.finditer(reply or ""):
+        try:
+            data = json.loads(match.group(1))
+        except (ValueError, TypeError):
+            continue
+        if isinstance(data, dict) and isinstance(data.get("strategy_spec"), dict):
+            cleaned = (reply[: match.start()] + reply[match.end() :]).strip()
+            return cleaned or reply, data["strategy_spec"]
+    return reply, None
 
 
 def _extract_llm_actions(

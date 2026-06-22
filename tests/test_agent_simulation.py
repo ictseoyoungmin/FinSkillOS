@@ -128,6 +128,74 @@ def test_simulation_section_handles_missing_bars() -> None:
     assert out and find_coercive_term(out) is None
 
 
+def test_extract_strategy_spec_block() -> None:
+    from finskillos.agent.chat import extract_strategy_spec_block
+
+    reply = (
+        "이렇게 설계했습니다.\n"
+        '```json\n{"strategy_spec": {"ticker": "QQQ", '
+        '"entry": {"compare": ["rsi_14", "<", 30]}, '
+        '"exit": {"compare": ["rsi_14", ">", 70]}}}\n```'
+    )
+    cleaned, spec = extract_strategy_spec_block(reply)
+    assert spec is not None and spec["ticker"] == "QQQ"
+    assert "```" not in cleaned
+
+
+def test_chat_authors_free_form_spec(monkeypatch, tmp_path) -> None:
+    """When the LLM authors a {"strategy_spec": ...} block, the route backtests it
+    and returns the inline preview + a ?spec= deep-link."""
+
+    from fastapi.testclient import TestClient
+
+    from api.main import create_app
+    from finskillos.agent.chat import ChatReply
+    from finskillos.config import reset_settings_cache
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        seed_default_account(session)
+        MarketDataService(
+            session, adapter=MockMarketDataAdapter(default_bars=90), universe=["NVDA"]
+        ).refresh_bars(["NVDA"])
+        SignalService(session).compute_for_universe(["NVDA"])
+        session.commit()
+
+    authored = (
+        "NVDA에 SMA20 돌파 전략을 설계했어요.\n"
+        '```json\n{"strategy_spec": {"name": "SMA20 돌파", "ticker": "NVDA", '
+        '"entry": {"cross": ["close", "above", "sma_20"]}, '
+        '"exit": {"cross": ["close", "below", "sma_20"]}}}\n```'
+    )
+    monkeypatch.setattr(
+        "api.routes.agent.run_chat",
+        lambda *a, **k: ChatReply(reply=authored, provider="stub", ready=True),
+    )
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = TestClient(create_app()).post(
+            "/api/agent/chat",
+            json={"messages": [{"role": "user", "content": "SMA20 돌파 전략 설계해줘"}]},
+        ).json()
+        assert "```" not in body["reply"]
+        assert "백테스트" in body["reply"]
+        sim = body["simulation"]
+        assert sim is not None and sim["ticker"] == "NVDA"
+        assert sim["navPath"].startswith("/quant-lab?spec=")
+        assert body["proposedAction"]["kind"] == "open_simulation"
+        assert find_coercive_term(body["reply"]) is None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) -> None:
     """A simulation request is answered deterministically — no provider call — so
     it works even when the model gateway is down."""
