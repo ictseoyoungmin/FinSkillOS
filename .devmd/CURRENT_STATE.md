@@ -190,10 +190,17 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   simulation reply with a `{"simulation": {strategy, ticker}}` block →
   `open_simulation` proposed action carrying a `nav_path` deep-link → the chat
   widget's "Quant Lab에서 보기" button navigates to `/quant-lab?strategy=&ticker=`
-  (navigation only, never a mutation). Live-verified on real NVDA/AAPL/QQQ daily
-  bars (TREND_STATE_FOLLOW QQQ Sharpe≈1.24). NEXT (21.x): agent-authored
-  free-form specs, in-tab data-prep/signal-on-price viz, multi-asset /
-  walk-forward, saved specs.
+  (navigation only, never a mutation). 322 makes a simulation request answer
+  **deterministically with no LLM** (the model gateway being down no longer breaks
+  it): the chat route resolves explicit 시뮬/백테스트 intent + a concrete
+  strategy/ticker anchor via `resolve_simulation_query`, runs it, and returns the
+  observation + `open_simulation` action directly (provider tagged
+  `… (simulation)`); a named ticker without bars is reported, never silently
+  swapped. Quant Lab ticker selector is now **dynamic** (`tickers_with_min_bars`),
+  not a hardcoded list — any stored ticker (TSLL, SOXL, …) is simulatable.
+  Live-verified end-to-end on the user's exact request (TSLL TREND_STATE_FOLLOW,
+  255 bars). NEXT (21.x): agent-authored free-form specs, in-tab
+  data-prep/signal-on-price viz, multi-asset / walk-forward, saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry

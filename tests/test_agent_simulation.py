@@ -52,6 +52,34 @@ def test_simulation_intent_detected() -> None:
     assert "simulation" in sources
 
 
+def test_resolve_simulation_requires_anchor() -> None:
+    from finskillos.agent.context import resolve_simulation_query
+
+    session = _session_with_bars("NVDA", bars=80)
+    # No concrete strategy or ticker → no deterministic run (LLM would handle it).
+    assert resolve_simulation_query(session, "백테스트가 뭐야?", require_anchor=True) is None
+    # A named ticker with bars is enough of an anchor.
+    res = resolve_simulation_query(session, "NVDA 시뮬레이션", require_anchor=True)
+    assert res is not None and res.ran and res.ticker == "NVDA"
+
+
+def test_resolve_simulation_named_ticker_without_bars_is_explicit() -> None:
+    from finskillos.agent.context import resolve_simulation_query
+
+    session = _session_with_bars("NVDA", bars=80)
+    res = resolve_simulation_query(session, "ZZZZ 추세 추종 시뮬레이션", require_anchor=True)
+    assert res is not None and not res.ran and res.ticker == "ZZZZ"
+    assert "부족" in res.line  # never silently swaps to another ticker
+
+
+def test_available_tickers_reflects_stored_bars() -> None:
+    from finskillos.services.simulation_service import SimulationService
+
+    session = _session_with_bars("TSLL", bars=80)
+    tickers = SimulationService(session).available_tickers()
+    assert tickers == ["TSLL"]  # dynamic, not a hardcoded candidate list
+
+
 def test_query_context_runs_simulation_on_intent() -> None:
     session = _session_with_bars("NVDA", bars=80)
     out = build_query_context(session, "NVDA 추세 추종 전략 백테스트 해줘")
@@ -98,3 +126,45 @@ def test_simulation_section_handles_missing_bars() -> None:
     # Names a ticker without bars → falls back to the default ticker's run or a
     # graceful note; either way it stays descriptive and non-empty.
     assert out and find_forbidden_term(out) is None
+
+
+def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) -> None:
+    """A simulation request is answered deterministically — no provider call — so
+    it works even when the model gateway is down."""
+
+    from fastapi.testclient import TestClient
+
+    from api.main import create_app
+    from finskillos.config import reset_settings_cache
+
+    db_path = tmp_path / "finskillos.db"
+    database_url = f"sqlite+pysqlite:///{db_path}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as session:
+        seed_default_account(session)
+        MarketDataService(
+            session, adapter=MockMarketDataAdapter(default_bars=90), universe=["NVDA"]
+        ).refresh_bars(["NVDA"])
+        SignalService(session).compute_for_universe(["NVDA"])
+        session.commit()
+
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = TestClient(create_app()).post(
+            "/api/agent/chat",
+            json={"messages": [{"role": "user", "content": "NVDA 추세 추종 전략 시뮬레이션 해줘"}]},
+        ).json()
+        assert "시뮬레이션" in body["reply"] and "NVDA" in body["reply"]
+        action = body["proposedAction"]
+        assert action is not None
+        assert action["kind"] == "open_simulation"
+        assert action["navPath"] == "/quant-lab?strategy=SMA_50_CROSS&ticker=NVDA"
+        assert find_forbidden_term(body["reply"]) is None
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

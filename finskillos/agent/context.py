@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from finskillos.config import get_settings
@@ -203,12 +204,12 @@ _SYMBOL_STOP = {
 }
 
 
-def _match_strategy_id(question: str) -> str:
-    """Map a free-text question onto a built-in StrategySpec id (Phase 21.4).
+def _match_strategy_id_opt(question: str) -> str | None:
+    """Map free text onto a built-in StrategySpec id, or None if nothing matches.
 
     The agent "designs" by selecting the hypothesis the user describes; an
-    explicit id in the text wins, otherwise Korean/English keywords route to the
-    closest library spec."""
+    explicit id wins, otherwise Korean/English keywords route to the closest
+    library spec."""
 
     from finskillos.simulation.library import STRATEGY_LIBRARY
 
@@ -225,31 +226,79 @@ def _match_strategy_id(question: str) -> str:
         return "RECOVERY_OVERSOLD"
     if "추세 상태" in question or "trend_state" in q or "trend state" in q:
         return "TREND_STATE_FOLLOW"
-    return "SMA_50_CROSS"
+    if "추세" in question or "sma" in q or "이동평균" in question or "moving average" in q:
+        return "SMA_50_CROSS"
+    return None
 
 
-def _simulation_section(session, question: str) -> str | None:
-    """Run the matched built-in strategy over stored bars and return a
-    descriptive one-line observation (exposure ON/OFF, never buy/sell)."""
+def _match_strategy_id(question: str) -> str:
+    """Anchored variant used by loose deep-link blocks — always resolves."""
 
-    from finskillos.services.simulation_service import SimulationService
+    return _match_strategy_id_opt(question) or "SMA_50_CROSS"
 
-    service = SimulationService(session)
-    sid = _match_strategy_id(question)
-    # A named ticker (with stored bars) overrides the spec default.
-    chosen: str | None = None
+
+@dataclass(frozen=True)
+class SimQueryResult:
+    """A resolved simulation request (Phase 21.6) — what the deterministic chat
+    responder needs to both narrate the result and deep-link the Quant Lab tab."""
+
+    strategy_id: str
+    ticker: str
+    line: str
+    ran: bool
+
+
+def _detect_sim_ticker(service, question: str) -> tuple[str | None, str | None]:
+    """(ticker_with_bars, named_ticker_without_bars) from the question.
+
+    A user-named ticker that has stored bars wins; if they named something
+    ticker-shaped that has no bars, surface it so we never silently swap."""
+
+    named_missing: str | None = None
     for token in re.findall(r"\b[A-Z]{2,6}\b", question.upper()):
         if token in _SYMBOL_STOP:
             continue
         if service.market.count_for(token, "1d") >= 60:
-            chosen = token
-            break
-    result = service.run(sid, ticker=chosen)
+            return token, None
+        named_missing = named_missing or token
+    return None, named_missing
+
+
+def resolve_simulation_query(
+    session, question: str, *, require_anchor: bool = True
+) -> SimQueryResult | None:
+    """Run the matched built-in strategy over stored bars and return a structured
+    descriptive result (exposure ON/OFF, never buy/sell). ``require_anchor`` (the
+    default) returns None unless the user named a concrete strategy or ticker — so
+    the deterministic responder only fires on a real simulation request."""
+
+    if session is None or not (question or "").strip():
+        return None
+    from finskillos.services.simulation_service import SimulationService
+
+    service = SimulationService(session)
+    sid_opt = _match_strategy_id_opt(question)
+    ticker, missing = _detect_sim_ticker(service, question)
+    if require_anchor and sid_opt is None and ticker is None and missing is None:
+        return None
+    sid = sid_opt or "SMA_50_CROSS"
+
+    if ticker is None and missing is not None:
+        line = (
+            f"'{missing}' 의 저장된 일봉 바가 부족해(60개 미만) 시뮬레이션할 수 "
+            "없습니다 — Quant Lab 탭에서 데이터가 있는 종목을 선택하거나 먼저 "
+            "수집하세요. 매매 권유가 아닙니다."
+        )
+        return SimQueryResult(sid, missing, line, ran=False)
+
+    result = service.run(sid, ticker=ticker)
     if result is None or result.bar_count == 0:
-        return (
+        line = (
             f"전략 {sid}: 시뮬레이션할 저장된 일봉 바가 부족합니다 "
             "(Quant Lab 탭에서 다른 종목을 선택하거나 데이터를 더 수집하세요)."
         )
+        return SimQueryResult(sid, ticker or "", line, ran=False)
+
     m = result.metrics
 
     def _pct(v: float | None) -> str:
@@ -258,7 +307,7 @@ def _simulation_section(session, question: str) -> str | None:
     def _r(v: float | None) -> str:
         return "n/a" if v is None else f"{v:.2f}"
 
-    return (
+    line = (
         f"시뮬레이션 [{result.strategy_id} · {result.name}] on {result.ticker} "
         f"({result.bar_count} 일봉 바): 노출 비중 {_pct(m.exposure_pct)}, "
         f"누적 {_pct(m.total_return)} (벤치마크=동일 종목 보유 대비 관측치), "
@@ -266,6 +315,14 @@ def _simulation_section(session, question: str) -> str | None:
         f"라운드트립 {m.round_trips}회. 저장된 과거 바 리플레이 관측 결과이며 "
         "매매 권유가 아닙니다 — Quant Lab 탭에서 곡선을 시각적으로 확인할 수 있습니다."
     )
+    return SimQueryResult(result.strategy_id, result.ticker, line, ran=True)
+
+
+def _simulation_section(session, question: str) -> str | None:
+    """Lenient wrapper for the LLM fetch-context path (defaults when unanchored)."""
+
+    res = resolve_simulation_query(session, question, require_anchor=False)
+    return res.line if res else None
 
 
 def detected_query_sources(question: str) -> list[tuple[str, str]]:

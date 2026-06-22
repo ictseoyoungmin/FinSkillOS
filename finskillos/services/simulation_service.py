@@ -17,8 +17,6 @@ from finskillos.db.repositories import (
 from finskillos.simulation import Bar, SimulationResult, simulate
 from finskillos.simulation.library import STRATEGY_LIBRARY, get_strategy
 
-# Tickers offered in the Quant Lab selector when they have enough daily bars.
-_CANDIDATE_TICKERS = ("NVDA", "AAPL", "QQQ", "TSLA", "MSFT", "IONQ", "SOXX")
 _MIN_BARS = 60
 
 
@@ -30,12 +28,7 @@ class SimulationService:
         self.regimes = MarketRegimeRepository(session)
 
     def available_tickers(self, timeframe: str = "1d") -> list[str]:
-        out = [
-            t
-            for t in _CANDIDATE_TICKERS
-            if self.market.count_for(t, timeframe) >= _MIN_BARS
-        ]
-        return out
+        return self.market.tickers_with_min_bars(timeframe, _MIN_BARS)
 
     def run(
         self,

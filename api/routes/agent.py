@@ -8,6 +8,7 @@ not perform any mutation.
 from __future__ import annotations
 
 import json
+import re
 import time
 from datetime import datetime, timezone
 
@@ -52,11 +53,12 @@ from api.schemas.agent import (
     TradeWeekdayVM,
     WatchlistOpVM,
 )
-from finskillos.agent.chat import ChatMessage, run_chat
+from finskillos.agent.chat import ChatMessage, _simulation_action, run_chat
 from finskillos.agent.context import (
     build_query_context,
     build_state_context,
     detected_query_sources,
+    resolve_simulation_query,
 )
 from finskillos.agent.fx import usd_krw_rate
 from finskillos.agent.ingest import parse_portfolio_paste, proposal_from_records
@@ -908,6 +910,36 @@ def _active_provider_kind() -> str:
         )
 
 
+# Explicit "simulate / backtest" intent — handled deterministically (no LLM
+# needed, so it works even when the model gateway is down).
+_SIM_INTENT = re.compile(r"시뮬|백테스트|backtest|simulat", re.IGNORECASE)
+
+
+def _deterministic_sim_reply(session, last_user: str) -> ChatResponse | None:
+    """A quant simulation is a precise, tool-like request that needs no language
+    model: run it directly and return the descriptive result + a Quant Lab
+    deep-link. Returns None when the message isn't an explicit, resolvable sim
+    request (then the normal LLM path handles it)."""
+
+    if session is None or not _SIM_INTENT.search(last_user or ""):
+        return None
+    res = resolve_simulation_query(session, last_user, require_anchor=True)
+    if res is None:
+        return None
+    actions = []
+    if res.ran:
+        action = _simulation_action({"strategy": res.strategy_id, "ticker": res.ticker})
+        if action is not None:
+            actions = [_to_action_vm(action)]
+    return ChatResponse(
+        reply=res.line,
+        provider=f"{_active_provider_kind()} (simulation)",
+        ready=True,
+        proposed_actions=actions,
+        proposed_action=actions[0] if actions else None,
+    )
+
+
 @router.post(
     "/agent/chat",
     response_model=ChatResponse,
@@ -922,6 +954,9 @@ def agent_chat(payload: ChatRequest) -> ChatResponse:
         (m.content for m in reversed(payload.messages) if m.role == "user"), ""
     )
     with get_session_scope() as session:
+        sim_reply = _deterministic_sim_reply(session, last_user)
+        if sim_reply is not None:
+            return sim_reply
         context = build_state_context(session)
         query_context = build_query_context(session, last_user)
         if query_context:
@@ -984,6 +1019,18 @@ def agent_chat_stream(payload: ChatRequest) -> StreamingResponse:
 
         try:
             with get_session_scope() as session:
+                # A quant simulation needs no LLM — run it directly and stream the
+                # result (works even when the model gateway is down).
+                sim_reply = _deterministic_sim_reply(session, last_user)
+                if sim_reply is not None:
+                    label = "퀀트 시뮬레이션 실행"
+                    yield step(label, "running", key="simulation", tool="simulation")
+                    yield step(label, "done", key="simulation", tool="simulation")
+                    yield _event(
+                        {"type": "reply", **sim_reply.model_dump(by_alias=True)}
+                    )
+                    return
+
                 yield step("포트폴리오 상태 확인", "running", key="portfolio")
                 context = build_state_context(session)
                 yield step("포트폴리오 상태 확인", "done", key="portfolio")

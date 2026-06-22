@@ -161,6 +161,19 @@ class MarketRepository:
         )
         return len(list(self.session.scalars(stmt)))
 
+    def tickers_with_min_bars(self, timeframe: str, min_bars: int) -> list[str]:
+        """Distinct tickers that have at least ``min_bars`` stored bars for the
+        timeframe, ordered alphabetically — used to populate selectors with what
+        the DB can actually simulate (Slice 322)."""
+        stmt = (
+            select(MarketBar.ticker)
+            .where(MarketBar.timeframe == timeframe)
+            .group_by(MarketBar.ticker)
+            .having(func.count(MarketBar.id) >= min_bars)
+            .order_by(MarketBar.ticker)
+        )
+        return list(self.session.scalars(stmt))
+
     def count_bars_by_sources(self, sources: Iterable[str]) -> int:
         wanted = {s for s in sources}
         if not wanted:
