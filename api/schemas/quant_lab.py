@@ -32,12 +32,19 @@ class QuantLabEquityPoint(CamelModel):
     strategy: float
     benchmark: float
     exposure: bool = False
+    close: float = 0.0
     regime: str | None = None
 
 
 class QuantLabSegment(CamelModel):
     start: str
     end: str
+
+
+class QuantLabMarker(CamelModel):
+    date: str
+    kind: str  # "ENTER" (노출 시작) | "EXIT" (노출 해제) — never buy/sell
+    price: float
 
 
 class QuantLabMetrics(CamelModel):
@@ -69,6 +76,7 @@ class QuantLabResponse(CamelModel):
     metrics: QuantLabMetrics
     equity_curve: list[QuantLabEquityPoint] = Field(default_factory=list)
     exposure_segments: list[QuantLabSegment] = Field(default_factory=list)
+    markers: list[QuantLabMarker] = Field(default_factory=list)
     available_strategies: list[QuantLabStrategyOption] = Field(default_factory=list)
     available_tickers: list[str] = Field(default_factory=list)
     safety_caption: str = ""

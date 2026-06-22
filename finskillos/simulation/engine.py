@@ -52,7 +52,18 @@ class EquityPoint:
     strategy: float
     benchmark: float
     exposure: bool
+    close: float = 0.0
     regime: str | None = None
+
+
+@dataclass(frozen=True)
+class ExposureMarker:
+    """A simulated exposure transition for the time-series chart. Descriptive —
+    ``kind`` is ENTER (노출 시작) / EXIT (노출 해제), never buy/sell."""
+
+    date: str
+    kind: str  # "ENTER" | "EXIT"
+    price: float
 
 
 @dataclass(frozen=True)
@@ -64,6 +75,7 @@ class SimulationResult:
     exposure_segments: tuple[tuple[str, str], ...]
     metrics: SimMetrics
     bar_count: int
+    markers: tuple[ExposureMarker, ...] = field(default_factory=tuple)
     safety_caption: str = SIMULATION_CAPTION
     warnings: tuple[str, ...] = field(default_factory=tuple)
 
@@ -149,6 +161,7 @@ def simulate(
     equity = bench = 1.0
     curve: list[EquityPoint] = []
     segments: list[tuple[str, str]] = []
+    markers: list[ExposureMarker] = []
     strat_returns: list[float] = []
     in_days = round_trips = wins = 0
     seg_start_idx: int | None = None
@@ -170,6 +183,7 @@ def simulate(
                 strategy=equity,
                 benchmark=bench,
                 exposure=exposure,
+                close=float(bar.close),
                 regime=_regime_of(cur),
             )
         )
@@ -178,9 +192,11 @@ def simulate(
             exposure = True
             seg_start_idx = i
             seg_entry_equity = equity
+            markers.append(ExposureMarker(bar.date, "ENTER", float(bar.close)))
         elif exposure and evaluate(spec.exit, cur, prev):
             exposure = False
             segments.append((bars[seg_start_idx].date, bar.date))
+            markers.append(ExposureMarker(bar.date, "EXIT", float(bar.close)))
             round_trips += 1
             wins += 1 if equity > seg_entry_equity else 0
             seg_start_idx = None
@@ -206,4 +222,5 @@ def simulate(
         exposure_segments=tuple(segments),
         metrics=metrics,
         bar_count=len(bars),
+        markers=tuple(markers),
     )

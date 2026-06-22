@@ -5,6 +5,7 @@ import { fetchQuantLab } from "@/features/quant-lab/api";
 import { QuantControls } from "@/features/quant-lab/components/QuantControls";
 import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityChart";
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
+import { QuantReplayPanel } from "@/features/quant-lab/components/QuantReplayPanel";
 import { QuantStrategyPanel } from "@/features/quant-lab/components/QuantStrategyPanel";
 import { JudgmentHeader, Panel, SafetyCaption, SectionHeader } from "@/shared/ui";
 import "./quant-lab.css";
@@ -90,6 +91,12 @@ export function QuantLabPage() {
 
       <div className="fso-quant-grid">
         <div className="fso-quant-main">
+          <QuantReplayPanel
+            curve={data.equityCurve}
+            markers={data.markers}
+            ticker={data.strategy.ticker}
+            autoPlay={Boolean(strategy && ticker)}
+          />
           <QuantEquityChart curve={data.equityCurve} ticker={data.strategy.ticker} />
           <QuantMetricsPanel metrics={data.metrics} />
         </div>

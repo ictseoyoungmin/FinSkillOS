@@ -26,12 +26,19 @@ export interface QuantEquityPoint {
   strategy: number;
   benchmark: number;
   exposure: boolean;
+  close: number;
   regime: string | null;
 }
 
 export interface QuantSegment {
   start: string;
   end: string;
+}
+
+export interface QuantMarker {
+  date: string;
+  kind: "ENTER" | "EXIT";
+  price: number;
 }
 
 export interface QuantMetrics {
@@ -63,6 +70,7 @@ export interface QuantLabData {
   metrics: QuantMetrics;
   equityCurve: QuantEquityPoint[];
   exposureSegments: QuantSegment[];
+  markers: QuantMarker[];
   availableStrategies: QuantStrategyOption[];
   availableTickers: string[];
   safetyCaption: string;

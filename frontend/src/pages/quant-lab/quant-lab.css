@@ -142,6 +142,75 @@
   flex: none;
 }
 
+.fso-quant-replay-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.fso-quant-band {
+  fill: color-mix(in srgb, var(--fso-accent, #5b9dff) 14%, transparent);
+}
+
+.fso-quant-price-line {
+  stroke: var(--fso-text-strong, #e8eef7);
+  stroke-width: 1.6;
+}
+
+.fso-quant-cursor {
+  stroke: color-mix(in srgb, var(--fso-accent, #5b9dff) 55%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.fso-mk-enter circle {
+  fill: #2fbf83;
+}
+
+.fso-mk-enter text {
+  fill: #2fbf83;
+  font-size: 11px;
+}
+
+.fso-mk-exit circle {
+  fill: #e0a13a;
+}
+
+.fso-mk-exit text {
+  fill: #e0a13a;
+  font-size: 11px;
+}
+
+.fso-quant-replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.fso-quant-replay-progress {
+  flex: 1 1 120px;
+  min-width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--fso-line) 60%, transparent);
+  overflow: hidden;
+}
+
+.fso-quant-replay-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--fso-accent, #5b9dff);
+  transition: width 0.1s linear;
+}
+
+.fso-quant-replay-frame {
+  font-size: 12px;
+  font-family: var(--fso-font-mono);
+  color: var(--fso-text-muted);
+}
+
 .fso-quant-warnings {
   margin: 0;
   padding-left: 18px;

@@ -60,6 +60,20 @@ def test_momentum_toggle_is_hand_traceable():
     assert result.metrics.win_rate == pytest.approx(0.0)
 
 
+def test_markers_track_exposure_transitions_with_prices():
+    # IN after an up day, OUT after a down day → ENTER then EXIT markers.
+    spec = _spec(Compare("ret", ">", 0.0), Compare("ret", "<", 0.0))
+    result = simulate(spec, _bars([100, 110, 99, 108.9]))
+    # ENTER (up day) → EXIT (down day) → ENTER again (re-exposed, never exits).
+    assert [m.kind for m in result.markers] == ["ENTER", "EXIT", "ENTER"]
+    # Each marker carries the close price at its bar (for the price chart).
+    assert result.markers[0].price == 110.0
+    assert result.markers[1].price == 99.0
+    assert result.markers[2].price == 108.9
+    # Every equity point carries its close for the time-series chart.
+    assert [p.close for p in result.equity_curve] == [100, 110, 99, 108.9]
+
+
 def test_sma_crossover_runs_and_segments_are_ordered():
     # close crosses above/below its own SMA(2).
     spec = _spec(

@@ -15,6 +15,7 @@ from api.schemas.common import JudgmentHeader, SystemStatus
 from api.schemas.quant_lab import (
     QuantLabDataState,
     QuantLabEquityPoint,
+    QuantLabMarker,
     QuantLabMetrics,
     QuantLabResponse,
     QuantLabSegment,
@@ -69,6 +70,7 @@ def build_quant_lab_response(
             strategy=p.strategy,
             benchmark=p.benchmark,
             exposure=bool(p.exposure),
+            close=p.close,
             regime=p.regime,
         )
         for p in result.equity_curve
@@ -76,6 +78,10 @@ def build_quant_lab_response(
     segments = [
         QuantLabSegment(start=start, end=end)
         for start, end in result.exposure_segments
+    ]
+    markers = [
+        QuantLabMarker(date=mk.date, kind=mk.kind, price=mk.price)
+        for mk in result.markers
     ]
 
     summary = (
@@ -105,6 +111,7 @@ def build_quant_lab_response(
         metrics=metrics,
         equity_curve=curve,
         exposure_segments=segments,
+        markers=markers,
         available_strategies=[
             QuantLabStrategyOption(**option) for option in list_strategies()
         ],
