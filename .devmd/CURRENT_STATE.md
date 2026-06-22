@@ -217,9 +217,20 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   only *coercive* recommendation is. Scanner split in `finskillos/guards/base.py`:
   `find_coercive_term` (allows bare buy/sell, flags 지금 사라/보장/무조건/…) is used
   by the sim; `find_forbidden_term` unchanged so real-portfolio surfaces keep the
-  strict bar. Repeated disclaimers trimmed to one short tab caption. NEXT (21.x):
-  agent-authored free-form specs, in-tab data-prep/coverage viz, multi-asset /
-  walk-forward, saved specs.
+  strict bar. Repeated disclaimers trimmed to one short tab caption. 327–330
+  built the 21.x roadmap: **327** free-form spec — `finskillos/simulation/
+  spec_json.py` parses/validates an arbitrary JSON condition tree (compare/cross/
+  all/any, feature allowlist) → `SimulationService.run_spec` + POST
+  `/api/quant-lab/run`. **328** the agent AUTHORS specs from NL — emits a
+  `{"strategy_spec": …}` block → route backtests it → inline mini-chart + a
+  `?spec=<base64>` deep-link the tab decodes (POST /run) and auto-replays; the
+  deterministic fast-path defers to the LLM when the request has numeric
+  thresholds. **329** data-prep panel — engine reports per-bar feature coverage
+  (rsi_14/trend/regime/ema), tab shows date span + coverage bars (live QQQ regime
+  only ~6%). **330** walk-forward — `engine.walk_forward` runs the spec over
+  sequential windows; tab table shows per-window return/Sharpe/holding. NEXT
+  (21.x): multi-asset portfolio/screening (only walk-forward done from that
+  bucket), saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
