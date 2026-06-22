@@ -204,8 +204,16 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   "Quant Lab 탭 열기" action instead of depending on the (flaky) LLM. Also fixed a
   shared-scanner false positive: 과매수/과매도 (overbought/oversold) are
   descriptive and are now allow-listed in `find_forbidden_term` so they don't trip
-  the bare 매수/매도 patterns. NEXT (21.x): agent-authored free-form specs, in-tab
-  data-prep/signal-on-price viz, multi-asset / walk-forward, saved specs.
+  the bare 매수/매도 patterns. 324 added the time-series visualization toolkit:
+  engine records per-bar `close` + `ExposureMarker` (ENTER 노출 시작 / EXIT 노출
+  해제) → `/api/quant-lab` exposes `equityPoint.close` + `markers[]`; new Quant Lab
+  "Time-series replay" panel plays the price line left→right with exposure-ON
+  shading + ▲/▼ markers (play/pause/restart, auto-plays on agent deep-link). 325
+  closes the loop "둘 다": the chat simulation also returns a compact
+  `ChatSimPreview` rendered as an **inline mini-chart** (streaming sparkline +
+  markers) with a "탭에서 전체 리플레이" deep-link button. Descriptive throughout
+  (exposure ON/OFF, never buy/sell). NEXT (21.x): agent-authored free-form specs,
+  in-tab data-prep/coverage viz, multi-asset / walk-forward, saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
