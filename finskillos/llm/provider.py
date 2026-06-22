@@ -394,14 +394,33 @@ def _default_claude_runner(prompt: str, system: str | None) -> str:
     return completed.stdout.strip()
 
 
+class LLMContextError(RuntimeError):
+    """The model server rejected the request as exceeding its context window
+    (n_ctx). Distinct from a transport outage so the agent can retry leaner."""
+
+
 def _default_http_transport(url: str, payload: dict, headers: dict) -> dict:
+    import urllib.error
     import urllib.request
 
     request = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST"
     )
-    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:  # surface the server's reason
+        body = ""
+        try:
+            body = exc.read().decode("utf-8")
+        except Exception:  # noqa: BLE001
+            body = ""
+        low = body.lower()
+        if exc.code == 400 and (
+            "context" in low or "exceed_context" in low or "n_ctx" in low
+        ):
+            raise LLMContextError(body[:400]) from exc
+        raise RuntimeError(f"LLM HTTP {exc.code}: {body[:300]}") from exc
 
 
 def _parse_data_url(url: str) -> tuple[str, str] | None:

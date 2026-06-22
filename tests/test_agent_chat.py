@@ -113,6 +113,58 @@ def test_chat_provider_exception_is_handled() -> None:
     assert "unreachable" in reply.reply.lower()
 
 
+def test_chat_retries_lean_on_context_overflow() -> None:
+    from finskillos.llm.provider import LLMContextError
+
+    class _SmallCtx:
+        kind = "local"
+
+        def __init__(self):
+            self.calls = 0
+
+        def available(self):
+            return ProviderAvailability(True, "ok")
+
+        def supports_vision(self):
+            return False
+
+        def chat(self, messages):
+            self.calls += 1
+            # First call (full system prompt) overflows; the lean retry succeeds.
+            if self.calls == 1:
+                raise LLMContextError("request exceeds the available context size")
+            return LLMResult("lean answer", "local", "stub", False)
+
+    provider = _SmallCtx()
+    reply = run_chat(
+        [ChatMessage("user", "퀀트 알고리즘 논의")],
+        provider=provider,
+        context="포트폴리오 상태 ...",
+    )
+    assert reply.reply == "lean answer"
+    assert provider.calls == 2  # full attempt + one lean retry
+
+
+def test_chat_persistent_context_overflow_gives_clear_message() -> None:
+    from finskillos.llm.provider import LLMContextError
+
+    class _AlwaysOver:
+        kind = "local"
+
+        def available(self):
+            return ProviderAvailability(True, "ok")
+
+        def supports_vision(self):
+            return False
+
+        def chat(self, messages):
+            raise LLMContextError("n_ctx 2048 exceeded")
+
+    reply = run_chat([ChatMessage("user", "hi")], provider=_AlwaysOver())
+    assert "컨텍스트" in reply.reply and "n_ctx" in reply.reply
+    assert "unreachable" not in reply.reply.lower()
+
+
 def test_image_without_vision_provider_adds_a_switch_note() -> None:
     provider = _StubProvider("ok")  # stub has no supports_vision → treated False
     reply = run_chat(

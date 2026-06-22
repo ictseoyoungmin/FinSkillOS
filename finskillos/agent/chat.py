@@ -32,9 +32,20 @@ from finskillos.agent.ingest import (
     trades_from_records,
     watchlist_from_block,
 )
-from finskillos.llm.provider import LLMProvider, build_provider
+from finskillos.llm.provider import LLMContextError, LLMProvider, build_provider
 
 __all__ = ["ChatMessage", "ProposedAction", "ChatReply", "run_chat", "SYSTEM_PROMPT"]
+
+# Compact fallback used when the full SYSTEM_PROMPT overflows a small-context
+# local model (n_ctx ~2048). Keeps the core safety + need-block behaviour.
+LEAN_SYSTEM_PROMPT = (
+    "You are the FinSkillOS analyst assistant. Explain the user's portfolio, market "
+    "regime, risk guards, trades, watchlist, and market state from the context — "
+    "descriptively and concretely. Never issue buy/sell orders, predict prices as "
+    "fact, or promise returns. If you lack data, reply with ONLY a block like "
+    '{"need": ["events"]} (targets: events, news, trades, rules, simulation, or a '
+    "ticker). Keep answers concise."
+)
 
 SYSTEM_PROMPT = (
     "You are the FinSkillOS analyst assistant. Be genuinely helpful: explain the "
@@ -485,37 +496,55 @@ def run_chat(
             "multimodal model — in the Ops tab to analyze screenshots.) "
         )
 
-    if availability.ready:
-        wire = [{"role": "system", "content": SYSTEM_PROMPT}]
-        if context.strip():
-            wire.append({"role": "system", "content": context.strip()})
-        wire += [
+    def _wire_for(system_prompt: str, ctx: str) -> list:
+        w = [{"role": "system", "content": system_prompt}]
+        if ctx.strip():
+            w.append({"role": "system", "content": ctx.strip()})
+        w += [
             {"role": m.role, "content": _wire_content(m, vision=vision)}
             for m in messages
         ]
+        return w
+
+    def _chat_round(w: list) -> str:
+        # Single-round tool call: if the model asks for data it lacks, fetch it and
+        # let it answer once more (bounded to one round).
+        raw = provider.chat(w).text
+        need = _extract_need(raw)
+        if need and fetch_more is not None:
+            extra = fetch_more(need)
+            if extra and extra.strip():
+                w2 = list(w) + [
+                    {"role": "assistant", "content": raw},
+                    {"role": "system", "content": extra.strip()},
+                    {
+                        "role": "user",
+                        "content": "Now answer my previous question using the "
+                        "data above.",
+                    },
+                ]
+                raw = provider.chat(w2).text
+        return raw
+
+    if availability.ready:
         try:
-            raw = provider.chat(wire).text
-            # Single-round tool call: if the model asks for data it lacks, fetch it
-            # and let it answer once more (capable models; bounded to one round).
-            need = _extract_need(raw)
-            if need and fetch_more is not None:
-                extra = fetch_more(need)
-                if extra and extra.strip():
-                    wire2 = list(wire) + [
-                        {"role": "assistant", "content": raw},
-                        {"role": "system", "content": extra.strip()},
-                        {
-                            "role": "user",
-                            "content": "Now answer my previous question using the "
-                            "data above.",
-                        },
-                    ]
-                    raw = provider.chat(wire2).text
+            try:
+                raw = _chat_round(_wire_for(SYSTEM_PROMPT, context))
+            except LLMContextError:
+                # The full prompt overflows a small-context model — retry with a
+                # lean prompt + truncated context (still resolves a need block).
+                raw = _chat_round(_wire_for(LEAN_SYSTEM_PROMPT, context[:1200]))
             cleaned, llm_actions = _extract_llm_actions(raw, usd_krw_rate=rate)
             reply = _guarded(cleaned)
             # Prefer the model's extraction (handles free-form text + screenshots).
             if llm_actions:
                 actions = llm_actions
+        except LLMContextError:
+            reply = (
+                "로컬 LLM의 컨텍스트 한도(n_ctx)를 초과해 응답하지 못했습니다 — 모델 "
+                "서버를 더 큰 컨텍스트(예: 4096 이상)로 다시 띄워 주세요. 그동안 보유종목/"
+                "거래 붙여넣기 임포트는 도와드릴 수 있습니다."
+            )
         except Exception:  # noqa: BLE001 - any provider/transport failure → safe note
             reply = (
                 "The language model is unreachable right now, but I can still "
