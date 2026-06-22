@@ -80,8 +80,7 @@ export function QuantReplayPanel({
   return (
     <Panel title="Time-series replay" testId="quant-replay">
       <p className="fso-quant-note">
-        {ticker} 가격을 시간순으로 재생 · ▲ 노출 시작 / ▼ 노출 해제 마커 · 음영 = 노출 ON 구간
-        (시뮬레이션, 매매 권유 아님)
+        {ticker} 가격을 시간순으로 재생 · ▲ 매수 / ▼ 매도 시점 · 음영 = 보유 구간
       </p>
       <QuantPriceReplayChart
         curve={curve}

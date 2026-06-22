@@ -22,7 +22,6 @@ export interface QuantMetricsPanelProps {
 export function QuantMetricsPanel({ metrics }: QuantMetricsPanelProps) {
   return (
     <Panel title="Simulation metrics" testId="quant-metrics">
-      <p className="fso-quant-note">저장된 과거 바 리플레이 관측치 (미래 성과 아님)</p>
       <div className="fso-quant-metrics-grid">
         <Metric label="누적 수익" value={pct(metrics.totalReturn)} testId="quant-metric-total" />
         <Metric label="CAGR" value={pct(metrics.cagr)} />

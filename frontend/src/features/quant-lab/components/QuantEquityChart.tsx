@@ -21,8 +21,8 @@ export function QuantEquityChart({ curve, ticker }: QuantEquityChartProps) {
   return (
     <Panel title="Equity curve vs benchmark" testId="quant-equity-chart">
       <p className="fso-quant-note">
-        전략(노출 ON 구간만 자산 수익 반영) vs {ticker} 단순 보유 · 시작값 1.0 정규화 ·
-        노출 {exposedDays}/{curve.length} 바
+        전략(보유 구간만 수익 반영) vs {ticker} 단순 보유 · 시작값 1.0 정규화 ·
+        보유 {exposedDays}/{curve.length} 바
       </p>
       {curve.length > 0 ? (
         <LineChart
@@ -34,7 +34,7 @@ export function QuantEquityChart({ curve, ticker }: QuantEquityChartProps) {
           height={280}
           valueFormat={(v) => v.toFixed(3)}
           testId="quant-equity-linechart"
-          caption="정규화 누적 성장 (1.0 = 시작 자본). 관측 결과이며 미래를 뜻하지 않습니다."
+          caption="정규화 누적 성장 (1.0 = 시작 자본)."
         />
       ) : (
         <p className="fso-quant-empty">표시할 시뮬레이션 곡선이 없습니다.</p>

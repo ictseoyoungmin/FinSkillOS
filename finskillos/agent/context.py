@@ -311,12 +311,11 @@ def resolve_simulation_query(
         return "n/a" if v is None else f"{v:.2f}"
 
     line = (
-        f"시뮬레이션 [{result.strategy_id} · {result.name}] on {result.ticker} "
-        f"({result.bar_count} 일봉 바): 노출 비중 {_pct(m.exposure_pct)}, "
-        f"누적 {_pct(m.total_return)} (벤치마크=동일 종목 보유 대비 관측치), "
+        f"백테스트 [{result.strategy_id} · {result.name}] on {result.ticker} "
+        f"({result.bar_count} 일봉 바): 보유 비중 {_pct(m.exposure_pct)}, "
+        f"누적 {_pct(m.total_return)} (벤치마크=단순 보유 대비), "
         f"Sharpe {_r(m.sharpe)}, 최대 낙폭 {_pct(m.max_drawdown)}, "
-        f"라운드트립 {m.round_trips}회. 저장된 과거 바 리플레이 관측 결과이며 "
-        "매매 권유가 아닙니다 — Quant Lab 탭에서 곡선을 시각적으로 확인할 수 있습니다."
+        f"매수/매도 {m.round_trips}회. Quant Lab 탭에서 매매 시점을 차트로 볼 수 있습니다."
     )
     return SimQueryResult(
         result.strategy_id, result.ticker, line, ran=True, result=result

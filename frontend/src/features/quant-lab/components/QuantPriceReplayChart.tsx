@@ -111,7 +111,7 @@ export function QuantPriceReplayChart({
         const enter = m.kind === "ENTER";
         return (
           <g key={`mk-${i}`} className={enter ? "fso-mk-enter" : "fso-mk-exit"}>
-            <title>{`${m.date} · ${enter ? "노출 시작" : "노출 해제"} @ ${m.price}`}</title>
+            <title>{`${m.date} · ${enter ? "매수" : "매도"} @ ${m.price}`}</title>
             <circle cx={x} cy={y} r={4.5} />
             <text x={x} y={enter ? y + 16 : y - 9} textAnchor="middle">
               {enter ? "▲" : "▼"}

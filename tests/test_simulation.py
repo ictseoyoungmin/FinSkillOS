@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from finskillos.guards.base import find_forbidden_term
+from finskillos.guards.base import find_coercive_term
 from finskillos.simulation import (
     SIMULATION_CAPTION,
     All,
@@ -112,9 +112,10 @@ def test_metric_formulas_on_known_equity():
     assert sharpe([0.0, 0.0]) is None  # zero variance → undefined
 
 
-def test_simulation_output_is_descriptive_only():
+def test_simulation_output_is_non_coercive():
+    # The sim simulates trading, so buy/sell wording is fine — but it must never
+    # be coercive (no "지금 사라" / "보장" / guarantees).
     spec = _spec(Compare("ret", ">", 0.0), Compare("ret", "<", 0.0))
     result = simulate(spec, _bars([100, 110, 99, 108.9]))
-    assert find_forbidden_term(SIMULATION_CAPTION) is None
-    assert find_forbidden_term(result.safety_caption, result.name) is None
-    assert "매매 권유" in result.safety_caption  # explicit not-advice framing
+    assert find_coercive_term(SIMULATION_CAPTION) is None
+    assert find_coercive_term(result.safety_caption, result.name) is None

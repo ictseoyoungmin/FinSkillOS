@@ -259,14 +259,24 @@ _ALLOWED_MARKET_IDIOMS: Final[tuple[str, ...]] = (
 # *imperative* forms are added — bare nouns (추천/보유/투자) appear in
 # descriptive copy ("보유 종목", "투자 운영체제", regime "…진입하고") and would
 # false-positive, so each new Korean term is anchored to its directive suffix.
-_DIRECT_ADVICE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+# Bare buy/sell nouns. Forbidden in *real-portfolio* advice surfaces (risk
+# firewall, regime, holdings chat), but legitimate as descriptive labels inside
+# the Quant Simulation Lab (it simulates trading) — so they are split out and the
+# sim uses ``find_coercive_term`` (the coercive subset) instead.
+_BUYSELL_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"\bBUY\b", re.IGNORECASE),
     re.compile(r"\bSELL\b", re.IGNORECASE),
+    re.compile(r"매수"),
+    re.compile(r"매도"),
+)
+
+# Coercive / guarantee wording — never acceptable anywhere, even in the sim. The
+# product may *describe* buy/sell, it must never *command* them or promise an
+# outcome ("강압적으로 권하지 않는다").
+_COERCIVE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"\bwill\s+rise\b", re.IGNORECASE),
     re.compile(r"\bmust\s+invest\b", re.IGNORECASE),
     re.compile(r"\brisk-free\s+profit\b", re.IGNORECASE),
-    re.compile(r"매수"),
-    re.compile(r"매도"),
     re.compile(r"지금\s*사라"),
     re.compile(r"지금\s*팔아라"),
     re.compile(r"오늘\s*팔아"),
@@ -281,6 +291,12 @@ _DIRECT_ADVICE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"보장"),
     re.compile(r"guaranteed", re.IGNORECASE),
     re.compile(r"반드시"),
+)
+
+# The full direct-advice set (buy/sell + coercive) — unchanged policy for every
+# surface outside the simulation lab.
+_DIRECT_ADVICE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+    _BUYSELL_PATTERNS + _COERCIVE_PATTERNS
 )
 
 
@@ -310,6 +326,22 @@ def find_forbidden_term(*texts: str) -> str | None:
     haystack = " ".join(t for t in texts if t)
     scan_text = _strip_allowed_market_idioms(haystack)
     for pattern in _DIRECT_ADVICE_PATTERNS:
+        match = pattern.search(scan_text)
+        if match is not None:
+            return match.group(0)
+    return None
+
+
+def find_coercive_term(*texts: str) -> str | None:
+    """Like :func:`find_forbidden_term` but allows bare buy/sell wording — only
+    coercive directives / guarantees are flagged. Used by the Quant Simulation
+    Lab, which legitimately labels simulated trades 매수/매도 yet must never
+    *recommend* a real trade or promise an outcome.
+    """
+
+    haystack = " ".join(t for t in texts if t)
+    scan_text = _strip_allowed_market_idioms(haystack)
+    for pattern in _COERCIVE_PATTERNS:
         match = pattern.search(scan_text)
         if match is not None:
             return match.group(0)

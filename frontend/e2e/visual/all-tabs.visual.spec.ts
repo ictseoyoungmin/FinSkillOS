@@ -202,7 +202,7 @@ const ROUTES: readonly RouteSpec[] = [
     label: "quant-lab",
     path: "/quant-lab",
     eyebrow: "QUANT LAB",
-    safetyCategory: "시뮬레이션",
+    safetyCategory: "백테스트",
     requiredTestIds: [
       "quant-lab-page",
       "judgment-header",

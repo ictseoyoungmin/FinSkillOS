@@ -85,8 +85,8 @@ def build_quant_lab_response(
     ]
 
     summary = (
-        f"노출 비중 {_pct(m.exposure_pct)} · 누적 {_pct(m.total_return)} "
-        f"(벤치마크 대비 관측치). {result.bar_count}개 바를 리플레이한 가설 검증."
+        f"보유 비중 {_pct(m.exposure_pct)} · 누적 {_pct(m.total_return)} "
+        f"(단순 보유 대비). {result.bar_count}개 일봉 바 백테스트."
     )
     judgment = JudgmentHeader(
         eyebrow="QUANT LAB · 시뮬레이션",
@@ -122,10 +122,7 @@ def build_quant_lab_response(
             ticker=result.ticker,
             bar_count=result.bar_count,
             regime_covered=regime_covered,
-            data_note=(
-                "시뮬레이션 — 저장된 과거 바를 리플레이한 관측 결과 "
-                "(라이브 포지션/주문과 무관)."
-            ),
+            data_note="과거 일봉 바 백테스트.",
         ),
         warnings=list(result.warnings),
     )

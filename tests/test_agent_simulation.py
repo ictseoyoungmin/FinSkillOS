@@ -17,7 +17,7 @@ from finskillos.agent.context import (
 from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
 from finskillos.db.seed import seed_default_account
-from finskillos.guards.base import find_forbidden_term
+from finskillos.guards.base import find_coercive_term
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
 
@@ -83,13 +83,13 @@ def test_available_tickers_reflects_stored_bars() -> None:
 def test_query_context_runs_simulation_on_intent() -> None:
     session = _session_with_bars("NVDA", bars=80)
     out = build_query_context(session, "NVDA 추세 추종 전략 백테스트 해줘")
-    assert "시뮬레이션" in out
+    assert "백테스트" in out
     assert "NVDA" in out
-    assert "노출 비중" in out and "Sharpe" in out
+    assert "보유 비중" in out and "Sharpe" in out
     # Descriptive-only — no buy/sell wording anywhere in the generated line.
-    assert find_forbidden_term(out) is None
+    assert find_coercive_term(out) is None
     # No simulation intent → no simulation section.
-    assert "시뮬레이션 [" not in build_query_context(session, "안녕하세요")
+    assert "백테스트 [" not in build_query_context(session, "안녕하세요")
 
 
 def test_simulation_block_becomes_open_quant_lab_action() -> None:
@@ -106,7 +106,7 @@ def test_simulation_block_becomes_open_quant_lab_action() -> None:
     assert action.nav_path == "/quant-lab?strategy=TREND_STATE_FOLLOW&ticker=QQQ"
     assert action.apply_endpoint == ""  # navigation only, never a mutation
     assert "```" not in cleaned
-    assert find_forbidden_term(action.summary) is None
+    assert find_coercive_term(action.summary) is None
 
 
 def test_simulation_block_routes_loose_name_and_defaults_ticker() -> None:
@@ -125,7 +125,7 @@ def test_simulation_section_handles_missing_bars() -> None:
     out = build_query_context(session, "ZZZZ 전략 시뮬레이션")
     # Names a ticker without bars → falls back to the default ticker's run or a
     # graceful note; either way it stays descriptive and non-empty.
-    assert out and find_forbidden_term(out) is None
+    assert out and find_coercive_term(out) is None
 
 
 def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) -> None:
@@ -158,12 +158,12 @@ def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) ->
             "/api/agent/chat",
             json={"messages": [{"role": "user", "content": "NVDA 추세 추종 전략 시뮬레이션 해줘"}]},
         ).json()
-        assert "시뮬레이션" in body["reply"] and "NVDA" in body["reply"]
+        assert "백테스트" in body["reply"] and "NVDA" in body["reply"]
         action = body["proposedAction"]
         assert action is not None
         assert action["kind"] == "open_simulation"
         assert action["navPath"] == "/quant-lab?strategy=SMA_50_CROSS&ticker=NVDA"
-        assert find_forbidden_term(body["reply"]) is None
+        assert find_coercive_term(body["reply"]) is None
         # Inline mini-chart payload for the chat (price series + markers).
         sim = body["simulation"]
         assert sim is not None
@@ -184,7 +184,7 @@ def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) ->
         assert "내장 전략" in bare["reply"]
         assert "language model is unreachable" not in bare["reply"]
         assert bare["proposedAction"]["navPath"] == "/quant-lab"
-        assert find_forbidden_term(bare["reply"]) is None
+        assert find_coercive_term(bare["reply"]) is None
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

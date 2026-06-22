@@ -63,13 +63,15 @@ SYSTEM_PROMPT = (
     '{"need": ["events", "NVDA"]}\n'
     "```\n"
     "(targets: events, news, trades, rules, simulation, or any ticker symbol.)\n\n"
-    "The Quant Lab simulates *descriptive* quant hypotheses (built-in strategy "
-    "specs) over the stored historical bars — exposure ON/OFF, never buy/sell. "
-    "When the user asks to simulate/backtest a strategy (추세 추종, 골든크로스, RSI "
-    "과매도 반등, 추세 상태 추종, 회복 국면 과매도) on a ticker, request the "
-    "'simulation' target (name the ticker too); then report the observed exposure "
-    "%, cumulative return vs the buy-and-hold benchmark, Sharpe and max drawdown "
-    "as a simulation observation (not advice). After reporting a simulation, END "
+    "The Quant Lab BACKTESTS quant hypotheses (built-in strategy specs) over the "
+    "stored historical bars — this simulates trading, so 매수/매도 (buy/sell) are "
+    "the right words for the simulated entry/exit points. (The one limit: this is "
+    "a backtest, so don't turn it into a coercive recommendation about the user's "
+    "real holdings — describe the simulated trades, don't command them.) When the "
+    "user asks to backtest a strategy (추세 추종, 골든크로스, RSI 과매도 반등, 추세 "
+    "상태 추종, 회복 국면 과매도) on a ticker, request the 'simulation' target (name "
+    "the ticker too); then report the holding %, cumulative return vs buy-and-hold, "
+    "Sharpe, max drawdown, and the number of buy/sell trades. After reporting, END "
     "your reply with a block so the user can open the visual on the Quant Lab tab:\n"
     "```json\n"
     '{"simulation": {"strategy": "TREND_STATE_FOLLOW", "ticker": "QQQ"}}\n'
@@ -250,7 +252,7 @@ def _simulation_action(block: object) -> ProposedAction | None:
     query = urlencode({"strategy": spec.strategy_id, "ticker": ticker})
     return ProposedAction(
         kind="open_simulation",
-        summary=f"Quant Lab에서 보기: {spec.name} · {ticker} (시뮬레이션, 매매 권유 아님).",
+        summary=f"Quant Lab에서 매매 시점 보기: {spec.name} · {ticker}.",
         normalized_csv="",
         row_count=1,
         apply_endpoint="",

@@ -15,7 +15,7 @@ from api.main import create_app
 from finskillos.config import reset_settings_cache
 from finskillos.data_sources import MockMarketDataAdapter
 from finskillos.db.base import Base
-from finskillos.guards.base import find_forbidden_term
+from finskillos.guards.base import find_coercive_term
 from finskillos.services.market_data_service import MarketDataService
 from finskillos.services.signal_service import SignalService
 from finskillos.simulation.library import STRATEGY_LIBRARY, condition_text
@@ -35,11 +35,11 @@ def test_quant_lab_fixture_is_descriptive_and_renders() -> None:
     assert len(body["equityCurve"]) > 0
     assert len(body["availableStrategies"]) == len(STRATEGY_LIBRARY)
     assert body["availableTickers"]
-    assert "매매 권유" in body["safetyCaption"]
-    # Every prose surface stays clear of forbidden execution wording.
-    assert find_forbidden_term(body["safetyCaption"]) is None
-    assert find_forbidden_term(body["judgment"]["summary"]) is None
-    assert find_forbidden_term(body["strategy"]["description"]) is None
+    # The sim labels trades 매수/매도 (it simulates trading); the only bar is that
+    # no surface is coercive (no "지금 사라" / guarantees).
+    assert find_coercive_term(body["safetyCaption"]) is None
+    assert find_coercive_term(body["judgment"]["summary"]) is None
+    assert find_coercive_term(body["strategy"]["description"]) is None
 
 
 def test_quant_lab_unknown_strategy_falls_back_to_default_fixture() -> None:
@@ -88,7 +88,7 @@ def test_quant_lab_live_runs_strategy_over_stored_bars(monkeypatch, tmp_path) ->
         # Benchmark = buy-and-hold; both curves start near 1.0.
         assert abs(body["equityCurve"][0]["benchmark"] - 1.0) < 0.2
         assert body["generatedAt"] != FIXTURE_TIMESTAMP
-        assert find_forbidden_term(body["safetyCaption"]) is None
+        assert find_coercive_term(body["safetyCaption"]) is None
         assert "NVDA" in body["availableTickers"]
     finally:
         reset_settings_cache()
@@ -112,7 +112,7 @@ def test_quant_lab_live_missing_bars_is_explicit_live_state(monkeypatch, tmp_pat
         assert body["dataState"]["source"] == "live"
         assert body["equityCurve"] == []
         assert body["generatedAt"] != FIXTURE_TIMESTAMP
-        assert find_forbidden_term(body["dataState"]["dataNote"]) is None
+        assert find_coercive_term(body["dataState"]["dataNote"]) is None
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

@@ -21,10 +21,7 @@ from finskillos.simulation.conditions import (
 )
 from finskillos.simulation.metrics import SimMetrics, build_metrics
 
-SIMULATION_CAPTION = (
-    "시뮬레이션 — 저장된 과거 데이터에 가설을 리플레이한 관측 결과이며, "
-    "매매 권유가 아니고 미래 성과를 뜻하지 않습니다."
-)
+SIMULATION_CAPTION = "과거 일봉 데이터로 돌린 백테스트 (미래 성과와 다를 수 있음)."
 
 _SMA_RE = re.compile(r"^sma_(\d+)$")
 

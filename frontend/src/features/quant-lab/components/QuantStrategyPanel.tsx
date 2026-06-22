@@ -22,11 +22,11 @@ export function QuantStrategyPanel({
       <p className="fso-quant-strategy-desc">{strategy.description}</p>
       <dl className="fso-quant-spec">
         <div>
-          <dt>노출 ON 조건</dt>
+          <dt>매수 조건</dt>
           <dd data-testid="quant-entry">{strategy.entryText}</dd>
         </div>
         <div>
-          <dt>노출 OFF 조건</dt>
+          <dt>매도 조건</dt>
           <dd data-testid="quant-exit">{strategy.exitText}</dd>
         </div>
         <div>
@@ -38,7 +38,7 @@ export function QuantStrategyPanel({
           <dd>{regimeCovered ? "구간 일부에 regime 히스토리 적용" : "regime 미적용 (히스토리 없음)"}</dd>
         </div>
       </dl>
-      <h4 className="fso-quant-seg-head">시뮬레이션 노출 구간 ({segments.length})</h4>
+      <h4 className="fso-quant-seg-head">보유 구간 ({segments.length})</h4>
       {segments.length > 0 ? (
         <ul className="fso-quant-segments" data-testid="quant-segments">
           {segments.map((seg) => (
@@ -49,7 +49,7 @@ export function QuantStrategyPanel({
           ))}
         </ul>
       ) : (
-        <p className="fso-quant-empty">노출 ON 구간이 발생하지 않았습니다.</p>
+        <p className="fso-quant-empty">매수 구간이 없습니다.</p>
       )}
     </Panel>
   );

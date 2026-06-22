@@ -980,10 +980,10 @@ def _simulation_menu_reply(session) -> ChatResponse:
     sample = ", ".join(tickers[:8]) if tickers else "(저장된 종목 없음)"
     more = " 등" if len(tickers) > 8 else ""
     reply = (
-        "어떤 전략과 종목으로 시뮬레이션할까요? 내장 전략: "
-        f"{strat}. 시뮬 가능한 종목(일봉 60개+): {sample}{more}. "
-        "예: 'QQQ 추세 상태 추종 시뮬레이션' 또는 'TSLL 골든크로스 백테스트'. "
-        "Quant Lab 탭에서 직접 선택할 수도 있습니다 (시뮬레이션 — 매매 권유 아님)."
+        "어떤 전략과 종목으로 백테스트할까요? 내장 전략: "
+        f"{strat}. 가능한 종목(일봉 60개+): {sample}{more}. "
+        "예: 'QQQ 추세 상태 추종 백테스트' 또는 'TSLL 골든크로스 시뮬레이션'. "
+        "Quant Lab 탭에서 직접 선택할 수도 있습니다."
     )
     nav = _to_action_vm(
         ProposedAction(
