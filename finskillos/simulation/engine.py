@@ -73,8 +73,14 @@ class SimulationResult:
     metrics: SimMetrics
     bar_count: int
     markers: tuple[ExposureMarker, ...] = field(default_factory=tuple)
+    # How many bars carried each indicator/regime feature (data-prep coverage).
+    coverage: tuple[tuple[str, int], ...] = field(default_factory=tuple)
     safety_caption: str = SIMULATION_CAPTION
     warnings: tuple[str, ...] = field(default_factory=tuple)
+
+
+# Indicator / regime features the data-prep panel reports coverage for.
+_COVERAGE_FEATURES = ("rsi_14", "trend", "regime", "ema_20", "ema_60")
 
 
 def _sma_windows(spec: StrategySpec) -> set[int]:
@@ -211,6 +217,10 @@ def simulate(
         round_trips=round_trips,
         wins=wins,
     )
+    coverage = tuple(
+        (feat, sum(1 for row in feats if row.get(feat) is not None))
+        for feat in _COVERAGE_FEATURES
+    )
     return SimulationResult(
         strategy_id=spec.strategy_id,
         name=spec.name,
@@ -220,4 +230,5 @@ def simulate(
         metrics=metrics,
         bar_count=len(bars),
         markers=tuple(markers),
+        coverage=coverage,
     )

@@ -60,6 +60,21 @@ class QuantLabMetrics(CamelModel):
     win_rate: float | None = None
 
 
+class QuantLabFeatureCoverage(CamelModel):
+    name: str
+    bars: int
+    pct: float
+
+
+class QuantLabCoverage(CamelModel):
+    """What data fed the backtest — date span + per-feature bar coverage."""
+
+    date_start: str = ""
+    date_end: str = ""
+    bar_count: int = 0
+    features: list[QuantLabFeatureCoverage] = Field(default_factory=list)
+
+
 class QuantLabDataState(CamelModel):
     source: str = "live"
     ticker: str = ""
@@ -94,4 +109,5 @@ class QuantLabResponse(CamelModel):
     available_tickers: list[str] = Field(default_factory=list)
     safety_caption: str = ""
     data_state: QuantLabDataState = Field(default_factory=QuantLabDataState)
+    coverage: QuantLabCoverage = Field(default_factory=QuantLabCoverage)
     warnings: list[str] = Field(default_factory=list)

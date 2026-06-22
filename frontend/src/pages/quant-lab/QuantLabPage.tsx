@@ -7,6 +7,7 @@ import {
   runQuantLabSpec,
 } from "@/features/quant-lab/api";
 import { QuantControls } from "@/features/quant-lab/components/QuantControls";
+import { QuantDataPrepPanel } from "@/features/quant-lab/components/QuantDataPrepPanel";
 import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityChart";
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
 import { QuantReplayPanel } from "@/features/quant-lab/components/QuantReplayPanel";
@@ -119,19 +120,7 @@ export function QuantLabPage() {
             segments={data.exposureSegments}
             regimeCovered={data.dataState.regimeCovered}
           />
-          <Panel title="Data state" testId="quant-data-state">
-            <dl className="fso-quant-spec">
-              <div>
-                <dt>출처</dt>
-                <dd>{data.dataState.source}</dd>
-              </div>
-              <div>
-                <dt>바 수</dt>
-                <dd>{data.dataState.barCount}</dd>
-              </div>
-            </dl>
-            <p className="fso-quant-note">{data.dataState.dataNote}</p>
-          </Panel>
+          <QuantDataPrepPanel coverage={data.coverage} dataState={data.dataState} />
         </div>
       </div>
     </div>

@@ -54,6 +54,19 @@ export interface QuantMetrics {
   winRate: number | null;
 }
 
+export interface QuantFeatureCoverage {
+  name: string;
+  bars: number;
+  pct: number;
+}
+
+export interface QuantCoverage {
+  dateStart: string;
+  dateEnd: string;
+  barCount: number;
+  features: QuantFeatureCoverage[];
+}
+
 export interface QuantDataState {
   source: string;
   ticker: string;
@@ -75,5 +88,6 @@ export interface QuantLabData {
   availableTickers: string[];
   safetyCaption: string;
   dataState: QuantDataState;
+  coverage: QuantCoverage;
   warnings: string[];
 }

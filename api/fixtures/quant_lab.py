@@ -13,8 +13,10 @@ from datetime import timezone
 
 from api.schemas.common import JudgmentHeader, SystemStatus
 from api.schemas.quant_lab import (
+    QuantLabCoverage,
     QuantLabDataState,
     QuantLabEquityPoint,
+    QuantLabFeatureCoverage,
     QuantLabMarker,
     QuantLabMetrics,
     QuantLabResponse,
@@ -86,6 +88,16 @@ def build_quant_lab_response(
         QuantLabMarker(date=mk.date, kind=mk.kind, price=mk.price)
         for mk in result.markers
     ]
+    bc = result.bar_count or 1
+    coverage = QuantLabCoverage(
+        date_start=result.equity_curve[0].date if result.equity_curve else "",
+        date_end=result.equity_curve[-1].date if result.equity_curve else "",
+        bar_count=result.bar_count,
+        features=[
+            QuantLabFeatureCoverage(name=name, bars=bars, pct=bars / bc)
+            for name, bars in result.coverage
+        ],
+    )
 
     summary = (
         f"보유 비중 {_pct(m.exposure_pct)} · 누적 {_pct(m.total_return)} "
@@ -127,6 +139,7 @@ def build_quant_lab_response(
             regime_covered=regime_covered,
             data_note="과거 일봉 바 백테스트.",
         ),
+        coverage=coverage,
         warnings=list(result.warnings),
     )
 
