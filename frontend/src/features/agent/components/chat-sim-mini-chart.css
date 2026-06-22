@@ -1,0 +1,59 @@
+.fso-sim-mini {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--fso-line);
+  border-radius: var(--fso-radius-sm);
+  background: color-mix(in srgb, var(--fso-panel) 80%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fso-sim-mini-head {
+  font-size: 12px;
+  color: var(--fso-text);
+}
+
+.fso-sim-mini-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.fso-sim-mini-band {
+  fill: color-mix(in srgb, var(--fso-accent, #5b9dff) 16%, transparent);
+}
+
+.fso-sim-mini-line {
+  stroke: var(--fso-text-strong, #e8eef7);
+  stroke-width: 1.4;
+}
+
+.fso-sim-mini-enter {
+  fill: #2fbf83;
+}
+
+.fso-sim-mini-exit {
+  fill: #e0a13a;
+}
+
+.fso-sim-mini-stats {
+  font-size: 11px;
+  font-family: var(--fso-font-mono);
+  color: var(--fso-text-muted);
+}
+
+.fso-sim-mini-open {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: var(--fso-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--fso-accent, #5b9dff) 55%, transparent);
+  background: color-mix(in srgb, var(--fso-accent, #5b9dff) 18%, transparent);
+  color: var(--fso-text-strong);
+  cursor: pointer;
+}
+
+.fso-sim-mini-open:hover {
+  background: color-mix(in srgb, var(--fso-accent, #5b9dff) 28%, transparent);
+}

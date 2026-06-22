@@ -24,6 +24,8 @@ from api.schemas.agent import (
     BrokerageSyncResponse,
     ChatRequest,
     ChatResponse,
+    ChatSimMarker,
+    ChatSimPreview,
     HoldingsNewsResponse,
     IngestProposalResponse,
     IngestRequest,
@@ -920,13 +922,47 @@ def _active_provider_kind() -> str:
 _SIM_INTENT = re.compile(r"시뮬|백테스트|backtest|simulat", re.IGNORECASE)
 
 
-def _sim_response(reply: str, actions: list[ProposedActionVM]) -> ChatResponse:
+def _sim_response(
+    reply: str,
+    actions: list[ProposedActionVM],
+    preview: ChatSimPreview | None = None,
+) -> ChatResponse:
     return ChatResponse(
         reply=reply,
         provider=f"{_active_provider_kind()} (simulation)",
         ready=True,
         proposed_actions=actions,
         proposed_action=actions[0] if actions else None,
+        simulation=preview,
+    )
+
+
+def _build_sim_preview(res) -> ChatSimPreview | None:
+    """Compact inline-chart payload from a resolved SimulationResult."""
+
+    result = getattr(res, "result", None)
+    if result is None:
+        return None
+    curve = result.equity_curve
+    idx = {p.date: i for i, p in enumerate(curve)}
+    markers = [
+        ChatSimMarker(index=idx[mk.date], kind=mk.kind)
+        for mk in result.markers
+        if mk.date in idx
+    ]
+    m = result.metrics
+    return ChatSimPreview(
+        ticker=result.ticker,
+        strategy_name=result.name,
+        nav_path=f"/quant-lab?strategy={result.strategy_id}&ticker={result.ticker}",
+        closes=[p.close for p in curve],
+        exposures=[bool(p.exposure) for p in curve],
+        markers=markers,
+        bar_count=result.bar_count,
+        exposure_pct=m.exposure_pct,
+        total_return=m.total_return,
+        sharpe=m.sharpe,
+        max_drawdown=m.max_drawdown,
     )
 
 
@@ -975,11 +1011,13 @@ def _deterministic_sim_reply(session, last_user: str) -> ChatResponse | None:
     if res is None:
         return _simulation_menu_reply(session)
     actions: list[ProposedActionVM] = []
+    preview: ChatSimPreview | None = None
     if res.ran:
         action = _simulation_action({"strategy": res.strategy_id, "ticker": res.ticker})
         if action is not None:
             actions = [_to_action_vm(action)]
-    return _sim_response(res.line, actions)
+        preview = _build_sim_preview(res)
+    return _sim_response(res.line, actions, preview)
 
 
 @router.post(

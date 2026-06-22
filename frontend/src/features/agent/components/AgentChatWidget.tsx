@@ -42,10 +42,12 @@ import {
 } from "../api";
 import type {
   AgentProvidersResponse,
+  ChatSimPreview,
   LLMProviderKind,
   ProposedActionVM,
   WorkStep,
 } from "../types";
+import { ChatSimMiniChart } from "./ChatSimMiniChart";
 import "./agent-chat-widget.css";
 
 interface Attachment {
@@ -60,6 +62,7 @@ interface ChatTurn {
   time: string;
   images?: string[];
   actions?: ProposedActionVM[];
+  simulation?: ChatSimPreview | null;
 }
 
 const GREETING: ChatTurn = {
@@ -292,7 +295,11 @@ export function AgentChatWidget() {
     setTurns((prev) => [...prev, userTurn]);
     setBusy(true);
     setSteps([]);
-    const appendReply = (result: { reply: string; proposedActions: ProposedActionVM[] }) =>
+    const appendReply = (result: {
+      reply: string;
+      proposedActions: ProposedActionVM[];
+      simulation?: ChatSimPreview | null;
+    }) =>
       setTurns((prev) => [
         ...prev,
         {
@@ -300,6 +307,7 @@ export function AgentChatWidget() {
           content: result.reply,
           time: now(),
           actions: result.proposedActions,
+          simulation: result.simulation ?? null,
         },
       ]);
     try {
@@ -681,6 +689,15 @@ export function AgentChatWidget() {
                       ? renderRich(turn.content)
                       : turn.content}
                   </div>
+                ) : null}
+                {turn.simulation && turn.simulation.closes.length > 0 ? (
+                  <ChatSimMiniChart
+                    sim={turn.simulation}
+                    onOpen={(navPath) => {
+                      setOpen(false);
+                      navigate(navPath);
+                    }}
+                  />
                 ) : null}
                 {turn.images && turn.images.length > 0 ? (
                   <div className="fso-chat-imgs">

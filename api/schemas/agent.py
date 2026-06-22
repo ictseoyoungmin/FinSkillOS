@@ -443,6 +443,29 @@ class ProposedActionVM(CamelModel):
     nav_path: str | None = None
 
 
+class ChatSimMarker(CamelModel):
+    index: int
+    kind: str  # "ENTER" (노출 시작) | "EXIT" (노출 해제) — never buy/sell
+
+
+class ChatSimPreview(CamelModel):
+    """Compact simulation payload for the inline chat mini-chart (Phase 21.7).
+
+    Parallel arrays keep it small; markers reference positions in ``closes``."""
+
+    ticker: str
+    strategy_name: str
+    nav_path: str
+    closes: list[float] = Field(default_factory=list)
+    exposures: list[bool] = Field(default_factory=list)
+    markers: list[ChatSimMarker] = Field(default_factory=list)
+    bar_count: int = 0
+    exposure_pct: float = 0.0
+    total_return: float | None = None
+    sharpe: float | None = None
+    max_drawdown: float | None = None
+
+
 class ChatResponse(CamelModel):
     """An agent chat turn. Any mutation is a proposed action the user confirms.
 
@@ -455,6 +478,7 @@ class ChatResponse(CamelModel):
     ready: bool
     proposed_actions: list[ProposedActionVM] = Field(default_factory=list)
     proposed_action: ProposedActionVM | None = None
+    simulation: ChatSimPreview | None = None
     boundary: str = (
         "Descriptive bookkeeping assistant — no buy/sell advice, no orders. "
         "Proposed imports are applied only after you confirm."

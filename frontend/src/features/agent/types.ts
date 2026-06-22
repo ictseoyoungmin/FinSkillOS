@@ -126,6 +126,25 @@ export interface TradeSyncResponse {
   note: string;
 }
 
+export interface ChatSimMarker {
+  index: number;
+  kind: "ENTER" | "EXIT";
+}
+
+export interface ChatSimPreview {
+  ticker: string;
+  strategyName: string;
+  navPath: string;
+  closes: number[];
+  exposures: boolean[];
+  markers: ChatSimMarker[];
+  barCount: number;
+  exposurePct: number;
+  totalReturn: number | null;
+  sharpe: number | null;
+  maxDrawdown: number | null;
+}
+
 export interface ChatResponse {
   reply: string;
   provider: string;
@@ -133,4 +152,5 @@ export interface ChatResponse {
   proposedActions: ProposedActionVM[];
   proposedAction: ProposedActionVM | null;
   boundary: string;
+  simulation?: ChatSimPreview | null;
 }

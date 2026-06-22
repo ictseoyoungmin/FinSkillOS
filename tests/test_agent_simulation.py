@@ -164,6 +164,16 @@ def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) ->
         assert action["kind"] == "open_simulation"
         assert action["navPath"] == "/quant-lab?strategy=SMA_50_CROSS&ticker=NVDA"
         assert find_forbidden_term(body["reply"]) is None
+        # Inline mini-chart payload for the chat (price series + markers).
+        sim = body["simulation"]
+        assert sim is not None
+        assert sim["ticker"] == "NVDA"
+        assert len(sim["closes"]) == sim["barCount"] > 0
+        assert len(sim["exposures"]) == len(sim["closes"])
+        assert sim["navPath"] == "/quant-lab?strategy=SMA_50_CROSS&ticker=NVDA"
+        for mk in sim["markers"]:
+            assert mk["kind"] in {"ENTER", "EXIT"}
+            assert 0 <= mk["index"] < len(sim["closes"])
 
         # Bare intent (no strategy/ticker) → deterministic menu, never the
         # generic LLM-down fallback; offers to open the Quant Lab tab.

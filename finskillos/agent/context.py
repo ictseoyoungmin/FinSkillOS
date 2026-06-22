@@ -240,12 +240,15 @@ def _match_strategy_id(question: str) -> str:
 @dataclass(frozen=True)
 class SimQueryResult:
     """A resolved simulation request (Phase 21.6) — what the deterministic chat
-    responder needs to both narrate the result and deep-link the Quant Lab tab."""
+    responder needs to narrate the result, render the inline mini-chart, and
+    deep-link the Quant Lab tab. ``result`` is the full SimulationResult (or None
+    when nothing ran)."""
 
     strategy_id: str
     ticker: str
     line: str
     ran: bool
+    result: object | None = None
 
 
 def _detect_sim_ticker(service, question: str) -> tuple[str | None, str | None]:
@@ -315,7 +318,9 @@ def resolve_simulation_query(
         f"라운드트립 {m.round_trips}회. 저장된 과거 바 리플레이 관측 결과이며 "
         "매매 권유가 아닙니다 — Quant Lab 탭에서 곡선을 시각적으로 확인할 수 있습니다."
     )
-    return SimQueryResult(result.strategy_id, result.ticker, line, ran=True)
+    return SimQueryResult(
+        result.strategy_id, result.ticker, line, ran=True, result=result
+    )
 
 
 def _simulation_section(session, question: str) -> str | None:
