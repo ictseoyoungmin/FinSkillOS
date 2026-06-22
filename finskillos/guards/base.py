@@ -241,6 +241,12 @@ class RiskGuardReport:
 # not directive. Stripped before the direct-advice regex pass.
 _ALLOWED_MARKET_IDIOMS: Final[tuple[str, ...]] = (
     "sell-the-news",
+    # Descriptive technical terms, not orders: 과매수/과매도 (overbought/oversold)
+    # contain 매수/매도 as substrings. Stripped before the literal scan so an RSI
+    # mean-reversion description doesn't false-positive (the English boundary on
+    # SELL already lets "oversold" through; this is the Korean equivalent).
+    "과매수",
+    "과매도",
 )
 
 # Direct-advice patterns (case-insensitive for English; literal for Korean).

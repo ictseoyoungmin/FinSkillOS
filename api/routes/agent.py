@@ -53,7 +53,12 @@ from api.schemas.agent import (
     TradeWeekdayVM,
     WatchlistOpVM,
 )
-from finskillos.agent.chat import ChatMessage, _simulation_action, run_chat
+from finskillos.agent.chat import (
+    ChatMessage,
+    ProposedAction,
+    _simulation_action,
+    run_chat,
+)
 from finskillos.agent.context import (
     build_query_context,
     build_state_context,
@@ -915,29 +920,66 @@ def _active_provider_kind() -> str:
 _SIM_INTENT = re.compile(r"시뮬|백테스트|backtest|simulat", re.IGNORECASE)
 
 
-def _deterministic_sim_reply(session, last_user: str) -> ChatResponse | None:
-    """A quant simulation is a precise, tool-like request that needs no language
-    model: run it directly and return the descriptive result + a Quant Lab
-    deep-link. Returns None when the message isn't an explicit, resolvable sim
-    request (then the normal LLM path handles it)."""
-
-    if session is None or not _SIM_INTENT.search(last_user or ""):
-        return None
-    res = resolve_simulation_query(session, last_user, require_anchor=True)
-    if res is None:
-        return None
-    actions = []
-    if res.ran:
-        action = _simulation_action({"strategy": res.strategy_id, "ticker": res.ticker})
-        if action is not None:
-            actions = [_to_action_vm(action)]
+def _sim_response(reply: str, actions: list[ProposedActionVM]) -> ChatResponse:
     return ChatResponse(
-        reply=res.line,
+        reply=reply,
         provider=f"{_active_provider_kind()} (simulation)",
         ready=True,
         proposed_actions=actions,
         proposed_action=actions[0] if actions else None,
     )
+
+
+def _simulation_menu_reply(session) -> ChatResponse:
+    """Explicit sim intent but no strategy/ticker named → a deterministic menu
+    (no LLM) so a bare '퀀트 시뮬레이션 해줘' never depends on the model gateway."""
+
+    from finskillos.services.simulation_service import (
+        SimulationService,
+        list_strategies,
+    )
+
+    tickers = SimulationService(session).available_tickers()
+    strat = "; ".join(f"{s['id']}({s['name']})" for s in list_strategies())
+    sample = ", ".join(tickers[:8]) if tickers else "(저장된 종목 없음)"
+    more = " 등" if len(tickers) > 8 else ""
+    reply = (
+        "어떤 전략과 종목으로 시뮬레이션할까요? 내장 전략: "
+        f"{strat}. 시뮬 가능한 종목(일봉 60개+): {sample}{more}. "
+        "예: 'QQQ 추세 상태 추종 시뮬레이션' 또는 'TSLL 골든크로스 백테스트'. "
+        "Quant Lab 탭에서 직접 선택할 수도 있습니다 (시뮬레이션 — 매매 권유 아님)."
+    )
+    nav = _to_action_vm(
+        ProposedAction(
+            kind="open_simulation",
+            summary="Quant Lab 탭 열기 (전략·종목 선택, 시뮬레이션).",
+            normalized_csv="",
+            row_count=1,
+            apply_endpoint="",
+            nav_path="/quant-lab",
+        )
+    )
+    return _sim_response(reply, [nav])
+
+
+def _deterministic_sim_reply(session, last_user: str) -> ChatResponse | None:
+    """A quant simulation is a precise, tool-like request that needs no language
+    model: run it directly and return the descriptive result + a Quant Lab
+    deep-link. When the intent is explicit but no strategy/ticker is named, return
+    a deterministic menu instead. Returns None only when there's no sim intent
+    (then the normal LLM path handles it)."""
+
+    if session is None or not _SIM_INTENT.search(last_user or ""):
+        return None
+    res = resolve_simulation_query(session, last_user, require_anchor=True)
+    if res is None:
+        return _simulation_menu_reply(session)
+    actions: list[ProposedActionVM] = []
+    if res.ran:
+        action = _simulation_action({"strategy": res.strategy_id, "ticker": res.ticker})
+        if action is not None:
+            actions = [_to_action_vm(action)]
+    return _sim_response(res.line, actions)
 
 
 @router.post(

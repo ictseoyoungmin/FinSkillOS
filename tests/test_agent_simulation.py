@@ -164,6 +164,17 @@ def test_chat_endpoint_runs_simulation_without_the_llm(monkeypatch, tmp_path) ->
         assert action["kind"] == "open_simulation"
         assert action["navPath"] == "/quant-lab?strategy=SMA_50_CROSS&ticker=NVDA"
         assert find_forbidden_term(body["reply"]) is None
+
+        # Bare intent (no strategy/ticker) → deterministic menu, never the
+        # generic LLM-down fallback; offers to open the Quant Lab tab.
+        bare = TestClient(create_app()).post(
+            "/api/agent/chat",
+            json={"messages": [{"role": "user", "content": "퀀트 시뮬레이션 해줘"}]},
+        ).json()
+        assert "내장 전략" in bare["reply"]
+        assert "language model is unreachable" not in bare["reply"]
+        assert bare["proposedAction"]["navPath"] == "/quant-lab"
+        assert find_forbidden_term(bare["reply"]) is None
     finally:
         reset_settings_cache()
         Base.metadata.drop_all(engine)

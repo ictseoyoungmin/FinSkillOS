@@ -199,7 +199,12 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   swapped. Quant Lab ticker selector is now **dynamic** (`tickers_with_min_bars`),
   not a hardcoded list — any stored ticker (TSLL, SOXL, …) is simulatable.
   Live-verified end-to-end on the user's exact request (TSLL TREND_STATE_FOLLOW,
-  255 bars). NEXT (21.x): agent-authored free-form specs, in-tab
+  255 bars). 323 closes the last gap: a bare '퀀트 시뮬레이션 해줘' (no
+  strategy/ticker) now returns a deterministic strategy/ticker **menu** + a
+  "Quant Lab 탭 열기" action instead of depending on the (flaky) LLM. Also fixed a
+  shared-scanner false positive: 과매수/과매도 (overbought/oversold) are
+  descriptive and are now allow-listed in `find_forbidden_term` so they don't trip
+  the bare 매수/매도 patterns. NEXT (21.x): agent-authored free-form specs, in-tab
   data-prep/signal-on-price viz, multi-asset / walk-forward, saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
