@@ -174,6 +174,49 @@ def test_quant_lab_portfolio_synthesizes_combined_curve(monkeypatch, tmp_path) -
         engine.dispose()
 
 
+def test_quant_lab_saved_specs_roundtrip(monkeypatch, tmp_path) -> None:
+    database_url, engine = _seeded_db(tmp_path)
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    client = TestClient(create_app())
+    spec_body = {
+        "name": "내 SMA20",
+        "ticker": "NVDA",
+        "entry": {"cross": ["close", "above", "sma_20"]},
+        "exit": {"cross": ["close", "below", "sma_20"]},
+    }
+    try:
+        # Save → returns an id; list shows it.
+        saved = client.post("/api/quant-lab/specs", json=spec_body).json()
+        spec_id = saved["id"]
+        assert spec_id and saved["name"] == "내 SMA20"
+        listing = client.get("/api/quant-lab/specs").json()
+        assert any(s["id"] == spec_id for s in listing["specs"])
+        # Run the saved spec by id.
+        run = client.get(f"/api/quant-lab?saved={spec_id}").json()
+        assert run["strategy"]["name"] == "내 SMA20"
+        assert run["dataState"]["source"] == "live"
+        assert len(run["equityCurve"]) > 0
+        # Delete → gone from the list.
+        assert client.delete(f"/api/quant-lab/specs/{spec_id}").json()["ok"] is True
+        assert all(
+            s["id"] != spec_id
+            for s in client.get("/api/quant-lab/specs").json()["specs"]
+        )
+        # A bad spec is rejected on save (400).
+        bad = client.post(
+            "/api/quant-lab/specs",
+            json={"ticker": "NVDA", "entry": {"compare": ["nope", "<", 1]},
+                  "exit": {"compare": ["close", ">", 0]}},
+        )
+        assert bad.status_code == 400
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_quant_lab_run_rejects_bad_spec(monkeypatch, tmp_path) -> None:
     database_url, engine = _seeded_db(tmp_path)
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")

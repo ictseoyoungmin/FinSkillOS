@@ -11,9 +11,10 @@ deterministic synthetic backtest; a reachable DB runs the spec on real bars.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.dependencies import get_session_scope, mark_db_unavailable, use_fixture_flag
 from api.fixtures.quant_lab import build_quant_lab_response, quant_lab_fixture
@@ -25,11 +26,14 @@ from api.schemas.quant_lab import (
     QuantLabPortfolioResponse,
     QuantLabResponse,
     QuantLabRunRequest,
+    QuantLabSavedList,
+    QuantLabSavedSummary,
     QuantLabScreenResponse,
     QuantLabScreenRow,
     QuantLabStrategyOption,
     QuantLabStrategySummary,
 )
+from finskillos.db.repositories import SavedStrategyRepository
 from finskillos.services.simulation_service import SimulationService, list_strategies
 from finskillos.simulation import SIMULATION_CAPTION
 from finskillos.simulation.library import condition_text, get_strategy
@@ -54,11 +58,57 @@ def quant_lab(
         default=None,
         description="Override the strategy's default ticker (must have stored bars).",
     ),
+    saved: str | None = Query(
+        default=None, description="Run a saved (agent-authored) spec by its id."
+    ),
     use_fixture: bool = Depends(use_fixture_flag),
 ) -> QuantLabResponse:
     if use_fixture:
         return quant_lab_fixture(strategy, ticker=ticker)
+    if saved:
+        return _read_saved_quant_lab(saved)
     return _read_quant_lab(strategy, ticker)
+
+
+def _read_saved_quant_lab(saved_id: str) -> QuantLabResponse:
+    try:
+        sid = uuid.UUID(saved_id)
+    except ValueError:
+        return _state_response("CUSTOM", None, [], note="저장된 전략 id가 올바르지 않습니다.")
+    with get_session_scope() as session:
+        if session is None:
+            return _state_response("CUSTOM", None, [], note="DB에 연결할 수 없습니다.")
+        row = SavedStrategyRepository(session).get(sid)
+        if row is None:
+            return _state_response("CUSTOM", None, [], note="저장된 전략을 찾을 수 없습니다.")
+        try:
+            spec = strategy_spec_from_json(row.spec)
+        except SpecParseError as exc:
+            return _state_response(
+                "CUSTOM", row.ticker, [], note=f"저장된 전략 해석 오류: {exc}",
+                spec_name=row.name,
+            )
+        service = SimulationService(session)
+        available = service.available_tickers()
+        result = service.run_spec(spec)
+        if result.bar_count == 0:
+            return _state_response(
+                "CUSTOM", row.ticker, available,
+                note=f"'{row.ticker}'의 저장된 일봉 바가 부족합니다.", spec_name=row.name,
+            )
+        now = datetime.now(tz=UTC).isoformat()
+        regime_covered = any(p.regime for p in result.equity_curve)
+        wf = service.walk_forward_spec(spec)
+        return build_quant_lab_response(
+            result,
+            strategy_id="CUSTOM",
+            available_tickers=available,
+            source="live",
+            generated_at=now,
+            regime_covered=regime_covered,
+            spec=spec,
+            walk_forward=wf,
+        )
 
 
 def _read_quant_lab(
@@ -270,6 +320,75 @@ def quant_lab_portfolio_custom(
             spec, tickers=basket, timeframe=payload.timeframe
         )
         return _portfolio_response(port, spec.name)
+
+
+def _saved_summary(row) -> QuantLabSavedSummary:
+    return QuantLabSavedSummary(
+        id=str(row.id),
+        name=row.name,
+        ticker=row.ticker,
+        created_at=row.created_at.isoformat() if row.created_at else "",
+    )
+
+
+@router.get(
+    "/quant-lab/specs",
+    response_model=QuantLabSavedList,
+    summary="List saved (agent-authored) strategies.",
+)
+def quant_lab_specs() -> QuantLabSavedList:
+    with get_session_scope() as session:
+        if session is None:
+            return QuantLabSavedList()
+        rows = SavedStrategyRepository(session).list_all()
+        return QuantLabSavedList(specs=[_saved_summary(r) for r in rows])
+
+
+@router.post(
+    "/quant-lab/specs",
+    response_model=QuantLabSavedSummary,
+    summary="Save an agent-authored free-form strategy for later re-use.",
+)
+def quant_lab_save_spec(payload: QuantLabRunRequest) -> QuantLabSavedSummary:
+    spec_obj = {
+        "name": payload.name,
+        "description": payload.description,
+        "ticker": payload.ticker,
+        "entry": payload.entry,
+        "exit": payload.exit_,
+    }
+    # Validate before persisting so a saved spec always runs.
+    try:
+        spec = strategy_spec_from_json(spec_obj)
+    except SpecParseError as exc:
+        raise HTTPException(status_code=400, detail=f"전략 정의 오류: {exc}") from exc
+    with get_session_scope() as session:
+        if session is None:
+            return QuantLabSavedSummary(
+                id="", name=spec.name, ticker=spec.universe[0], created_at=""
+            )
+        row = SavedStrategyRepository(session).create(
+            name=spec.name, ticker=spec.universe[0], spec=spec_obj
+        )
+        session.commit()
+        return _saved_summary(row)
+
+
+@router.delete(
+    "/quant-lab/specs/{spec_id}",
+    summary="Delete a saved strategy.",
+)
+def quant_lab_delete_spec(spec_id: str) -> dict:
+    try:
+        sid = uuid.UUID(spec_id)
+    except ValueError:
+        return {"ok": False}
+    with get_session_scope() as session:
+        if session is None:
+            return {"ok": False}
+        ok = SavedStrategyRepository(session).delete(sid)
+        session.commit()
+        return {"ok": ok}
 
 
 def _screen_response(results, strategy_name: str) -> QuantLabScreenResponse:

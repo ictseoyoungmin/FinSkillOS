@@ -14,6 +14,7 @@ from finskillos.db.models.news import NewsArticle, NewsImpact
 from finskillos.db.models.portfolio import PortfolioSnapshot
 from finskillos.db.models.position import Position
 from finskillos.db.models.regime import MarketRegime
+from finskillos.db.models.saved_strategy import SavedStrategy
 from finskillos.db.models.symbol_logo import SymbolLogoCache
 from finskillos.db.models.symbol_subscription import SymbolSubscription
 from finskillos.db.models.symbol_subscription_folder import (
@@ -43,6 +44,7 @@ __all__ = [
     "NewsImpact",
     "PortfolioSnapshot",
     "Position",
+    "SavedStrategy",
     "SymbolLogoCache",
     "SymbolSubscription",
     "SYSTEM_FOLDER_NAME",

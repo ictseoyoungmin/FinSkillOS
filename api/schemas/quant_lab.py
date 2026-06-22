@@ -115,6 +115,17 @@ class QuantLabScreenResponse(CamelModel):
     safety_caption: str = ""
 
 
+class QuantLabSavedSummary(CamelModel):
+    id: str
+    name: str
+    ticker: str
+    created_at: str
+
+
+class QuantLabSavedList(CamelModel):
+    specs: list[QuantLabSavedSummary] = Field(default_factory=list)
+
+
 class QuantLabPortfolioPoint(CamelModel):
     date: str
     strategy: float
