@@ -54,6 +54,24 @@ export interface QuantMetrics {
   winRate: number | null;
 }
 
+export interface QuantPortfolioPoint {
+  date: string;
+  strategy: number;
+  benchmark: number;
+  exposure: number;
+}
+
+export interface QuantPortfolioData {
+  generatedAt: string;
+  strategyName: string;
+  source: string;
+  tickers: string[];
+  weight: number;
+  curve: QuantPortfolioPoint[];
+  metrics: QuantMetrics;
+  safetyCaption: string;
+}
+
 export interface QuantScreenRow {
   ticker: string;
   barCount: number;

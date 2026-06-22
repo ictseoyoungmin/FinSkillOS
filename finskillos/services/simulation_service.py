@@ -15,7 +15,12 @@ from finskillos.db.repositories import (
     MarketRepository,
 )
 from finskillos.simulation import Bar, SimulationResult, StrategySpec, simulate
-from finskillos.simulation.engine import WalkForwardWindow, walk_forward
+from finskillos.simulation.engine import (
+    PortfolioResult,
+    WalkForwardWindow,
+    synthesize_portfolio,
+    walk_forward,
+)
 from finskillos.simulation.library import STRATEGY_LIBRARY, get_strategy
 
 _MIN_BARS = 60
@@ -85,6 +90,23 @@ class SimulationService:
             if result.bar_count > 0:
                 out.append(result)
         return out
+
+    def portfolio_spec(
+        self,
+        spec: StrategySpec,
+        *,
+        tickers: list[str],
+        timeframe: str = "1d",
+        limit: int = 12,
+    ) -> PortfolioResult | None:
+        """Equal-weight portfolio synthesis — run ``spec`` on each ticker and
+        combine into one capital curve."""
+
+        results = [
+            self.run_spec(spec, ticker=tk, timeframe=timeframe)
+            for tk in tickers[:limit]
+        ]
+        return synthesize_portfolio(results)
 
     def walk_forward_spec(
         self,

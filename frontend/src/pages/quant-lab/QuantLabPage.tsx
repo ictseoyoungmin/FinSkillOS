@@ -10,6 +10,7 @@ import { QuantControls } from "@/features/quant-lab/components/QuantControls";
 import { QuantDataPrepPanel } from "@/features/quant-lab/components/QuantDataPrepPanel";
 import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityChart";
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
+import { QuantPortfolioPanel } from "@/features/quant-lab/components/QuantPortfolioPanel";
 import { QuantScreenPanel } from "@/features/quant-lab/components/QuantScreenPanel";
 import { QuantReplayPanel } from "@/features/quant-lab/components/QuantReplayPanel";
 import { QuantStrategyPanel } from "@/features/quant-lab/components/QuantStrategyPanel";
@@ -116,6 +117,11 @@ export function QuantLabPage() {
           <QuantEquityChart curve={data.equityCurve} ticker={data.strategy.ticker} />
           <QuantMetricsPanel metrics={data.metrics} />
           <QuantWalkForwardPanel windows={data.walkForward} />
+          <QuantPortfolioPanel
+            strategyId={data.strategy.id}
+            strategyName={data.strategy.name}
+            customSpec={customSpec}
+          />
         </div>
         <div className="fso-quant-side">
           <QuantStrategyPanel

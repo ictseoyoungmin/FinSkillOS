@@ -285,3 +285,82 @@ def walk_forward(
             )
         )
     return out
+
+
+@dataclass(frozen=True)
+class PortfolioPoint:
+    date: str
+    strategy: float
+    benchmark: float
+    exposure: float  # fraction of sleeves in-market on this date [0..1]
+
+
+@dataclass(frozen=True)
+class PortfolioResult:
+    tickers: tuple[str, ...]
+    weight: float
+    curve: tuple[PortfolioPoint, ...]
+    metrics: SimMetrics
+    bar_count: int
+
+
+def _per_bar_returns(result: SimulationResult):
+    """date -> (applied strategy return, raw return, exposed) for one sleeve."""
+
+    applied: dict[str, float] = {}
+    raw: dict[str, float] = {}
+    exposed: dict[str, bool] = {}
+    prev_s = prev_b = 1.0
+    for i, p in enumerate(result.equity_curve):
+        applied[p.date] = (p.strategy / prev_s - 1.0) if i > 0 and prev_s else 0.0
+        raw[p.date] = (p.benchmark / prev_b - 1.0) if i > 0 and prev_b else 0.0
+        exposed[p.date] = p.exposure
+        prev_s, prev_b = p.strategy, p.benchmark
+    return applied, raw, exposed
+
+
+def synthesize_portfolio(results: list[SimulationResult]) -> PortfolioResult | None:
+    """Combine per-ticker backtests into one equal-weight capital curve (strategy
+    vs an equal-weight buy-and-hold benchmark). Each sleeve gets 1/N; on a date a
+    ticker lacks a bar its sleeve sits in cash. Descriptive synthesis."""
+
+    usable = [r for r in results if r.bar_count > 1]
+    if not usable:
+        return None
+    weight = 1.0 / len(usable)
+    maps = [_per_bar_returns(r) for r in usable]
+    dates = sorted({d for applied, _, _ in maps for d in applied})
+    if len(dates) < 2:
+        return None
+
+    port_rets: list[float] = []
+    curve: list[PortfolioPoint] = []
+    strat = bench = 1.0
+    in_market = 0.0
+    for d in dates:
+        pr = br = ex = 0.0
+        for applied, raw, exposed in maps:
+            pr += weight * applied.get(d, 0.0)
+            br += weight * raw.get(d, 0.0)
+            ex += weight * (1.0 if exposed.get(d) else 0.0)
+        strat *= 1.0 + pr
+        bench *= 1.0 + br
+        in_market += ex
+        port_rets.append(pr)
+        curve.append(PortfolioPoint(date=d, strategy=strat, benchmark=bench, exposure=ex))
+
+    metrics = build_metrics(
+        equity=[p.strategy for p in curve],
+        returns=port_rets,
+        in_market_days=round(in_market),
+        total_days=len(dates),
+        round_trips=0,
+        wins=0,
+    )
+    return PortfolioResult(
+        tickers=tuple(r.ticker for r in usable),
+        weight=weight,
+        curve=tuple(curve),
+        metrics=metrics,
+        bar_count=len(dates),
+    )

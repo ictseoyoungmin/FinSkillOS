@@ -119,6 +119,23 @@ def test_walk_forward_splits_into_independent_windows():
     assert walk_forward(spec, _bars([100, 101, 102]), windows=3) == []
 
 
+def test_synthesize_portfolio_equal_weights_two_sleeves():
+    from finskillos.simulation.engine import synthesize_portfolio
+
+    spec = _spec(Compare("close", ">", 0.0), Compare("close", "<", 0.0))  # always in
+    a = simulate(spec, _bars([100, 110, 121]))  # +10%, +10%
+    b = simulate(spec, _bars([100, 90, 81]))  # -10%, -10%
+    port = synthesize_portfolio([a, b])
+    assert port is not None
+    assert port.tickers == ("NVDA", "NVDA") and port.weight == 0.5
+    # Equal-weight of +10% and -10% each bar ≈ flat, so final ~ start.
+    assert port.curve[-1].strategy == pytest.approx(1.0, abs=0.02)
+    # Both sleeves always in-market → exposure fraction ~1.0 after entry.
+    assert port.curve[-1].exposure == pytest.approx(1.0)
+    # Too few usable sleeves → None.
+    assert synthesize_portfolio([simulate(spec, _bars([100]))]) is None
+
+
 def test_metric_formulas_on_known_equity():
     equity = [1.0, 1.1, 0.99, 1.089]
     assert total_return(equity) == pytest.approx(0.089, rel=1e-6)

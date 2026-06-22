@@ -144,6 +144,36 @@ def test_quant_lab_screen_ranks_multiple_tickers(monkeypatch, tmp_path) -> None:
         engine.dispose()
 
 
+def test_quant_lab_portfolio_synthesizes_combined_curve(monkeypatch, tmp_path) -> None:
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'q.db'}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as s:
+        MarketDataService(
+            s, adapter=MockMarketDataAdapter(default_bars=90),
+            universe=["NVDA", "AAPL"],
+        ).refresh_bars(["NVDA", "AAPL"])
+        SignalService(s).compute_for_universe(["NVDA", "AAPL"])
+        s.commit()
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = TestClient(create_app()).get(
+            "/api/quant-lab/portfolio?strategy=SMA_50_CROSS&tickers=NVDA,AAPL"
+        ).json()
+        assert sorted(body["tickers"]) == ["AAPL", "NVDA"]
+        assert body["weight"] == 0.5
+        assert len(body["curve"]) > 0
+        assert body["curve"][0]["strategy"] > 0  # combined capital curve
+        assert 0.0 <= body["curve"][-1]["exposure"] <= 1.0
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_quant_lab_run_rejects_bad_spec(monkeypatch, tmp_path) -> None:
     database_url, engine = _seeded_db(tmp_path)
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")

@@ -21,6 +21,8 @@ from api.schemas.common import JudgmentHeader, SystemStatus
 from api.schemas.quant_lab import (
     QuantLabDataState,
     QuantLabMetrics,
+    QuantLabPortfolioPoint,
+    QuantLabPortfolioResponse,
     QuantLabResponse,
     QuantLabRunRequest,
     QuantLabScreenResponse,
@@ -161,6 +163,113 @@ def quant_lab_run(payload: QuantLabRunRequest) -> QuantLabResponse:
             regime_covered=regime_covered,
             spec=spec,
         )
+
+
+def _metrics_vm(m) -> QuantLabMetrics:
+    return QuantLabMetrics(
+        total_return=m.total_return,
+        cagr=m.cagr,
+        annual_volatility=m.annual_volatility,
+        sharpe=m.sharpe,
+        sortino=m.sortino,
+        max_drawdown=m.max_drawdown,
+        calmar=m.calmar,
+        exposure_pct=m.exposure_pct,
+        round_trips=m.round_trips,
+        win_rate=m.win_rate,
+    )
+
+
+def _portfolio_response(port, strategy_name: str) -> QuantLabPortfolioResponse:
+    now = datetime.now(tz=UTC).isoformat()
+    if port is None:
+        return QuantLabPortfolioResponse(
+            generated_at=now,
+            system_status=SystemStatus(db="LIVE", guard_count=0),
+            strategy_name=strategy_name,
+            safety_caption=SIMULATION_CAPTION,
+        )
+    return QuantLabPortfolioResponse(
+        generated_at=now,
+        system_status=SystemStatus(db="LIVE", guard_count=0),
+        strategy_name=strategy_name,
+        source="live",
+        tickers=list(port.tickers),
+        weight=port.weight,
+        curve=[
+            QuantLabPortfolioPoint(
+                date=p.date,
+                strategy=p.strategy,
+                benchmark=p.benchmark,
+                exposure=p.exposure,
+            )
+            for p in port.curve
+        ],
+        metrics=_metrics_vm(port.metrics),
+        safety_caption=SIMULATION_CAPTION,
+    )
+
+
+def _portfolio_tickers(service, raw: str | None) -> list[str]:
+    if raw:
+        named = [t.strip().upper() for t in raw.split(",") if t.strip()]
+        if named:
+            return named
+    return service.available_tickers()[:8]
+
+
+@router.get(
+    "/quant-lab/portfolio",
+    response_model=QuantLabPortfolioResponse,
+    summary="Equal-weight portfolio of one built-in strategy across tickers.",
+)
+def quant_lab_portfolio(
+    strategy: str | None = Query(default=None),
+    tickers: str | None = Query(default=None),
+    timeframe: str = Query(default="1d"),
+) -> QuantLabPortfolioResponse:
+    sid = strategy or DEFAULT_STRATEGY
+    spec = get_strategy(sid)
+    if spec is None:
+        return _portfolio_response(None, sid)
+    with get_session_scope() as session:
+        if session is None:
+            return _portfolio_response(None, spec.name)
+        service = SimulationService(session)
+        basket = _portfolio_tickers(service, tickers)
+        port = service.portfolio_spec(spec, tickers=basket, timeframe=timeframe)
+        return _portfolio_response(port, spec.name)
+
+
+@router.post(
+    "/quant-lab/portfolio",
+    response_model=QuantLabPortfolioResponse,
+    summary="Equal-weight portfolio of an agent-authored free-form strategy.",
+)
+def quant_lab_portfolio_custom(
+    payload: QuantLabRunRequest,
+    tickers: str | None = Query(default=None),
+) -> QuantLabPortfolioResponse:
+    spec_obj = {
+        "name": payload.name,
+        "description": payload.description,
+        "ticker": payload.ticker,
+        "entry": payload.entry,
+        "exit": payload.exit_,
+    }
+    try:
+        spec = strategy_spec_from_json(spec_obj)
+    except SpecParseError:
+        return _portfolio_response(None, payload.name or "사용자 전략")
+    with get_session_scope() as session:
+        if session is None:
+            return _portfolio_response(None, spec.name)
+        service = SimulationService(session)
+        basket = _portfolio_tickers(service, tickers)
+        port = service.portfolio_spec(
+            spec, tickers=basket, timeframe=payload.timeframe
+        )
+        return _portfolio_response(port, spec.name)
 
 
 def _screen_response(results, strategy_name: str) -> QuantLabScreenResponse:

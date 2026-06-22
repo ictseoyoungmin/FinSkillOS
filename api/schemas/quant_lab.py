@@ -115,6 +115,27 @@ class QuantLabScreenResponse(CamelModel):
     safety_caption: str = ""
 
 
+class QuantLabPortfolioPoint(CamelModel):
+    date: str
+    strategy: float
+    benchmark: float
+    exposure: float = 0.0  # fraction of sleeves in-market [0..1]
+
+
+class QuantLabPortfolioResponse(CamelModel):
+    """Equal-weight multi-asset portfolio synthesis — one combined capital curve."""
+
+    generated_at: str
+    system_status: SystemStatus
+    strategy_name: str
+    source: str = "live"
+    tickers: list[str] = Field(default_factory=list)
+    weight: float = 0.0
+    curve: list[QuantLabPortfolioPoint] = Field(default_factory=list)
+    metrics: QuantLabMetrics = Field(default_factory=QuantLabMetrics)
+    safety_caption: str = ""
+
+
 class QuantLabRunRequest(CamelModel):
     """An agent-authored free-form strategy to backtest (Phase 21.8).
 

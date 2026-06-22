@@ -1,6 +1,6 @@
 import { getJson, sendJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
-import type { QuantLabData, QuantScreenData } from "./types";
+import type { QuantLabData, QuantPortfolioData, QuantScreenData } from "./types";
 
 /**
  * Run a descriptive strategy simulation over stored historical bars.
@@ -53,6 +53,35 @@ export async function screenQuantLabSpec(
 ): Promise<QuantScreenData> {
   return await sendJson<QuantScreenData>(
     `${apiEndpoints.quantLab}/screen`,
+    "POST",
+    spec,
+    { signal },
+  );
+}
+
+/** Equal-weight portfolio synthesis of one built-in strategy across tickers. */
+export async function fetchQuantLabPortfolio(
+  strategy?: string,
+  tickers?: string,
+  signal?: AbortSignal,
+): Promise<QuantPortfolioData> {
+  const p = new URLSearchParams();
+  if (strategy) p.set("strategy", strategy);
+  if (tickers) p.set("tickers", tickers);
+  const q = p.toString();
+  return await getJson<QuantPortfolioData>(
+    `${apiEndpoints.quantLab}/portfolio${q ? `?${q}` : ""}`,
+    { signal },
+  );
+}
+
+/** Portfolio synthesis of an agent-authored free-form spec. */
+export async function portfolioQuantLabSpec(
+  spec: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<QuantPortfolioData> {
+  return await sendJson<QuantPortfolioData>(
+    `${apiEndpoints.quantLab}/portfolio`,
     "POST",
     spec,
     { signal },
