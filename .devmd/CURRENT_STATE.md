@@ -211,9 +211,15 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   shading + ▲/▼ markers (play/pause/restart, auto-plays on agent deep-link). 325
   closes the loop "둘 다": the chat simulation also returns a compact
   `ChatSimPreview` rendered as an **inline mini-chart** (streaming sparkline +
-  markers) with a "탭에서 전체 리플레이" deep-link button. Descriptive throughout
-  (exposure ON/OFF, never buy/sell). NEXT (21.x): agent-authored free-form specs,
-  in-tab data-prep/coverage viz, multi-asset / walk-forward, saved specs.
+  markers) with a "탭에서 전체 리플레이" deep-link button. 326 reframed the sim
+  vocabulary per user direction: it simulates trading, so it **says 매수/매도**
+  (▲ 매수 / ▼ 매도 markers, 매수/매도 조건, 보유 구간) — buy/sell aren't forbidden,
+  only *coercive* recommendation is. Scanner split in `finskillos/guards/base.py`:
+  `find_coercive_term` (allows bare buy/sell, flags 지금 사라/보장/무조건/…) is used
+  by the sim; `find_forbidden_term` unchanged so real-portfolio surfaces keep the
+  strict bar. Repeated disclaimers trimmed to one short tab caption. NEXT (21.x):
+  agent-authored free-form specs, in-tab data-prep/coverage viz, multi-asset /
+  walk-forward, saved specs.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
