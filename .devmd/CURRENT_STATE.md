@@ -239,10 +239,15 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   `SimulationService.portfolio_spec` + GET/POST `/api/quant-lab/portfolio`;
   on-demand tab panel with the combined LineChart + portfolio metrics + basket.
   Live-verified (TREND_STATE_FOLLOW over 5 tickers → +26.3% Sharpe 1.6 vs
-  equal-weight hold +60.2%). Phase 21 quant arc (316–332) complete. NEXT: saved
-  specs, deeper history. NOTE: `docker compose` CLI was hanging in the WSL env at
-  332 (stuck `compose run e2e`/`up` holding locks); recover containers with
-  `docker start finskillos-api finskillos-web`.
+  equal-weight hold +60.2%). **333** saved strategies — `saved_strategies` table
+  (model + migration 0020 + repo) + `POST/GET/DELETE /api/quant-lab/specs` +
+  `GET /api/quant-lab?saved=<id>` to re-run; validate-then-save. **334** saved UI —
+  "Saved strategies" tab panel: save current CUSTOM spec, list / load (?saved=) /
+  delete. Live-verified save→list→run→delete on Postgres. Phase 21 quant arc
+  (316–334) complete. NEXT: deeper history backfill. NOTE: `docker compose up`/
+  `run e2e` were hanging in the WSL env (stuck CLIs hold locks) — `pkill -9 -f
+  "docker.compose"` then `docker start finskillos-api finskillos-web` to recover;
+  `docker compose build` and `run --rm api` work fine.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
