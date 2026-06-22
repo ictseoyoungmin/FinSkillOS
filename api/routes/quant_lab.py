@@ -23,6 +23,8 @@ from api.schemas.quant_lab import (
     QuantLabMetrics,
     QuantLabResponse,
     QuantLabRunRequest,
+    QuantLabScreenResponse,
+    QuantLabScreenRow,
     QuantLabStrategyOption,
     QuantLabStrategySummary,
 )
@@ -159,6 +161,90 @@ def quant_lab_run(payload: QuantLabRunRequest) -> QuantLabResponse:
             regime_covered=regime_covered,
             spec=spec,
         )
+
+
+def _screen_response(results, strategy_name: str) -> QuantLabScreenResponse:
+    rows = [
+        QuantLabScreenRow(
+            ticker=r.ticker,
+            bar_count=r.bar_count,
+            total_return=r.metrics.total_return,
+            sharpe=r.metrics.sharpe,
+            max_drawdown=r.metrics.max_drawdown,
+            exposure_pct=r.metrics.exposure_pct,
+            round_trips=r.metrics.round_trips,
+        )
+        for r in results
+    ]
+    rows.sort(
+        key=lambda x: x.total_return if x.total_return is not None else float("-inf"),
+        reverse=True,
+    )
+    return QuantLabScreenResponse(
+        generated_at=datetime.now(tz=UTC).isoformat(),
+        system_status=SystemStatus(db="LIVE", guard_count=0),
+        strategy_name=strategy_name,
+        source="live",
+        rows=rows,
+        safety_caption=SIMULATION_CAPTION,
+    )
+
+
+def _empty_screen(strategy_name: str, db: str = "LIVE") -> QuantLabScreenResponse:
+    return QuantLabScreenResponse(
+        generated_at=datetime.now(tz=UTC).isoformat(),
+        system_status=SystemStatus(db=db, guard_count=0),
+        strategy_name=strategy_name,
+        source="live",
+        rows=[],
+        safety_caption=SIMULATION_CAPTION,
+    )
+
+
+@router.get(
+    "/quant-lab/screen",
+    response_model=QuantLabScreenResponse,
+    summary="Run one built-in strategy across many tickers, ranked (multi-asset).",
+)
+def quant_lab_screen(
+    strategy: str | None = Query(default=None),
+    timeframe: str = Query(default="1d"),
+) -> QuantLabScreenResponse:
+    sid = strategy or DEFAULT_STRATEGY
+    spec = get_strategy(sid)
+    if spec is None:
+        return _empty_screen(sid)
+    with get_session_scope() as session:
+        if session is None:
+            return _empty_screen(spec.name, db="MISSING")
+        results = SimulationService(session).screen_spec(spec, timeframe=timeframe)
+        return _screen_response(results, spec.name)
+
+
+@router.post(
+    "/quant-lab/screen",
+    response_model=QuantLabScreenResponse,
+    summary="Run an agent-authored free-form strategy across many tickers, ranked.",
+)
+def quant_lab_screen_custom(payload: QuantLabRunRequest) -> QuantLabScreenResponse:
+    spec_obj = {
+        "name": payload.name,
+        "description": payload.description,
+        "ticker": payload.ticker,
+        "entry": payload.entry,
+        "exit": payload.exit_,
+    }
+    try:
+        spec = strategy_spec_from_json(spec_obj)
+    except SpecParseError:
+        return _empty_screen(payload.name or "사용자 전략")
+    with get_session_scope() as session:
+        if session is None:
+            return _empty_screen(spec.name, db="MISSING")
+        results = SimulationService(session).screen_spec(
+            spec, timeframe=payload.timeframe
+        )
+        return _screen_response(results, spec.name)
 
 
 def _state_response(

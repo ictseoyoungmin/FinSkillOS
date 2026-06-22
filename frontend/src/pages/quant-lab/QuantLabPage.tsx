@@ -10,6 +10,7 @@ import { QuantControls } from "@/features/quant-lab/components/QuantControls";
 import { QuantDataPrepPanel } from "@/features/quant-lab/components/QuantDataPrepPanel";
 import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityChart";
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
+import { QuantScreenPanel } from "@/features/quant-lab/components/QuantScreenPanel";
 import { QuantReplayPanel } from "@/features/quant-lab/components/QuantReplayPanel";
 import { QuantStrategyPanel } from "@/features/quant-lab/components/QuantStrategyPanel";
 import { QuantWalkForwardPanel } from "@/features/quant-lab/components/QuantWalkForwardPanel";
@@ -121,6 +122,13 @@ export function QuantLabPage() {
             strategy={data.strategy}
             segments={data.exposureSegments}
             regimeCovered={data.dataState.regimeCovered}
+          />
+          <QuantScreenPanel
+            strategyId={data.strategy.id}
+            strategyName={data.strategy.name}
+            currentTicker={data.strategy.ticker}
+            customSpec={customSpec}
+            onPick={(t) => setParam("ticker", t)}
           />
           <QuantDataPrepPanel coverage={data.coverage} dataState={data.dataState} />
         </div>

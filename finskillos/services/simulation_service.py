@@ -67,6 +67,25 @@ class SimulationService:
         bars, external = self._bars_and_external(chosen, timeframe)
         return simulate(replace(spec, universe=(chosen,)), bars, external=external)
 
+    def screen_spec(
+        self,
+        spec: StrategySpec,
+        *,
+        tickers: list[str] | None = None,
+        timeframe: str = "1d",
+        limit: int = 40,
+    ) -> list[SimulationResult]:
+        """Run ``spec`` across many tickers (multi-asset screen). Returns the
+        per-ticker results that actually had bars."""
+
+        candidates = tickers or self.available_tickers(timeframe)
+        out: list[SimulationResult] = []
+        for tk in candidates[:limit]:
+            result = self.run_spec(spec, ticker=tk, timeframe=timeframe)
+            if result.bar_count > 0:
+                out.append(result)
+        return out
+
     def walk_forward_spec(
         self,
         spec: StrategySpec,

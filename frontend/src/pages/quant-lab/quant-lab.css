@@ -292,6 +292,19 @@
   color: var(--fso-danger, #e0556b);
 }
 
+.fso-quant-screen-row {
+  cursor: pointer;
+}
+
+.fso-quant-screen-row:hover td {
+  background: color-mix(in srgb, var(--fso-accent, #5b9dff) 12%, transparent);
+}
+
+.fso-quant-screen-row[data-current="true"] td:first-child {
+  color: var(--fso-accent, #5b9dff);
+  font-weight: 600;
+}
+
 .fso-quant-warnings {
   margin: 0;
   padding-left: 18px;

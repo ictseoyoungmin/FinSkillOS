@@ -94,6 +94,27 @@ class QuantLabDataState(CamelModel):
     data_note: str = ""
 
 
+class QuantLabScreenRow(CamelModel):
+    ticker: str
+    bar_count: int
+    total_return: float | None = None
+    sharpe: float | None = None
+    max_drawdown: float | None = None
+    exposure_pct: float = 0.0
+    round_trips: int = 0
+
+
+class QuantLabScreenResponse(CamelModel):
+    """Run one strategy across many tickers, ranked — a multi-asset screen."""
+
+    generated_at: str
+    system_status: SystemStatus
+    strategy_name: str
+    source: str = "live"
+    rows: list[QuantLabScreenRow] = Field(default_factory=list)
+    safety_caption: str = ""
+
+
 class QuantLabRunRequest(CamelModel):
     """An agent-authored free-form strategy to backtest (Phase 21.8).
 

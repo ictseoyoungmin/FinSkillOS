@@ -112,6 +112,38 @@ def test_quant_lab_run_endpoint_backtests_custom_spec(monkeypatch, tmp_path) -> 
         engine.dispose()
 
 
+def test_quant_lab_screen_ranks_multiple_tickers(monkeypatch, tmp_path) -> None:
+    # Seed two tickers, then screen one built-in strategy across both.
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'q.db'}"
+    engine = create_engine(database_url, future=True)
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with factory() as s:
+        MarketDataService(
+            s, adapter=MockMarketDataAdapter(default_bars=90),
+            universe=["NVDA", "AAPL"],
+        ).refresh_bars(["NVDA", "AAPL"])
+        SignalService(s).compute_for_universe(["NVDA", "AAPL"])
+        s.commit()
+    monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    reset_settings_cache()
+    try:
+        body = TestClient(create_app()).get(
+            "/api/quant-lab/screen?strategy=SMA_50_CROSS"
+        ).json()
+        tickers = {r["ticker"] for r in body["rows"]}
+        assert {"NVDA", "AAPL"} <= tickers
+        returns = [
+            r["totalReturn"] for r in body["rows"] if r["totalReturn"] is not None
+        ]
+        assert returns == sorted(returns, reverse=True)  # ranked desc
+    finally:
+        reset_settings_cache()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
 def test_quant_lab_run_rejects_bad_spec(monkeypatch, tmp_path) -> None:
     database_url, engine = _seeded_db(tmp_path)
     monkeypatch.setenv("FINSKILLOS_SKIP_DOTENV", "1")

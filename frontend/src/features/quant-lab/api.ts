@@ -1,6 +1,6 @@
 import { getJson, sendJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
-import type { QuantLabData } from "./types";
+import type { QuantLabData, QuantScreenData } from "./types";
 
 /**
  * Run a descriptive strategy simulation over stored historical bars.
@@ -28,6 +28,31 @@ export async function runQuantLabSpec(
 ): Promise<QuantLabData> {
   return await sendJson<QuantLabData>(
     `${apiEndpoints.quantLab}/run`,
+    "POST",
+    spec,
+    { signal },
+  );
+}
+
+/** Run one built-in strategy across many tickers, ranked (multi-asset screen). */
+export async function fetchQuantLabScreen(
+  strategy?: string,
+  signal?: AbortSignal,
+): Promise<QuantScreenData> {
+  const q = strategy ? `?strategy=${encodeURIComponent(strategy)}` : "";
+  return await getJson<QuantScreenData>(
+    `${apiEndpoints.quantLab}/screen${q}`,
+    { signal },
+  );
+}
+
+/** Screen an agent-authored free-form spec across many tickers. */
+export async function screenQuantLabSpec(
+  spec: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<QuantScreenData> {
+  return await sendJson<QuantScreenData>(
+    `${apiEndpoints.quantLab}/screen`,
     "POST",
     spec,
     { signal },
