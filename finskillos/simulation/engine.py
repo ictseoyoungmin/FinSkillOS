@@ -83,6 +83,21 @@ class SimulationResult:
 _COVERAGE_FEATURES = ("rsi_14", "trend", "regime", "ema_20", "ema_60")
 
 
+@dataclass(frozen=True)
+class WalkForwardWindow:
+    """One sequential out-of-sample window of a walk-forward run (each restarts
+    fresh at equity 1.0 so periods are compared independently)."""
+
+    index: int
+    date_start: str
+    date_end: str
+    bar_count: int
+    total_return: float | None
+    sharpe: float | None
+    exposure_pct: float
+    round_trips: int
+
+
 def _sma_windows(spec: StrategySpec) -> set[int]:
     names = referenced_features(spec.entry) | referenced_features(spec.exit)
     windows: set[int] = set()
@@ -232,3 +247,41 @@ def simulate(
         markers=tuple(markers),
         coverage=coverage,
     )
+
+
+def walk_forward(
+    spec: StrategySpec,
+    bars: list[Bar],
+    *,
+    windows: int,
+    external: list[FeatureRow] | None = None,
+) -> list[WalkForwardWindow]:
+    """Split the bars into ``windows`` sequential segments and run ``spec`` on each
+    independently (fresh equity per window). Returns [] when there aren't enough
+    bars to give each window a meaningful length."""
+
+    n = len(bars)
+    if windows < 2 or n < windows * 20:
+        return []
+    size = n // windows
+    out: list[WalkForwardWindow] = []
+    for i in range(windows):
+        lo = i * size
+        hi = n if i == windows - 1 else (i + 1) * size
+        seg_bars = bars[lo:hi]
+        seg_ext = external[lo:hi] if external is not None else None
+        res = simulate(spec, seg_bars, external=seg_ext)
+        m = res.metrics
+        out.append(
+            WalkForwardWindow(
+                index=i + 1,
+                date_start=seg_bars[0].date,
+                date_end=seg_bars[-1].date,
+                bar_count=len(seg_bars),
+                total_return=m.total_return,
+                sharpe=m.sharpe,
+                exposure_pct=m.exposure_pct,
+                round_trips=m.round_trips,
+            )
+        )
+    return out

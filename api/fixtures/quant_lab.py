@@ -23,9 +23,11 @@ from api.schemas.quant_lab import (
     QuantLabSegment,
     QuantLabStrategyOption,
     QuantLabStrategySummary,
+    QuantLabWindow,
 )
 from finskillos.services.simulation_service import list_strategies
 from finskillos.simulation import SIMULATION_CAPTION, Bar, SimulationResult, simulate
+from finskillos.simulation.engine import walk_forward
 from finskillos.simulation.library import condition_text, get_strategy
 
 UTC = timezone.utc
@@ -49,6 +51,7 @@ def build_quant_lab_response(
     regime_covered: bool,
     db_state: str = "LIVE",
     spec=None,
+    walk_forward=(),
 ) -> QuantLabResponse:
     # ``spec`` is the actual StrategySpec (needed for agent-authored CUSTOM specs
     # that aren't in the library); fall back to the built-in lookup by id.
@@ -140,6 +143,19 @@ def build_quant_lab_response(
             data_note="과거 일봉 바 백테스트.",
         ),
         coverage=coverage,
+        walk_forward=[
+            QuantLabWindow(
+                index=w.index,
+                date_start=w.date_start,
+                date_end=w.date_end,
+                bar_count=w.bar_count,
+                total_return=w.total_return,
+                sharpe=w.sharpe,
+                exposure_pct=w.exposure_pct,
+                round_trips=w.round_trips,
+            )
+            for w in walk_forward
+        ],
         warnings=list(result.warnings),
     )
 
@@ -168,10 +184,13 @@ def quant_lab_fixture(
     tk = (ticker or spec.universe[0]).upper()
     from dataclasses import replace
 
-    result = simulate(replace(spec, universe=(tk,)), _synthetic_bars())
+    spec = replace(spec, universe=(tk,))
+    bars = _synthetic_bars()
+    result = simulate(spec, bars)
     return build_quant_lab_response(
         result,
         strategy_id=sid,
+        walk_forward=walk_forward(spec, bars, windows=3),
         available_tickers=list(_FIXTURE_TICKERS),
         source="fixture",
         generated_at=FIXTURE_TIMESTAMP,

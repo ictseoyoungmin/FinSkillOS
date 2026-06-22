@@ -85,6 +85,12 @@ def _read_quant_lab(
             )
         now = datetime.now(tz=UTC).isoformat()
         regime_covered = any(p.regime for p in result.equity_curve)
+        spec = get_strategy(sid)
+        wf = (
+            service.walk_forward_spec(spec, ticker=ticker)
+            if spec is not None
+            else []
+        )
         return build_quant_lab_response(
             result,
             strategy_id=sid,
@@ -92,6 +98,7 @@ def _read_quant_lab(
             source="live",
             generated_at=now,
             regime_covered=regime_covered,
+            walk_forward=wf,
         )
 
 
@@ -141,9 +148,11 @@ def quant_lab_run(payload: QuantLabRunRequest) -> QuantLabResponse:
             )
         now = datetime.now(tz=UTC).isoformat()
         regime_covered = any(p.regime for p in result.equity_curve)
+        wf = service.walk_forward_spec(spec, timeframe=payload.timeframe)
         return build_quant_lab_response(
             result,
             strategy_id="CUSTOM",
+            walk_forward=wf,
             available_tickers=available,
             source="live",
             generated_at=now,

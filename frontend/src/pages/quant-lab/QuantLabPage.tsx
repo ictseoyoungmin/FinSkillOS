@@ -12,6 +12,7 @@ import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityCha
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
 import { QuantReplayPanel } from "@/features/quant-lab/components/QuantReplayPanel";
 import { QuantStrategyPanel } from "@/features/quant-lab/components/QuantStrategyPanel";
+import { QuantWalkForwardPanel } from "@/features/quant-lab/components/QuantWalkForwardPanel";
 import { JudgmentHeader, Panel, SafetyCaption, SectionHeader } from "@/shared/ui";
 import "./quant-lab.css";
 
@@ -113,6 +114,7 @@ export function QuantLabPage() {
           />
           <QuantEquityChart curve={data.equityCurve} ticker={data.strategy.ticker} />
           <QuantMetricsPanel metrics={data.metrics} />
+          <QuantWalkForwardPanel windows={data.walkForward} />
         </div>
         <div className="fso-quant-side">
           <QuantStrategyPanel

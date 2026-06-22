@@ -54,6 +54,17 @@ export interface QuantMetrics {
   winRate: number | null;
 }
 
+export interface QuantWindow {
+  index: number;
+  dateStart: string;
+  dateEnd: string;
+  barCount: number;
+  totalReturn: number | null;
+  sharpe: number | null;
+  exposurePct: number;
+  roundTrips: number;
+}
+
 export interface QuantFeatureCoverage {
   name: string;
   bars: number;
@@ -89,5 +100,6 @@ export interface QuantLabData {
   safetyCaption: string;
   dataState: QuantDataState;
   coverage: QuantCoverage;
+  walkForward: QuantWindow[];
   warnings: string[];
 }

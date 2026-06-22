@@ -105,6 +105,20 @@ def test_external_features_drive_conditions():
     assert result.equity_curve[1].regime == "RECOVERY"
 
 
+def test_walk_forward_splits_into_independent_windows():
+    from finskillos.simulation.engine import walk_forward
+
+    spec = _spec(Compare("ret", ">", 0.0), Compare("ret", "<", 0.0))
+    closes = [100 + (i % 7) - 3 for i in range(120)]  # enough bars for 3 windows
+    windows = walk_forward(spec, _bars(closes), windows=3)
+    assert [w.index for w in windows] == [1, 2, 3]
+    assert sum(w.bar_count for w in windows) == 120
+    # Each window is a contiguous, ordered slice.
+    assert windows[0].date_start <= windows[0].date_end <= windows[1].date_start
+    # Too few bars → no windows (don't fabricate tiny segments).
+    assert walk_forward(spec, _bars([100, 101, 102]), windows=3) == []
+
+
 def test_metric_formulas_on_known_equity():
     equity = [1.0, 1.1, 0.99, 1.089]
     assert total_return(equity) == pytest.approx(0.089, rel=1e-6)

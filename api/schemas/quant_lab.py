@@ -75,6 +75,17 @@ class QuantLabCoverage(CamelModel):
     features: list[QuantLabFeatureCoverage] = Field(default_factory=list)
 
 
+class QuantLabWindow(CamelModel):
+    index: int
+    date_start: str
+    date_end: str
+    bar_count: int
+    total_return: float | None = None
+    sharpe: float | None = None
+    exposure_pct: float = 0.0
+    round_trips: int = 0
+
+
 class QuantLabDataState(CamelModel):
     source: str = "live"
     ticker: str = ""
@@ -110,4 +121,5 @@ class QuantLabResponse(CamelModel):
     safety_caption: str = ""
     data_state: QuantLabDataState = Field(default_factory=QuantLabDataState)
     coverage: QuantLabCoverage = Field(default_factory=QuantLabCoverage)
+    walk_forward: list[QuantLabWindow] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)

@@ -15,6 +15,7 @@ from finskillos.db.repositories import (
     MarketRepository,
 )
 from finskillos.simulation import Bar, SimulationResult, StrategySpec, simulate
+from finskillos.simulation.engine import WalkForwardWindow, walk_forward
 from finskillos.simulation.library import STRATEGY_LIBRARY, get_strategy
 
 _MIN_BARS = 60
@@ -42,6 +43,16 @@ class SimulationService:
             return None
         return self.run_spec(spec, ticker=ticker, timeframe=timeframe)
 
+    def _bars_and_external(self, ticker: str, timeframe: str):
+        rows = self.market.list_bars(ticker, timeframe)
+        bars = [
+            Bar(date=r.bar_time.date().isoformat(), close=float(r.close))
+            for r in rows
+            if r.close is not None
+        ]
+        external = self._external_features(ticker, timeframe, [b.date for b in bars])
+        return bars, external
+
     def run_spec(
         self,
         spec: StrategySpec,
@@ -53,16 +64,27 @@ class SimulationService:
         chosen ticker's stored bars."""
 
         chosen = (ticker or spec.universe[0]).upper()
-        rows = self.market.list_bars(chosen, timeframe)
-        bars = [
-            Bar(date=r.bar_time.date().isoformat(), close=float(r.close))
-            for r in rows
-            if r.close is not None
-        ]
-        external = self._external_features(
-            chosen, timeframe, [b.date for b in bars]
-        )
+        bars, external = self._bars_and_external(chosen, timeframe)
         return simulate(replace(spec, universe=(chosen,)), bars, external=external)
+
+    def walk_forward_spec(
+        self,
+        spec: StrategySpec,
+        *,
+        ticker: str | None = None,
+        timeframe: str = "1d",
+        windows: int = 4,
+    ) -> list[WalkForwardWindow]:
+        """Per-window robustness check — runs ``spec`` over sequential segments."""
+
+        chosen = (ticker or spec.universe[0]).upper()
+        bars, external = self._bars_and_external(chosen, timeframe)
+        return walk_forward(
+            replace(spec, universe=(chosen,)),
+            bars,
+            windows=windows,
+            external=external,
+        )
 
     def _external_features(
         self, ticker: str, timeframe: str, dates: list[str]
