@@ -1,6 +1,12 @@
 import { getJson, sendJson } from "@/shared/api/client";
 import { apiEndpoints } from "@/shared/api/endpoints";
-import type { QuantLabData, QuantPortfolioData, QuantScreenData } from "./types";
+import type {
+  QuantLabData,
+  QuantPortfolioData,
+  QuantSavedList,
+  QuantSavedSummary,
+  QuantScreenData,
+} from "./types";
 
 /**
  * Run a descriptive strategy simulation over stored historical bars.
@@ -84,6 +90,48 @@ export async function portfolioQuantLabSpec(
     `${apiEndpoints.quantLab}/portfolio`,
     "POST",
     spec,
+    { signal },
+  );
+}
+
+/** Run a saved (agent-authored) strategy by its id. */
+export async function fetchQuantLabSaved(
+  savedId: string,
+  signal?: AbortSignal,
+): Promise<QuantLabData> {
+  return await getJson<QuantLabData>(
+    `${apiEndpoints.quantLab}?saved=${encodeURIComponent(savedId)}`,
+    { signal },
+  );
+}
+
+/** List saved strategies. */
+export async function listSavedSpecs(signal?: AbortSignal): Promise<QuantSavedList> {
+  return await getJson<QuantSavedList>(`${apiEndpoints.quantLab}/specs`, { signal });
+}
+
+/** Save a free-form spec for later re-use. */
+export async function saveSpec(
+  spec: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<QuantSavedSummary> {
+  return await sendJson<QuantSavedSummary>(
+    `${apiEndpoints.quantLab}/specs`,
+    "POST",
+    spec,
+    { signal },
+  );
+}
+
+/** Delete a saved strategy. */
+export async function deleteSpec(
+  specId: string,
+  signal?: AbortSignal,
+): Promise<{ ok: boolean }> {
+  return await sendJson<{ ok: boolean }>(
+    `${apiEndpoints.quantLab}/specs/${encodeURIComponent(specId)}`,
+    "DELETE",
+    undefined,
     { signal },
   );
 }

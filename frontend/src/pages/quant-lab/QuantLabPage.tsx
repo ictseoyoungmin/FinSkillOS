@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   decodeSpecParam,
   fetchQuantLab,
+  fetchQuantLabSaved,
   runQuantLabSpec,
 } from "@/features/quant-lab/api";
 import { QuantControls } from "@/features/quant-lab/components/QuantControls";
@@ -11,6 +12,7 @@ import { QuantDataPrepPanel } from "@/features/quant-lab/components/QuantDataPre
 import { QuantEquityChart } from "@/features/quant-lab/components/QuantEquityChart";
 import { QuantMetricsPanel } from "@/features/quant-lab/components/QuantMetricsPanel";
 import { QuantPortfolioPanel } from "@/features/quant-lab/components/QuantPortfolioPanel";
+import { QuantSavedPanel } from "@/features/quant-lab/components/QuantSavedPanel";
 import { QuantScreenPanel } from "@/features/quant-lab/components/QuantScreenPanel";
 import { QuantReplayPanel } from "@/features/quant-lab/components/QuantReplayPanel";
 import { QuantStrategyPanel } from "@/features/quant-lab/components/QuantStrategyPanel";
@@ -23,26 +25,36 @@ export function QuantLabPage() {
   const strategy = searchParams.get("strategy") ?? undefined;
   const ticker = searchParams.get("ticker") ?? undefined;
   const specParam = searchParams.get("spec") ?? undefined;
+  const savedParam = searchParams.get("saved") ?? undefined;
   const customSpec = useMemo(
     () => (specParam ? decodeSpecParam(specParam) : null),
     [specParam],
   );
 
   const { data, error, isPending, isFetching } = useQuery({
-    queryKey: ["quant-lab", specParam ?? "", strategy ?? "", ticker ?? ""],
+    queryKey: ["quant-lab", savedParam ?? "", specParam ?? "", strategy ?? "", ticker ?? ""],
     queryFn: ({ signal }) =>
-      customSpec
-        ? runQuantLabSpec(customSpec, signal)
-        : fetchQuantLab(strategy, ticker, signal),
+      savedParam
+        ? fetchQuantLabSaved(savedParam, signal)
+        : customSpec
+          ? runQuantLabSpec(customSpec, signal)
+          : fetchQuantLab(strategy, ticker, signal),
     placeholderData: keepPreviousData,
   });
 
   const setParam = (key: "strategy" | "ticker", value: string) => {
     const next = new URLSearchParams(searchParams);
     next.set(key, value);
-    // Picking a built-in strategy/ticker leaves any custom-spec deep-link.
+    // Picking a built-in strategy/ticker drops any custom-spec / saved deep-link.
     next.delete("spec");
+    next.delete("saved");
     if (key === "strategy") next.delete("ticker");
+    setSearchParams(next, { replace: true });
+  };
+
+  const loadSaved = (savedId: string) => {
+    const next = new URLSearchParams();
+    next.set("saved", savedId);
     setSearchParams(next, { replace: true });
   };
 
@@ -112,7 +124,7 @@ export function QuantLabPage() {
             curve={data.equityCurve}
             markers={data.markers}
             ticker={data.strategy.ticker}
-            autoPlay={Boolean(specParam || (strategy && ticker))}
+            autoPlay={Boolean(specParam || savedParam || (strategy && ticker))}
           />
           <QuantEquityChart curve={data.equityCurve} ticker={data.strategy.ticker} />
           <QuantMetricsPanel metrics={data.metrics} />
@@ -137,6 +149,7 @@ export function QuantLabPage() {
             onPick={(t) => setParam("ticker", t)}
           />
           <QuantDataPrepPanel coverage={data.coverage} dataState={data.dataState} />
+          <QuantSavedPanel customSpec={customSpec} onLoad={loadSaved} />
         </div>
       </div>
     </div>

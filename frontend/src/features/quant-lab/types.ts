@@ -54,6 +54,17 @@ export interface QuantMetrics {
   winRate: number | null;
 }
 
+export interface QuantSavedSummary {
+  id: string;
+  name: string;
+  ticker: string;
+  createdAt: string;
+}
+
+export interface QuantSavedList {
+  specs: QuantSavedSummary[];
+}
+
 export interface QuantPortfolioPoint {
   date: string;
   strategy: number;
