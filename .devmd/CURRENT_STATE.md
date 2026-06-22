@@ -232,9 +232,17 @@ Mark `[~]` while in progress, then `[x]` with the implementation note when done.
   `SimulationService.screen_spec` runs a strategy across all stored tickers; GET
   `/api/quant-lab/screen` (built-in) + POST (custom spec) return per-ticker rows
   ranked by return; on-demand tab panel (click a row → deep-link that ticker).
-  Live-verified (SMA_50_CROSS screened across 40 tickers, SOXL top). NEXT (21.x):
-  multi-asset *portfolio* synthesis (screening done; combined allocation not yet),
-  saved specs.
+  Live-verified (SMA_50_CROSS screened across 40 tickers, SOXL top). **332**
+  multi-asset *portfolio* synthesis — `engine.synthesize_portfolio` aligns
+  per-ticker backtests on the union of dates and equal-weights (1/N) into one
+  capital curve vs an equal-weight buy-and-hold benchmark;
+  `SimulationService.portfolio_spec` + GET/POST `/api/quant-lab/portfolio`;
+  on-demand tab panel with the combined LineChart + portfolio metrics + basket.
+  Live-verified (TREND_STATE_FOLLOW over 5 tickers → +26.3% Sharpe 1.6 vs
+  equal-weight hold +60.2%). Phase 21 quant arc (316–332) complete. NEXT: saved
+  specs, deeper history. NOTE: `docker compose` CLI was hanging in the WSL env at
+  332 (stuck `compose run e2e`/`up` holding locks); recover containers with
+  `docker start finskillos-api finskillos-web`.
 - **v4.3 Skill Layer — Phase 20** (279–314) — substantially DONE. Guards/regime/
   event are now first-class declarative, auditable, cataloged Skills
   (`finskillos/skills/`). RISK: 9 declarative skills live through the registry
